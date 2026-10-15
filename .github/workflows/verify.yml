@@ -20,5 +20,6 @@ jobs:
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
       - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm exec rer check --profile first-party
       - run: pnpm exec rer verify --no-queue
