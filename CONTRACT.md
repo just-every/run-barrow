@@ -11,3 +11,5 @@
 **BAR-005 — Export, restore and erasure.** Owner exports restore commercial records while excluding authentication and connection credentials. Erasing an unused account retires its import custody and commits the portability redaction checkpoint atomically; later journals fence old backups. Ordered accounts retain commercial history. Authentication and Pier data have separate custody.
 
 Hono owns health/API; TanStack Start serves application documents. Base supplies sign-in, first-run setup, theme, command lifecycle and portability. Applied migrations and deployment identities are preserved.
+
+**BAR-006 — Run site.** `rer build --site` emits a public homepage, `/run`, and the repository Markdown guides at `/docs`. It reads no installation data and the installed `/` remains the Lobby. Site deployment stays disabled until the run-site gate enables it.

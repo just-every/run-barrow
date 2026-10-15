@@ -1,0 +1,82 @@
+.br-docs *, .br-docs *::before, .br-docs *::after { box-sizing: border-box; }
+.br-docs {
+  margin: 0;
+  background: var(--rer-page);
+  color: var(--rer-text);
+  font: 400 17px/1.5 var(--rer-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+.br-docs a { color: inherit; text-underline-offset: 3px; }
+.br-docs a:focus-visible, .br-docs main:focus-visible { outline: 3px solid var(--rer-focus); outline-offset: 3px; }
+.br-docs-skip { position: absolute; top: 8px; left: 16px; transform: translateY(-150%); padding: 12px 20px; background: var(--rer-surface); z-index: 10; }
+.br-docs-skip:focus { transform: none; }
+.br-docs-header, .br-docs-footer { max-width: 1280px; margin: 0 auto; padding: 24px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.br-docs-brand { display: inline-flex; gap: 12px; align-items: center; text-decoration: none; font: 500 28px/1 var(--rer-font-body); }
+.br-docs-brand img { width: 32px; height: 32px; }
+.br-docs-header nav { display: flex; align-items: center; gap: 28px; font-size: 16px; }
+.br-docs-header nav > a { text-decoration: none; }
+.br-docs-header nav > a:hover { text-decoration: underline; }
+.br-docs-header a.br-docs-run { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px; border-radius: 999px; background: var(--rer-text); color: var(--rer-surface); font-weight: 500; }
+.br-docs-awning { height: 44px; background: url('/brand/awning.svg') left bottom / 96px 120px repeat-x; }
+.br-docs-layout { max-width: 1280px; margin: 0 auto; padding: 64px 24px 96px; display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 64px; align-items: start; }
+.br-docs-nav { position: sticky; top: 24px; display: grid; gap: 4px; }
+.br-docs-layout aside { align-self: stretch; }
+.br-docs-nav p { margin: 0 0 16px; color: var(--rer-muted); font-size: 14px; }
+.br-docs-nav a { padding: 10px 12px; margin-left: -12px; border-radius: 8px; text-decoration: none; font-size: 16px; line-height: 1.35; }
+.br-docs-nav a:hover { text-decoration: underline; }
+.br-docs-nav a[aria-current='page'] { background: var(--rer-surface); box-shadow: inset 3px 0 var(--br-ultramarine); font-weight: 600; }
+.br-docs-article { min-width: 0; max-width: 800px; }
+.br-docs-article h1, .br-docs-article h2, .br-docs-article h3 { font-family: var(--rer-font-heading); font-weight: 700; letter-spacing: -.01em; line-height: 1; text-wrap: balance; }
+.br-docs-article h1 { font-size: 64px; margin: 0 0 24px; }
+.br-docs-article h2 { font-size: 36px; margin: 48px 0 20px; }
+.br-docs-article h3 { font-size: 28px; margin: 32px 0 16px; }
+.br-docs-article p { margin: 0 0 20px; }
+.br-docs-article > h1 + p { font-size: 21px; color: var(--rer-muted); margin-bottom: 32px; }
+.br-docs-article ul, .br-docs-article ol { padding-left: 24px; margin: 20px 0 28px; }
+.br-docs-article li { padding-left: 4px; margin: 10px 0; }
+.br-docs-article code { font: 400 .85em/1.6 var(--rer-font-mono); overflow-wrap: anywhere; }
+.br-docs-article :not(pre) > code { background: var(--br-rule); border-radius: 4px; padding: 2px 4px; }
+.br-docs-article pre { padding: 20px 24px; margin: 24px 0; border: 1px solid var(--rer-border); border-radius: 10px; background: var(--rer-surface); overflow-x: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.br-docs-article pre code { font-size: 14px; }
+.br-docs-article table { display: block; width: 100%; overflow-x: auto; border-spacing: 0; margin: 24px 0 32px; font-size: 16px; }
+.br-docs-article th, .br-docs-article td { text-align: left; vertical-align: top; padding: 14px 16px; border-bottom: 1px solid var(--br-rule); }
+.br-docs-article th { font-size: 14px; font-weight: 600; background: var(--br-rule); }
+.br-docs-article td:first-child { min-width: 130px; }
+.br-docs-article blockquote { margin: 24px 0; padding-left: 20px; border-left: 3px solid var(--br-ultramarine); color: var(--rer-muted); }
+.br-docs-article-footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--br-rule); font-size: 14px; color: var(--rer-muted); }
+.br-docs-footer { max-width: 1232px; padding: 24px 0; border-top: 1px solid var(--br-rule); color: var(--rer-muted); font-size: 14px; }
+
+/* Shared Base markup keeps its commands and copy; Barrow supplies the look. */
+.br-run-site { background: var(--rer-page); }
+.br-run-site .brand { font: 500 28px/1 var(--rer-font-body); }
+.br-run-site .intro h1 { font-weight: 700; letter-spacing: -.01em; line-height: .95; }
+.br-run-site .steps::before { content: ''; display: block; height: 44px; background: url('/brand/awning.svg') left bottom / 96px 120px repeat-x; }
+.br-run-site .step { border-radius: 14px; background: var(--rer-surface); border-color: var(--br-rule); box-shadow: var(--br-shadow); }
+.br-run-site .step h2 { font-weight: 700; font-size: 32px; letter-spacing: -.01em; }
+.br-run-site .num { background: var(--br-ultramarine); }
+.br-run-site .code { background: var(--rer-page); color: var(--rer-text); border: 1px solid var(--rer-border); }
+.br-run-site .code pre { font-weight: 400; }
+@media (max-width: 700px) {
+  .br-docs { font-size: 16px; }
+  .br-docs-header { padding: 20px 16px; gap: 12px; }
+  .br-docs-brand { font-size: 24px; gap: 8px; }
+  .br-docs-header nav { gap: 16px; font-size: 14px; }
+  .br-docs-header nav > a[href^='https:'] { display: none; }
+  .br-docs-header a.br-docs-run { min-height: 44px; padding: 0 16px; }
+  .br-docs-awning, .br-run-site .steps::before { height: 32px; background-size: 56px 70px; }
+  .br-docs-layout { padding: 28px 16px 64px; grid-template-columns: minmax(0, 1fr); gap: 36px; }
+  .br-docs-nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; }
+  .br-docs-nav p { grid-column: 1 / -1; margin-bottom: 8px; }
+  .br-docs-nav a { margin: 0; padding: 10px; font-size: 14px; }
+  .br-docs-article h1 { font-size: 44px; }
+  .br-docs-article h2 { font-size: 32px; margin-top: 36px; }
+  .br-docs-article > h1 + p { font-size: 18px; }
+  .br-docs-article pre { padding: 16px; }
+  .br-docs-article pre code { font-size: 12px; }
+  .br-docs-article table { font-size: 14px; }
+  .br-docs-article th, .br-docs-article td { padding: 12px 10px; }
+  .br-docs-footer { margin: 0 16px; gap: 16px; }
+  .br-run-site .brand { font-size: 23px; }
+  .br-run-site .bar nav a[href^="https:"] { display: none; }
+  .br-run-site .step h2 { font-size: 26px; }
+}

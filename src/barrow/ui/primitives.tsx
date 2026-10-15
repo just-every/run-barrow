@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { Account } from './types'
 
 export function Empty({ title, children }: { title: string; children: ReactNode }) {
-  return <div className="br-empty"><h3>{title}</h3><p>{children}</p></div>
+  return <div className="br-empty"><span className="br-empty-motif" aria-hidden="true" /><h3>{title}</h3><p>{children}</p></div>
 }
 
 export function Notice({ children, error = false }: { children: ReactNode; error?: boolean }) {

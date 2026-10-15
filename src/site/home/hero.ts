@@ -1,0 +1,10 @@
+// Editable structure and desktop scene geometry from the approved 12ui conversion.
+// Source: evidence/gr-barrow-style/built/conversion/output/index.html (outside repo).
+import { actions, drawnButton, scenery } from './shared'
+
+const workflowLabel = 'Juniper Café orders 12 House blend and 4 Decaf, $392.00; you approve and reserve the stock; the invoice CSV is ready on 30-day terms.'
+
+export function hero(): string {
+  return `<section class="home-hero home-wrap" aria-labelledby="home-title"><h1 id="home-title">Let your stockists order online.</h1><p class="home-subtitle">Each stockist orders at its own prices against live stock. Approve, and the invoice is ready.</p><p class="home-alternative">100% free, open source alternative to <strong>B2B Wave</strong>, <strong>Orderspace</strong> and <strong>Shopify B2B</strong></p>${actions()}<p class="home-license-note">Free and open source, MIT licensed.</p></section>`
+    + `<figure class="home-hero-scene" role="img" aria-label="${workflowLabel}"><img class="home-scene-art" src="/landing/shop-scene.webp" alt="" fetchpriority="high" width="3072" height="1070"><div class="home-hero-scenery">${scenery('both')}</div><div class="home-steps"><div class="home-step"><h2><span class="home-number">1</span><span>They order</span></h2><div class="home-card home-order"><h3>Juniper Café</h3><div class="home-order-row"><span>House blend</span><span>1 kg × 12</span></div><div class="home-order-row"><span>Decaf</span><span>1 kg × 4</span></div><div class="home-order-row home-order-total"><span>Total</span><strong>$392.00</strong></div></div><span class="home-step-arrow" aria-hidden="true">→</span></div><div class="home-step"><h2><span class="home-number">2</span><span>You approve</span></h2><div class="home-card home-approval"><h3>Juniper Café</h3>${drawnButton('Approve &amp; reserve stock')}</div><span class="home-step-arrow" aria-hidden="true">→</span></div><div class="home-step"><h2><span class="home-number">3</span><span>Invoice ready</span></h2><div class="home-card home-ready">${drawnButton('Download invoice CSV')}<p class="home-terms">30-day terms</p></div></div></div></figure>`
+}

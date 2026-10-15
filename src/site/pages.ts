@@ -1,18 +1,21 @@
-// The run site `rer build --site` writes: the homepage with its Run action,
-// /run, the not-found page and the public files they use. Every Run page
-// string and command is in run.json; nothing here reads installation data.
-import { runPageHtml, siteHomeHtml, siteNotFoundHtml, type RunData, type SiteBuild } from '../base/run-site'
+// Build-time public content only; installation data never enters the run site.
+import { runPageHtml, siteNotFoundHtml, type RunData, type SiteBuild, type SiteContext } from '../base/run-site'
 import { identity } from '../identity'
 import run from './run.json'
+import { homeHtml } from './home'
+import { docsPages } from './docs/pages'
+import './docs/docs.css'
 
-export function sitePages(): SiteBuild {
+export function sitePages({ styles = [] }: SiteContext): SiteBuild {
   const data: RunData = run
+  const styled = (html: string) => html.replace('</head>', `${styles.map(href => `<link rel="stylesheet" href="${href}">`).join('')}</head>`)
   return {
     pages: [
-      { path: '/', html: siteHomeHtml(identity, data) },
-      { path: '/run', html: runPageHtml(identity, data) },
-      { path: '/404', html: siteNotFoundHtml(identity, data) },
+      { path: '/', html: styled(homeHtml(identity, data)) },
+      { path: '/run', html: styled(runPageHtml({ ...identity, band: undefined }, data).replace('<body>', '<body class="br-run-site">')) },
+      ...docsPages(identity, data).map(page => ({ ...page, html: styled(page.html) })),
+      { path: '/404', html: styled(siteNotFoundHtml(identity, data)) },
     ],
-    assets: ['rer-theme.css', 'fonts', 'brand'],
+    assets: ['rer-theme.css', 'fonts', 'brand', 'landing'],
   }
 }

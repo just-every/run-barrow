@@ -20,8 +20,8 @@ export function DataTools({ accounts, busy, run }: { accounts: Account[]; busy: 
     <AgentCredential />
     <div className="br-panel br-stack"><h2>Erase an unused trade account</h2><p>Erasure removes this Barrow account and its retained import custody, and immediately removes the customer’s portal access. Accounts with orders cannot be erased because their commercial history must be preserved.</p>
       <Notice>Sign-in identity, records held in Pier, and previously exported files or backups remain. Handle these separately if they also need erasure.</Notice>
-      <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
-      <div className="br-actions"><button className="br-danger" disabled={busy || !account} onClick={() => { setConfirmation(''); setConfirming(true) }}>Review account erasure</button></div>
+      <div className="br-erasure-controls"><AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
+      <div className="br-actions"><button className="br-danger" disabled={busy || !account} onClick={() => { setConfirmation(''); setConfirming(true) }}>Review account erasure</button></div></div>
     </div>
     {confirming && account && <Dialog title={`Erase ${account.value.name}?`} busy={busy} onClose={() => setConfirming(false)}>
       <p>This removes the unused account and its retained import custody. Customer portal access ends immediately. This action cannot be undone.</p>

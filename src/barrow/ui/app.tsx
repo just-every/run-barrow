@@ -19,6 +19,7 @@ export function BarrowApp() {
   const lock = useRef(false)
   const [tab, setTab] = useState('')
   const [accountId, setAccountId] = useState('')
+  const [preparing, setPreparing] = useState(false)
   const supplier = state?.actor.role === 'owner' || state?.actor.role === 'admin'
   const tabs = supplier ? ['Accounts', 'Orders', 'Move in', 'Data'] : ['Catalogue', 'Orders']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
@@ -66,13 +67,14 @@ export function BarrowApp() {
   }
 
   return <div className="barrow">
-    <HydrationUnit><header className="br-header">
+    <div className="br-chrome"><HydrationUnit><header className="br-header">
       <a href="/app" className="br-brand"><span className="br-mark" aria-hidden="true" /><span>Barrow<small>Wholesale, together.</small></span></a>
       <div className="br-session">{state && <><span className="br-email">{state.actor.email}</span><span className="br-badge">{supplier ? 'Supplier' : 'Trade customer'}</span></>}
         <form method="post" action="/auth/signout" onSubmit={event => { event.preventDefault(); void signOut() }}><button className="br-quiet" disabled={signingOut || busy}>{signingOut ? 'Signing out…' : 'Sign out'}</button></form>
       </div>
     </header></HydrationUnit>
-    <HydrationUnit><nav className="br-nav" aria-label="Barrow pages">{state && tabs.map(item => <button key={item} aria-current={activeTab === item ? 'page' : undefined} onClick={() => { setTab(item); setNotice('') }}>{item}</button>)}</nav></HydrationUnit>
+    <HydrationUnit><nav className="br-nav" aria-label="Barrow pages">{state && tabs.map(item => <button key={item} aria-current={activeTab === item ? 'page' : undefined} onClick={() => { setTab(item); setNotice('') }}>{item}</button>)}</nav></HydrationUnit></div>
+    <div className="br-awning" aria-hidden="true" />
     <main id="main-content" className="br-main" aria-busy={loading || busy}>
       <HydrationUnit><section>
         {error && <Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice>}
@@ -80,13 +82,13 @@ export function BarrowApp() {
         {!state && loading && <p role="status">Loading your wholesale workspace…</p>}
         {state && <>
           <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1></div>
-            <span className="br-connection">{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
+            <span className={`br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>
           {!state.connection.configured && <Notice>Live stock and reservations need a Pier connection. {supplier ? 'Configure Pier in the installation settings before taking orders.' : 'Contact your supplier to enable ordering.'}</Notice>}
-          {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => { setAccountId(id); setTab('Orders') }} />}
+          {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => { setAccountId(id); setPreparing(true); setTab('Orders') }} />}
           {activeTab === 'Catalogue' && (selected ? <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => setTab('Orders')} /> : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>)}
           {activeTab === 'Orders' && <>
-            {supplier && <div className="br-panel"><h2>Prepare an order</h2><p>Choose a trade account to use its agreed prices and terms.</p><AccountPicker accounts={state.accounts} value={accountId} onChange={setAccountId} />{selected && <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => setTab('Orders')} />}</div>}
+            {supplier && <details className="br-panel br-prepare" open={preparing} onToggle={event => setPreparing(event.currentTarget.open)}><summary>Prepare an order</summary><p>Choose a trade account to use its agreed prices and terms.</p><AccountPicker accounts={state.accounts} value={accountId} onChange={setAccountId} />{selected && <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => { setPreparing(false); setTab('Orders') }} />}</details>}
             <Orders orders={state.orders} supplier={supplier} busy={busy} run={run} />
           </>}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}

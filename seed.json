@@ -6,7 +6,7 @@
   "category": "commerce",
   "spine": {
     "id": "wholesale",
-    "record": "A trade account’s priced order, approved by a supplier and reserved in Pier."
+    "record": "A trade account\u2019s priced order, approved by a supplier and reserved in Pier."
   },
   "description": "Private wholesale catalogues, customer order review, supplier-approved Pier reservations, invoice CSV handoff and reviewed account move-in.",
   "capabilities": [
@@ -45,8 +45,7 @@
     "Consumer storefront",
     "Card checkout or payment collection",
     "Tax calculation and shipping rates",
-    "ERP or a second stock ledger",
-    "Brand and homepage design"
+    "ERP or a second stock ledger"
   ],
   "externals": [
     {

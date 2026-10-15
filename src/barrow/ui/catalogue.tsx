@@ -37,7 +37,7 @@ export function CatalogueView({ account, run, busy, onPrepared }: { account: Acc
       onPrepared()
     }
   }
-  return <div className="br-catalogue br-stack">
+  return <div className="br-panel br-catalogue br-stack">
     <div className="br-heading-row"><div><h2>{currentAccount.value.name} catalogue</h2><p>{money(currentAccount.value.minimumCents)} minimum · {currentAccount.value.termsDays === 0 ? 'Due on receipt' : `${currentAccount.value.termsDays}-day terms`}</p></div>
       <button className="br-secondary" disabled={loading || busy} onClick={() => setRefresh(value => value + 1)}>Refresh stock</button></div>
     {loading && <p role="status">Fetching live stock and agreed prices from Pier…</p>}

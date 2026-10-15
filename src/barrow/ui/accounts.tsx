@@ -7,7 +7,7 @@ import { AccountForm } from './account-form'
 export function Accounts({ accounts, run, busy, onOrder }: { accounts: Account[]; run: RunCommand; busy: boolean; onOrder: (id: string) => void }) {
   const [editing, setEditing] = useState<Account | 'new' | null>(null)
   return <div className="br-stack">
-    <div className="br-heading-row"><p>Agreed prices, minimums and payment terms for each customer.</p><button onClick={() => setEditing('new')} disabled={busy}>Add trade account</button></div>
+    <div className="br-heading-row br-accounts-intro"><p>Agreed prices, minimums and payment terms for each customer.</p><button onClick={() => setEditing('new')} disabled={busy}>Add trade account</button></div>
     {editing && <div className="br-panel"><AccountForm key={editing === 'new' ? 'new' : editing.id} account={editing === 'new' ? undefined : editing} run={run} busy={busy} onClose={() => setEditing(null)} /></div>}
     {accounts.length === 0 ? <Empty title="Your first trade relationship starts here">Add a customer account, agree its prices and send an invitation. Or use Move in to import your existing accounts.</Empty> :
       <div className="br-account-grid">{accounts.map(account => <article className="br-panel br-account" key={account.id}>

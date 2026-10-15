@@ -1,0 +1,33 @@
+# Trade accounts and invitations
+
+Each trade account has its own buyer email, agreed prices, minimums and payment terms. The customer signs in to see only that account's catalogue and orders.
+
+## Agree the account details
+
+In the supplier workspace, open Accounts and choose **Add trade account**.
+
+| Field | What to enter |
+| --- | --- |
+| Business name | The stockist's business name. |
+| Customer email | Its buyer's email, stored lowercase. Each account needs a distinct email. |
+| Account ID | A permanent, stable ID; leave blank to generate one. Use the same ID in future imports. |
+| Pier customer ID | The exact customer party ID from Pier. Names are not matched automatically. |
+| Payment terms (days) | Whole days, from 0 to 365. Zero means due on receipt. |
+| Minimum order (AUD cents) | A whole number of cents; `15000` means $150.00. |
+| Agreed prices | One line per SKU: `SKU,unitCents,minQty`, without a header. |
+
+For example, a price line of `COFFEE-1KG,2400,6` means $24.00 per sell unit with a minimum quantity of six. Only agreed SKUs appear in that account's catalogue. Use the exact SKUs held in Pier. Quantities are whole sell units, not fractional weights.
+
+Choose **Save account**. You can use **Edit account** to update prices, minimums and terms. Existing order snapshots retain their commercial details. The account ID and buyer email cannot be changed through the editor: create a separate account for a different buyer email so existing order access cannot be reassigned.
+
+## Send the invitation
+
+Choose **Send invitation** on the account card. The email link takes that buyer to its own portal. A customer cannot read another account's catalogue or prices. If the customer sees **Your account is not linked yet**, check that its signed-in email exactly matches the account's customer email.
+
+Local invitations stay in the private development outbox; see [getting started](GETTING-STARTED.md) for testing the ordinary email flow in separate browser profiles. Hosted invitations use the installation's configured mail provider.
+
+## Prepare an order together
+
+The customer can enter quantities in Catalogue. A supplier can also use **Prepare order** on the account card, or select a trade account from Orders. Both use that account's agreed prices and terms. Continue with [orders and invoices](ORDERS.md).
+
+To add many accounts at once, use [Move in](IMPORT-ACCOUNTS.md). To remove an unused account, follow [account erasure](BACKUP-RESTORE.md).

@@ -61,7 +61,7 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
     <p>Bring existing trade accounts and agreed prices into Barrow. Review a dry run before applying any changes.</p>
     {error && <Notice error>{error}</Notice>}{notice && <Notice>{notice}</Notice>}
     <div className="br-panel br-stack">
-      <div className="br-heading-row"><h2>1. Add your CSV</h2><a href="/fixtures/trade-accounts.csv" download>Download example CSV</a></div>
+      <div className="br-heading-row"><h2><span className="br-step-number">1.</span> Add your CSV</h2><a href="/fixtures/trade-accounts.csv" download>Download example CSV</a></div>
       <p className="br-small">Columns: accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty. Use lowercase emails and repeat account details for each SKU price.</p>
       <label>Choose a CSV file<input type="file" accept=".csv,text/csv" disabled={busy} onChange={event => {
         const file = event.target.files?.[0]
@@ -72,14 +72,17 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
       <div className="br-actions"><button disabled={busy || !csv.trim()} onClick={() => void act(dryRun)}>Run dry run</button></div>
       {resume && <Notice>Keep this exact CSV and reviewed fingerprint to resume job {applied.id}. Changing the source requires a new dry run.</Notice>}
     </div>
-    {preview && <div className="br-panel br-stack"><h2>2. Review & apply</h2>
+    <div className="br-panel br-stack"><h2><span className="br-step-number">2.</span> Review & apply</h2>
+      {!preview && <p>Run a dry run to review the account changes before applying them.</p>}
+      {preview && <>
       <dl className="br-counts">{Object.entries(preview.counts).filter(([, value]) => typeof value === 'number').map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl>
       {preview.diagnostics.length ? <ul className="br-diagnostics">{preview.diagnostics.map((diagnostic, index) => <li key={index}><strong>{diagnostic.severity}: {diagnostic.code}</strong><p>{diagnostic.message}</p>{diagnostic.location?.row && <small>CSV row {diagnostic.location.row}</small>}</li>)}</ul> : <p>No diagnostics reported.</p>}
       <label>Reviewed fingerprint<input readOnly value={preview.fingerprint} className="br-mono" /></label>
       <JsonDetail value={preview.plan.entries.map(entry => ({ sourceId: entry.source.sourceId, effects: entry.effects, unmapped: entry.unmapped, rejection: entry.rejection }))} label="Review planned account changes" />
       <p>Applying writes these account changes. Existing account prices and terms may be updated. Each request processes a bounded batch; resume until complete.</p>
       <div className="br-actions"><button disabled={busy || (!canApply && !resume)} onClick={() => void act(apply)}>{resume ? 'Resume apply' : applied?.state === 'completed' ? 'Import completed' : 'Apply reviewed import'}</button></div>
-    </div>}
+      </>}
+    </div>
     <div className="br-heading-row"><h2>History</h2><button className="br-secondary" disabled={busy} onClick={() => void act(list)}>Refresh journal</button></div>
     <ImportJournal jobs={jobs} journal={journal} busy={busy} onOpen={id => void act(async () => setJournal(await request<Journal>(`/api/barrow/imports/${encodeURIComponent(id)}`)))} onUndo={id => setUndoId(id)} onResume={() => void act(resumeJournal)} />
     {undoId && <Dialog title="Undo this import?" busy={busy} onClose={() => setUndoId('')}><p>Restore the before-images for job {undoId}. Later changes and orders can prevent reversal. Review the journal afterwards.</p><div className="br-actions"><button autoFocus className="br-secondary" disabled={busy} onClick={() => setUndoId('')}>Cancel</button><button className="br-danger" disabled={busy} onClick={() => { const id = undoId; setUndoId(''); void act(() => undo(id)) }}>Undo import</button></div></Dialog>}

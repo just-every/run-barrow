@@ -1,25 +1,44 @@
-/* This edition's declared theme. The installer, sign-in, confirmation, /setup
-   and development outbox read these --rer-* tokens; the app serves this file and its fonts.
-   Buttons keep the colour chosen at setup (src/branding.json primaryColor)
-   because no --rer-accent is declared here; declare --rer-accent and
-   --rer-accent-text together to fix them instead. */
-@font-face {
-  font-family: Outfit;
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/outfit/outfit-latin-wght-normal.woff2') format('woff2');
+@import url('/fonts/fonts.css');
+/* One palette and type system shared by the site, app and Base documents. */
+:root{
+  --rer-font-body:Barlow,Arial,sans-serif;
+  --rer-font-heading:'Barlow Condensed',Arial,sans-serif;
+  --rer-font-mono:'DM Mono',monospace;
+  --rer-page:#FBFAF5;
+  --rer-surface:#FFFFFF;
+  --rer-text:#12161E;
+  --rer-muted:#5B5F66;
+  --rer-border:#C9C6BF;
+  --rer-accent:#12161E;
+  --rer-accent-text:#FFFFFF;
+  --rer-link:#12161E;
+  --rer-focus:#2348A8;
+  --rer-radius:14px;
+  --rer-logo:url('/brand/mark.svg');
+  --br-rule:#E7E4DD;
+  --br-ultramarine:#2348A8;
+  --br-cream:#F6EEDF;
+  --br-wall:#EFE5D6;
+  --br-wall-shade:#D9C8B1;
+  --br-counter:#E3BF8E;
+  --br-shadow:0 1px 2px #12161E0D,0 10px 28px #12161E14;
 }
-:root {
-  --rer-font-body: Outfit, Arial, sans-serif;
-  --rer-font-heading: Outfit, Arial, sans-serif;
-  --rer-page: #f4f6f5;
-  --rer-surface: #ffffff;
-  --rer-text: #1b2724;
-  --rer-muted: #4a5a55;
-  --rer-border: #6b7c76;
-  --rer-focus: #1b2724;
-  --rer-link: #1f5f52;
-  --rer-radius: 12px;
-  --rer-logo: url('/brand/mark.svg');
+/* The shared frame supplies markup, security and behavior; only its theme changes. */
+html.rer-themed body{display:block;place-items:normal;padding:0 20px 64px;font-size:17px;line-height:1.5}
+html.rer-themed body::before{content:'';display:block;height:44px;width:calc(100% + 40px);margin:0 -20px 96px;background:url('/brand/awning.svg') left bottom/96px 120px repeat-x;filter:drop-shadow(0 8px 7px #12161E1F)}
+html.rer-themed main{margin:0 auto;padding:36px;max-width:480px;border:1px solid var(--br-rule);box-shadow:var(--br-shadow)}
+html.rer-themed .brand,html.rer-themed .rer-brand{font:500 26px/1.2 var(--rer-font-body);margin-bottom:32px}
+html.rer-themed .brand::before,html.rer-themed .rer-brand::before{width:30px;height:36px}
+html.rer-themed h1{font-weight:700;font-size:44px;line-height:.95;letter-spacing:-.01em;margin-bottom:20px}
+html.rer-themed button{border-radius:999px;font-weight:500;min-height:48px}
+html.rer-themed input:not([type=checkbox]):not([type=hidden]){border-radius:10px;min-height:48px}
+html.rer-themed input[type=checkbox]{accent-color:var(--br-ultramarine)}
+html.rer-themed label,html.rer-themed dt{font-size:14px}
+html.rer-themed dl{padding:20px 0;border-block:1px solid var(--br-rule)}
+@media(max-width:700px){
+  html.rer-themed body{display:block;place-items:normal;padding:0 16px 48px;font-size:16px}
+  html.rer-themed body::before{height:32px;width:calc(100% + 32px);margin:0 -16px 64px;background-size:56px 70px}
+  html.rer-themed main{padding:28px 20px}
+  html.rer-themed h1{font-size:36px}
+  html.rer-themed .brand,html.rer-themed .rer-brand{font-size:24px}
 }

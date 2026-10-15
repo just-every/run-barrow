@@ -6,4 +6,6 @@
 4. A supplier previews the documented trade-account CSV move-in kit, approves its fingerprint, reads its journal, resumes it and undoes it without discarding later edits or order dependencies.
 5. The owner exports and restores Barrow data. A supplier can erase an unused account and its import custody; a later erasure journal prevents restoring its older archive.
 
-Not needed: consumer storefront, card checkout, tax calculation, shipping rates, ERP, live mail/provider calls for local use, a run site, domain purchase or a design pass. Existing Pier owns stock and allocation. Ordered accounts retain commercial history; erasure here does not delete Pier records or Base sign-in identities.
+6. The separate run site introduces Barrow, links to `/run`, and serves owner guides from the repository Markdown. Installed `/` remains the Lobby. The shared market-awning theme carries through the app, sign-in and setup at desktop and phone widths.
+
+Not needed: consumer storefront, card checkout, tax calculation, shipping rates, ERP, live mail/provider calls for local use, domain purchase. Existing Pier owns stock and allocation. Ordered accounts retain commercial history; erasure here does not delete Pier records or Base sign-in identities.
