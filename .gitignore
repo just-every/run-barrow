@@ -13,3 +13,6 @@ dist/
 
 exports/
 research/
+
+.rer/demo/
+.rer/demo-host/

@@ -10,9 +10,9 @@ cd run-barrow
 rer dev
 ```
 
-Without `rer`, install the CLI once with `npx -y @runeditrun/rer@0.2.21 cli install` and add `$HOME/.local/bin` to PATH. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. The local outbox sends no external email. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
+Without `rer`, install the CLI once with `npx -y @runeditrun/rer@0.2.21 cli install` and add `$HOME/.local/bin` to PATH. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
 
-For a real owner installation, run `rer install`, then `rer setup --owner-email you@example.com`, then `rer dev`. With `rer dev --login`, sign in through `/signin` and the newest message in the key-gated local outbox printed by `rer outbox`.
+For a real owner installation, run `rer install`, then `rer setup --owner-email you@example.com`, then `rer dev`. Local review uses the private automatic sign-in link.
 
 ## Public site and guides
 
@@ -36,7 +36,7 @@ Use Pier's actual origin and port. Hosted Pier requires HTTPS. The helper checks
 
 ## Do the first jobs
 
-- **Accounts:** add a name, lowercase customer email, exact Pier customer ID, terms, minimum order cents, and SKU prices. Prices are integer AUD cents; quantities are whole sell units. Use **Send invitation**. Locally, sign the supplier in through `/signin` and its outbox email before sending invitations, then open the customer invitation in a separate browser profile. Invitations sent by the automatic development identity need the local key gate in the recipient profile as well; use an ordinary email session to exercise the normal flow. Hosted installations deliver invitations through the configured mail provider.
+- **Accounts:** add a name, lowercase customer email, exact Pier customer ID, terms, minimum order cents, and SKU prices. Prices are integer AUD cents; quantities are whole sell units. Use **Send invitation**. Local demo invitations complete without delivery. Hosted installations deliver invitations through the configured mail provider.
 - **Customer Catalogue:** enter quantities and a PO reference, prepare a draft, then review and submit it in **Orders**. Other accounts and prices are inaccessible to the customer.
 - **Supplier Orders:** review the fixed prices and terms, then approve. Pier makes the reservation. A fully reserved order offers an invoice CSV. A shortfall needs attention in Pier; reserve the remainder there, then **Refresh stock status** in Barrow. A lost response offers **Retry stock reservation**, using the same durable Pier command ID. Never create another order to recover the first one.
 - **Move in:** upload [the documented-shape fixture](fixtures/trade-accounts.csv), run a dry run, review the plan, apply it and inspect its journal. Repeated requests resume the same job. Undo preserves native edits and refuses accounts used by orders. Replace the fixture's Pier IDs before placing orders. Details: [move-in format](docs/MOVE-IN.md).
@@ -65,4 +65,4 @@ Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for your account, a
 
 ## Development
 
-`rer check --profile first-party` checks the command contract. Before running Verify locally, install the pinned browser with `pnpm exec playwright install chromium` (Linux may also need `--with-deps`). `rer verify` builds, typechecks, runs the small HTTP/D1 integration suite and the real email-link test, and checks hosted assets. The tests obtain pinned public Pier source under `.cache/pier-source`; this is test infrastructure, never a production stock fallback. CI runs one Verify workflow per push. See [ACCEPTANCE.md](ACCEPTANCE.md), [source lineage](docs/SOURCES.md) and [command contract](SEED-COMMAND-CONTRACT.md).
+`rer check --profile first-party` checks the command contract. Before running Verify locally, install the pinned browser with `pnpm exec playwright install chromium` (Linux may also need `--with-deps`). `rer verify` builds, typechecks, runs the small HTTP/D1 integration suite including email-link confirmation at the mail provider network boundary, and checks hosted assets. The tests obtain pinned public Pier source under `.cache/pier-source`; this is test infrastructure, never a production stock fallback. CI runs one Verify workflow per push. See [ACCEPTANCE.md](ACCEPTANCE.md), [source lineage](docs/SOURCES.md) and [command contract](SEED-COMMAND-CONTRACT.md).

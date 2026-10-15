@@ -10,10 +10,21 @@ import { pierSource } from '../pier-source.mjs';
 export async function installation({pier=false,bindings={}}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
- const bundled=await build({entryPoints:[join(root,'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*'],loader:{'.css':'text','.svg':'text'}});
+ const bundled=await build({entryPoints:[join(root,'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
+ const messages=[];
+ // Fake only the external mail boundary; Pier remains the real pinned Worker.
+ const mailEdge=async request=>{
+  if(new URL(request.url).hostname==='api.resend.com') {
+   messages.push(await request.json());return Response.json({id:randomUUID()});
+  }
+  // Node fetch supplies its own framing when forwarding the workerd request.
+  const headers=Object.fromEntries([...request.headers].filter(([name])=>!['connection','transfer-encoding','content-length','host','expect'].includes(name)));
+  const response=await fetch(request.url,{method:request.method,headers,...(['GET','HEAD'].includes(request.method)?{}:{body:await request.arrayBuffer()})});
+  return new Response(await response.arrayBuffer(),{status:response.status,headers:Object.fromEntries(response.headers)});
+ };
  let origin='http://localhost';
- const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,modules:true,script:bundled.outputFiles[0].text,compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:'development',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings}}),resourcePersistencePath:directory});
+ const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,modules:true,script:bundled.outputFiles[0].text,compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'test-network-edge',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
@@ -34,6 +45,13 @@ export async function installation({pier=false,bindings={}}={}) {
   };
   const signIn=async(email)=>{
    await api('/auth/invite',{email,displayName:'Trade buyer',role:'member',returnTo:'/app'},{status:202});
+   if(!pier) {
+    const message=messages.findLast(message=>JSON.stringify(message.to).includes(email));
+    const link=new URL(message?.text?.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)?.[0] ?? message?.html?.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]?.replaceAll('&amp;','&'));
+    const confirmed=await request('/auth/confirm',{method:'POST',as:'',body:{token:link.searchParams.get('token')}});
+    assert.equal(confirmed.status,303);
+    return confirmed.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
+   }
    const listing=await (await request('/__dev/outbox',{headers:{'x-rer-dev-key':key}})).text();
    for(const [,path] of listing.matchAll(/href="(\/__dev\/outbox\?message=[^"]+)"/g)) {
     const detail=await (await request(path.replaceAll('&amp;','&'),{headers:{'x-rer-dev-key':key}})).text();

@@ -41,5 +41,9 @@
       "binding": "PIER_SESSION",
       "environment": "PIER_SESSION"
     }
+  ],
+  "platforms": [
+    "cloudflare",
+    "container"
   ]
 }

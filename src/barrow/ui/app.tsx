@@ -68,7 +68,7 @@ export function BarrowApp() {
 
   return <div className="barrow">
     <div className="br-chrome"><HydrationUnit><header className="br-header">
-      <a href="/app" className="br-brand"><span className="br-mark" aria-hidden="true" /><span>Barrow<small>Wholesale, together.</small></span></a>
+      <a href="/app" className="br-brand"><span className="br-mark" aria-hidden="true" /><span><span data-rer-name>Barrow</span><small>Wholesale, together.</small></span></a>
       <div className="br-session">{state && <><span className="br-email">{state.actor.email}</span><span className="br-badge">{supplier ? 'Supplier' : 'Trade customer'}</span></>}
         <form method="post" action="/auth/signout" onSubmit={event => { event.preventDefault(); void signOut() }}><button className="br-quiet" disabled={signingOut || busy}>{signingOut ? 'Signing out…' : 'Sign out'}</button></form>
       </div>

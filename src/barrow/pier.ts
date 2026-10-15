@@ -1,3 +1,6 @@
+import { demoEffect } from '../modules/demo/index.mjs'
+import { demoPierOrigin } from '../demo-data'
+import { demoPierState, demoReservation } from './demo-pier'
 // Decimal representation adapted from Pier model.ts at dcd4c591. Allocation stays in Pier.
 import { fail, type Account, type Line } from './model'
 import type { Bindings } from '../auth.server'
@@ -25,7 +28,9 @@ async function call(env: Bindings,path: string,body?: unknown) {
  if(data.ok===false) fail('PIER_REJECTED','Pier refused this order. Check its customer, items and session permissions.',409)
  return data
 }
-export const pierState = (env: Bindings) => call(env,'/api/pier/state')
+export const pierOrigin = (env: Bindings) => demoEffect(() => env.PIER_ORIGIN, demoPierOrigin)
+export const pierConfigured = (env: Bindings) => demoEffect(() => Boolean(env.PIER_ORIGIN && env.PIER_SESSION), true)
+export const pierState = (env: Bindings) => demoEffect(() => call(env,'/api/pier/state'), demoPierState)
 export async function catalogue(env: Bindings,account: Account) {
  const state=await pierState(env)
  if(!Array.isArray(state.items)||!Array.isArray(state.positions)||!Array.isArray(state.locations)||!Array.isArray(state.parties)) fail('PIER_RESPONSE','Pier stock response is incomplete.',502)
@@ -39,7 +44,7 @@ export async function catalogue(env: Bindings,account: Account) {
  })
  return {account,items,observedAt:new Date().toISOString()}
 }
-export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[]) => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:lines.map(l=>({itemId:l.itemId,quantity:String(l.quantity)}))}}).then(value=>value.result)
+export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[]) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:lines.map(l=>({itemId:l.itemId,quantity:String(l.quantity)}))}}).then(value=>value.result), () => demoReservation(orderId, lines))
 export function fullyReserved(result: any,lines: Line[]) {
  return Array.isArray(result?.lines) && result.lines.length===lines.length && lines.every(line=>{
   const matches=result.lines.filter((l:any)=>l.itemId===line.itemId)

@@ -1,7 +1,7 @@
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
-import { catalogue,decimal,reserveOrder,pierState,fullyReserved } from './pier'
+import { catalogue,decimal,reserveOrder,pierState,pierOrigin,fullyReserved } from './pier'
 import { fail,text,integer,requirePerson,requireSupplier,actorLabel,type Actor,type Order,type Line } from './model'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
@@ -44,7 +44,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
   if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')
   const id=crypto.randomUUID(),revision=crypto.randomUUID()
-  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:env.PIER_ORIGIN!,reference:p.reference?text(p.reference,'Customer reference',100):'',lines,totalCents,termsDays:selected.value.termsDays,status:'draft',preparedBy:actorLabel(actor),preparedAt:new Date().toISOString(),revision}
+  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',lines,totalCents,termsDays:selected.value.termsDays,status:'draft',preparedBy:actorLabel(actor),preparedAt:new Date().toISOString(),revision}
   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(selected.id,selected.revision),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared')])
   return order
  }
@@ -57,7 +57,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   return save(env,actor,{...order,status:'submitted',submittedBy:actor.id},'order.submitted',[env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(selected.id,selected.revision)])
  }
  requireSupplier(actor)
- if(order.pierOrigin!==env.PIER_ORIGIN) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
+ if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
  if(type==='order.approve') {
   if(order.status==='approved'||order.status==='shortfall') return order
   if(order.status==='submitted') order=await save(env,actor,{...order,status:'reserving',approvedBy:actor.id,approvedAt:new Date().toISOString()},'order.approved')

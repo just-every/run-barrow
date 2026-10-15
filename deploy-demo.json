@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "domain": "run-barrow.com",
+  "name": "Barrow",
+  "settings": {
+    "MAIL_FROM": "Barrow <hello@demo.invalid>"
+  }
+}

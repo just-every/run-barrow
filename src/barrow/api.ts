@@ -4,7 +4,7 @@ import { portabilityPolicy } from './portability-policy.mjs'
 import { current,digest,commit,audit } from './access'
 import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
-import { catalogue } from './pier'
+import { catalogue, pierConfigured } from './pier'
 import { invoiceCsv } from './invoice'
 import { Problem,fail,requireSupplier,supplier } from './model'
 import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport } from './imports'
@@ -23,7 +23,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/state' && request.method==='GET') {
    const selected=await accounts(env.DB,actor)
    const rows=await env.DB.prepare('SELECT value_json,revision FROM bw_orders'+(supplier(actor)?'':" WHERE account_id IN (SELECT id FROM bw_accounts WHERE json_extract(value_json,'$.email')=?)")+' ORDER BY rowid DESC').bind(...(supplier(actor)?[]:[actor.email])).all<any>()
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders:rows.results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})),connection:{configured:Boolean(env.PIER_ORIGIN&&env.PIER_SESSION)}})
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders:rows.results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})),connection:{configured:await pierConfigured(env)}})
   }
   if(path==='/api/barrow/catalogue' && request.method==='GET') return json(await catalogue(env,await account(env.DB,actor,url.searchParams.get('accountId')??'')))
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
