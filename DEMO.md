@@ -22,7 +22,7 @@ The runtime modules under `src/modules` are exact copies recorded by Base's
 migrations retain their original provenance in `composition.lock.json`.
 The CLI remains the exact npm package pin in `package.json` and `pnpm-lock.yaml`.
 
-`deploy-demo.json` declares the hosted name and required plain mail setting.
+`deploy-demo.json` declares the hosted name and required plain MAIL_FROM and MAIL_PROVIDER settings.
 Run the **Run demo** workflow by hand in the `run-demo` GitHub environment:
 `test_only=true` uses `demo.test.run-barrow.com` with published Turnstile test
 keys; `remove=true` removes that selected host and reads its resources back.

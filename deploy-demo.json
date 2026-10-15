@@ -3,6 +3,8 @@
   "domain": "run-barrow.com",
   "name": "Barrow",
   "settings": {
-    "MAIL_FROM": "Barrow <hello@demo.invalid>"
-  }
+    "MAIL_FROM": "Barrow <hello@demo.invalid>",
+    "MAIL_PROVIDER": "resend"
+  },
+  "instanceType": "standard-1"
 }
