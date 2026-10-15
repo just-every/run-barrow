@@ -1,0 +1,4 @@
+accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty
+trade-river,River Grocer,buyer@river.example,pier-river,14,10000,APPLE-BOX,2500,2
+trade-river,River Grocer,buyer@river.example,pier-river,14,10000,PEAR-BOX,3000,1
+trade-hill,Hill Pantry,orders@hill.example,pier-hill,30,15000,APPLE-BOX,2400,4

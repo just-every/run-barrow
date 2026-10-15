@@ -1,0 +1,121 @@
+{
+  "id": "barrow",
+  "name": "Barrow",
+  "version": "0.1.0",
+  "maturity": "first-release-worker-d1-ui",
+  "category": "commerce",
+  "spine": {
+    "id": "wholesale",
+    "record": "A trade account’s priced order, approved by a supplier and reserved in Pier."
+  },
+  "description": "Private wholesale catalogues, customer order review, supplier-approved Pier reservations, invoice CSV handoff and reviewed account move-in.",
+  "capabilities": [
+    {
+      "id": "trade-accounts",
+      "clauses": [
+        "BAR-001"
+      ]
+    },
+    {
+      "id": "wholesale-orders",
+      "clauses": [
+        "BAR-002"
+      ]
+    },
+    {
+      "id": "agent-drafts",
+      "clauses": [
+        "BAR-003"
+      ]
+    },
+    {
+      "id": "account-move-in",
+      "clauses": [
+        "BAR-004"
+      ]
+    },
+    {
+      "id": "data-portability",
+      "clauses": [
+        "BAR-005"
+      ]
+    }
+  ],
+  "nonGoals": [
+    "Consumer storefront",
+    "Card checkout or payment collection",
+    "Tax calculation and shipping rates",
+    "ERP or a second stock ledger",
+    "Brand and homepage design"
+  ],
+  "externals": [
+    {
+      "id": "cloudflare",
+      "required": true,
+      "why": "Worker hosting",
+      "data": [
+        "HTTP requests"
+      ],
+      "adapters": []
+    },
+    {
+      "id": "pier",
+      "required": true,
+      "why": "Live sellable stock and idempotent sales-order reservation",
+      "data": [
+        "Permitted SKU stock observations",
+        "Customer party IDs and approved order quantities"
+      ],
+      "adapters": [
+        "src/barrow/pier.ts"
+      ]
+    }
+  ],
+  "env": [],
+  "deploy": {
+    "healthPath": "/health",
+    "publicPaths": [
+      "/",
+      "/health",
+      "/signin"
+    ],
+    "notes": "Native owner sessions guard /app; unknown paths return real 404s; the development outbox is local-only."
+  },
+  "extensionPoints": {
+    "contributions": [],
+    "policies": [],
+    "events": [],
+    "slots": [],
+    "adapters": []
+  },
+  "limits": {
+    "status": "unmeasured"
+  },
+  "accessibility": {
+    "level": "WCAG 2.2 AA",
+    "status": "target; unaudited"
+  },
+  "operatingCost": {
+    "status": "unmeasured"
+  },
+  "composition": {
+    "base": "base",
+    "family": "wholesale",
+    "edition": "barrow",
+    "modules": [
+      "job-queue",
+      "release",
+      "deploy-kit",
+      "container",
+      "demo-host",
+      "integrations",
+      "mail",
+      "ai",
+      "portability",
+      "erasure",
+      "dependencies",
+      "operator-auth",
+      "owner-claim"
+    ]
+  }
+}

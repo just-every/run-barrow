@@ -1,0 +1,30 @@
+diff --git a/cli/package-mode.mjs b/cli/package-mode.mjs
+index 5e4f3d7e0670c33cb092d653981258feaa2ae332..458a325c6c8626f73306ccb4e12be37b57e00d5b 100644
+--- a/cli/package-mode.mjs
++++ b/cli/package-mode.mjs
+@@ -39,8 +39,10 @@ export async function lockedPackage(root) {
+   const entries = block(...own, `${group}:`, 4), entry = entries && block(...entries, `'${packageName}':`, 6);
+   if (!entry) continue;
+   const fields = Object.fromEntries(lines.slice(...entry).map(line => /^\s+(specifier|version):\s*'?([^'\s]*)'?\s*$/.exec(line)).filter(Boolean).map(match => [match[1], match[2]]));
+-  const packages = block(0, lines.length, 'packages:', 0), resolved = packages && block(...packages, `'${packageName}@${fields.version}':`, 2);
+-  return { group, specifier: fields.specifier, version: fields.version, locked: Boolean(resolved && lines.slice(...resolved).some(line => /^\s+resolution: \{integrity: sha512-/.test(line))) };
++  // pnpm resolves the published tarball separately from its integrity-bound patch.
++  const version = fields.version?.replace(/\(patch_hash=[a-f0-9]{64}\)$/, '');
++  const packages = block(0, lines.length, 'packages:', 0), resolved = packages && block(...packages, `'${packageName}@${version}':`, 2);
++  return { group, specifier: fields.specifier, version, locked: Boolean(resolved && lines.slice(...resolved).some(line => /^\s+resolution: \{integrity: sha512-/.test(line))) };
+  }
+  return undefined;
+ }
+diff --git a/onboarding/process-diagnostics.mjs b/onboarding/process-diagnostics.mjs
+index dfb2b14c154dd7c3b06a0b1b7262ae71bea9e15a..356aa7ba51aa0fad1fa34ac0e1582e65e12e47bb 100644
+--- a/onboarding/process-diagnostics.mjs
++++ b/onboarding/process-diagnostics.mjs
+@@ -7,7 +7,7 @@ const exec=promisify(execFile);
+ // Diagnose sockets with the system utility even when that PATH is constrained.
+ const lsof=process.platform==='darwin'?'/usr/sbin/lsof':'lsof';
+ const run=async(command,args)=>{
+- try{return (await exec(command,args,{timeout:3000,maxBuffer:1024*1024})).stdout;}
++ try{return (await exec(command,args,{timeout:command===lsof?15000:3000,maxBuffer:1024*1024})).stdout;}
+  catch(error){
+   // lsof exits 1 when a selected PID has exited,
+   // while still returning the live listeners of other selected PIDs.
