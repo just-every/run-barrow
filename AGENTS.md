@@ -2,7 +2,7 @@
 
 ## Launch for review
 
-Run `rer dev` from the checkout root and nothing else. It installs and sets up a fresh checkout itself. Give it at least ten minutes; if interrupted, run the same command again. Never ask for an email, port, password or answers file for a review. Share the printed `RER_READY` address and private `RER_OPEN` link only with the owner. Stop with `rer dev --stop`; a refusal names its next command. Without rer, install it once with `npx -y @runeditrun/rer@0.2.15 cli install` and add `$HOME/.local/bin` to PATH.
+Run `rer dev` from the checkout root and nothing else. It installs and sets up a fresh checkout itself. Give it at least ten minutes; if interrupted, run the same command again. Never ask for an email, port, password or answers file for a review. Share the printed `RER_READY` address and private `RER_OPEN` link only with the owner. Stop with `rer dev --stop`; a refusal names its next command. Without rer, install it once with `npx -y @runeditrun/rer@0.2.17 cli install` and add `$HOME/.local/bin` to PATH.
 
 ## Work in this seed
 

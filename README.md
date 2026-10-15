@@ -10,7 +10,7 @@ cd run-barrow
 rer dev
 ```
 
-Without `rer`, install the CLI once with `npx -y @runeditrun/rer@0.2.15 cli install` and add `$HOME/.local/bin` to PATH. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. The local outbox sends no external email. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
+Without `rer`, install the CLI once with `npx -y @runeditrun/rer@0.2.17 cli install` and add `$HOME/.local/bin` to PATH. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. The local outbox sends no external email. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
 
 For a real owner installation, run `rer install`, then `rer setup --owner-email you@example.com`, then `rer dev`. With `rer dev --login`, sign in through `/signin` and the newest message in the key-gated local outbox printed by `rer outbox`.
 
