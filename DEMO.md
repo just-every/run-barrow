@@ -14,11 +14,12 @@ return success without sending. Barrow's private Pier integration uses
 Its fixed supplier response is in `src/barrow/demo-pier.ts`; it creates no stock
 ledger and never connects to a real Pier account. Preparing, submitting,
 approving and downloading an invoice still use Barrow's real records and routes.
-Invitations use the same helper at the mail facade, so no credentials or external
-mail are needed. Outside demo mode these helpers call the configured real providers.
+Invitations and sign-in links use Base's development mail sender under `RER_DEMO`,
+so they complete without credentials or delivery. Outside demo mode mail uses
+the configured provider.
 
 The runtime modules under `src/modules` are exact copies recorded by Base's
-`record-base` in `base-copies.json`, all from `rer-v0.2.22`. Historical applied
+`record-base` in `base-copies.json`, all from `rer-v0.2.24`. Historical applied
 migrations retain their original provenance in `composition.lock.json`.
 The CLI remains the exact npm package pin in `package.json` and `pnpm-lock.yaml`.
 
@@ -29,3 +30,7 @@ keys; `remove=true` removes that selected host and reads its resources back.
 The ordinary dispatch uses real Turnstile keys for `demo.run-barrow.com`.
 Each visitor gets its own container, ended after 60 minutes or 15 minutes idle.
 Production uses Base's signed `/auth/owner-claim`, with per-container keys.
+
+Test-host deployments observe admissions for 15 minutes and upload a
+`demo-observation` artifact. Start a timing cohort only when that observation
+contains no unrelated visitors. Production deployments do not run this observation.
