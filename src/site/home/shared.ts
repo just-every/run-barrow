@@ -1,6 +1,6 @@
 export const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!))
 
-export const actions = (): string => '<div class="home-actions"><a class="home-button" href="/run">Run Barrow <span aria-hidden="true">→</span></a><a class="home-link" href="/docs">Read the docs</a></div>'
+export const actions = (): string => '<div class="home-actions"><a class="home-button" href="/run">Run Barrow <span aria-hidden="true">→</span></a><a class="home-button" href="https://demo.run-barrow.com/">Try the demo</a><a class="home-link" href="/docs">Read the docs</a></div>'
 
 export const drawnButton = (label: string): string => `<span class="home-drawn-button">${label}</span>`
 
