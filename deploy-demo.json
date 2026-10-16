@@ -6,6 +6,5 @@
     "MAIL_FROM": "Mill House Foods <hello@millhousefoods.example>",
     "MAIL_PROVIDER": "resend"
   },
-  "instanceType": "basic",
   "ownerEmail": "maya@millhousefoods.example"
 }
