@@ -5,10 +5,13 @@ A wholesale ordering portal for an Australian maker or wholesaler. Trade custome
 ## Run locally
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-barrow
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-barrow
 ```
 
-That one line clones Barrow and installs `rer` if you do not have it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
+The first line installs `rer` for you alone, with its own Node if you have none. It changes no shell settings: if it prints an `export PATH=…` line, run that line before the second. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-barrow` does both lines in one.
+
+The second line clones Barrow and starts it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
 
 For a real owner installation, run `rer install`, then `rer setup --owner-email you@example.com`, then `rer dev`. Local review uses the private automatic sign-in link.
 

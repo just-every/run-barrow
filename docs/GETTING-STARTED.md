@@ -4,11 +4,14 @@ Run Barrow on your computer, connect your existing Pier stock desk, then invite 
 
 ## Open Barrow
 
-Open a terminal and run the one line from the [Run page](https://run-barrow.com/run). It installs the Run Edit Run command, clones Barrow and starts it:
+Open a terminal and run the two lines from the [Run page](https://run-barrow.com/run). They install the Run Edit Run command, clone Barrow and start it:
 
 ```sh
-npx -y @runeditrun/rer dev just-every/run-barrow
+curl -fsSL https://runeditrun.com/install.sh | sh
+rer dev just-every/run-barrow
 ```
+
+The first line installs `rer` for you alone, with its own Node if you have none. It changes no shell settings: if it prints an `export PATH=…` line, run that line before the second. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-barrow` does both lines in one.
 
 To start it again later, run `cd run-barrow && rer dev`. Allow several minutes for the first start. The command installs the locked dependencies, selects Node 22.20.0, applies the local database migrations and prepares a local owner. Open the private `RER_OPEN` link it prints, confirm the first-run owner and open `/app` in that installation.
 
