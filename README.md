@@ -59,7 +59,7 @@ After erasure, make a newer export. When restoring an older archive into a fresh
 
 Run `rer deploy --dry-run` to validate and build without provider calls, then `rer deploy` for the actual owner-account deployment. Tests are separate from build and deploy. [deploy.json](deploy.json) declares the Worker and D1 resources and the required environment inputs.
 
-Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for your account, and provide the secret sources named in `deploy.json`: `OWNER_EMAIL`, `SESSION_SECRET`, `SETUP_TOKEN`, `MAIL_API_KEY`, `PIER_ORIGIN`, `PIER_SESSION`. Use private environment storage, never source control. Set `MAIL_FROM` in `deploy.json` to a verified sender for the declared Resend provider before deployment. The deploy kit creates resources, applies migrations, sets the actual `AUTH_ORIGIN` and checks health. It does not require a Barrow domain. This round makes no live provider call or production deployment claim.
+Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for your account, and provide the secret sources named in `deploy.json`: `OWNER_EMAIL`, `SESSION_SECRET`, `SETUP_TOKEN`, `MAIL_API_KEY`. The Pier connection (`PIER_ORIGIN`, `PIER_SESSION`) is optional: without it Barrow deploys and says Pier is not connected; add it later with `rer deploy --set-secret PIER_ORIGIN` and `rer deploy --set-secret PIER_SESSION`. Use private environment storage, never source control. Set `MAIL_FROM` in `deploy.json` to a verified sender for the declared Resend provider before deployment. The deploy kit creates resources, applies migrations, sets the actual `AUTH_ORIGIN` and checks health. It does not require a Barrow domain. This round makes no live provider call or production deployment claim.
 
 ## Development
 

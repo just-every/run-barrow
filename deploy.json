@@ -35,11 +35,13 @@
     },
     {
       "binding": "PIER_ORIGIN",
-      "environment": "PIER_ORIGIN"
+      "environment": "PIER_ORIGIN",
+      "optional": true
     },
     {
       "binding": "PIER_SESSION",
-      "environment": "PIER_SESSION"
+      "environment": "PIER_SESSION",
+      "optional": true
     }
   ],
   "platforms": [
