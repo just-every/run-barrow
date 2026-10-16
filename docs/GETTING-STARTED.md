@@ -4,15 +4,13 @@ Run Barrow on your computer, connect your existing Pier stock desk, then invite 
 
 ## Open Barrow
 
-Install the Run Edit Run command using the instructions on the [Run page](https://run-barrow.com/run), then open a terminal:
+Open a terminal and run the one line from the [Run page](https://run-barrow.com/run). It installs the Run Edit Run command, clones Barrow and starts it:
 
 ```sh
-git clone https://github.com/just-every/run-barrow.git
-cd run-barrow
-rer dev
+npx -y @runeditrun/rer dev just-every/run-barrow
 ```
 
-Allow several minutes for the first start. The command installs the locked dependencies, selects Node 22.20.0, applies the local database migrations and prepares a local owner. Open the private `RER_OPEN` link it prints, confirm the first-run owner and open `/app` in that installation.
+To start it again later, run `cd run-barrow && rer dev`. Allow several minutes for the first start. The command installs the locked dependencies, selects Node 22.20.0, applies the local database migrations and prepares a local owner. Open the private `RER_OPEN` link it prints, confirm the first-run owner and open `/app` in that installation.
 
 Keep `RER_OPEN` and sign-in links private. The local development outbox sends no external email. Stop this checkout's server with `rer dev --stop`.
 
