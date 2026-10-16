@@ -18,19 +18,19 @@ Invitations and sign-in links use Base's development mail sender under `RER_DEMO
 so they complete without credentials or delivery. Outside demo mode mail uses
 the configured provider.
 
-The runtime modules under `src/modules` are exact copies recorded by Base's
-`record-base` in `base-copies.json`, all from `rer-v0.2.24`. Historical applied
-migrations retain their original provenance in `composition.lock.json`.
+The runtime modules under `src/modules`, the `src/base` runtime files, the
+installer files and `.github/workflows/run-demo.yml` are exact copies recorded by
+Base's `record-base` in `base-copies.json`, all from `rer-v0.2.30`. Historical
+applied migrations retain their original provenance in `composition.lock.json`.
 The CLI remains the exact npm package pin in `package.json` and `pnpm-lock.yaml`.
 
-`deploy-demo.json` declares the hosted name and required plain MAIL_FROM and MAIL_PROVIDER settings.
+`deploy-demo.json` declares the hosted name, demo owner and the required plain
+MAIL_FROM and MAIL_PROVIDER settings.
 Run the **Run demo** workflow by hand in the `run-demo` GitHub environment:
 `test_only=true` uses `demo.test.run-barrow.com` with published Turnstile test
-keys; `remove=true` removes that selected host and reads its resources back.
+keys and admits only starts carrying the private measurement token;
+`remove=true` removes that selected host and reads its resources back.
 The ordinary dispatch uses real Turnstile keys for `demo.run-barrow.com`.
-Each visitor gets its own container, ended after 60 minutes or 15 minutes idle.
-Production uses Base's signed `/auth/owner-claim`, with per-container keys.
-
-Test-host deployments observe admissions for 15 minutes and upload a
-`demo-observation` artifact. Start a timing cohort only when that observation
-contains no unrelated visitors. Production deployments do not run this observation.
+Each visitor gets their own native Worker Loader isolate with its own SQLite
+copy of the D1 database, erased after 60 minutes or 15 minutes idle.
+Production uses Base's signed `/auth/owner-claim` for each visitor's copy.
