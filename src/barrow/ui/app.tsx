@@ -17,6 +17,7 @@ export function BarrowApp() {
   const [busy, setBusy] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const lock = useRef(false)
+  const loaded = useRef(false)
   const [tab, setTab] = useState('')
   const [accountId, setAccountId] = useState('')
   const [preparing, setPreparing] = useState(false)
@@ -25,7 +26,9 @@ export function BarrowApp() {
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const selected = state?.accounts.find(account => account.id === accountId)
   const reload = useCallback(async () => {
-    const next = await request<BarrowState>('/api/barrow/state')
+    const first = !loaded.current
+    loaded.current = true
+    const next = await request<BarrowState>('/api/barrow/state', undefined, first)
     setState(next)
     setAccountId(current => next.accounts.some(account => account.id === current) ? current : next.accounts[0]?.id ?? '')
   }, [])

@@ -1,9 +1,10 @@
-export async function request<T>(path: string, body?: unknown): Promise<T> {
+// preloaded: the read matches the document's preload of the same request; every other read goes to the server.
+export async function request<T>(path: string, body?: unknown, preloaded = false): Promise<T> {
   let response: Response
   try {
     response = await fetch(path, {
       credentials: 'same-origin',
-      cache: 'no-store',
+      ...(preloaded ? {} : { cache: 'no-store' as const }),
       ...(body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }),
     })
   } catch {
