@@ -5,12 +5,10 @@ A wholesale ordering portal for an Australian maker or wholesaler. Trade custome
 ## Run locally
 
 ```sh
-git clone https://github.com/just-every/run-barrow.git
-cd run-barrow
-rer dev
+npx -y @runeditrun/rer dev just-every/run-barrow
 ```
 
-Without `rer`, install the CLI once with `npx -y @runeditrun/rer@0.2.21 cli install` and add `$HOME/.local/bin` to PATH. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
+That one line clones Barrow and installs `rer` if you do not have it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
 
 For a real owner installation, run `rer install`, then `rer setup --owner-email you@example.com`, then `rer dev`. Local review uses the private automatic sign-in link.
 
