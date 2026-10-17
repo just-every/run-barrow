@@ -359,7 +359,7 @@
       "source": "editions/barrow/.node-version"
     },
     "ACCEPTANCE.md": {
-      "sha256": "1f7fdf7c9e9505140f82b974aec148c750b70910d2ce110eab9eff11d7d525d3",
+      "sha256": "5fd96150af86e2f7d7ab0cbe2b8c621adf28b3ca11be375d0f9e29265b935cc3",
       "mode": 420,
       "component": "barrow",
       "repository": "family",
@@ -373,7 +373,7 @@
       "source": "editions/barrow/AGENTS.md"
     },
     "CONTRACT.md": {
-      "sha256": "a92ab6a0ea7ab38cf52613576cb47f7e5d053faf7afd11fd252f808ccb4b20e2",
+      "sha256": "fc5177b593d66ab51e7eab78c2b7650565f06cc0d48e88d6e86b03e9b6c900e3",
       "mode": 420,
       "component": "barrow",
       "repository": "family",
