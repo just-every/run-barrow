@@ -1,0 +1,7 @@
+{
+  "schema": 1,
+  "projectId": "just-every/run-barrow",
+  "name": "Barrow",
+  "sourceRepository": "https://github.com/just-every/run-barrow",
+  "license": "MIT"
+}
