@@ -5,15 +5,14 @@ A wholesale ordering portal for an Australian maker or wholesaler. Trade custome
 ## Run locally
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
-rer dev just-every/run-barrow
+npx -y @runeditrun/rer dev just-every/run-barrow
 ```
 
-The first line installs `rer` for you alone, with its own Node if you have none. It changes no shell settings: if it prints an `export PATH=…` line, run that line before the second. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-barrow` does both lines in one.
+No Node? `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-barrow` brings its own Node and does the same.
 
-The second line clones Barrow and starts it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
+That line clones Barrow and starts it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
 
-For a real owner installation, run `rer install`, then `rer setup --owner-email you@example.com`, then `rer dev`. Local review uses the private automatic sign-in link.
+For a real owner installation, run `npx -y @runeditrun/rer install just-every/run-barrow`, then `rer setup --owner-email you@example.com` and `rer dev` from the checkout. Local review uses the private automatic sign-in link.
 
 ## Public site and guides
 
@@ -54,7 +53,7 @@ rer dev --stop
 rer export --output exports/barrow.rer
 ```
 
-Restore into a new empty checkout with `rer import --input /absolute/path/barrow.rer --yes`, then `rer setup` and `rer dev`. Archives include accounts, prices, orders, approval history, move-in custody and erasure journals. They exclude login identities/sessions, agent credentials, local mail and private connection settings. Invite users and reconnect Pier in the destination. Export/import/export equality is tested through the same Base portability service used by the CLI.
+Restore into a new empty checkout (`npx -y @runeditrun/rer install just-every/run-barrow`) with `rer import --input /absolute/path/barrow.rer --yes`, then `rer setup` and `rer dev`. Archives include accounts, prices, orders, approval history, move-in custody and erasure journals. They exclude login identities/sessions, agent credentials, local mail and private connection settings. Invite users and reconnect Pier in the destination. Export/import/export equality is tested through the same Base portability service used by the CLI.
 
 After erasure, make a newer export. When restoring an older archive into a fresh store, pass it as `rer import --input OLD.rer --journal NEWER.rer --yes`. The later journal refuses the whole pre-erasure archive. Protect and retire old backups according to your retention policy. An account with orders cannot be erased in this release; Base sign-in identities and Pier records have separate custody. `rer reset --yes` destroys this checkout's local state and settings.
 
