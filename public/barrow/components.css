@@ -16,6 +16,10 @@
 .barrow .br-danger{background:var(--rer-text);color:var(--rer-surface)}
 .barrow :focus-visible{outline:3px solid var(--rer-focus);outline-offset:3px}
 .barrow input,.barrow textarea,.barrow select{min-width:0;width:100%;padding:10px 12px;min-height:48px;color:var(--rer-text);background:var(--rer-surface);border:1px solid var(--rer-border);border-radius:10px}
+/* every single-choice select; multiple and size>1 lists keep their native look (Base #247 foundation/runtime/select-style.ts) */
+.barrow select:not([multiple],[size]:not([size="1"])){--rer-select-ink:var(--rer-muted);-webkit-appearance:none;appearance:none;padding-inline-end:40px;text-overflow:ellipsis;background-image:linear-gradient(to top right,transparent calc(50% - 1.1px),var(--rer-select-ink) calc(50% - .55px),var(--rer-select-ink) calc(50% + .55px),transparent calc(50% + 1.1px)),linear-gradient(to top left,transparent calc(50% - 1.1px),var(--rer-select-ink) calc(50% - .55px),var(--rer-select-ink) calc(50% + .55px),transparent calc(50% + 1.1px));background-repeat:no-repeat;background-position:right 20px center,right 14px center;background-size:6px 6px}
+.barrow select:not([multiple],[size]:not([size="1"])):focus-visible{--rer-select-ink:var(--rer-text)}
+.barrow select:not([multiple],[size]:not([size="1"])):disabled{--rer-select-ink:color-mix(in srgb,var(--rer-muted) 55%,transparent)}
 .barrow textarea{resize:vertical}.barrow input:read-only{background:var(--rer-page)}
 .barrow label{display:grid;gap:6px;font-size:14px;font-weight:500}.barrow label small{font-weight:400}
 .barrow fieldset{padding:0;margin:0;border:0}
