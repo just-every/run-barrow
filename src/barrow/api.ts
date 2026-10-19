@@ -6,6 +6,7 @@ import { current,digest,commit,audit } from './access'
 import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
+import { exportKinds, exportResponse } from './export'
 import { documentResponse } from './documents'
 import { orderTimeline } from './timeline'
 import { diagnostics } from './diagnostics'
@@ -39,6 +40,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
   if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
   if(path==='/api/barrow/audit.csv' && request.method==='GET') return await exportCommercialAudit(env.DB,actor,url.searchParams)
+  if(path==='/api/barrow/export.json' && request.method==='GET') return await exportResponse(env,actor,'json')
+  const exported=/^\/api\/barrow\/export\/([a-z]+)\.csv$/.exec(path)
+  if(exported && request.method==='GET' && (exportKinds as readonly string[]).includes(exported[1])) return await exportResponse(env,actor,exported[1] as (typeof exportKinds)[number])
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})
   if(path==='/api/barrow/catalogue' && request.method==='GET') return json(await catalogue(env,await account(env.DB,actor,url.searchParams.get('accountId')??'')))
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)

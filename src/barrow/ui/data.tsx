@@ -4,6 +4,7 @@ import { AccountPicker, Notice } from './primitives'
 import { Dialog } from './dialog'
 import { AgentCredential } from './agent-credential'
 import { DiagnosticsCard } from './diagnostics'
+import { ExportLinks } from './export-links'
 
 export function DataTools({ accounts, busy, run }: { accounts: Account[]; busy: boolean; run: RunCommand }) {
   const [accountId, setAccountId] = useState('')
@@ -18,6 +19,7 @@ export function DataTools({ accounts, busy, run }: { accounts: Account[]; busy: 
   }
   return <div className="br-stack">
     <div className="br-card br-stack"><h2>Your installation, your data</h2><p>Export the installation from its checkout with the RER command line. Keep the exported file private: it contains business and account data.</p><pre className="br-command">rer export --output exports/barrow.rer</pre><p className="br-quiet-text">Run this on the machine hosting this installation. The export is written to the path you choose. Use the installation’s RER import command to restore into an empty destination.</p></div>
+    <ExportLinks supplier />
     <DiagnosticsCard />
     <AgentCredential />
     <div className="br-card br-stack"><h2>Erase an unused trade account</h2><p>Erasure removes this Barrow account and its retained import custody, and immediately removes the customer’s portal access. Accounts with orders cannot be erased because their commercial history must be preserved.</p>

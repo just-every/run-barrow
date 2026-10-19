@@ -1,0 +1,57 @@
+// DATA-001: an open export of every commercial record the signed-in person may see, as one JSON document or one
+// RFC 4180 CSV per kind. Owner/admin export every trade account; a buyer exports only accounts under their email;
+// agents are refused. Audit references are internal decisions (DATA-002) and appear only in supplier exports.
+import type { Bindings } from '../auth.server'
+import { accounts } from './accounts'
+import { fail, requirePerson, supplier, type Actor, type Order } from './model'
+import { csvText } from './cart-csv'
+import { now } from './clock'
+
+export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'audit'] as const
+type Kind = (typeof exportKinds)[number]
+// Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
+const columns: Record<Kind, string[]> = {
+ accounts: ['id', 'revision', 'name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'currency', 'city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'],
+ prices: ['accountId', 'accountRevision', 'sku', 'currency', 'unitCents', 'minQty', 'casePack', 'increment', 'units', 'pricing'],
+ orders: ['id', 'revision', 'accountId', 'accountRevision', 'customerName', 'status', 'currency', 'totalCents', 'termsDays', 'reference', 'poRelease', 'requestedDate', 'cancelAfter', 'deliveryLocation', 'instructions', 'preparedBy', 'preparedAt', 'submittedBy', 'approvedBy', 'approvedAt', 'replaces', 'supersededBy', 'reorderedFrom', 'pierOrigin', 'pierOrderId', 'pierReference', 'invoiceNumber', 'document'],
+ lines: ['orderId', 'line', 'sku', 'name', 'pierItemId', 'buyerSku', 'quantity', 'unit', 'baseQuantity', 'baseUnit', 'conversion', 'currency', 'unitCents', 'lineCents', 'pricing'],
+ invoices: ['number', 'orderId', 'accountId', 'issuedAt', 'dueAt', 'currency', 'totalCents', 'csv'],
+ documents: ['orderId', 'name', 'type', 'bytes', 'sha256', 'uploadedBy', 'uploadedAt', 'path'],
+ audit: ['id', 'subjectId', 'actorId', 'action', 'createdAt', 'accountId', 'orderId', 'revision'],
+}
+const json = (value: unknown) => value === undefined ? '' : JSON.stringify(value)
+const lineCents = (line: Order['lines'][number]) => line.lineCents ?? line.quantity * line.unitCents
+// Records written before USD carry AUD, exactly as their invoices do.
+const currency = (order: Order) => order.currency ?? 'AUD'
+
+export async function commercialExport(env: Bindings, actor: Actor) {
+ requirePerson(actor)
+ const selected = await accounts(env.DB, actor), ids = selected.map(account => account.id)
+ const rows = ids.length ? (await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid').bind(JSON.stringify(ids)).all<{ value_json: string; revision: string }>()).results : []
+ const orders = rows.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Order & { pierOrigin?: string })
+ const audit = supplier(actor) ? (await env.DB.prepare("SELECT id,subject_id,actor_id,action,created_at,json_extract(context_json,'$.accountId') AS account_id,json_extract(context_json,'$.orderId') AS order_id,json_extract(context_json,'$.revision') AS revision FROM bw_audit ORDER BY rowid").all<Record<string, string | null>>()).results : undefined
+ const records = {
+  accounts: selected.map(({ id, revision, value }) => ({ id, revision, name: value.name, email: value.email, pierCustomerId: value.pierCustomerId, termsDays: value.termsDays, minimumCents: value.minimumCents, currency: 'USD', city: value.city ?? '', state: value.state ?? '', lifecycle: value.lifecycle ?? 'active', channel: value.channel ?? '', territory: value.territory ?? '', assignedRep: value.assignedRep ?? '', catalogs: json(value.catalogs), providerReferences: json(value.providerReferences) })),
+  prices: selected.flatMap(({ id, revision, value }) => value.prices.map(price => ({ accountId: id, accountRevision: revision, sku: price.sku, currency: 'USD', unitCents: price.unitCents, minQty: price.minQty, casePack: price.casePack ?? '', increment: price.increment ?? '', units: json(price.units), pricing: json(price.pricing) }))),
+  orders: orders.map(order => ({ id: order.id, revision: order.revision, accountId: order.accountId, accountRevision: order.accountRevision, customerName: order.customerName, status: order.status, currency: currency(order), totalCents: order.totalCents, termsDays: order.termsDays, reference: order.reference, poRelease: order.poRelease ? `${order.poRelease.number} of ${order.poRelease.of}` : '', requestedDate: order.requestedDate ?? '', cancelAfter: order.cancelAfter ?? '', deliveryLocation: order.deliveryLocation ?? '', instructions: order.instructions ?? '', preparedBy: order.preparedBy, preparedAt: order.preparedAt, submittedBy: order.submittedBy ?? '', approvedBy: order.approvedBy ?? '', approvedAt: order.approvedAt ?? '', replaces: order.replaces ?? '', supersededBy: order.supersededBy ?? '', reorderedFrom: order.reorderedFrom ?? '', pierOrigin: order.pierOrigin ?? '', pierOrderId: order.pierOrderId ?? '', pierReference: order.pierReference ?? '', invoiceNumber: order.invoice?.number ?? '', document: order.document ? `/api/barrow/orders/${order.id}/document` : '' })),
+  lines: orders.flatMap(order => order.lines.map((line, index) => ({ orderId: order.id, line: index + 1, sku: line.sku, name: line.name, pierItemId: line.itemId, buyerSku: line.buyerSku ?? '', quantity: line.quantity, unit: line.unit ?? '', baseQuantity: line.baseQuantity ?? String(line.quantity), baseUnit: line.baseUnit ?? '', conversion: line.conversion ?? '', currency: currency(order), unitCents: line.unitCents, lineCents: lineCents(line), pricing: json(line.pricing) }))),
+  invoices: orders.filter(order => order.invoice).map(order => ({ number: order.invoice!.number, orderId: order.id, accountId: order.accountId, issuedAt: order.invoice!.issuedAt, dueAt: order.invoice!.dueAt, currency: currency(order), totalCents: order.totalCents, csv: `/api/barrow/invoices/${order.id}.csv` })),
+  documents: orders.filter(order => order.document).map(order => ({ orderId: order.id, name: order.document!.name, type: order.document!.type, bytes: order.document!.size, sha256: order.document!.sha256, uploadedBy: order.document!.uploadedBy, uploadedAt: order.document!.uploadedAt, path: `/api/barrow/orders/${order.id}/document` })),
+  ...(audit ? { audit: audit.map(row => ({ id: row.id, subjectId: row.subject_id, actorId: row.actor_id, action: row.action, createdAt: row.created_at, accountId: row.account_id ?? '', orderId: row.order_id ?? '', revision: row.revision ?? '' })) } : {}),
+ }
+ const totals = [...new Set(orders.map(currency))].sort().map(code => {
+  const mine = orders.filter(order => currency(order) === code), invoiced = mine.filter(order => order.invoice)
+  return { currency: code, orders: mine.length, orderCents: mine.reduce((sum, order) => sum + order.totalCents, 0), invoices: invoiced.length, invoiceCents: invoiced.reduce((sum, order) => sum + order.totalCents, 0) }
+ })
+ const counts = Object.fromEntries(Object.entries(records).map(([kind, list]) => [kind, list.length]))
+ return { manifest: { format: 'barrow-commercial-export', version: 1, exportedAt: (await now()).toISOString(), scope: supplier(actor) ? 'installation' : 'buyer', accountIds: ids, counts, totals }, ...records }
+}
+
+export async function exportResponse(env: Bindings, actor: Actor, kind: Kind | 'json') {
+ const data = await commercialExport(env, actor)
+ const headers = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
+ if (kind === 'json') return new Response(JSON.stringify(data, null, 2), { headers: { ...headers, 'content-type': 'application/json; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-export.json"' } })
+ const list = (data as unknown as Record<Kind, Record<string, unknown>[] | undefined>)[kind]
+ if (!list) fail('FORBIDDEN', 'Audit references are available to the supplier only.', 403)
+ return new Response(csvText([columns[kind], ...list.map(row => columns[kind].map(column => row[column]))]), { headers: { ...headers, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="barrow-${kind}.csv"` } })
+}

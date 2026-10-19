@@ -7,6 +7,7 @@ import { Orders } from './orders'
 import { MoveIn } from './move-in'
 import { CommercialAudit } from './commercial-audit'
 import { DataTools } from './data'
+import { ExportLinks } from './export-links'
 import { Empty, Notice } from './primitives'
 import type { BarrowState, Order } from './types'
 import { stale } from './types'
@@ -115,6 +116,7 @@ export function BarrowApp() {
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+          {activeTab === 'Orders' && !supplier && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} busy={busy} run={run} />}
