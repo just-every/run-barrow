@@ -367,7 +367,7 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the current code and named public-door tests (20 October 2026).
+Judged from the code and tests at commit `5536e6d0d96a6cfb96053b6c179609440aa33ad4` (20 October 2026).
 
 
 | Clauses | Done | Partial | Missing | Total |
