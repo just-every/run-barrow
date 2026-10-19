@@ -1,5 +1,6 @@
+import { commercialAuditEvent } from './audit-event'
 import { operatorAuth, type Bindings } from '../auth.server'
-import { fail, supplier, requireSupplier, type Account, type Actor } from './model'
+import { fail, supplier, requireSupplier, type Account, type Actor, text } from './model'
 import { validateAccountValue, retireAccountImportCustody } from './imports'
 import { commit, changed, audit } from './access'
 import { createPortability } from '@runeditrun/rer/modules/portability'
@@ -39,17 +40,26 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
   const snapshot=accountDirectorySnapshot(directory)
   const guard=env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${directoryPredicate}) THEN 1 ELSE 0 END`).bind(JSON.stringify(snapshot),snapshot.length)
   const statement=prior ? env.DB.prepare('UPDATE bw_accounts SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(value),revision,id,prior.revision) : env.DB.prepare('INSERT INTO bw_accounts VALUES(?,?,?)').bind(id,JSON.stringify(value),revision)
-  await commit(env.DB,actor,[guard,statement,changed(env.DB),audit(env.DB,actor,id,'account.saved'),...(reviews.length?[audit(env.DB,actor,id,duplicateReviewAction(reviews))]:[])])
+  const reason=p.reason===undefined?'Supplier saved the trade account profile and commercial terms.':text(p.reason,'Change reason',240)
+  const context={accountId:id,revision,source:'account.save',reason}
+  const previousPrices=prior?JSON.parse(prior.value_json).prices:[]
+  const priceEvents=value.prices.filter(price=>JSON.stringify(previousPrices.find((before:any)=>before.sku===price.sku))!==JSON.stringify(price)).map(price=>audit(env.DB,actor,`${id}:${price.sku}`,'price.approved',{...context,reason:p.reason!==undefined?reason:price.pricing?.override?.reason??`Supplier approved the agreed price and rules for ${price.sku}.`}))
+  const removed=previousPrices.filter((price:any)=>!value.prices.some(current=>current.sku===price.sku)).map((price:any)=>audit(env.DB,actor,`${id}:${price.sku}`,'price.removed',{...context,reason:p.reason!==undefined?reason:`Supplier removed ${price.sku} from the agreed assortment.`}))
+  await commit(env.DB,actor,[guard,statement,changed(env.DB),audit(env.DB,actor,id,'account.saved',context),...priceEvents,...removed,...(reviews.length?[audit(env.DB,actor,id,duplicateReviewAction(reviews),{...context,reason:'Supplier reviewed possible duplicates as separate companies without merging identities.'})]:[])])
   return {id,value,revision}
  }
  const selected=await account(env.DB,actor,p.accountId)
- if(type==='account.invite') return operatorAuth(env).invite(request,{email:selected.value.email,displayName:selected.value.name,role:'member',returnTo:'/app'})
+ if(type==='account.invite') {
+  await commit(env.DB,actor,[audit(env.DB,actor,selected.id,'account.invitation-requested',{accountId:selected.id,revision:selected.revision,source:'account.invite',reason:'Supplier requested a native buyer invitation; this records a request, not mail delivery.'})])
+  return operatorAuth(env).invite(request,{email:selected.value.email,displayName:selected.value.name,role:'member',returnTo:'/app'})
+ }
  if(type==='account.erase') {
   if(p.confirm!=='ERASE') fail('CONFIRM','Type ERASE to confirm removal of this unused account.',400)
   if(await env.DB.prepare('SELECT id FROM bw_orders WHERE account_id=? LIMIT 1').bind(selected.id).first()) fail('ORDERS_EXIST','This account has orders. Keep the commercial history; erasure is limited to unused accounts.')
   const portability=await createPortability({db:env.DB,policy:portabilityPolicy})
   const checkpoint=[...await portability.invalidateTransfersStatements(),...await portability.redactionStatements()].map(toD1Sql)
-  return retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?)',params:[selected.id,selected.revision,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'}]})
+  const erased=commercialAuditEvent(actor.id,selected.id,'account.erased',{accountId:selected.id,revision:selected.revision,source:'account.erase',reason:'Supplier confirmed erasure of an unused account and retirement of import custody.'})
+  return retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?)',params:[selected.id,selected.revision,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'},erased]})
  }
  fail('NOT_FOUND','Unknown account command.',404)
 }

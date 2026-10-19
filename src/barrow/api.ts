@@ -1,3 +1,4 @@
+import { listCommercialAudit,exportCommercialAudit } from './commercial-audit'
 import { runtimeBindings, type Bindings } from '../auth.server'
 import { createPortabilityHandler, boundedJson } from '@runeditrun/rer/modules/portability/http'
 import { portabilityPolicy } from './portability-policy.mjs'
@@ -30,6 +31,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const people=ids.length?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<any>()).results.map(row=>[row.id,row.display_name])):{}
    return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)}})
   }
+  if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
+  if(path==='/api/barrow/audit.csv' && request.method==='GET') return await exportCommercialAudit(env.DB,actor,url.searchParams)
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})
   if(path==='/api/barrow/catalogue' && request.method==='GET') return json(await catalogue(env,await account(env.DB,actor,url.searchParams.get('accountId')??'')))
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
@@ -50,12 +53,12 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/agent-token' && request.method==='POST') {
    requireSupplier(actor)
    const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join(''),id=crypto.randomUUID(),expiresAt=Date.now()+7*86400000
-   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_agent_tokens VALUES(?,?,?,?,?)').bind(id,await digest(token),actor.id,actor.version,expiresAt),audit(env.DB,actor,id,'agent.granted')])
+   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_agent_tokens VALUES(?,?,?,?,?)').bind(id,await digest(token),actor.id,actor.version,expiresAt),audit(env.DB,actor,id,'agent.granted',{revision:id,source:'agent-token.create',reason:'Supplier granted seven-day catalog-read and draft-only agent authority.'})])
    return json({token,expiresAt})
   }
   if(path==='/api/barrow/agent-token/revoke'&&request.method==='POST') {
    requireSupplier(actor)
-   await commit(env.DB,actor,[env.DB.prepare('DELETE FROM bw_agent_tokens WHERE actor_id=?').bind(actor.id),audit(env.DB,actor,actor.id,'agent.revoked')])
+   await commit(env.DB,actor,[env.DB.prepare('DELETE FROM bw_agent_tokens WHERE actor_id=?').bind(actor.id),audit(env.DB,actor,actor.id,'agent.revoked',{revision:`operator:${actor.version}`,source:'agent-token.revoke',reason:'Supplier revoked every agent grant issued under this identity.'})])
    return json({revoked:true})
   }
   if(path==='/api/barrow/commands' && request.method==='POST') {

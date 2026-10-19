@@ -25,7 +25,7 @@ export function accountImportContext(db: D1Database, actor: ImportActor, namespa
   return {
     destination: accountImportDestination, namespace, mappingVersion: accountImportMappingVersion,
     batchSize: 10, maxBatches: 1,
-    storage: { database: db, targets: accountTargets(reversing) },
+    storage: { database: db, targets: accountTargets(reversing,undefined,actor.id) },
     authorization: { principalId: accountImportPrincipal, predicate: () => importAuthority(actor) },
   };
 }

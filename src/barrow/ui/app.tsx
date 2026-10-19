@@ -5,6 +5,7 @@ import { Accounts } from './accounts'
 import { OrderPad } from './order-pad'
 import { Orders } from './orders'
 import { MoveIn } from './move-in'
+import { CommercialAudit } from './commercial-audit'
 import { DataTools } from './data'
 import { Empty, Notice } from './primitives'
 import type { BarrowState, Order } from './types'
@@ -31,7 +32,7 @@ export function BarrowApp() {
   const [draftId, setDraftId] = useState('')
   const supplier = state?.actor.role === 'owner' || state?.actor.role === 'admin'
   const pad = supplier ? 'Order pad' : 'Catalog'
-  const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data'] : [pad, 'Orders']
+  const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit'] : [pad, 'Orders']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const selected = state?.accounts.find(account => account.id === accountId)
   const drafts = newestFirst(state?.orders.filter(order => order.status === 'draft' && order.accountId === accountId) ?? [])
@@ -110,6 +111,7 @@ export function BarrowApp() {
           {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
+          {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} busy={busy} run={run} />}
         </>}
       </section></HydrationUnit>

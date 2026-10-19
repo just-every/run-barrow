@@ -102,7 +102,9 @@ async function jobContext(db: D1Database, actor: ImportActor, id: string, revers
   const row = await db.prepare('SELECT namespace FROM ik_jobs WHERE id=? AND destination=? AND mapping_version=? AND principal_id=?')
     .bind(id, accountImportDestination, accountImportMappingVersion, accountImportPrincipal).first<{ namespace: string }>();
   if (!row) importError('IMPORT_JOB_NOT_FOUND', 'Import journal was not found or has been retired.');
-  return accountImportContext(db, actor, row.namespace, reversing);
+  const context=accountImportContext(db,actor,row.namespace,reversing);
+  context.storage.targets=accountTargets(reversing,undefined,actor.id,id);
+  return context;
 }
 
 export async function listAccountImports(db: D1Database, actor: ImportActor, limit = 50) {

@@ -1,3 +1,4 @@
+import { commercialAuditEvent } from '../audit-event';
 import { canonicalJson, sha256, type D1Database, type D1Sql, type D1TargetAdapter, type ImportPlan, type Json, type TargetRow } from '../../modules/import-kit/src/d1/index';
 import { accountImportDestination } from './csv';
 import { importError, validateAccountValue } from './validation';
@@ -11,7 +12,9 @@ function decode(row: { id: string; value_json: string; revision: string }): Targ
   return { destination: accountImportDestination, targetKind: 'account', targetId: row.id, revision: row.revision, value: JSON.parse(row.value_json) };
 }
 
-export function accountTargets(reversing = false, review?: { plan: ImportPlan; jobId: string; actorId: string }): D1TargetAdapter {
+export function accountTargets(reversing = false, review?: { plan: ImportPlan; jobId: string; actorId: string }, auditActorId?: string, operationId?:string): D1TargetAdapter {
+  const eventActor=review?.actorId??auditActorId;
+  const observed=new Map<string,string>();
   const beforeImages = new Map(review?.plan.entries.filter(entry => !entry.erased).map(entry => [entry.source.sourceId,
     (entry.source.payload as unknown as { previous: TargetRow | null }).previous]) ?? []);
   type DirectoryRow = { id: string; revision: string; name: string; pierCustomerId: string };
@@ -35,6 +38,7 @@ export function accountTargets(reversing = false, review?: { plan: ImportPlan; j
       checkScope(destination, kind);
       const row = await db.prepare('SELECT id,value_json,revision FROM bw_accounts WHERE id=?').bind(id).first<{ id: string; value_json: string; revision: string }>();
       const target = row ? decode(row) : undefined;
+      if(row)observed.set(row.id,row.revision);
       if (review && beforeImages.has(id) && canonicalJson(target ?? null) !== canonicalJson(beforeImages.get(id))) {
         // On explicit resume, previous batches already published some accounts.
         // Only this job's exact attributed after-image may replace the reviewed
@@ -66,12 +70,13 @@ export function accountTargets(reversing = false, review?: { plan: ImportPlan; j
       return [...(directoryGuard ? [directoryGuard] : []),
         sql("INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_accounts WHERE (id=? AND json_extract(value_json,'$.email')<>?) OR (id<>? AND json_extract(value_json,'$.email')=?)) THEN 1 ELSE 0 END", row.targetId, (row.value as Record<string, Json>).email, row.targetId, (row.value as Record<string, Json>).email),
         sql('INSERT INTO bw_accounts(id,value_json,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision', row.targetId, JSON.stringify(row.value), row.revision),
-        ...(review && duplicateReviews.length ? [sql('INSERT INTO bw_audit VALUES(?,?,?,?,?)',crypto.randomUUID(),row.targetId,review.actorId,duplicateReviewAction(duplicateReviews),new Date().toISOString())] : []),
+        ...(eventActor ? [commercialAuditEvent(eventActor,row.targetId,reversing?'import.account-restored':'import.account-applied',{accountId:row.targetId,revision:row.revision,source:reversing?'import.undo':'import.apply',reason:reversing?`Restored the exact reviewed before-image from import ${operationId??'journal'}.`:`Applied reviewed account import ${review?.jobId??'journal'}.`})] : []),
+        ...(review && duplicateReviews.length ? [commercialAuditEvent(review.actorId,row.targetId,duplicateReviewAction(duplicateReviews),{accountId:row.targetId,revision:row.revision,source:'import.apply',reason:`Reviewed duplicate companies as separate identities in import ${review.jobId}.`})] : []),
         sql('DELETE FROM bw_guard')];
     },
     remove(destination, kind, id) {
       checkScope(destination, kind);
-      return [sql('DELETE FROM bw_accounts WHERE id=?', id)];
+      return [sql('DELETE FROM bw_accounts WHERE id=?', id),...(eventActor?[commercialAuditEvent(eventActor,id,'import.account-removed',{accountId:id,...(observed.has(id)?{revision:observed.get(id)}:{}),source:'import.undo',reason:`Removed the untouched account created by import ${operationId??'journal'}.`})]:[])];
     },
     async list(db: D1Database, destination) {
       checkScope(destination);

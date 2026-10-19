@@ -18,7 +18,12 @@ export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Ord
 }
 async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[]) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
- await commit(env.DB,actor,[...guards,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action)])
+ await commit(env.DB,actor,[...guards,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:({
+  'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
+  'order.approved':'Supplier approved the submitted revision for stock reservation.',
+  'order.reserved':'Pier acknowledged reservation of every requested unit.',
+  'order.shortfall':'Pier acknowledged a stock shortfall; invoicing remains blocked.',
+ } as Record<string,string>)[action]??action})])
  return order
 }
 // Orders read as people say them: the next number after the highest one written (JV-10438 → JV-10439); a new book starts at ORD-10001.
@@ -119,7 +124,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
   const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
-  const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded')]:[]
-  await commit(env.DB,actor,[activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared'),...supersede])
+  const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`})]:[]
+  await commit(env.DB,actor,[activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...supersede])
   return order
 }

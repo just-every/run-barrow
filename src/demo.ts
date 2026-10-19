@@ -27,7 +27,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
       ...(record.status === 'approved' ? { approvedBy: owner.id, approvedAt, pierOrderId: `pier-${record.id}`, pierReference: `SO-${record.id.slice(3)}`, reservation: lines.map(line => ({ itemId: line.itemId, quantity: String(line.quantity), reserved: String(line.quantity), cancelled: '0' })), invoice: { number: `BAR-${record.id}`, issuedAt: approvedAt.slice(0, 10), dueAt: due } } : {}),
     }
     statements.push(env.DB.prepare('INSERT OR IGNORE INTO bw_orders VALUES(?,?,?,?)').bind(order.id, order.accountId, JSON.stringify(order), order.revision))
-    statements.push(env.DB.prepare('INSERT OR IGNORE INTO bw_audit VALUES(?,?,?,?,?)').bind(`audit-${order.id}`, order.id, owner.id, record.status === 'approved' ? 'order.reserved' : `order.${record.status === 'draft' ? 'prepared' : 'submitted'}`, order.preparedAt))
+    statements.push(env.DB.prepare('INSERT OR IGNORE INTO bw_audit(id,subject_id,actor_id,action,created_at) VALUES(?,?,?,?,?)').bind(`audit-${order.id}`, order.id, owner.id, record.status === 'approved' ? 'order.reserved' : `order.${record.status === 'draft' ? 'prepared' : 'submitted'}`, order.preparedAt))
   }
   await env.DB.batch(statements)
 }
