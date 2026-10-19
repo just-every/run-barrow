@@ -365,9 +365,8 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `ff70408c19f2ef4fab66a3a94d16dd8e8e8ac6f4` (19 October 2026).
+Judged from the code and tests at commit `1d7e2e5f0baad8bd0c407999dfaf0746545b072f` (19 October 2026).
 
-PRI-001 is judged from its clause-named tests and code in the same commit as this table.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
