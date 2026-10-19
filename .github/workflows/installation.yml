@@ -1,0 +1,28 @@
+name: Native installation journey
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '31 4 * * *'
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  installation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - run: npm install --global pnpm@10.12.4
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec node --test --test-concurrency=1 tests/journeys/installation.test.mjs
