@@ -56,7 +56,8 @@ export function reservationLines(lines:Line[]) {
  for(const line of lines) totals.set(line.itemId,(totals.get(line.itemId)??0n)+decimal(line.baseQuantity ?? String(line.quantity)))
  return [...totals].map(([itemId,quantity])=>({itemId,quantity:format(quantity)}))
 }
-export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[]) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:reservationLines(lines)}}).then(value=>value.result), () => demoReservation(orderId, reservationLines(lines).map(line=>({...lines.find(original=>original.itemId===line.itemId)!,quantity:Number(line.quantity),baseQuantity:line.quantity}))))
+/** ORD-007: the requested delivery date travels as Pier's promiseDate, its only order date. */
+export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[],requestedDate?: string) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:reservationLines(lines),...(requestedDate?{promiseDate:requestedDate}:{})}}).then(value=>value.result), () => demoReservation(orderId, reservationLines(lines).map(line=>({...lines.find(original=>original.itemId===line.itemId)!,quantity:Number(line.quantity),baseQuantity:line.quantity}))))
 export function fullyReserved(result: any,lines: Line[]) {
  const expected=reservationLines(lines)
  return Array.isArray(result?.lines) && result.lines.length===expected.length && expected.every(line=>{

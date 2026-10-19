@@ -7,7 +7,8 @@ export interface AccountValue {
 export interface Account { id: string; value: AccountValue; revision: string }
 export interface Order {
   id: string; accountId: string; customerName: string; reference: string; deliveryLocation?: string; reorderedFrom?: string
-  lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number; pricing?:import('../pricing').PricingSnapshot }[]
+  poRelease?: { number: number; of: string; authorizedBy: string; authorizedAt: string }; requestedDate?: string; cancelAfter?: string; instructions?: string; document?: { name: string; type: string; size: number; sha256: string; uploadedBy: string; uploadedAt: string }
+  lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number; pricing?:import('../pricing').PricingSnapshot; buyerSku?:string }[]
   totalCents: number; currency?: 'USD' | 'AUD'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded' | 'releasing' | 'cancelled'
   replaces?: string; supersededBy?: string

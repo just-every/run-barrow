@@ -27,6 +27,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [reference, setReference] = useState('')
   const [deliveryLocation, setDeliveryLocation] = useState('')
+  const [details, setDetails] = useState({ requestedDate: '', cancelAfter: '', instructions: '' })
   const [kept, setKept] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState('')
   const [sku, setSku] = useState('')
@@ -46,7 +47,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   // Opening a draft fills the pad with its quantities; a new order starts empty.
   useEffect(() => {
     setQuantities(Object.fromEntries((draft?.lines ?? []).map(line => [line.sku, String(line.quantity)])))
-    setUnitOrder(false);setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setKept(new Set()); setSelected('')
+    setUnitOrder(false);setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setDetails({ requestedDate: draft?.requestedDate ?? '', cancelAfter: draft?.cancelAfter ?? '', instructions: draft?.instructions ?? '' }); setKept(new Set()); setSelected('')
   }, [draft?.id, account.id])
 
   const items = catalogue?.items ?? []
@@ -76,7 +77,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     event.preventDefault()
     if (blocked || unitOrder || unitDraft) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
-    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
+    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
     if (prepared) {
       if (live.current) { setQuantities({}); setReference(''); setDeliveryLocation('') }
       onPrepared()
@@ -141,6 +142,11 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
         <p className="br-quiet-text br-matrix-foot">Preparing creates a draft for review. Submit it from Orders when you are ready.<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
       </section>
       <label className="br-pad-ref">Your purchase order / reference<input value={reference} maxLength={100} onChange={event => setReference(event.target.value)} disabled={busy} placeholder="Purchase order or reference" /></label>
+      <details className="br-details"><summary>Delivery dates & instructions</summary>
+        <label>Requested delivery date (Eastern time)<input type="date" value={details.requestedDate} disabled={busy} onChange={event => setDetails(current => ({ ...current, requestedDate: event.target.value }))} /></label>
+        <label>Cancel if not shipped after (Eastern time)<input type="date" value={details.cancelAfter} min={details.requestedDate || undefined} disabled={busy} onChange={event => setDetails(current => ({ ...current, cancelAfter: event.target.value }))} /></label>
+        <label>Instructions for the supplier<textarea value={details.instructions} maxLength={1000} disabled={busy} onChange={event => setDetails(current => ({ ...current, instructions: event.target.value }))} /></label>
+      </details>
       <div className="br-pad-foot" role="status" aria-live="polite">
         <p className="br-pad-total"><span className="br-sr-only">Order total: </span>{units} {units === 1 ? 'unit' : 'units'} · {money(total)}</p>
         {chosen.length > 0 && (belowMinimum

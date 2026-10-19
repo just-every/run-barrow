@@ -1,0 +1,2 @@
+-- ORD-007: one supporting PO document per order; bytes as base64 so a 1 MB file stays inside one D1 row.
+CREATE TABLE bw_order_documents (order_id TEXT PRIMARY KEY REFERENCES bw_orders(id), name TEXT NOT NULL, type TEXT NOT NULL CHECK(type IN ('application/pdf','image/png','image/jpeg')), size INTEGER NOT NULL CHECK(size BETWEEN 1 AND 1048576), sha256 TEXT NOT NULL, content_base64 TEXT NOT NULL);

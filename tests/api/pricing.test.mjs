@@ -10,7 +10,8 @@ test('PRI-002: dated volume/graduated breaks, account/group precedence and appro
  const rule={...period,mode:'volume',breaks:[{fromQuantity:'10',unitCents:800}],groupDiscount:{name:'Independent stores',bps:2000},accountDiscountBps:1000};
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),minimumCents:0,prices:[{sku:'OAT-1',unitCents:1000,minQty:1,pricing:rule,units:[{code:'pallet',baseQuantity:'12',unitCents:10000,packContents:'12 cases',pricing:{...period,mode:'graduated',breaks:[{fromQuantity:'2',unitCents:9000}]}},{code:'measured',baseQuantity:'1',unitCents:333,packContents:'Measured cases',quantityKind:'measured',pricing:{...period,accountDiscountBps:5000}}]}]}});
  const buyer=await h.signIn(account.value.email),as={as:buyer};
- const prepare=(quantity,extra={})=>h.command('order.prepare',{accountId:account.id,reference:'PO-PRICE-RULES',lines:[{sku:'OAT-1',quantity,...extra}]},as);
+ // Each order carries its own PO: a repeated PO is ORD-007's numbered-release journey.
+ let prepared=0;const prepare=(quantity,extra={})=>h.command('order.prepare',{accountId:account.id,reference:`PO-PRICE-RULES-${++prepared}`,lines:[{sku:'OAT-1',quantity,...extra}]},as);
  const update=async pricing=>account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:account.value.prices.map(p=>({...p,pricing}))}});
  const below=await prepare(9);assert.equal(below.totalCents,8100);assert.ok(below.lines[0].pricing.reason.includes('Account discount'));
  const at=await prepare(10);assert.equal(at.totalCents,7200);assert.equal(at.lines[0].unitCents,800);assert.ok(at.lines[0].pricing.reason.includes('Volume break at 10'));assert.equal(at.lines[0].pricing.discountBps,1000);

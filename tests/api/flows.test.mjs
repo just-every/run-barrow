@@ -141,7 +141,9 @@ test('ACC-004: profile, hold and closure preserve buyer history and refuse new c
  const profile = { channel: 'Independent stockist', territory: 'Northeast', assignedRep: 'rep-avery', catalogs: ['fall-2026'], providerReferences: { accounting: 'CUST-782' } };
  let account = await h.command('account.save', { id: 'cedar', value: { ...accountValue(products.customer.id), ...profile } });
  const buyer = await h.signIn(account.value.email);
- const draft = () => h.command('order.prepare', { accountId: account.id, reference: 'PO-Cedar-fall', lines: [{ sku: 'OAT-1', quantity: 2 }] }, { as: buyer });
+ let drafted = 0;
+ // Each order carries its own PO: a repeated PO is ORD-007's numbered-release journey.
+ const draft = () => h.command('order.prepare', { accountId: account.id, reference: `PO-Cedar-fall-${++drafted}`, lines: [{ sku: 'OAT-1', quantity: 2 }] }, { as: buyer });
  const accepted = await draft(); await h.command('order.submit', { orderId: accepted.id }, { as: buyer });
  const original = await h.command('order.approve', { orderId: accepted.id });
  const invoice = await (await h.request(`/api/barrow/invoices/${accepted.id}.csv`, { as: buyer })).text();

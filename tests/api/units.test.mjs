@@ -23,7 +23,8 @@ test('PRI-004: mixed cases/each and measured units use exact base stock, unit pr
  const buyer=await h.signIn(account.value.email),as={as:buyer};
  const offers=(await h.api('/api/barrow/catalogue?accountId=cedar',undefined,as)).items;
  assert.equal(offers.find(i=>i.sku==='TEE-1').units[0].baseQuantity,'12');assert.equal(offers.find(i=>i.sku==='TEE-1').unit,'each');
- const prepare=(lines,opts={})=>h.command('order.prepare',{accountId:account.id,reference:'PO-UNIT-12',lines},{...as,...opts});
+ // Each order carries its own PO: a repeated PO is ORD-007's numbered-release journey.
+ let prepared=0;const prepare=(lines,opts={})=>h.command('order.prepare',{accountId:account.id,reference:`PO-UNIT-12-${++prepared}`,lines},{...as,...opts});
  assert.equal((await prepare([{sku:'TEE-1',unit:'dozen',quantity:2}],{status:400})).error.code,'UNIT');
  assert.equal((await prepare([{sku:'TEE-1',unit:'case',quantity:0.5}],{status:400})).error.code,'INPUT');
  assert.equal((await prepare([{sku:'TEE-1',unit:'case',quantity:8},{sku:'TEE-1',unit:'each',quantity:6}],{status:409})).error.code,'STOCK');

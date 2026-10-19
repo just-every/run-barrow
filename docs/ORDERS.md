@@ -12,6 +12,12 @@ Orders are numbered in sequence, the next after the highest number on record (`J
 
 If a draft's prices or terms changed after it was written, it cannot be submitted as it stands. Open it in the order pad, settle the change in its row and choose **Prepare draft**: the new draft replaces the old one, which leaves Drafts and is shown only as the new order's "Replaces JV-10431" note. An agent cannot replace a draft; a person must.
 
+### Purchase details
+
+Under **Delivery dates & instructions** in the order pad, add an optional requested delivery date, a cancel-after date and instructions. Dates are Eastern calendar days, cannot be before today, and the cancel-after date cannot be before the requested date. In Orders, attach one PDF, PNG or JPEG purchase order (up to 1 MB) to a draft; it is locked once the order is submitted and only the buyer and the supplier can download it. Through the API, `order.prepare` also takes `requestedDate`, `cancelAfter`, `instructions` and, on each line, `buyerSku` (the buyer's own code, kept as written). Agents cannot attach or read the document.
+
+Submitting a purchase order number already on one of this account's open orders is refused as an accidental repeat. If it is a deliberate further delivery, choose **Submit as a new release of PO …**: the order is recorded as release 2, 3 and so on, with who confirmed it. Pier receives the requested delivery date as its promise date; the other purchase details stay in Barrow.
+
 A draft reserves no stock. Submission also reserves no stock. Barrow snapshots the commercial details on the order, so later account edits do not rewrite that order's agreed prices and terms.
 
 ## Approve and reserve

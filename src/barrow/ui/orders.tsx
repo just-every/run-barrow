@@ -35,6 +35,14 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
     return () => {current=false}
   },[query,all])
   const orders = all.filter(order => order.status !== 'superseded')
+  // ORD-007: the same PO on a live order of this account needs an explicit numbered release.
+  const duplicate = (order: Order) => Boolean(order.reference.trim()) && all.some(other => other.id !== order.id && other.accountId === order.accountId && ['submitted', 'reserving', 'shortfall', 'approved', 'releasing'].includes(other.status) && other.reference.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US') === order.reference.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US'))
+  async function attach(order: Order, file: File) {
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    let binary = ''
+    for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
+    await run('order.attach', { orderId: order.id, name: file.name, contentBase64: btoa(binary) })
+  }
   const person = (id: string) => id.startsWith('agent:') ? 'Your agent' : id === viewer ? 'You' : people[id] ?? 'A former user'
   const shown = orders.filter((filters.find(([name]) => name === filter) ?? filters[0])[1]).filter(order => matched === null || matched.includes(order.id))
   return <div className="br-stack br-orders">
@@ -55,9 +63,11 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
         <div className="br-order-main">
           <div className="br-order-meta"><span className="br-order-id">{orderNumber(order.id)}</span><span className={`br-status br-status-${order.status}`}>{order.status}</span>{byAgent(order) && <span className="br-agent-tag"><span className="br-rivet" aria-hidden="true" />Prepared by your agent</span>}{order.replaces && <span className="br-replaces">Replaces {orderNumber(order.replaces)}</span>}</div>
           <h3>{order.customerName}</h3>
-          <p className="br-quiet-text">{when(order.preparedAt)} · {order.reference ? `Reference: ${order.reference}` : 'No customer reference'}{order.deliveryLocation && ` · ${order.deliveryLocation}`}</p>{order.reorderedFrom && <p>Reordered from {orderNumber(order.reorderedFrom)}</p>}
+          <p className="br-quiet-text">{when(order.preparedAt)} · {order.reference ? `Reference: ${order.reference}` : 'No customer reference'}{order.poRelease && ` · release ${order.poRelease.number} of ${orderNumber(order.poRelease.of)}`}{order.deliveryLocation && ` · ${order.deliveryLocation}`}</p>{(order.requestedDate || order.cancelAfter) && <p className="br-quiet-text">{order.requestedDate && `Requested delivery ${day(order.requestedDate)}`}{order.requestedDate && order.cancelAfter && ' · '}{order.cancelAfter && `Cancel after ${day(order.cancelAfter)}`} (Eastern time)</p>}{order.instructions && <p>Instructions: {order.instructions}</p>}{order.document && <p><a href={`/api/barrow/orders/${encodeURIComponent(order.id)}/document`} download>PO document: {order.document.name}</a> ({Math.ceil(order.document.size / 1024)} KB)</p>}
+          {order.status === 'draft' && <label className="br-quiet-text">{order.document ? 'Replace the PO document' : 'Attach the PO document'} (PDF, PNG or JPEG, up to 1 MB)<input type="file" accept="application/pdf,image/png,image/jpeg" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void attach(order, file) }} /></label>}{order.reorderedFrom && <p>Reordered from {orderNumber(order.reorderedFrom)}</p>}
           <table className="br-order-lines"><caption className="br-sr-only">Order {orderNumber(order.id)} lines</caption><thead><tr><th scope="col">Style</th><th scope="col">Sizes</th><th scope="col">Units</th><th scope="col">Unit price</th><th scope="col">Total</th></tr></thead>
             <tbody>{orderStyles(order.lines, order.currency ?? 'AUD').map(style => <tr key={style.key}><th scope="row">{style.name}<small>{style.key}</small></th><td>{style.sizes}</td><td>{style.units}</td><td>{style.prices}</td><td>{money(style.cents, order.currency ?? 'AUD')}</td></tr>)}</tbody></table>
+          {order.lines.filter(line=>line.buyerSku).map(line=><p key={`alias-${line.sku}-${line.unit ?? ''}`}>{line.sku}: buyer SKU {line.buyerSku}</p>)}
           {order.lines.filter(line=>line.pricing).map(line=><p key={JSON.stringify([line.sku,line.unit])}>{line.sku} · {line.unit}: {line.pricing!.reason} · {money(line.pricing!.lineCents,order.currency??'AUD')}</p>)}
           {moved && <p className="br-change-note"><span className="br-warn" aria-hidden="true">!</span>Prices or terms changed since this draft was written. Open it in the order pad to prepare a new draft at today’s prices.</p>}
           <p className="br-order-explain">{order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' : explanations[order.status]}</p>
@@ -69,6 +79,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
             {['submitted','reserving','shortfall','approved'].includes(order.status) && <button className="br-secondary" disabled={busy} onClick={() => setReorder(order)}>Reorder selected lines</button>}
             {order.status === 'draft' && moved && <button disabled={busy} onClick={() => onOpen(order)}>Open in order pad</button>}
             {order.status === 'draft' && <button className={moved ? 'br-secondary' : undefined} disabled={busy} onClick={() => void run('order.submit', { orderId: order.id })}>Submit for supplier review</button>}
+            {order.status === 'draft' && duplicate(order) && <button className="br-secondary" disabled={busy} onClick={() => void run('order.submit', { orderId: order.id, release: true })}>Submit as a new release of PO {order.reference}</button>}
             {order.status === 'draft' && !moved && <button className="br-secondary" disabled={busy} onClick={() => onOpen(order)}>Open in order pad</button>}
             {supplier && order.status === 'submitted' && <button disabled={busy} onClick={() => void run('order.approve', { orderId: order.id })}>Approve & reserve stock</button>}
             {supplier && order.status === 'reserving' && !order.pierOrderId && <button disabled={busy} onClick={() => void run('order.approve', { orderId: order.id })}>Retry stock reservation</button>}
