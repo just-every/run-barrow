@@ -4,7 +4,7 @@ The customer prepares and submits an order. The supplier approves it, Pier reser
 
 ## Prepare and submit
 
-1. Open Catalogue as the customer. Review its agreed prices, available stock, per-SKU minimums and order minimum. **Refresh stock** reads Pier again.
+1. Open Catalog as the customer. Review its agreed prices, available stock, per-SKU minimums and order minimum. **Refresh stock** reads Pier again.
 2. Enter whole-unit quantities and an optional purchase order reference, then choose **Prepare draft**. The minimum quantities and minimum order must be met.
 3. In Orders, review the lines, prices, total and payment terms. Choose **Submit for supplier review** when ready.
 
@@ -32,4 +32,4 @@ Choose **Download invoice CSV** on the fully reserved order. The file contains S
 
 Barrow does not add or compute tax. Review tax treatment in your existing accounting system. Downloading the CSV does not collect money or mark an invoice paid. A partial reservation blocks invoice export until every unit is reserved.
 
-An [agent credential](AGENTS-API.md) can read catalogues and prepare drafts. A signed-in person must submit; a supplier must approve.
+An [agent credential](AGENTS-API.md) can read catalogs and prepare drafts. A signed-in person must submit; a supplier must approve.

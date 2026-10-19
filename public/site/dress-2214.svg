@@ -1,0 +1,807 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 310 470"><defs><g id="f"><circle cx="0" cy="-2.1" r="2"/><circle cx="2" cy="-.65" r="2"/><circle cx="1.25" cy="1.7" r="2"/><circle cx="-1.25" cy="1.7" r="2"/><circle cx="-2" cy="-.65" r="2"/><circle r="1" fill="#f7c35a"/></g><path id="l" d="M-3 0C-1.5-1.8 1.5-1.8 3 0-1.5 1.8 1.5 1.8-3 0z"/><path id="s" transform="scale(0.3333333333333333) translate(0.000000,1410.000000) scale(0.100000,-0.100000)" d="M3300 13725 c0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -10 -10
+-15 -30 -15 -20 0 -30 -5 -30 -15 0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15
+0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -10 -10 -15 -30 -15 -20 0 -30
+-5 -30 -15 0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -10 -10 -15 -30 -15
+-20 0 -30 -5 -30 -15 0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -10 -10
+-15 -30 -15 -20 0 -30 -5 -30 -15 0 -11 -12 -15 -45 -15 -33 0 -45 -4 -45 -15
+0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -10 -10 -15 -30 -15 -20 0 -30
+-5 -30 -15 0 -11 -12 -15 -45 -15 -33 0 -45 -4 -45 -15 0 -10 -10 -15 -30 -15
+-20 0 -30 -5 -30 -15 0 -11 -12 -15 -45 -15 -33 0 -45 -4 -45 -15 0 -10 -10
+-15 -30 -15 -20 0 -30 -5 -30 -15 0 -11 -12 -15 -45 -15 -33 0 -45 -4 -45 -15
+0 -11 -12 -15 -45 -15 -33 0 -45 -4 -45 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7
+-15 -15 0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -8 -7 -15 -15 -15 -8 0
+-15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15
+-8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15
+-15 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7
+-15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0 -15 -10 -15 -30 0
+-20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0 -15 -10
+-15 -30 0 -20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0
+-15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15
+-30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0 -15 -10 -15 -30 0 -20 -5
+-30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0 -15 -10 -15 -30 0
+-20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0 -15 -10
+-15 -30 0 -20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0
+-15 -10 -15 -30 0 -20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15
+-15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -10 0 -15 -10 -15 -30 0 -20 -5
+-30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0
+-8 -7 -15 -15 -15 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -8 0 -15 -7
+-15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0
+-15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15
+-10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15
+-15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7
+-15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0
+-8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15
+-15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7
+-15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0
+-15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15
+-8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7 -15 -15 0 -10 -10 -15
+-30 -15 -29 0 -30 -2 -30 -45 0 -33 4 -45 15 -45 8 0 15 -7 15 -15 0 -8 7 -15
+15 -15 10 0 15 -10 15 -30 0 -20 5 -30 15 -30 8 0 15 -7 15 -15 0 -8 7 -15 15
+-15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8
+0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15
+-7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15
+-15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -10 10 -15 30 -15 20 0 30 -5 30
+-15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -11 12 -15 45 -15 33 0 45 -4 45
+-15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 11 0 15 -12 15 -45
+0 -33 4 -45 15 -45 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0
+-10 10 -15 30 -15 20 0 30 -5 30 -15 0 -8 7 -15 15 -15 10 0 15 -10 15 -30 0
+-20 5 -30 15 -30 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7
+-15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -10 10 -15
+30 -15 20 0 30 -5 30 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -11 12 -15 45
+-15 33 0 45 -4 45 -15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -12 17 -15 90
+-15 73 0 90 -3 90 -15 0 -10 10 -15 30 -15 27 0 30 -3 30 -30 0 -20 5 -30 15
+-30 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -10 10 -15 30 -15
+20 0 30 -5 30 -15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -12 13 -15 60 -15
+47 0 60 -3 60 -15 0 -12 13 -15 60 -15 47 0 60 -3 60 -15 0 -12 13 -15 60 -15
+47 0 60 3 60 15 0 8 7 15 15 15 12 0 15 15 15 75 0 60 3 75 15 75 12 0 15 13
+15 60 0 47 3 60 15 60 12 0 15 13 15 60 0 47 3 60 15 60 12 0 15 -13 15 -60 0
+-47 3 -60 15 -60 12 0 15 -13 15 -60 0 -47 3 -60 15 -60 11 0 15 -12 15 -45 0
+-33 4 -45 15 -45 11 0 15 -12 15 -45 0 -33 4 -45 15 -45 11 0 15 -12 15 -45 0
+-33 4 -45 15 -45 11 0 15 -12 15 -45 0 -33 4 -45 15 -45 11 0 15 -12 15 -45 0
+-33 4 -45 15 -45 10 0 15 -10 15 -30 0 -20 5 -30 15 -30 11 0 15 -12 15 -45 0
+-33 4 -45 15 -45 11 0 15 -12 15 -45 0 -33 4 -45 15 -45 11 0 15 -12 15 -45 0
+-33 4 -45 15 -45 10 0 15 -10 15 -30 0 -20 5 -30 15 -30 8 0 15 -7 15 -15 0
+-8 7 -15 15 -15 10 0 15 -10 15 -30 0 -20 -5 -30 -15 -30 -12 0 -15 -13 -15
+-60 0 -47 3 -60 15 -60 13 0 15 -23 15 -150 0 -127 -2 -150 -15 -150 -10 0
+-15 -10 -15 -30 0 -20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15
+-15 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15 -30 0 -20
+-5 -30 -15 -30 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -10 0 -15 -10 -15
+-30 0 -20 -5 -30 -15 -30 -8 0 -15 -7 -15 -15 0 -8 -7 -15 -15 -15 -11 0 -15
+-12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30
+-10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -10 0 -15 -10 -15 -30 0 -20 -5
+-30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15
+-30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15 -30 0 -20
+-5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15
+-30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15 -30 0 -20
+-5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15
+-45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33
+-4 -45 -15 -45 -12 0 -15 -13 -15 -60 0 -47 -3 -60 -15 -60 -11 0 -15 -12 -15
+-45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -12 0 -15 -13 -15 -60 0 -47
+-3 -60 -15 -60 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15
+-45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33
+-4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15
+-45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -12 0
+-15 -13 -15 -60 0 -47 -3 -60 -15 -60 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15
+-30 -12 0 -15 -13 -15 -60 0 -47 -3 -60 -15 -60 -11 0 -15 -12 -15 -45 0 -33
+-4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15
+-45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33
+-4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15
+-45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33
+-4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15
+-30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0
+-15 -12 -15 -45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15 -30 0 -20
+-5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0 -15 -10 -15
+-30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0
+-15 -10 -15 -30 0 -20 -5 -30 -15 -30 -12 0 -15 -13 -15 -60 0 -47 -3 -60 -15
+-60 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33
+-4 -45 -15 -45 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15
+-45 0 -33 -4 -45 -15 -45 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15 -45 -10 0
+-15 -10 -15 -30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15 -45 0 -33 -4 -45 -15
+-45 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -10 0 -15 -10 -15 -30 0 -20
+-5 -30 -15 -30 -10 0 -15 -10 -15 -30 0 -20 -5 -30 -15 -30 -11 0 -15 -12 -15
+-45 0 -33 4 -45 15 -45 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15
+0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8
+7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -10 10
+-15 30 -15 20 0 30 -5 30 -15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -11 12
+-15 45 -15 33 0 45 -4 45 -15 0 -12 13 -15 60 -15 47 0 60 -3 60 -15 0 -8 7
+-15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15
+15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15 -15 8 0 15 -7 15 -15 0 -8 7 -15 15
+-15 8 0 15 -7 15 -15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -10 10 -15 30
+-15 20 0 30 -5 30 -15 0 -11 12 -15 45 -15 33 0 45 -4 45 -15 0 -13 27 -15
+180 -15 153 0 180 -2 180 -15 0 -8 7 -15 15 -15 10 0 15 -10 15 -30 0 -20 5
+-30 15 -30 8 0 15 -7 15 -15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -10 10
+-15 30 -15 20 0 30 -5 30 -15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -10 10
+-15 30 -15 20 0 30 -5 30 -15 0 -10 10 -15 30 -15 20 0 30 -5 30 -15 0 -10 10
+-15 30 -15 20 0 30 -5 30 -15 0 -11 12 -15 45 -15 33 0 45 -4 45 -15 0 -11 12
+-15 45 -15 33 0 45 -4 45 -15 0 -12 15 -15 75 -15 60 0 75 -3 75 -15 0 -13 38
+-15 285 -15 l285 0 0 -60 c0 -47 3 -60 15 -60 8 0 15 -7 15 -15 0 -10 10 -15
+30 -15 20 0 30 -5 30 -15 0 -11 12 -15 45 -15 33 0 45 -4 45 -15 0 -11 12 -15
+45 -15 33 0 45 -4 45 -15 0 -12 15 -15 75 -15 60 0 75 -3 75 -15 0 -13 40 -15
+300 -15 260 0 300 2 300 15 0 12 17 15 90 15 73 0 90 3 90 15 0 13 37 15 270
+15 233 0 270 -2 270 -15 0 -12 20 -15 120 -15 100 0 120 -2 120 -15 0 -13 25
+-15 165 -15 140 0 165 -2 165 -15 0 -11 12 -15 45 -15 33 0 45 4 45 15 0 13
+27 15 180 15 153 0 180 2 180 15 0 12 15 15 75 15 60 0 75 3 75 15 0 11 12 15
+45 15 33 0 45 4 45 15 0 11 12 15 45 15 33 0 45 4 45 15 0 13 32 15 225 15
+193 0 225 2 225 15 0 10 10 15 30 15 30 0 30 0 30 60 l0 60 135 0 c113 0 135
+2 135 15 0 11 12 15 45 15 33 0 45 4 45 15 0 10 10 15 30 15 20 0 30 5 30 15
+0 10 10 15 30 15 20 0 30 5 30 15 0 10 10 15 30 15 20 0 30 5 30 15 0 11 12
+15 45 15 33 0 45 4 45 15 0 13 30 15 210 15 180 0 210 2 210 15 0 11 12 15 45
+15 33 0 45 4 45 15 0 10 10 15 30 15 20 0 30 5 30 15 0 10 10 15 30 15 27 0
+30 3 30 30 0 20 5 30 15 30 8 0 15 7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0 8
+7 15 15 15 8 0 15 7 15 15 0 11 12 15 45 15 33 0 45 4 45 15 0 11 12 15 45 15
+33 0 45 4 45 15 0 12 18 15 105 15 87 0 105 3 105 15 0 12 13 15 60 15 47 0
+60 3 60 15 0 10 10 15 30 15 20 0 30 5 30 15 0 10 10 15 30 15 20 0 30 5 30
+15 0 8 7 15 15 15 8 0 15 7 15 15 0 10 10 15 30 15 20 0 30 5 30 15 0 8 7 15
+15 15 8 0 15 7 15 15 0 10 10 15 30 15 20 0 30 5 30 15 0 8 7 15 15 15 8 0 15
+7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0 10 10 15 30 15 20 0 30 5 30 15 0 10
+10 15 30 15 20 0 30 5 30 15 0 8 7 15 15 15 8 0 15 7 15 15 0 10 10 15 30 15
+20 0 30 5 30 15 0 8 7 15 15 15 10 0 15 10 15 30 0 20 -5 30 -15 30 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -12 0 -15
+13 -15 60 0 47 -3 60 -15 60 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -11 0 -15 12 -15 45 0 33 -4 45 -15 45 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -11 0 -15
+12 -15 45 0 33 -4 45 -15 45 -11 0 -15 12 -15 45 0 43 1 45 30 45 20 0 30 5
+30 15 0 10 10 15 30 15 20 0 30 5 30 15 0 10 10 15 30 15 20 0 30 5 30 15 0 8
+7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 10 0
+15 10 15 30 0 20 5 30 15 30 10 0 15 10 15 30 0 20 5 30 15 30 10 0 15 10 15
+30 0 20 5 30 15 30 10 0 15 10 15 30 0 20 5 30 15 30 11 0 15 12 15 45 0 33 4
+45 15 45 10 0 15 10 15 30 0 20 5 30 15 30 12 0 15 18 15 105 0 87 -3 105 -15
+105 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15
+-8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 10 -10 15 -30 15 -20
+0 -30 5 -30 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 10 -10 15 -30 15 -20 0
+-30 5 -30 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 10 -10 15 -30 15 -20 0
+-30 5 -30 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 11 -12 15 -45 15 -33 0
+-45 4 -45 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 11 -12 15 -45 15 -33 0
+-45 4 -45 15 0 11 -12 15 -45 15 -33 0 -45 4 -45 15 0 11 -12 15 -45 15 -45 0
+-45 0 -45 60 0 47 -3 60 -15 60 -11 0 -15 12 -15 45 0 33 4 45 15 45 10 0 15
+10 15 30 0 20 5 30 15 30 10 0 15 10 15 30 0 20 5 30 15 30 11 0 15 12 15 45
+0 33 4 45 15 45 11 0 15 12 15 45 0 33 4 45 15 45 11 0 15 12 15 45 0 33 4 45
+15 45 11 0 15 12 15 45 0 33 4 45 15 45 11 0 15 12 15 45 0 33 4 45 15 45 11
+0 15 12 15 45 0 33 4 45 15 45 11 0 15 12 15 45 0 33 4 45 15 45 11 0 15 12
+15 45 0 33 4 45 15 45 11 0 15 12 15 45 0 33 4 45 15 45 11 0 15 12 15 45 0
+33 4 45 15 45 10 0 15 10 15 30 0 27 3 30 30 30 30 0 30 0 30 -75 0 -60 3 -75
+15 -75 12 0 15 -15 15 -75 0 -60 3 -75 15 -75 10 0 15 -10 15 -30 0 -29 2 -30
+45 -30 33 0 45 4 45 15 0 12 15 15 75 15 60 0 75 3 75 15 0 11 12 15 45 15 33
+0 45 4 45 15 0 11 12 15 45 15 33 0 45 4 45 15 0 8 7 15 15 15 8 0 15 7 15 15
+0 8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0 12 13 15 60
+15 47 0 60 3 60 15 0 10 10 15 30 15 20 0 30 5 30 15 0 10 10 15 30 15 20 0
+30 5 30 15 0 8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 10 0 15 10 15 30 0
+20 5 30 15 30 10 0 15 10 15 30 0 20 5 30 15 30 8 0 15 7 15 15 0 10 10 15 30
+15 20 0 30 5 30 15 0 12 15 15 75 15 60 0 75 3 75 15 0 11 12 15 45 15 33 0
+45 4 45 15 0 8 7 15 15 15 8 0 15 7 15 15 0 10 10 15 30 15 20 0 30 5 30 15 0
+8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 10
+0 15 10 15 30 0 20 5 30 15 30 11 0 15 12 15 45 0 33 4 45 15 45 8 0 15 7 15
+15 0 8 7 15 15 15 8 0 15 7 15 15 0 10 10 15 30 15 20 0 30 5 30 15 0 10 10
+15 30 15 20 0 30 5 30 15 0 8 7 15 15 15 8 0 15 7 15 15 0 10 10 15 30 15 20
+0 30 5 30 15 0 8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0
+8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 8
+0 15 7 15 15 0 8 7 15 15 15 8 0 15 7 15 15 0 8 7 15 15 15 10 0 15 10 15 30
+0 20 5 30 15 30 8 0 15 7 15 15 0 8 7 15 15 15 10 0 15 10 15 30 0 20 -5 30
+-15 30 -8 0 -15 7 -15 15 0 9 -9 15 -21 15 -28 0 -99 71 -99 99 0 12 -6 21
+-15 21 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15
+15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8
+0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15
+7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15
+15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0
+8 -7 15 -15 15 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -8 0 -15 7 -15 15 0 8
+-7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15
+-15 15 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -8 0 -15 7 -15 15 0 8 -7 15
+-15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -10 0 -15 10 -15 30 0 20 -5 30
+-15 30 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -10 0 -15 10 -15 30 0 20 -5 30
+-15 30 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15
+15 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -8 0 -15 7 -15 15 0 8 -7 15 -15 15
+-10 0 -15 10 -15 30 0 20 -5 30 -15 30 -10 0 -15 10 -15 30 0 20 -5 30 -15 30
+-8 0 -15 7 -15 15 0 8 -7 15 -15 15 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -8
+0 -15 7 -15 15 0 8 -7 15 -15 15 -10 0 -15 10 -15 30 0 20 -5 30 -15 30 -8 0
+-15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -10 0 -15
+10 -15 30 0 20 -5 30 -15 30 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7
+-15 15 0 8 -7 15 -15 15 -8 0 -15 6 -15 14 0 8 -7 16 -15 20 -8 3 -15 17 -15
+31 0 16 -6 25 -15 25 -8 0 -15 7 -15 15 0 8 -7 15 -15 15 -8 0 -15 7 -15 15 0
+8 -7 15 -15 15 -8 0 -15 7 -15 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 8
+-7 15 -15 15 -8 0 -15 7 -15 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 12
+-13 15 -60 15 -47 0 -60 3 -60 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 11 -12 15 -45 15 -33 0 -45 4 -45 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 11 -12 15 -45 15 -33 0 -45 4 -45 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 11 -12 15 -45 15 -33 0 -45 4 -45 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 11
+-12 15 -45 15 -33 0 -45 4 -45 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 8
+-7 15 -15 15 -8 0 -15 7 -15 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 12 -13 15 -60 15 -47 0 -60 -3 -60 -15 0
+-10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -8 -7 -15 -15 -15 -8 0 -15 -7
+-15 -15 0 -10 -10 -15 -30 -15 -20 0 -30 -5 -30 -15 0 -10 -10 -15 -30 -15
+-20 0 -30 -5 -30 -15 0 -11 -12 -15 -45 -15 -33 0 -45 -4 -45 -15 0 -11 -12
+-15 -45 -15 -33 0 -45 -4 -45 -15 0 -12 -13 -15 -60 -15 -47 0 -60 -3 -60 -15
+0 -12 -15 -15 -75 -15 -60 0 -75 -3 -75 -15 0 -12 -18 -15 -105 -15 -87 0
+-105 -3 -105 -15 0 -13 -35 -15 -255 -15 -220 0 -255 2 -255 15 0 13 -20 15
+-120 15 -100 0 -120 3 -120 15 0 12 -15 15 -75 15 -60 0 -75 3 -75 15 0 12
+-13 15 -60 15 -47 0 -60 3 -60 15 0 11 -12 15 -45 15 -33 0 -45 4 -45 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 10
+-10 15 -30 15 -20 0 -30 5 -30 15 0 10 -10 15 -30 15 -20 0 -30 5 -30 15 0 8
+-7 15 -15 15 -8 0 -15 7 -15 15 0 12 -13 15 -60 15 -47 0 -60 -3 -60 -15z"/><clipPath id="c"><use href="#s"/></clipPath></defs><use href="#s" fill="#fffdf8"/><g clip-path="url(#c)"><g fill="#e8573a" fill-opacity=".92"><use href="#f" transform="translate(193 22) scale(0.8) rotate(16)"/><use href="#f" transform="translate(202 22) scale(0.7) rotate(37)"/><use href="#f" transform="translate(94 27) scale(1.0) rotate(67)"/><use href="#f" transform="translate(78 34) scale(0.6) rotate(54)"/><use href="#f" transform="translate(219 38) scale(1.0) rotate(58)"/><use href="#f" transform="translate(237 38) scale(0.7) rotate(13)"/><use href="#f" transform="translate(111 46) scale(1.0) rotate(20)"/><use href="#f" transform="translate(65 49) scale(1.0) rotate(19)"/><use href="#f" transform="translate(189 51) scale(1.0) rotate(53)"/><use href="#f" transform="translate(232 55) scale(1.0) rotate(38)"/><use href="#f" transform="translate(93 57) scale(0.7) rotate(15)"/><use href="#f" transform="translate(247 56) scale(0.7) rotate(53)"/><use href="#f" transform="translate(48 64) scale(0.9) rotate(45)"/><use href="#f" transform="translate(171 68) scale(0.9) rotate(64)"/><use href="#f" transform="translate(215 64) scale(0.7) rotate(40)"/><use href="#f" transform="translate(124 73) scale(1.0) rotate(9)"/><use href="#f" transform="translate(209 68) scale(1.0) rotate(63)"/><use href="#f" transform="translate(251 74) scale(1.0) rotate(13)"/><use href="#f" transform="translate(75 80) scale(1.0) rotate(3)"/><use href="#f" transform="translate(97 78) scale(1.0) rotate(57)"/><use href="#f" transform="translate(198 78) scale(0.8) rotate(32)"/><use href="#f" transform="translate(228 77) scale(0.7) rotate(46)"/><use href="#f" transform="translate(234 78) scale(0.7) rotate(9)"/><use href="#f" transform="translate(204 82) scale(0.7) rotate(51)"/><use href="#f" transform="translate(273 88) scale(0.9) rotate(29)"/><use href="#f" transform="translate(56 92) scale(1.0) rotate(71)"/><use href="#f" transform="translate(225 94) scale(1.0) rotate(45)"/><use href="#f" transform="translate(33 94) scale(1.0) rotate(67)"/><use href="#f" transform="translate(183 96) scale(1.0) rotate(57)"/><use href="#f" transform="translate(108 95) scale(0.7) rotate(60)"/><use href="#f" transform="translate(136 95) scale(0.6) rotate(6)"/><use href="#f" transform="translate(89 97) scale(0.7) rotate(55)"/><use href="#f" transform="translate(214 102) scale(0.8) rotate(43)"/><use href="#f" transform="translate(87 101) scale(0.6) rotate(28)"/><use href="#f" transform="translate(130 99) scale(0.7) rotate(22)"/><use href="#f" transform="translate(137 100) scale(0.7) rotate(46)"/><use href="#f" transform="translate(251 104) scale(1.0) rotate(14)"/><use href="#f" transform="translate(76 105) scale(0.6) rotate(13)"/><use href="#f" transform="translate(106 109) scale(1.0) rotate(62)"/><use href="#f" transform="translate(59 114) scale(0.8) rotate(54)"/><use href="#f" transform="translate(79 112) scale(0.7) rotate(42)"/><use href="#f" transform="translate(162 113) scale(0.7) rotate(54)"/><use href="#f" transform="translate(65 117) scale(0.7) rotate(23)"/><use href="#f" transform="translate(156 117) scale(0.7) rotate(51)"/><use href="#f" transform="translate(197 119) scale(1.0) rotate(14)"/><use href="#f" transform="translate(139 124) scale(1.0) rotate(32)"/><use href="#f" transform="translate(220 119) scale(0.8) rotate(10)"/><use href="#f" transform="translate(236 117) scale(0.7) rotate(27)"/><use href="#f" transform="translate(92 121) scale(0.7) rotate(24)"/><use href="#f" transform="translate(121 122) scale(0.7) rotate(30)"/><use href="#f" transform="translate(79 126) scale(0.7) rotate(34)"/><use href="#f" transform="translate(100 136) scale(0.8) rotate(2)"/><use href="#f" transform="translate(125 141) scale(1.0) rotate(24)"/><use href="#f" transform="translate(170 141) scale(0.9) rotate(60)"/><use href="#f" transform="translate(177 138) scale(0.8) rotate(31)"/><use href="#f" transform="translate(202 146) scale(0.8) rotate(39)"/><use href="#f" transform="translate(152 145) scale(0.6) rotate(7)"/><use href="#f" transform="translate(106 152) scale(1.0) rotate(27)"/><use href="#f" transform="translate(149 151) scale(0.7) rotate(69)"/><use href="#f" transform="translate(191 157) scale(0.8) rotate(39)"/><use href="#f" transform="translate(134 164) scale(0.7) rotate(1)"/><use href="#f" transform="translate(159 164) scale(0.7) rotate(51)"/><use href="#f" transform="translate(116 169) scale(0.8) rotate(55)"/><use href="#f" transform="translate(210 173) scale(0.7) rotate(27)"/><use href="#f" transform="translate(154 176) scale(0.7) rotate(2)"/><use href="#f" transform="translate(158 175) scale(0.7) rotate(59)"/><use href="#f" transform="translate(163 174) scale(0.8) rotate(18)"/><use href="#f" transform="translate(100 176) scale(0.6) rotate(66)"/><use href="#f" transform="translate(136 186) scale(1.0) rotate(26)"/><use href="#f" transform="translate(225 188) scale(0.6) rotate(27)"/><use href="#f" transform="translate(97 197) scale(1.0) rotate(57)"/><use href="#f" transform="translate(177 197) scale(0.8) rotate(9)"/><use href="#f" transform="translate(163 199) scale(0.7) rotate(2)"/><use href="#f" transform="translate(209 203) scale(0.7) rotate(54)"/><use href="#f" transform="translate(118 206) scale(0.8) rotate(66)"/><use href="#f" transform="translate(166 205) scale(0.7) rotate(71)"/><use href="#f" transform="translate(113 209) scale(0.8) rotate(9)"/><use href="#f" transform="translate(197 213) scale(0.8) rotate(10)"/><use href="#f" transform="translate(147 221) scale(1.0) rotate(24)"/><use href="#f" transform="translate(175 227) scale(1.0) rotate(51)"/><use href="#f" transform="translate(80 230) scale(1.0) rotate(65)"/><use href="#f" transform="translate(199 228) scale(0.8) rotate(59)"/><use href="#f" transform="translate(218 232) scale(1.0) rotate(26)"/><use href="#f" transform="translate(118 235) scale(1.0) rotate(66)"/><use href="#f" transform="translate(131 231) scale(0.7) rotate(18)"/><use href="#f" transform="translate(94 248) scale(1.0) rotate(8)"/><use href="#f" transform="translate(101 248) scale(1.0) rotate(31)"/><use href="#f" transform="translate(163 248) scale(1.0) rotate(6)"/><use href="#f" transform="translate(188 249) scale(0.8) rotate(48)"/><use href="#f" transform="translate(203 246) scale(0.7) rotate(71)"/><use href="#f" transform="translate(210 248) scale(0.7) rotate(7)"/><use href="#f" transform="translate(131 250) scale(0.7) rotate(8)"/><use href="#f" transform="translate(133 255) scale(0.8) rotate(12)"/><use href="#f" transform="translate(77 257) scale(0.7) rotate(12)"/><use href="#f" transform="translate(228 259) scale(1.0) rotate(38)"/><use href="#f" transform="translate(78 262) scale(0.8) rotate(41)"/><use href="#f" transform="translate(188 262) scale(0.7) rotate(68)"/><use href="#f" transform="translate(172 270) scale(0.7) rotate(32)"/><use href="#f" transform="translate(178 268) scale(0.6) rotate(66)"/><use href="#f" transform="translate(111 275) scale(1.0) rotate(54)"/><use href="#f" transform="translate(207 272) scale(0.8) rotate(61)"/><use href="#f" transform="translate(148 277) scale(1.0) rotate(13)"/><use href="#f" transform="translate(181 272) scale(0.8) rotate(32)"/><use href="#f" transform="translate(65 283) scale(1.0) rotate(65)"/><use href="#f" transform="translate(92 277) scale(0.7) rotate(54)"/><use href="#f" transform="translate(219 287) scale(1.0) rotate(15)"/><use href="#f" transform="translate(240 288) scale(0.8) rotate(60)"/><use href="#f" transform="translate(202 290) scale(0.8) rotate(55)"/><use href="#f" transform="translate(186 295) scale(1.0) rotate(10)"/><use href="#f" transform="translate(132 298) scale(1.0) rotate(4)"/><use href="#f" transform="translate(191 294) scale(0.6) rotate(18)"/><use href="#f" transform="translate(213 296) scale(0.7) rotate(34)"/><use href="#f" transform="translate(90 300) scale(1.0) rotate(11)"/><use href="#f" transform="translate(167 306) scale(1.0) rotate(2)"/><use href="#f" transform="translate(174 304) scale(0.6) rotate(7)"/><use href="#f" transform="translate(85 306) scale(0.7) rotate(22)"/><use href="#f" transform="translate(239 309) scale(1.0) rotate(28)"/><use href="#f" transform="translate(215 310) scale(0.7) rotate(22)"/><use href="#f" transform="translate(51 311) scale(0.7) rotate(32)"/><use href="#f" transform="translate(113 310) scale(0.7) rotate(51)"/><use href="#f" transform="translate(162 311) scale(0.8) rotate(17)"/><use href="#f" transform="translate(71 322) scale(0.9) rotate(32)"/><use href="#f" transform="translate(252 320) scale(0.8) rotate(52)"/><use href="#f" transform="translate(67 319) scale(0.8) rotate(4)"/><use href="#f" transform="translate(145 326) scale(1.0) rotate(67)"/><use href="#f" transform="translate(199 326) scale(0.9) rotate(71)"/><use href="#f" transform="translate(205 327) scale(0.9) rotate(20)"/><use href="#f" transform="translate(92 331) scale(0.9) rotate(63)"/><use href="#f" transform="translate(99 331) scale(1.0) rotate(18)"/><use href="#f" transform="translate(115 332) scale(0.9) rotate(65)"/><use href="#f" transform="translate(78 332) scale(0.8) rotate(47)"/><use href="#f" transform="translate(55 339) scale(1.0) rotate(17)"/><use href="#f" transform="translate(179 342) scale(1.0) rotate(4)"/><use href="#f" transform="translate(247 338) scale(1.0) rotate(28)"/><use href="#f" transform="translate(229 340) scale(0.8) rotate(53)"/><use href="#f" transform="translate(222 342) scale(0.7) rotate(16)"/><use href="#f" transform="translate(81 354) scale(1.0) rotate(37)"/><use href="#f" transform="translate(130 349) scale(0.7) rotate(8)"/><use href="#f" transform="translate(232 349) scale(0.7) rotate(30)"/><use href="#f" transform="translate(38 350) scale(0.7) rotate(2)"/><use href="#f" transform="translate(109 351) scale(0.7) rotate(71)"/><use href="#f" transform="translate(158 351) scale(0.6) rotate(36)"/><use href="#f" transform="translate(153 355) scale(0.7) rotate(60)"/><use href="#f" transform="translate(159 356) scale(0.7) rotate(8)"/><use href="#f" transform="translate(213 362) scale(1.0) rotate(12)"/><use href="#f" transform="translate(266 360) scale(0.9) rotate(12)"/><use href="#f" transform="translate(128 365) scale(1.0) rotate(40)"/><use href="#f" transform="translate(64 362) scale(0.7) rotate(61)"/><use href="#f" transform="translate(201 365) scale(0.7) rotate(43)"/><use href="#f" transform="translate(256 365) scale(0.9) rotate(34)"/><use href="#f" transform="translate(240 374) scale(1.0) rotate(67)"/><use href="#f" transform="translate(41 374) scale(1.0) rotate(13)"/><use href="#f" transform="translate(68 373) scale(0.7) rotate(11)"/><use href="#f" transform="translate(110 374) scale(0.8) rotate(48)"/><use href="#f" transform="translate(202 374) scale(0.6) rotate(61)"/><use href="#f" transform="translate(184 376) scale(0.7) rotate(19)"/><use href="#f" transform="translate(92 381) scale(1.0) rotate(18)"/><use href="#f" transform="translate(161 383) scale(1.0) rotate(37)"/><use href="#f" transform="translate(26 393) scale(1.0) rotate(56)"/><use href="#f" transform="translate(64 391) scale(0.7) rotate(20)"/><use href="#f" transform="translate(277 397) scale(1.0) rotate(59)"/><use href="#f" transform="translate(113 400) scale(1.0) rotate(37)"/><use href="#f" transform="translate(194 398) scale(1.0) rotate(50)"/><use href="#f" transform="translate(209 394) scale(0.7) rotate(45)"/><use href="#f" transform="translate(223 395) scale(0.9) rotate(34)"/><use href="#f" transform="translate(134 398) scale(0.8) rotate(38)"/><use href="#f" transform="translate(201 398) scale(0.8) rotate(71)"/><use href="#f" transform="translate(139 398) scale(0.7) rotate(28)"/><use href="#f" transform="translate(55 405) scale(0.6) rotate(68)"/><use href="#f" transform="translate(93 407) scale(0.9) rotate(56)"/><use href="#f" transform="translate(256 406) scale(0.7) rotate(13)"/><use href="#f" transform="translate(77 413) scale(1.0) rotate(62)"/><use href="#f" transform="translate(215 415) scale(0.8) rotate(27)"/><use href="#f" transform="translate(288 414) scale(0.7) rotate(12)"/><use href="#f" transform="translate(180 420) scale(1.0) rotate(18)"/><use href="#f" transform="translate(28 423) scale(1.0) rotate(9)"/><use href="#f" transform="translate(50 419) scale(1.0) rotate(24)"/><use href="#f" transform="translate(100 418) scale(0.7) rotate(8)"/><use href="#f" transform="translate(238 423) scale(1.0) rotate(39)"/><use href="#f" transform="translate(123 420) scale(0.7) rotate(70)"/><use href="#f" transform="translate(151 425) scale(1.0) rotate(69)"/><use href="#f" transform="translate(270 424) scale(1.0) rotate(67)"/><use href="#f" transform="translate(58 424) scale(0.7) rotate(17)"/><use href="#f" transform="translate(99 430) scale(0.7) rotate(16)"/><use href="#f" transform="translate(250 430) scale(0.7) rotate(48)"/><use href="#f" transform="translate(92 436) scale(1.0) rotate(69)"/><use href="#f" transform="translate(217 435) scale(0.7) rotate(59)"/><use href="#f" transform="translate(67 441) scale(1.0) rotate(14)"/><use href="#f" transform="translate(129 444) scale(1.0) rotate(53)"/><use href="#f" transform="translate(205 443) scale(0.9) rotate(36)"/><use href="#f" transform="translate(215 440) scale(0.6) rotate(31)"/><use href="#f" transform="translate(221 442) scale(0.8) rotate(35)"/><use href="#f" transform="translate(199 445) scale(1.0) rotate(39)"/><use href="#f" transform="translate(183 447) scale(0.6) rotate(65)"/><use href="#f" transform="translate(106 452) scale(0.9) rotate(57)"/><use href="#f" transform="translate(169 453) scale(1.0) rotate(2)"/></g><g fill="#7fb592"><use href="#l" transform="translate(102 25) rotate(137)"/><use href="#l" transform="translate(216 32) rotate(56)"/><use href="#l" transform="translate(89 35) rotate(60)"/><use href="#l" transform="translate(98 32) rotate(107)"/><use href="#l" transform="translate(207 34) rotate(177)"/><use href="#l" transform="translate(70 35) rotate(11)"/><use href="#l" transform="translate(95 36) rotate(92)"/><use href="#l" transform="translate(92 40) rotate(42)"/><use href="#l" transform="translate(233 40) rotate(164)"/><use href="#l" transform="translate(212 43) rotate(83)"/><use href="#l" transform="translate(229 45) rotate(153)"/><use href="#l" transform="translate(199 46) rotate(158)"/><use href="#l" transform="translate(215 47) rotate(18)"/><use href="#l" transform="translate(104 50) rotate(136)"/><use href="#l" transform="translate(90 52) rotate(142)"/><use href="#l" transform="translate(73 56) rotate(149)"/><use href="#l" transform="translate(87 56) rotate(177)"/><use href="#l" transform="translate(107 56) rotate(136)"/><use href="#l" transform="translate(115 53) rotate(150)"/><use href="#l" transform="translate(198 53) rotate(127)"/><use href="#l" transform="translate(65 59) rotate(53)"/><use href="#l" transform="translate(191 62) rotate(152)"/><use href="#l" transform="translate(209 60) rotate(126)"/><use href="#l" transform="translate(125 62) rotate(122)"/><use href="#l" transform="translate(236 63) rotate(175)"/><use href="#l" transform="translate(228 63) rotate(132)"/><use href="#l" transform="translate(52 66) rotate(61)"/><use href="#l" transform="translate(233 66) rotate(54)"/><use href="#l" transform="translate(250 66) rotate(59)"/><use href="#l" transform="translate(47 72) rotate(30)"/><use href="#l" transform="translate(76 70) rotate(14)"/><use href="#l" transform="translate(96 72) rotate(136)"/><use href="#l" transform="translate(100 72) rotate(141)"/><use href="#l" transform="translate(68 74) rotate(29)"/><use href="#l" transform="translate(177 74) rotate(70)"/><use href="#l" transform="translate(92 76) rotate(165)"/><use href="#l" transform="translate(114 77) rotate(150)"/><use href="#l" transform="translate(188 76) rotate(107)"/><use href="#l" transform="translate(208 77) rotate(174)"/><use href="#l" transform="translate(212 78) rotate(59)"/><use href="#l" transform="translate(171 77) rotate(151)"/><use href="#l" transform="translate(259 78) rotate(168)"/><use href="#l" transform="translate(33 81) rotate(106)"/><use href="#l" transform="translate(124 85) rotate(27)"/><use href="#l" transform="translate(251 83) rotate(52)"/><use href="#l" transform="translate(257 83) rotate(92)"/><use href="#l" transform="translate(52 84) rotate(50)"/><use href="#l" transform="translate(187 85) rotate(16)"/><use href="#l" transform="translate(210 84) rotate(30)"/><use href="#l" transform="translate(224 84) rotate(173)"/><use href="#l" transform="translate(230 83) rotate(68)"/><use href="#l" transform="translate(184 86) rotate(103)"/><use href="#l" transform="translate(207 85) rotate(78)"/><use href="#l" transform="translate(38 88) rotate(144)"/><use href="#l" transform="translate(75 91) rotate(18)"/><use href="#l" transform="translate(174 92) rotate(50)"/><use href="#l" transform="translate(192 93) rotate(105)"/><use href="#l" transform="translate(102 96) rotate(144)"/><use href="#l" transform="translate(244 97) rotate(83)"/><use href="#l" transform="translate(46 98) rotate(126)"/><use href="#l" transform="translate(211 96) rotate(144)"/><use href="#l" transform="translate(267 98) rotate(115)"/><use href="#l" transform="translate(37 100) rotate(147)"/><use href="#l" transform="translate(51 100) rotate(171)"/><use href="#l" transform="translate(56 100) rotate(39)"/><use href="#l" transform="translate(158 102) rotate(78)"/><use href="#l" transform="translate(101 101) rotate(40)"/><use href="#l" transform="translate(201 104) rotate(74)"/><use href="#l" transform="translate(134 102) rotate(0)"/><use href="#l" transform="translate(176 104) rotate(124)"/><use href="#l" transform="translate(188 103) rotate(42)"/><use href="#l" transform="translate(228 105) rotate(150)"/><use href="#l" transform="translate(242 104) rotate(129)"/><use href="#l" transform="translate(117 107) rotate(60)"/><use href="#l" transform="translate(182 108) rotate(81)"/><use href="#l" transform="translate(256 109) rotate(120)"/><use href="#l" transform="translate(63 110) rotate(75)"/><use href="#l" transform="translate(138 112) rotate(37)"/><use href="#l" transform="translate(100 115) rotate(7)"/><use href="#l" transform="translate(132 115) rotate(99)"/><use href="#l" transform="translate(114 116) rotate(95)"/><use href="#l" transform="translate(206 116) rotate(138)"/><use href="#l" transform="translate(106 119) rotate(23)"/><use href="#l" transform="translate(165 118) rotate(11)"/><use href="#l" transform="translate(149 120) rotate(132)"/><use href="#l" transform="translate(190 125) rotate(131)"/><use href="#l" transform="translate(222 126) rotate(143)"/><use href="#l" transform="translate(180 129) rotate(2)"/><use href="#l" transform="translate(201 127) rotate(117)"/><use href="#l" transform="translate(147 130) rotate(172)"/><use href="#l" transform="translate(140 133) rotate(137)"/><use href="#l" transform="translate(96 133) rotate(84)"/><use href="#l" transform="translate(113 134) rotate(85)"/><use href="#l" transform="translate(165 137) rotate(73)"/><use href="#l" transform="translate(182 141) rotate(9)"/><use href="#l" transform="translate(201 140) rotate(129)"/><use href="#l" transform="translate(104 142) rotate(96)"/><use href="#l" transform="translate(199 142) rotate(94)"/><use href="#l" transform="translate(139 142) rotate(167)"/><use href="#l" transform="translate(197 143) rotate(131)"/><use href="#l" transform="translate(132 149) rotate(172)"/><use href="#l" transform="translate(121 149) rotate(15)"/><use href="#l" transform="translate(170 149) rotate(171)"/><use href="#l" transform="translate(175 149) rotate(101)"/><use href="#l" transform="translate(125 152) rotate(72)"/><use href="#l" transform="translate(155 166) rotate(100)"/><use href="#l" transform="translate(110 175) rotate(6)"/><use href="#l" transform="translate(121 176) rotate(167)"/><use href="#l" transform="translate(220 178) rotate(113)"/><use href="#l" transform="translate(115 179) rotate(7)"/><use href="#l" transform="translate(166 178) rotate(164)"/><use href="#l" transform="translate(164 181) rotate(81)"/><use href="#l" transform="translate(158 185) rotate(21)"/><use href="#l" transform="translate(97 187) rotate(113)"/><use href="#l" transform="translate(107 190) rotate(12)"/><use href="#l" transform="translate(127 191) rotate(99)"/><use href="#l" transform="translate(131 197) rotate(137)"/><use href="#l" transform="translate(137 196) rotate(13)"/><use href="#l" transform="translate(154 195) rotate(142)"/><use href="#l" transform="translate(115 200) rotate(106)"/><use href="#l" transform="translate(158 200) rotate(58)"/><use href="#l" transform="translate(182 200) rotate(39)"/><use href="#l" transform="translate(111 202) rotate(2)"/><use href="#l" transform="translate(95 207) rotate(35)"/><use href="#l" transform="translate(137 212) rotate(51)"/><use href="#l" transform="translate(210 209) rotate(158)"/><use href="#l" transform="translate(154 211) rotate(92)"/><use href="#l" transform="translate(156 217) rotate(35)"/><use href="#l" transform="translate(86 224) rotate(133)"/><use href="#l" transform="translate(110 222) rotate(81)"/><use href="#l" transform="translate(117 222) rotate(150)"/><use href="#l" transform="translate(122 223) rotate(135)"/><use href="#l" transform="translate(169 223) rotate(167)"/><use href="#l" transform="translate(214 224) rotate(127)"/><use href="#l" transform="translate(110 227) rotate(19)"/><use href="#l" transform="translate(155 228) rotate(99)"/><use href="#l" transform="translate(142 231) rotate(76)"/><use href="#l" transform="translate(185 230) rotate(145)"/><use href="#l" transform="translate(149 232) rotate(27)"/><use href="#l" transform="translate(169 231) rotate(83)"/><use href="#l" transform="translate(175 235) rotate(148)"/><use href="#l" transform="translate(80 238) rotate(111)"/><use href="#l" transform="translate(95 239) rotate(6)"/><use href="#l" transform="translate(145 238) rotate(147)"/><use href="#l" transform="translate(221 238) rotate(66)"/><use href="#l" transform="translate(123 242) rotate(122)"/><use href="#l" transform="translate(199 241) rotate(117)"/><use href="#l" transform="translate(218 242) rotate(115)"/><use href="#l" transform="translate(117 245) rotate(75)"/><use href="#l" transform="translate(184 245) rotate(73)"/><use href="#l" transform="translate(154 248) rotate(18)"/><use href="#l" transform="translate(138 250) rotate(100)"/><use href="#l" transform="translate(97 254) rotate(52)"/><use href="#l" transform="translate(158 255) rotate(71)"/><use href="#l" transform="translate(166 255) rotate(30)"/><use href="#l" transform="translate(199 253) rotate(133)"/><use href="#l" transform="translate(91 260) rotate(166)"/><use href="#l" transform="translate(103 256) rotate(68)"/><use href="#l" transform="translate(138 259) rotate(76)"/><use href="#l" transform="translate(128 257) rotate(83)"/><use href="#l" transform="translate(114 263) rotate(12)"/><use href="#l" transform="translate(152 266) rotate(135)"/><use href="#l" transform="translate(73 267) rotate(158)"/><use href="#l" transform="translate(78 268) rotate(90)"/><use href="#l" transform="translate(231 267) rotate(11)"/><use href="#l" transform="translate(121 271) rotate(60)"/><use href="#l" transform="translate(139 272) rotate(28)"/><use href="#l" transform="translate(159 273) rotate(148)"/><use href="#l" transform="translate(204 276) rotate(144)"/><use href="#l" transform="translate(131 280) rotate(68)"/><use href="#l" transform="translate(73 281) rotate(67)"/><use href="#l" transform="translate(106 285) rotate(152)"/><use href="#l" transform="translate(172 283) rotate(15)"/><use href="#l" transform="translate(178 282) rotate(141)"/><use href="#l" transform="translate(238 282) rotate(173)"/><use href="#l" transform="translate(115 286) rotate(80)"/><use href="#l" transform="translate(150 287) rotate(135)"/><use href="#l" transform="translate(225 283) rotate(128)"/><use href="#l" transform="translate(63 292) rotate(161)"/><use href="#l" transform="translate(70 290) rotate(6)"/><use href="#l" transform="translate(225 290) rotate(126)"/><use href="#l" transform="translate(90 291) rotate(70)"/><use href="#l" transform="translate(203 296) rotate(154)"/><use href="#l" transform="translate(165 298) rotate(154)"/><use href="#l" transform="translate(78 301) rotate(51)"/><use href="#l" transform="translate(124 302) rotate(104)"/><use href="#l" transform="translate(236 302) rotate(88)"/><use href="#l" transform="translate(109 305) rotate(100)"/><use href="#l" transform="translate(112 304) rotate(149)"/><use href="#l" transform="translate(137 305) rotate(119)"/><use href="#l" transform="translate(159 303) rotate(136)"/><use href="#l" transform="translate(183 302) rotate(121)"/><use href="#l" transform="translate(190 305) rotate(45)"/><use href="#l" transform="translate(55 306) rotate(105)"/><use href="#l" transform="translate(128 307) rotate(68)"/><use href="#l" transform="translate(232 306) rotate(75)"/><use href="#l" transform="translate(87 311) rotate(20)"/><use href="#l" transform="translate(69 313) rotate(33)"/><use href="#l" transform="translate(109 312) rotate(61)"/><use href="#l" transform="translate(147 313) rotate(52)"/><use href="#l" transform="translate(187 311) rotate(114)"/><use href="#l" transform="translate(55 314) rotate(52)"/><use href="#l" transform="translate(210 314) rotate(44)"/><use href="#l" transform="translate(233 315) rotate(77)"/><use href="#l" transform="translate(165 318) rotate(102)"/><use href="#l" transform="translate(242 316) rotate(179)"/><use href="#l" transform="translate(50 318) rotate(91)"/><use href="#l" transform="translate(238 319) rotate(63)"/><use href="#l" transform="translate(213 320) rotate(57)"/><use href="#l" transform="translate(217 321) rotate(80)"/><use href="#l" transform="translate(116 324) rotate(166)"/><use href="#l" transform="translate(134 323) rotate(66)"/><use href="#l" transform="translate(167 324) rotate(44)"/><use href="#l" transform="translate(89 326) rotate(104)"/><use href="#l" transform="translate(189 327) rotate(139)"/><use href="#l" transform="translate(121 328) rotate(170)"/><use href="#l" transform="translate(185 327) rotate(50)"/><use href="#l" transform="translate(57 331) rotate(160)"/><use href="#l" transform="translate(106 330) rotate(153)"/><use href="#l" transform="translate(244 330) rotate(67)"/><use href="#l" transform="translate(136 333) rotate(60)"/><use href="#l" transform="translate(250 331) rotate(48)"/><use href="#l" transform="translate(230 334) rotate(57)"/><use href="#l" transform="translate(48 338) rotate(159)"/><use href="#l" transform="translate(62 335) rotate(55)"/><use href="#l" transform="translate(151 336) rotate(88)"/><use href="#l" transform="translate(169 337) rotate(168)"/><use href="#l" transform="translate(207 337) rotate(123)"/><use href="#l" transform="translate(222 335) rotate(23)"/><use href="#l" transform="translate(254 336) rotate(13)"/><use href="#l" transform="translate(91 338) rotate(40)"/><use href="#l" transform="translate(102 338) rotate(155)"/><use href="#l" transform="translate(143 340) rotate(40)"/><use href="#l" transform="translate(98 342) rotate(56)"/><use href="#l" transform="translate(240 341) rotate(97)"/><use href="#l" transform="translate(169 344) rotate(89)"/><use href="#l" transform="translate(252 345) rotate(13)"/><use href="#l" transform="translate(50 346) rotate(35)"/><use href="#l" transform="translate(57 348) rotate(178)"/><use href="#l" transform="translate(79 346) rotate(75)"/><use href="#l" transform="translate(244 346) rotate(50)"/><use href="#l" transform="translate(124 351) rotate(149)"/><use href="#l" transform="translate(248 348) rotate(83)"/><use href="#l" transform="translate(155 350) rotate(148)"/><use href="#l" transform="translate(187 349) rotate(28)"/><use href="#l" transform="translate(212 351) rotate(85)"/><use href="#l" transform="translate(104 352) rotate(145)"/><use href="#l" transform="translate(177 357) rotate(138)"/><use href="#l" transform="translate(184 355) rotate(121)"/><use href="#l" transform="translate(38 355) rotate(82)"/><use href="#l" transform="translate(102 358) rotate(148)"/><use href="#l" transform="translate(109 355) rotate(67)"/><use href="#l" transform="translate(122 356) rotate(118)"/><use href="#l" transform="translate(234 356) rotate(98)"/><use href="#l" transform="translate(155 359) rotate(54)"/><use href="#l" transform="translate(222 360) rotate(36)"/><use href="#l" transform="translate(253 360) rotate(95)"/><use href="#l" transform="translate(87 362) rotate(56)"/><use href="#l" transform="translate(138 362) rotate(93)"/><use href="#l" transform="translate(249 363) rotate(127)"/><use href="#l" transform="translate(56 364) rotate(144)"/><use href="#l" transform="translate(79 365) rotate(138)"/><use href="#l" transform="translate(267 368) rotate(91)"/><use href="#l" transform="translate(35 368) rotate(10)"/><use href="#l" transform="translate(162 370) rotate(32)"/><use href="#l" transform="translate(220 369) rotate(131)"/><use href="#l" transform="translate(120 369) rotate(107)"/><use href="#l" transform="translate(156 372) rotate(147)"/><use href="#l" transform="translate(135 373) rotate(88)"/><use href="#l" transform="translate(179 372) rotate(80)"/><use href="#l" transform="translate(213 372) rotate(44)"/><use href="#l" transform="translate(123 374) rotate(11)"/><use href="#l" transform="translate(186 373) rotate(25)"/><use href="#l" transform="translate(88 376) rotate(122)"/><use href="#l" transform="translate(128 377) rotate(104)"/><use href="#l" transform="translate(106 377) rotate(44)"/><use href="#l" transform="translate(149 380) rotate(65)"/><use href="#l" transform="translate(181 377) rotate(115)"/><use href="#l" transform="translate(169 379) rotate(68)"/><use href="#l" transform="translate(251 380) rotate(67)"/><use href="#l" transform="translate(50 381) rotate(48)"/><use href="#l" transform="translate(84 383) rotate(114)"/><use href="#l" transform="translate(47 385) rotate(160)"/><use href="#l" transform="translate(242 386) rotate(46)"/><use href="#l" transform="translate(248 384) rotate(52)"/><use href="#l" transform="translate(271 385) rotate(85)"/><use href="#l" transform="translate(36 388) rotate(34)"/><use href="#l" transform="translate(41 386) rotate(94)"/><use href="#l" transform="translate(223 388) rotate(159)"/><use href="#l" transform="translate(88 388) rotate(113)"/><use href="#l" transform="translate(92 388) rotate(29)"/><use href="#l" transform="translate(193 389) rotate(36)"/><use href="#l" transform="translate(68 390) rotate(13)"/><use href="#l" transform="translate(113 388) rotate(173)"/><use href="#l" transform="translate(133 391) rotate(62)"/><use href="#l" transform="translate(138 392) rotate(52)"/><use href="#l" transform="translate(168 392) rotate(154)"/><use href="#l" transform="translate(189 392) rotate(55)"/><use href="#l" transform="translate(270 391) rotate(41)"/><use href="#l" transform="translate(106 394) rotate(46)"/><use href="#l" transform="translate(156 394) rotate(71)"/><use href="#l" transform="translate(76 399) rotate(12)"/><use href="#l" transform="translate(121 395) rotate(115)"/><use href="#l" transform="translate(162 397) rotate(76)"/><use href="#l" transform="translate(33 398) rotate(174)"/><use href="#l" transform="translate(37 398) rotate(138)"/><use href="#l" transform="translate(60 399) rotate(69)"/><use href="#l" transform="translate(104 398) rotate(127)"/><use href="#l" transform="translate(176 400) rotate(145)"/><use href="#l" transform="translate(237 398) rotate(35)"/><use href="#l" transform="translate(256 398) rotate(28)"/><use href="#l" transform="translate(252 401) rotate(24)"/><use href="#l" transform="translate(261 402) rotate(8)"/><use href="#l" transform="translate(50 404) rotate(57)"/><use href="#l" transform="translate(29 404) rotate(142)"/><use href="#l" transform="translate(34 405) rotate(138)"/><use href="#l" transform="translate(189 405) rotate(68)"/><use href="#l" transform="translate(280 405) rotate(87)"/><use href="#l" transform="translate(18 406) rotate(138)"/><use href="#l" transform="translate(196 408) rotate(166)"/><use href="#l" transform="translate(251 406) rotate(50)"/><use href="#l" transform="translate(109 409) rotate(118)"/><use href="#l" transform="translate(117 411) rotate(106)"/><use href="#l" transform="translate(262 408) rotate(111)"/><use href="#l" transform="translate(145 413) rotate(144)"/><use href="#l" transform="translate(155 412) rotate(138)"/><use href="#l" transform="translate(229 413) rotate(71)"/><use href="#l" transform="translate(267 409) rotate(135)"/><use href="#l" transform="translate(160 415) rotate(9)"/><use href="#l" transform="translate(140 417) rotate(61)"/><use href="#l" transform="translate(33 415) rotate(39)"/><use href="#l" transform="translate(278 415) rotate(46)"/><use href="#l" transform="translate(86 420) rotate(162)"/><use href="#l" transform="translate(263 421) rotate(78)"/><use href="#l" transform="translate(72 422) rotate(13)"/><use href="#l" transform="translate(214 422) rotate(88)"/><use href="#l" transform="translate(77 425) rotate(12)"/><use href="#l" transform="translate(207 424) rotate(25)"/><use href="#l" transform="translate(50 426) rotate(69)"/><use href="#l" transform="translate(120 426) rotate(79)"/><use href="#l" transform="translate(188 427) rotate(41)"/><use href="#l" transform="translate(34 428) rotate(115)"/><use href="#l" transform="translate(103 430) rotate(89)"/><use href="#l" transform="translate(126 429) rotate(24)"/><use href="#l" transform="translate(262 428) rotate(147)"/><use href="#l" transform="translate(120 430) rotate(24)"/><use href="#l" transform="translate(159 432) rotate(64)"/><use href="#l" transform="translate(176 430) rotate(31)"/><use href="#l" transform="translate(182 432) rotate(169)"/><use href="#l" transform="translate(230 430) rotate(50)"/><use href="#l" transform="translate(242 432) rotate(156)"/><use href="#l" transform="translate(62 435) rotate(173)"/><use href="#l" transform="translate(238 434) rotate(39)"/><use href="#l" transform="translate(58 436) rotate(4)"/><use href="#l" transform="translate(103 437) rotate(2)"/><use href="#l" transform="translate(120 435) rotate(33)"/><use href="#l" transform="translate(146 436) rotate(72)"/><use href="#l" transform="translate(151 438) rotate(29)"/><use href="#l" transform="translate(197 436) rotate(172)"/><use href="#l" transform="translate(85 438) rotate(85)"/><use href="#l" transform="translate(170 445) rotate(152)"/><use href="#l" transform="translate(194 445) rotate(2)"/><use href="#l" transform="translate(165 446) rotate(23)"/><use href="#l" transform="translate(134 451) rotate(82)"/><use href="#l" transform="translate(161 451) rotate(29)"/><use href="#l" transform="translate(125 452) rotate(29)"/><use href="#l" transform="translate(202 450) rotate(4)"/><use href="#l" transform="translate(112 452) rotate(48)"/><use href="#l" transform="translate(129 453) rotate(137)"/><use href="#l" transform="translate(175 454) rotate(142)"/></g></g><g transform="scale(0.3333333333333333) translate(0.000000,1410.000000) scale(0.100000,-0.100000)" fill="#1b2140"><path d="M3320 13720 c-30 -17 -121 -62 -340 -171 -124 -61 -232 -115 -240
+-120 -8 -5 -22 -12 -30 -15 -8 -3 -28 -12 -45 -19 -16 -7 -48 -21 -70 -30 -22
+-10 -53 -24 -68 -31 -16 -8 -37 -14 -47 -14 -9 0 -23 -7 -30 -15 -7 -8 -25
+-15 -40 -15 -15 0 -33 -7 -40 -15 -7 -8 -17 -15 -23 -15 -15 0 -96 -40 -103
+-51 -3 -5 -27 -9 -53 -9 -31 0 -53 -5 -61 -15 -7 -8 -18 -15 -25 -15 -40 0
+-224 -159 -267 -230 -12 -19 -37 -51 -56 -72 -19 -20 -39 -45 -46 -56 -22 -40
+-90 -137 -118 -170 -15 -18 -28 -38 -28 -44 0 -5 -13 -26 -30 -45 -16 -18 -30
+-39 -30 -45 0 -7 -9 -21 -19 -32 -18 -20 -31 -40 -76 -115 -11 -19 -34 -50
+-51 -70 -17 -20 -40 -52 -52 -71 -11 -20 -32 -46 -46 -59 -14 -14 -26 -29 -26
+-35 0 -5 -17 -30 -38 -55 -21 -25 -48 -62 -59 -81 -12 -19 -45 -57 -73 -85
+-29 -27 -69 -75 -90 -105 -34 -49 -330 -349 -402 -408 -34 -27 -35 -49 -6 -98
+31 -52 288 -314 308 -314 9 0 21 -5 28 -12 12 -12 67 -34 117 -47 64 -16 125
+-61 125 -92 0 -9 7 -22 15 -29 8 -7 15 -20 15 -30 0 -18 63 -80 81 -80 13 0
+69 -61 69 -75 0 -17 134 -145 152 -145 9 0 19 -4 22 -9 4 -5 27 -19 54 -31 26
+-11 60 -28 75 -35 16 -8 52 -15 81 -15 30 0 60 -6 72 -15 10 -8 32 -15 47 -15
+22 0 44 -17 99 -75 39 -41 79 -75 88 -75 10 0 23 -7 30 -15 7 -8 27 -15 44
+-15 18 0 41 -7 52 -15 10 -8 36 -15 57 -15 21 0 51 -7 68 -15 20 -11 51 -15
+97 -13 67 3 67 3 72 55 3 29 11 58 18 65 6 6 12 32 12 58 0 25 7 54 15 64 9
+12 15 42 15 78 0 95 50 162 58 78 2 -19 10 -43 18 -54 8 -11 14 -36 14 -56 0
+-19 7 -44 15 -54 8 -11 15 -36 15 -55 0 -20 7 -45 15 -55 8 -11 15 -32 15 -46
+0 -14 7 -35 15 -46 8 -10 15 -32 15 -49 0 -16 7 -39 15 -49 8 -11 15 -34 15
+-52 0 -17 7 -37 15 -44 8 -7 15 -27 15 -45 0 -18 7 -38 15 -45 8 -7 15 -25 15
+-40 0 -15 7 -33 15 -40 8 -7 15 -22 15 -34 0 -11 7 -30 15 -40 8 -11 15 -31
+15 -45 0 -14 7 -35 15 -45 8 -11 15 -29 15 -40 0 -12 7 -30 15 -40 8 -11 15
+-29 15 -39 0 -11 12 -36 28 -56 44 -58 59 -510 19 -561 -7 -8 -21 -33 -31 -55
+-10 -22 -22 -47 -27 -55 -5 -8 -12 -22 -15 -30 -3 -8 -9 -22 -14 -30 -31 -54
+-170 -339 -170 -347 0 -6 -7 -16 -15 -23 -8 -7 -15 -22 -15 -34 0 -12 -7 -31
+-15 -42 -8 -10 -15 -27 -15 -36 0 -9 -6 -29 -14 -45 -7 -15 -21 -46 -31 -68
+-9 -22 -23 -53 -31 -68 -8 -16 -14 -39 -14 -52 0 -12 -7 -28 -15 -35 -8 -7
+-15 -22 -15 -34 -1 -11 -7 -32 -15 -46 -8 -14 -14 -37 -15 -51 0 -14 -7 -34
+-15 -45 -8 -10 -15 -28 -15 -39 0 -11 -7 -29 -15 -39 -8 -11 -15 -28 -15 -39
+0 -10 -6 -31 -13 -45 -8 -15 -21 -42 -30 -60 -9 -19 -17 -44 -17 -57 0 -12 -7
+-28 -15 -35 -8 -7 -15 -27 -15 -45 0 -18 -7 -38 -15 -45 -8 -7 -15 -25 -15
+-40 0 -16 -7 -42 -15 -59 -8 -17 -22 -45 -30 -62 -8 -17 -15 -38 -15 -48 0 -9
+-7 -26 -15 -37 -8 -10 -15 -31 -15 -45 0 -15 -7 -32 -15 -39 -8 -7 -15 -27
+-15 -45 0 -18 -7 -38 -15 -45 -8 -7 -15 -25 -15 -39 0 -15 -7 -36 -15 -47 -8
+-10 -15 -28 -15 -40 0 -11 -7 -29 -15 -40 -8 -10 -15 -30 -15 -42 0 -13 -6
+-36 -14 -50 -16 -31 -35 -84 -45 -127 -4 -17 -13 -40 -19 -52 -7 -12 -12 -32
+-12 -45 0 -13 -7 -33 -15 -44 -8 -10 -15 -31 -15 -45 0 -14 -7 -34 -15 -45 -8
+-10 -15 -33 -15 -50 0 -17 -7 -37 -15 -44 -8 -7 -15 -29 -15 -50 0 -21 -7 -43
+-15 -50 -8 -7 -15 -27 -15 -45 0 -18 -7 -38 -15 -45 -8 -7 -15 -27 -15 -44 0
+-18 -7 -41 -15 -52 -8 -10 -15 -33 -15 -50 0 -16 -7 -39 -15 -50 -8 -10 -15
+-33 -15 -50 0 -16 -7 -39 -15 -50 -8 -10 -15 -32 -15 -49 0 -16 -7 -39 -15
+-49 -8 -11 -15 -29 -15 -41 0 -12 -7 -30 -15 -41 -8 -10 -15 -31 -15 -45 0
+-14 -7 -34 -15 -45 -8 -10 -15 -31 -15 -45 0 -14 -7 -34 -15 -45 -8 -10 -15
+-32 -15 -49 0 -16 -7 -39 -15 -49 -8 -11 -15 -29 -15 -41 0 -12 -7 -30 -15
+-41 -8 -10 -15 -33 -15 -50 0 -17 -7 -37 -15 -44 -8 -7 -15 -27 -15 -45 0 -18
+-7 -38 -15 -45 -8 -7 -15 -27 -15 -44 0 -17 -7 -40 -15 -50 -8 -11 -15 -32
+-15 -46 0 -14 -7 -35 -15 -46 -8 -10 -15 -29 -15 -41 0 -12 -6 -37 -14 -55
+-22 -55 -38 -101 -46 -141 -4 -21 -13 -44 -19 -50 -6 -6 -11 -23 -11 -37 0
+-14 -7 -35 -15 -46 -8 -10 -15 -33 -15 -50 0 -16 -7 -39 -15 -50 -8 -10 -15
+-31 -15 -45 0 -14 -7 -34 -15 -45 -8 -10 -15 -31 -15 -45 0 -14 -7 -34 -15
+-45 -8 -10 -15 -30 -15 -44 0 -14 -7 -34 -15 -44 -8 -11 -15 -28 -15 -39 0
+-10 -6 -31 -14 -45 -16 -33 -35 -85 -46 -131 -5 -18 -13 -38 -19 -44 -6 -6
+-11 -22 -11 -36 0 -15 -7 -35 -15 -45 -8 -11 -15 -31 -15 -45 0 -14 -7 -35
+-15 -45 -8 -11 -15 -29 -15 -41 0 -12 -7 -30 -15 -41 -8 -10 -15 -31 -15 -45
+0 -14 -7 -34 -15 -45 -8 -10 -15 -31 -15 -45 0 -15 -7 -32 -15 -39 -8 -7 -15
+-25 -15 -39 0 -15 -7 -36 -15 -47 -8 -10 -15 -30 -15 -42 0 -13 -6 -36 -14
+-50 -15 -30 -33 -81 -46 -127 -13 -48 -31 -98 -46 -128 -8 -16 -14 -38 -14
+-50 0 -12 -7 -31 -15 -41 -8 -11 -15 -32 -15 -47 0 -14 -7 -32 -15 -39 -8 -7
+-15 -21 -15 -32 0 -11 -6 -32 -13 -46 -8 -15 -21 -42 -30 -60 -9 -19 -17 -41
+-17 -51 0 -9 -7 -26 -15 -37 -8 -10 -15 -29 -15 -40 0 -12 -7 -27 -15 -34 -8
+-7 -15 -22 -15 -34 0 -12 -7 -31 -15 -42 -8 -10 -15 -31 -15 -45 0 -14 -7 -34
+-15 -45 -8 -10 -15 -28 -15 -39 0 -11 -7 -29 -15 -39 -8 -11 -15 -28 -15 -39
+0 -10 -6 -31 -13 -45 -8 -15 -21 -42 -30 -60 -9 -19 -17 -44 -17 -57 0 -12 -7
+-28 -15 -35 -8 -7 -15 -25 -15 -40 0 -15 -7 -33 -15 -40 -8 -7 -15 -21 -15
+-31 0 -20 -16 -60 -61 -154 -16 -33 -29 -66 -29 -73 0 -8 -6 -26 -13 -40 -8
+-15 -21 -42 -30 -60 -38 -75 -17 -122 92 -206 75 -58 218 -130 276 -139 75
+-12 121 -40 206 -123 48 -46 93 -84 101 -84 9 0 21 -7 28 -15 7 -8 24 -15 39
+-15 15 0 32 -5 39 -12 16 -16 96 -27 264 -38 167 -10 174 -12 188 -56 8 -23
+22 -39 43 -49 18 -8 52 -28 77 -45 25 -16 52 -32 60 -36 8 -3 22 -10 30 -15 8
+-5 22 -12 30 -15 8 -3 29 -12 45 -19 17 -7 48 -21 70 -30 22 -10 53 -24 68
+-31 16 -8 41 -14 57 -14 15 0 33 -7 40 -15 7 -9 29 -15 55 -15 23 0 59 -7 78
+-15 30 -12 91 -15 326 -15 333 0 321 3 321 -85 0 -59 29 -95 74 -95 12 0 31
+-7 42 -15 10 -8 33 -15 50 -15 16 0 39 -7 50 -15 10 -8 37 -15 59 -15 22 0 49
+-6 60 -14 12 -8 60 -16 115 -19 52 -3 120 -11 149 -16 38 -7 83 -7 145 0 50 6
+129 13 176 15 47 3 102 12 123 20 20 8 64 14 96 14 32 0 78 7 101 15 59 21
+317 21 386 0 27 -8 86 -15 132 -15 51 0 97 -6 119 -15 21 -9 67 -15 115 -15
+47 0 93 -6 115 -15 51 -21 426 -21 497 0 27 8 72 15 100 15 28 1 62 7 76 15
+14 8 43 14 66 15 22 0 49 7 60 15 10 8 33 15 49 15 17 0 39 7 49 15 11 8 32
+15 47 15 15 0 40 7 55 15 33 17 189 21 242 6 93 -27 216 26 220 95 4 62 -1 60
+153 62 97 2 137 6 152 17 12 8 31 15 42 15 12 0 30 7 41 15 10 8 26 15 35 15
+9 0 22 7 29 15 7 8 20 15 30 15 10 0 23 7 30 15 7 8 20 15 30 15 10 0 23 6 29
+14 6 8 26 16 44 19 18 2 46 10 63 18 26 10 47 10 116 -1 47 -7 100 -10 119 -6
+19 4 61 9 94 12 33 3 75 12 93 20 128 56 162 78 162 103 0 20 55 75 90 90 14
+6 32 15 40 20 25 14 82 33 125 40 22 4 50 13 62 19 12 7 59 12 105 12 57 1 89
+5 102 15 11 8 32 15 47 15 14 0 32 7 39 15 7 8 20 15 30 15 9 0 37 13 61 30
+24 16 49 30 55 30 6 0 21 12 35 26 13 14 38 33 54 41 17 8 41 26 55 38 24 23
+59 45 131 84 19 11 41 27 48 35 8 9 19 16 26 16 61 0 74 54 34 139 -17 36 -45
+95 -61 131 -16 36 -33 72 -39 80 -5 8 -12 22 -15 30 -3 8 -10 22 -15 30 -5 8
+-12 22 -15 30 -3 8 -12 28 -20 43 -7 16 -14 36 -14 45 0 9 -7 26 -15 36 -8 11
+-15 27 -15 37 0 9 -7 22 -15 29 -8 7 -15 22 -15 34 0 11 -7 30 -15 40 -8 11
+-15 29 -15 40 0 12 -7 30 -15 40 -8 11 -15 27 -15 37 0 9 -7 22 -15 29 -8 7
+-15 25 -15 40 0 15 -7 33 -15 40 -8 7 -15 25 -15 39 0 15 -7 36 -15 47 -8 10
+-15 28 -15 39 0 11 -7 29 -15 39 -8 11 -15 30 -15 42 0 12 -6 35 -14 51 -7 15
+-21 46 -31 68 -9 22 -24 52 -31 67 -8 14 -14 37 -14 51 0 13 -7 30 -15 37 -8
+7 -15 22 -15 34 0 11 -7 30 -15 40 -8 11 -15 30 -15 42 0 12 -7 27 -15 34 -8
+7 -15 22 -15 34 0 11 -7 30 -15 40 -8 11 -15 29 -15 40 0 12 -7 30 -15 40 -8
+11 -15 29 -15 41 0 12 -7 30 -15 41 -8 10 -15 28 -15 39 0 11 -7 29 -15 39 -8
+11 -15 29 -15 40 0 12 -7 30 -15 40 -8 11 -15 29 -15 41 0 12 -7 30 -15 41 -8
+10 -15 28 -15 39 0 11 -7 29 -15 39 -8 11 -15 29 -15 40 0 12 -7 30 -15 40 -8
+11 -15 31 -15 45 0 14 -7 35 -15 45 -8 11 -15 29 -15 40 0 12 -7 30 -15 40 -8
+11 -15 32 -15 46 0 14 -5 31 -11 37 -6 6 -14 26 -19 44 -11 46 -30 98 -46 131
+-8 14 -14 37 -14 50 0 12 -7 32 -15 42 -8 11 -15 29 -15 40 0 12 -7 30 -15 40
+-8 11 -15 29 -15 40 0 12 -7 30 -15 40 -8 11 -15 31 -15 45 0 14 -7 35 -15 45
+-8 11 -15 31 -15 45 0 14 -7 35 -15 45 -8 11 -15 29 -15 40 0 12 -7 30 -15 40
+-8 11 -15 29 -15 40 0 12 -7 30 -15 40 -8 11 -15 31 -15 45 0 14 -7 35 -15 45
+-8 11 -15 31 -15 45 0 14 -7 35 -15 45 -8 11 -15 32 -15 47 0 14 -7 32 -15 39
+-8 7 -15 27 -15 45 0 18 -7 38 -15 45 -8 7 -15 27 -15 45 0 18 -7 38 -15 45
+-8 7 -15 27 -15 45 0 18 -7 38 -15 45 -8 7 -15 27 -15 45 0 18 -7 38 -15 45
+-8 7 -15 25 -15 39 0 15 -7 36 -15 47 -8 10 -15 31 -15 45 0 14 -7 34 -15 45
+-8 10 -15 30 -15 44 0 14 -7 34 -15 44 -8 11 -15 34 -15 52 0 17 -7 37 -15 44
+-8 7 -15 25 -15 39 0 15 -7 36 -15 47 -8 10 -15 30 -15 45 0 14 -5 30 -11 36
+-6 6 -14 26 -19 44 -14 56 -56 171 -76 211 -8 14 -14 37 -14 50 0 12 -7 32
+-15 42 -8 11 -15 34 -15 50 0 17 -7 40 -15 50 -8 11 -15 31 -15 45 0 14 -7 35
+-15 45 -8 11 -15 29 -15 40 0 12 -7 30 -15 40 -8 11 -15 29 -15 41 0 12 -7 30
+-15 41 -8 10 -15 30 -15 44 0 14 -7 34 -15 44 -8 11 -15 29 -15 40 0 12 -7 30
+-15 40 -8 11 -15 29 -15 40 0 12 -7 30 -15 40 -8 11 -15 29 -15 40 0 12 -7 30
+-15 40 -8 11 -15 31 -15 45 0 14 -7 35 -15 45 -8 11 -15 29 -15 40 0 12 -7 30
+-15 40 -8 11 -15 28 -15 37 0 10 -8 32 -17 51 -9 18 -22 45 -30 60 -7 14 -13
+33 -13 41 0 9 -8 30 -17 49 -9 18 -22 45 -30 60 -7 14 -13 33 -13 41 0 9 -6
+28 -14 44 -8 15 -22 48 -31 73 -10 25 -23 57 -31 72 -8 14 -14 34 -14 43 0 9
+-6 29 -13 43 -8 15 -21 42 -30 60 -9 19 -17 40 -17 47 0 7 -8 28 -17 47 -9 18
+-22 45 -30 60 -7 14 -13 37 -13 51 0 13 -7 30 -16 37 -29 25 -15 84 21 88 47
+4 146 52 189 91 44 41 166 254 166 291 0 7 6 24 13 38 8 15 22 45 31 67 10 22
+24 53 32 68 19 39 18 76 -6 122 -21 40 -137 165 -154 165 -5 0 -25 12 -45 27
+-38 30 -50 36 -185 107 -49 25 -96 46 -105 46 -9 0 -25 7 -35 15 -11 8 -29 15
+-40 15 -12 0 -30 7 -40 15 -11 8 -27 15 -35 15 -9 0 -29 7 -45 15 -15 8 -41
+15 -57 15 -67 0 -109 36 -109 96 0 29 -5 64 -11 78 -10 21 -6 36 30 110 22 46
+41 91 41 98 0 8 7 23 15 34 8 10 15 33 15 49 0 17 7 41 15 55 8 14 15 36 15
+50 0 14 7 34 15 44 8 11 15 29 15 40 0 12 7 30 15 40 8 11 15 32 15 47 0 14 7
+32 15 39 8 7 15 24 15 39 0 14 7 35 15 45 8 11 15 31 15 45 0 14 7 35 15 45 8
+11 15 32 15 46 0 14 7 35 15 46 8 10 15 31 15 45 0 14 7 34 15 45 8 10 15 33
+15 50 0 17 7 37 15 44 8 7 15 27 15 44 0 17 7 40 15 50 8 11 15 38 15 60 1 47
+22 81 45 73 11 -5 15 -21 15 -64 0 -32 7 -80 15 -107 8 -27 15 -68 15 -91 0
+-22 6 -47 13 -53 6 -7 14 -43 17 -80 l5 -67 64 -3 c42 -2 75 2 96 12 18 9 47
+16 64 16 28 0 54 9 141 48 19 9 54 34 77 56 46 43 96 66 160 73 23 3 47 11 54
+19 6 8 20 14 30 14 33 0 119 96 119 134 0 51 64 106 124 106 24 0 57 7 72 15
+16 8 43 15 60 15 17 0 37 7 44 15 7 8 21 15 31 15 10 0 21 5 24 10 4 6 21 16
+38 24 55 23 139 124 160 193 23 77 56 108 169 163 95 45 279 214 319 292 10
+20 23 39 29 43 26 16 -4 55 -196 245 -113 113 -226 232 -252 265 -25 33 -68
+85 -96 116 -53 59 -99 121 -128 172 -9 16 -28 42 -42 56 -14 15 -26 31 -26 37
+0 5 -13 25 -28 44 -16 19 -59 82 -97 140 -37 58 -79 121 -92 141 -12 19 -23
+39 -23 43 0 5 -13 24 -30 43 -16 18 -30 40 -30 47 0 7 -10 21 -21 32 -12 10
+-37 42 -54 69 -18 28 -41 57 -50 65 -9 8 -34 39 -55 70 -41 61 -163 180 -184
+180 -7 0 -21 9 -31 20 -19 21 -138 70 -171 70 -12 0 -27 7 -34 15 -7 8 -20 15
+-29 15 -10 0 -26 7 -37 15 -10 8 -31 15 -45 15 -15 0 -32 7 -39 15 -7 8 -22
+15 -34 15 -12 0 -31 7 -42 15 -10 8 -29 15 -40 15 -12 0 -27 7 -34 15 -7 8
+-21 15 -32 15 -11 0 -32 6 -46 13 -15 8 -45 22 -67 31 -22 10 -53 24 -68 32
+-16 8 -34 14 -40 14 -16 0 -372 177 -422 210 -73 47 -113 56 -146 31 -16 -12
+-39 -26 -51 -31 -13 -6 -30 -14 -38 -19 -8 -5 -22 -12 -30 -15 -8 -4 -35 -17
+-59 -31 -24 -14 -52 -25 -61 -25 -10 0 -23 -7 -30 -15 -7 -8 -24 -15 -39 -15
+-14 0 -35 -7 -45 -15 -11 -8 -34 -15 -50 -15 -17 0 -40 -7 -50 -15 -11 -8 -36
+-15 -55 -15 -20 -1 -47 -7 -61 -15 -14 -8 -48 -14 -76 -15 -29 0 -65 -7 -80
+-15 -19 -10 -58 -15 -116 -15 -48 0 -134 -7 -191 -15 -94 -14 -114 -14 -207 0
+-57 8 -148 15 -202 15 -65 0 -111 5 -135 15 -19 8 -59 15 -87 15 -28 1 -62 7
+-76 15 -14 8 -41 15 -60 15 -19 0 -46 7 -60 15 -14 8 -37 14 -51 15 -14 0 -34
+7 -45 15 -10 8 -27 15 -36 15 -42 0 -223 92 -292 148 -30 23 -60 27 -86 12z
+m40 -153 c1 -30 7 -60 15 -71 8 -11 15 -29 15 -40 0 -12 7 -30 15 -40 8 -11
+15 -34 15 -50 0 -17 7 -40 15 -50 8 -11 15 -30 15 -42 0 -12 8 -37 17 -56 9
+-18 22 -45 30 -60 7 -14 13 -33 13 -41 0 -9 8 -30 17 -49 9 -18 22 -45 30 -60
+7 -14 13 -35 13 -46 0 -11 7 -25 15 -32 8 -7 15 -23 15 -35 0 -12 7 -28 15
+-35 8 -7 15 -18 15 -26 0 -7 6 -28 14 -46 8 -18 17 -40 20 -48 3 -8 10 -22 15
+-30 9 -15 34 -70 57 -125 7 -16 26 -59 42 -95 16 -36 33 -72 36 -80 3 -8 10
+-23 16 -32 21 -37 89 -172 104 -208 3 -8 17 -35 31 -59 14 -24 25 -47 25 -52
+0 -4 16 -31 36 -60 20 -30 49 -81 66 -114 16 -33 33 -67 38 -75 5 -8 11 -22
+14 -30 3 -8 10 -22 15 -30 5 -8 12 -22 15 -30 3 -8 10 -22 15 -30 5 -8 12 -22
+15 -30 3 -8 10 -23 16 -32 19 -34 29 -54 55 -107 15 -30 35 -56 46 -58 11 -3
+22 -16 25 -28 3 -13 19 -35 35 -51 23 -22 29 -37 29 -68 0 -23 7 -50 15 -60 8
+-11 15 -28 15 -38 0 -9 13 -37 29 -60 67 -100 91 -140 91 -152 0 -8 7 -19 15
+-26 8 -7 15 -19 15 -27 0 -8 13 -32 28 -52 16 -20 32 -43 35 -51 4 -8 11 -22
+16 -30 5 -8 12 -22 15 -30 3 -8 10 -22 15 -30 9 -15 35 -73 45 -100 9 -23 28
+-51 66 -96 19 -23 46 -64 60 -90 14 -27 44 -77 68 -112 23 -35 42 -66 42 -70
+0 -4 14 -25 30 -46 17 -22 30 -44 30 -48 0 -5 12 -24 26 -43 14 -19 29 -46 33
+-62 4 -15 17 -32 29 -38 12 -5 25 -19 28 -30 4 -11 20 -35 35 -53 16 -18 29
+-43 29 -55 0 -12 13 -38 28 -57 16 -19 39 -57 52 -84 13 -27 32 -51 42 -54 10
+-2 25 -17 34 -33 8 -16 29 -45 47 -65 17 -21 41 -52 52 -69 51 -82 96 -143
+129 -174 20 -19 36 -42 36 -52 0 -9 7 -22 15 -29 21 -17 15 -54 -9 -58 -12 -3
+-36 13 -65 42 -26 26 -50 43 -54 40 -12 -13 -7 -47 9 -65 40 -44 -85 -74 -141
+-35 -31 22 -537 27 -533 6 3 -12 30 -16 145 -20 162 -6 203 -22 173 -70 -7
+-12 -39 -16 -147 -20 -87 -3 -136 -9 -133 -15 5 -11 424 -14 605 -5 93 5 100
+4 100 -14 0 -25 -75 -55 -141 -55 -28 -1 -67 -7 -85 -15 -24 -9 -100 -15 -249
+-19 -118 -3 -231 -10 -250 -16 -23 -7 -236 -11 -640 -11 -506 -1 -609 -3 -630
+-15 -33 -19 -66 -19 -101 2 -24 15 -32 15 -54 3 -19 -10 -28 -11 -37 -2 -19
+19 -239 16 -264 -3 -27 -20 -67 -18 -96 4 -24 20 -25 22 -26 189 -2 195 -8
+184 93 171 39 -6 180 -14 315 -19 135 -5 268 -13 295 -19 126 -25 544 -14 454
+12 -57 17 -209 31 -409 38 -129 4 -320 14 -425 22 -104 8 -211 12 -237 10 -62
+-7 -178 127 -178 206 0 10 -7 24 -15 31 -8 7 -15 27 -15 45 0 18 -7 38 -15 45
+-8 7 -15 27 -15 45 0 18 -7 38 -15 45 -8 7 -15 25 -15 39 0 15 -7 36 -15 47
+-28 37 -17 103 19 105 23 1 16 4 -25 13 -29 6 -69 69 -69 109 0 12 -7 31 -15
+41 -8 11 -15 32 -15 46 0 14 -7 35 -15 46 -8 10 -15 30 -15 44 0 15 -5 31 -12
+38 -7 7 -15 38 -19 70 -7 58 -20 104 -45 155 -8 16 -14 41 -14 55 0 15 -7 36
+-15 46 -10 13 -15 43 -15 87 0 38 -7 83 -16 105 -10 25 -14 53 -10 83 7 58 7
+43 -5 196 -21 243 -18 379 9 407 22 25 22 25 -8 51 -49 44 -46 205 6 272 20
+27 33 53 30 62 -8 21 -29 11 -36 -18 -15 -63 -55 -30 -61 51 -3 41 -11 91 -17
+110 -7 19 -12 64 -12 100 -1 37 -7 76 -15 90 -8 15 -14 53 -15 91 0 39 -6 79
+-15 95 -9 17 -15 57 -15 94 0 41 -6 72 -15 84 -10 13 -15 43 -15 82 0 42 -5
+65 -15 74 -10 8 -15 31 -15 69 -1 33 -7 64 -15 75 -8 11 -15 41 -15 67 0 29
+-6 51 -15 59 -30 25 -21 158 13 171 15 6 41 17 57 24 17 7 39 16 50 18 42 11
+96 34 107 45 7 7 18 12 26 12 7 0 37 14 67 30 30 17 65 30 78 30 14 0 30 7 37
+15 7 8 25 15 39 15 15 0 36 7 47 15 10 8 26 15 35 15 9 0 24 9 35 21 10 11 73
+47 139 80 66 33 127 64 135 68 8 5 35 19 60 31 25 13 56 32 70 42 37 29 70
+-11 70 -85z m2473 53 c19 -16 43 -30 53 -30 11 -1 51 -19 89 -40 100 -57 273
+-140 289 -140 8 0 27 -6 43 -14 26 -13 62 -29 138 -61 17 -7 50 -20 75 -30 25
+-9 58 -23 73 -31 16 -8 36 -14 46 -14 9 0 26 -7 37 -15 10 -8 25 -15 33 -15
+66 -1 116 -57 86 -96 -8 -11 -14 -42 -15 -75 0 -38 -5 -61 -15 -69 -10 -8 -15
+-30 -15 -61 0 -26 -4 -50 -9 -53 -19 -12 -51 -94 -51 -132 0 -21 -7 -52 -15
+-68 -8 -15 -15 -42 -15 -60 0 -17 -7 -44 -15 -60 -8 -16 -15 -55 -15 -90 -1
+-34 -7 -72 -15 -86 -9 -16 -15 -55 -15 -105 0 -50 -6 -89 -15 -105 -9 -16 -14
+-54 -15 -105 0 -44 -7 -100 -15 -125 -8 -25 -17 -57 -20 -73 -5 -24 -9 -26
+-32 -21 -19 5 -24 3 -21 -7 3 -8 14 -13 24 -12 38 3 50 -179 19 -281 -12 -39
+-15 -115 -15 -377 0 -201 -4 -330 -10 -334 -15 -9 -50 -95 -50 -124 0 -14 -7
+-39 -15 -55 -8 -15 -15 -40 -15 -55 -1 -14 -7 -37 -15 -51 -8 -14 -14 -45 -15
+-68 0 -24 -6 -56 -13 -70 -8 -15 -21 -42 -30 -60 -9 -19 -17 -50 -17 -70 0
+-20 -7 -46 -15 -56 -8 -11 -15 -29 -15 -41 0 -12 -7 -30 -15 -41 -8 -10 -15
+-31 -15 -45 0 -14 -7 -34 -15 -45 -8 -10 -15 -31 -15 -45 0 -14 -7 -34 -15
+-45 -8 -10 -15 -25 -15 -33 0 -7 -13 -29 -30 -48 -23 -26 -30 -43 -30 -77 0
+-27 -6 -48 -15 -56 -8 -7 -15 -27 -15 -45 0 -18 -7 -38 -15 -45 -10 -8 -15
+-31 -15 -67 0 -30 -6 -67 -14 -81 -8 -15 -29 -60 -47 -100 -40 -87 -105 -129
+-181 -117 -30 5 -44 3 -59 -11 -28 -25 -71 -9 -82 31 -5 17 -18 49 -30 71 -17
+35 -18 47 -9 80 18 68 57 168 83 216 5 10 9 26 9 37 0 10 7 24 15 31 17 14 17
+55 0 55 -5 0 -11 -10 -13 -22 -2 -12 -10 -27 -18 -33 -8 -7 -14 -20 -14 -30 0
+-10 -7 -23 -15 -30 -8 -7 -15 -20 -15 -29 0 -10 -7 -26 -15 -37 -8 -10 -15
+-28 -15 -39 -2 -29 -53 -119 -70 -123 -9 -1 -31 24 -55 64 -22 36 -50 78 -62
+94 -13 15 -23 32 -23 37 0 4 -13 24 -28 43 -16 19 -32 43 -35 53 -4 11 -15 21
+-25 24 -10 2 -29 28 -42 56 -13 29 -37 67 -52 85 -15 18 -28 39 -28 46 0 8 -7
+19 -15 26 -8 7 -15 18 -15 26 0 7 -18 39 -40 71 -23 32 -52 74 -65 93 -13 19
+-33 47 -44 61 -12 15 -24 35 -28 45 -4 10 -26 47 -50 81 -24 35 -43 70 -43 79
+0 25 -26 67 -65 104 -21 19 -44 49 -51 65 -8 17 -18 37 -23 45 -5 8 -12 22
+-15 30 -3 8 -10 22 -15 30 -5 8 -12 22 -15 30 -3 8 -10 22 -15 30 -5 8 -12 22
+-15 30 -3 8 -10 22 -15 30 -5 8 -12 22 -15 30 -3 8 -11 24 -18 35 -6 11 -15
+27 -19 35 -4 8 -17 32 -29 54 -19 35 -20 40 -5 62 20 31 12 44 -25 44 -48 0
+-57 32 -20 73 16 19 30 41 30 49 0 8 10 23 21 34 29 26 69 90 69 111 1 10 12
+36 25 58 14 22 27 47 31 55 3 8 9 22 14 30 5 8 21 40 36 70 15 30 36 69 48 85
+30 43 44 66 59 100 8 17 24 39 36 49 13 12 21 31 21 52 0 18 4 35 9 38 16 10
+81 152 81 177 0 15 12 37 30 54 17 16 30 34 30 41 0 6 9 22 19 36 18 22 87
+156 116 223 7 17 40 86 73 155 33 69 69 146 81 172 14 30 30 48 45 52 21 5 23
+12 23 59 0 31 7 68 17 86 9 17 23 44 31 60 8 16 15 37 15 48 0 10 7 27 15 37
+8 11 15 29 15 41 0 12 7 30 15 41 8 10 15 26 15 35 0 9 14 33 30 54 24 30 30
+48 30 84 0 26 7 56 15 67 8 10 15 31 15 45 0 14 7 34 15 45 8 11 15 41 15 70
+0 76 41 89 103 34z m-2319 -39 c107 -51 147 -67 211 -82 22 -6 44 -14 50 -20
+5 -5 23 -9 40 -9 16 0 39 -7 49 -15 11 -8 39 -15 63 -15 24 0 56 -6 71 -14 15
+-7 72 -16 127 -19 56 -3 113 -11 129 -16 45 -18 560 -14 620 4 27 8 78 15 113
+15 35 0 80 7 100 15 19 8 52 15 72 15 20 0 45 7 55 15 11 8 31 15 45 15 14 1
+37 7 51 15 14 8 35 14 47 15 12 0 36 8 55 17 18 9 45 22 60 30 14 7 36 13 48
+13 25 0 72 23 89 44 21 26 61 21 61 -7 0 -32 -37 -65 -109 -97 -19 -8 -22 -13
+-12 -23 10 -9 15 -8 25 6 34 46 82 5 53 -45 -9 -17 -17 -42 -17 -58 0 -16 -6
+-41 -14 -57 -8 -15 -22 -46 -31 -68 -10 -22 -24 -53 -31 -68 -8 -16 -14 -39
+-14 -51 0 -12 -7 -31 -15 -42 -8 -10 -15 -27 -15 -36 0 -9 -7 -30 -15 -47 -8
+-17 -22 -45 -30 -62 -8 -17 -15 -35 -15 -41 0 -6 -17 -47 -39 -92 -21 -44 -48
+-103 -60 -131 -13 -27 -26 -57 -30 -65 -11 -20 -81 -161 -90 -180 -4 -8 -17
+-33 -28 -55 -12 -22 -34 -67 -50 -100 -16 -33 -43 -85 -60 -115 -16 -30 -47
+-88 -67 -128 -21 -39 -42 -75 -47 -78 -5 -3 -9 -12 -9 -21 0 -9 -6 -24 -14
+-32 -13 -16 -42 -66 -138 -246 -47 -89 -51 -96 -62 -125 -3 -8 -10 -22 -15
+-30 -5 -8 -12 -22 -15 -30 -6 -15 -10 -22 -57 -95 -14 -22 -35 -61 -47 -86
+-51 -106 -77 -108 -126 -11 -18 37 -42 83 -54 102 -21 35 -134 229 -152 263
+-6 9 -15 25 -20 35 -6 9 -12 22 -14 27 -2 6 -7 17 -10 25 -6 15 -11 25 -34 65
+-7 11 -15 27 -18 35 -3 8 -10 22 -15 30 -5 8 -13 25 -19 37 -5 12 -27 52 -50
+88 -22 37 -40 73 -40 80 0 7 -7 18 -15 25 -8 7 -15 18 -15 24 0 7 -22 55 -50
+107 -40 77 -100 197 -139 279 -4 8 -17 33 -28 55 -27 53 -70 150 -87 195 -3 8
+-10 22 -14 30 -11 19 -34 72 -57 130 -10 25 -23 59 -30 75 -32 76 -48 112 -61
+138 -8 16 -14 36 -14 45 0 9 -7 26 -15 36 -8 11 -15 29 -15 41 0 12 -7 30 -15
+41 -8 10 -15 31 -15 46 0 26 -17 72 -46 130 -16 30 -6 43 26 33 31 -10 24 7
+-20 50 -83 81 -58 89 74 26z m3438 -442 c29 -17 74 -51 100 -75 26 -24 54 -44
+61 -44 16 0 87 -74 87 -90 0 -13 58 -98 97 -143 18 -20 33 -42 33 -47 0 -5 16
+-27 35 -49 19 -21 49 -65 66 -97 17 -33 40 -68 50 -80 10 -11 19 -25 19 -32 0
+-6 14 -27 30 -45 17 -19 30 -39 30 -44 0 -4 13 -24 28 -43 16 -19 35 -46 42
+-60 7 -14 28 -43 47 -66 18 -23 33 -45 33 -51 0 -5 14 -22 30 -38 17 -16 30
+-35 30 -43 0 -7 36 -51 80 -97 44 -46 80 -89 80 -96 0 -6 43 -56 96 -110 53
+-54 106 -114 118 -133 11 -19 72 -86 134 -149 132 -135 126 -112 53 -200 -118
+-142 -225 -236 -272 -237 -8 0 -23 -7 -33 -15 -11 -8 -30 -15 -42 -15 -33 0
+-94 -73 -94 -113 0 -53 -110 -186 -180 -217 -14 -6 -45 -22 -69 -35 -29 -16
+-60 -25 -90 -25 -25 -1 -57 -7 -71 -15 -14 -8 -38 -14 -54 -15 -16 0 -37 -7
+-47 -16 -31 -28 -72 -11 -64 27 7 30 -23 79 -47 79 -15 0 -8 -35 12 -60 26
+-33 25 -37 -11 -55 -17 -9 -57 -41 -90 -71 -32 -30 -63 -54 -68 -54 -25 0
+-136 -78 -154 -107 -31 -54 -87 -57 -87 -5 -1 28 -27 111 -48 149 -7 12 -12
+33 -12 46 0 14 -7 30 -15 37 -8 7 -15 27 -15 45 0 18 -7 38 -15 45 -8 7 -15
+25 -15 40 0 15 -7 41 -15 56 -8 16 -15 45 -15 65 0 19 -7 44 -15 55 -8 10 -15
+31 -15 46 0 15 -5 40 -11 55 -23 56 -62 134 -70 139 -5 3 -9 40 -9 82 -1 52
+-5 83 -15 96 -22 29 -22 510 0 563 9 21 15 67 15 117 0 52 5 91 15 110 10 19
+15 58 15 115 0 61 4 93 15 107 8 10 15 41 15 67 0 26 7 64 15 84 8 19 15 50
+15 67 0 18 7 41 15 52 8 11 15 42 15 74 0 30 7 68 15 84 8 15 15 39 15 52 0
+13 12 34 27 48 24 22 25 27 14 54 -19 45 24 121 52 93 6 -6 18 -11 26 -11 8 0
+25 -10 37 -21 13 -12 30 -19 38 -16 24 9 19 26 -11 40 -16 6 -30 15 -33 18 -3
+4 -22 14 -44 23 -33 14 -37 19 -31 38 3 13 9 34 12 48 13 59 39 63 115 19z
+m-4724 -25 c12 -20 22 -50 22 -67 0 -18 7 -41 15 -51 9 -12 15 -42 15 -72 0
+-29 5 -56 10 -59 30 -19 -26 -115 -67 -115 -16 0 -17 -16 -2 -25 5 -4 18 0 28
+9 42 38 91 11 91 -51 0 -40 -10 -51 -50 -55 -23 -2 -35 -8 -35 -18 0 -11 9
+-14 37 -12 53 5 78 -37 78 -133 1 -42 6 -80 15 -95 9 -16 15 -55 15 -105 0
+-50 6 -89 15 -105 8 -15 14 -53 15 -91 0 -37 7 -82 15 -102 23 -55 24 -590 1
+-634 -9 -18 -16 -47 -16 -66 0 -18 -7 -42 -15 -53 -8 -10 -15 -32 -15 -49 0
+-16 -7 -41 -15 -55 -8 -14 -14 -38 -15 -53 0 -15 -7 -41 -15 -58 -11 -19 -15
+-50 -13 -87 3 -63 20 -75 29 -21 3 19 11 44 17 56 7 12 12 41 12 65 0 24 7 53
+15 64 8 10 15 36 15 57 0 44 15 77 34 77 10 0 14 -47 19 -213 5 -180 8 -218
+24 -245 16 -27 16 -35 4 -64 -7 -18 -17 -64 -22 -103 -4 -38 -12 -88 -18 -110
+-6 -22 -11 -67 -11 -100 0 -33 -6 -69 -13 -80 -7 -11 -19 -38 -26 -60 -7 -22
+-18 -45 -23 -52 -11 -14 -107 -10 -137 6 -11 6 -35 11 -53 11 -18 0 -42 7 -52
+15 -11 8 -31 15 -45 15 -38 1 -103 42 -128 81 -12 19 -31 46 -42 61 -12 14
+-21 33 -21 41 0 24 -18 30 -42 13 -28 -20 -56 -20 -101 -1 -20 8 -52 15 -71
+15 -29 0 -96 29 -201 88 -38 21 -87 71 -80 82 9 15 82 12 113 -4 15 -7 54 -21
+87 -30 33 -10 73 -24 88 -32 16 -8 39 -14 51 -14 12 0 31 -7 42 -15 25 -19 94
+-20 94 -1 0 7 -8 16 -17 20 -10 3 -38 17 -62 31 -24 14 -49 25 -54 25 -6 0
+-18 6 -26 14 -16 15 -93 32 -201 45 -30 4 -65 12 -77 19 -12 7 -30 12 -41 12
+-10 0 -39 11 -63 25 -24 14 -55 30 -70 35 -34 14 -59 59 -59 107 0 29 -6 42
+-22 53 -36 23 -80 48 -129 75 -32 16 -50 34 -57 55 -6 17 -22 34 -36 39 -13 6
+-27 15 -31 20 -9 16 -45 13 -45 -3 0 -8 14 -26 32 -40 18 -14 29 -28 25 -32
+-4 -4 -15 -1 -24 7 -10 8 -35 24 -57 34 -54 28 -68 61 -36 86 21 15 23 21 14
+36 -15 25 -43 28 -58 7 -16 -21 -91 23 -112 64 -6 13 -23 36 -38 51 -14 15
+-26 33 -26 40 0 16 212 225 313 309 42 35 77 69 77 76 0 15 108 164 134 186
+10 8 42 46 71 85 29 38 70 86 89 104 20 19 36 41 36 48 0 7 14 28 30 46 17 19
+30 39 30 45 0 6 11 24 24 40 32 38 216 313 216 322 0 5 15 26 33 49 32 40 67
+87 122 165 72 102 245 272 305 300 8 4 26 13 40 21 37 22 53 18 78 -21z m4366
+-2029 c10 -33 32 -94 51 -140 26 -62 38 -101 43 -140 2 -22 11 -49 18 -60 8
+-11 14 -31 14 -45 0 -14 7 -34 15 -44 8 -11 15 -31 15 -45 0 -14 7 -35 15 -45
+8 -11 15 -32 15 -46 0 -14 7 -35 15 -46 8 -11 14 -41 15 -72 0 -75 57 -146
+108 -138 23 3 32 1 29 -7 -5 -15 -86 -56 -113 -56 -12 -1 -38 -8 -59 -16 -23
+-10 -59 -15 -98 -13 l-62 3 -12 80 c-6 44 -16 98 -22 120 -6 22 -11 59 -11 81
+0 23 -7 61 -15 84 -8 23 -15 59 -15 79 0 20 -7 45 -15 55 -19 25 -19 87 0 133
+8 19 15 57 15 84 0 27 7 67 16 89 15 38 15 58 -2 119 -6 19 -4 22 12 19 10 -2
+23 -16 28 -33z m714 -567 c59 -59 -65 -145 -241 -166 -53 -6 -48 24 8 54 22
+11 74 44 115 72 77 54 97 61 118 40z m-1311 -1264 c9 -24 -14 -64 -36 -64 -33
+0 -44 33 -20 59 23 25 47 27 56 5z m-109 -67 c14 -13 22 -32 22 -53 0 -17 7
+-37 15 -44 28 -23 18 -71 -22 -112 -73 -75 -173 -41 -173 60 0 20 -11 48 -30
+74 -32 44 -27 78 14 86 16 4 65 -46 78 -80 7 -18 48 -26 48 -10 0 5 -11 19
+-25 32 -24 22 -33 59 -18 74 12 11 66 -5 91 -27z m-455 -8 c154 -3 179 -12 91
+-35 -54 -14 -255 -8 -287 8 -25 13 -2 41 27 34 12 -3 87 -6 169 -7z m627 -74
+c7 -8 29 -15 49 -15 21 0 46 -7 57 -15 10 -8 30 -15 44 -15 22 0 90 -28 183
+-76 16 -8 34 -14 42 -14 26 0 211 -102 276 -152 20 -16 41 -28 47 -28 19 0 82
+-86 82 -112 0 -14 7 -31 15 -38 34 -28 10 -123 -52 -206 -13 -17 -23 -42 -23
+-56 0 -14 -7 -31 -15 -38 -8 -7 -15 -20 -15 -30 0 -10 -7 -23 -15 -30 -8 -7
+-15 -19 -15 -27 0 -22 -119 -142 -162 -164 -82 -42 -151 -19 -194 64 -8 15
+-19 27 -24 27 -15 0 -12 -54 5 -76 8 -10 15 -26 15 -35 0 -9 7 -22 15 -29 9
+-8 15 -30 15 -60 0 -30 6 -52 15 -60 8 -7 15 -22 15 -34 0 -11 7 -30 15 -40 8
+-11 15 -27 15 -35 0 -9 13 -43 29 -76 16 -33 37 -80 46 -105 9 -25 23 -58 31
+-73 8 -16 14 -35 14 -42 0 -7 6 -26 14 -42 17 -36 39 -86 61 -143 10 -25 30
+-71 46 -103 16 -31 29 -67 29 -80 0 -12 7 -31 15 -41 8 -11 15 -31 15 -45 0
+-14 7 -35 15 -45 8 -11 15 -29 15 -40 0 -12 7 -30 15 -40 8 -11 15 -30 15 -42
+0 -21 5 -34 44 -112 9 -19 16 -44 16 -57 0 -12 7 -28 15 -35 8 -7 15 -25 15
+-39 0 -15 7 -36 15 -47 8 -10 15 -27 15 -36 0 -17 20 -69 46 -120 8 -14 14
+-37 14 -50 0 -12 7 -32 15 -42 8 -11 15 -34 15 -51 0 -17 14 -58 30 -90 17
+-32 30 -69 30 -81 0 -13 7 -40 16 -61 45 -102 63 -153 74 -206 4 -21 13 -44
+19 -50 6 -6 11 -21 11 -33 0 -12 6 -35 14 -51 8 -15 22 -53 31 -83 21 -68 43
+-127 61 -162 8 -14 14 -39 14 -55 0 -15 7 -37 15 -47 8 -11 15 -36 15 -55 0
+-20 14 -65 30 -99 17 -35 30 -71 30 -80 0 -10 7 -26 15 -36 8 -11 15 -30 15
+-43 0 -21 16 -66 46 -126 8 -16 14 -38 14 -50 0 -12 7 -31 15 -41 8 -11 15
+-31 15 -45 0 -14 7 -35 15 -45 8 -11 15 -29 15 -40 0 -12 7 -30 15 -40 8 -11
+15 -32 15 -47 0 -14 14 -51 30 -82 17 -31 30 -67 30 -79 0 -13 7 -32 15 -42 8
+-11 15 -32 15 -47 0 -26 5 -38 44 -117 9 -19 16 -44 16 -56 0 -12 6 -30 14
+-41 7 -11 16 -31 19 -45 6 -28 23 -78 44 -127 7 -17 13 -39 13 -50 0 -10 7
+-27 15 -37 8 -11 15 -29 15 -40 0 -12 7 -30 15 -40 8 -11 15 -30 15 -42 0 -11
+14 -46 30 -77 17 -31 30 -67 30 -79 0 -13 7 -32 15 -42 8 -11 15 -32 15 -46 0
+-14 7 -35 15 -46 8 -10 15 -28 15 -40 0 -12 14 -46 30 -77 17 -31 30 -67 30
+-79 0 -13 7 -32 15 -42 8 -11 15 -33 15 -48 0 -16 6 -39 14 -51 8 -12 19 -47
+25 -77 7 -30 21 -70 31 -88 11 -18 20 -39 20 -46 0 -8 7 -19 15 -26 8 -7 15
+-22 15 -34 0 -12 7 -31 15 -42 8 -10 15 -29 15 -40 0 -12 7 -27 15 -34 8 -7
+15 -21 15 -32 0 -11 6 -32 14 -46 7 -15 20 -40 28 -57 34 -67 32 -110 -8 -140
+-24 -19 -34 -33 -32 -48 4 -32 40 -28 56 6 20 42 62 15 62 -41 0 -13 6 -36 14
+-50 51 -99 76 -155 76 -175 0 -12 7 -31 15 -41 8 -11 15 -27 15 -36 0 -9 14
+-43 30 -75 17 -32 30 -66 30 -74 0 -9 7 -25 15 -35 8 -11 15 -30 15 -42 0 -12
+7 -27 15 -34 8 -7 15 -18 15 -25 0 -13 11 -39 47 -107 9 -18 32 -62 50 -98 18
+-35 38 -69 43 -74 25 -25 -14 -86 -56 -86 -13 0 -33 -11 -46 -25 -29 -31 -119
+-95 -134 -95 -6 0 -19 -10 -30 -21 -33 -37 -183 -129 -210 -129 -6 0 -17 -7
+-24 -15 -7 -8 -24 -15 -39 -15 -14 0 -35 -7 -45 -15 -12 -9 -42 -15 -71 -15
+-29 0 -74 -7 -101 -15 -27 -8 -62 -15 -79 -15 -16 0 -39 -7 -49 -15 -11 -8
+-31 -15 -45 -15 -43 0 -104 -37 -186 -115 -84 -80 -158 -125 -205 -125 -16 0
+-41 -5 -57 -11 -16 -6 -108 -13 -211 -14 -150 -3 -187 -6 -201 -19 -10 -9 -22
+-16 -28 -16 -5 0 -30 -11 -54 -25 -24 -14 -51 -27 -59 -31 -8 -3 -40 -18 -70
+-33 -59 -30 -139 -43 -275 -45 -94 -1 -101 11 -111 194 -4 58 -13 130 -20 160
+-8 30 -14 80 -14 111 0 31 -7 73 -15 92 -8 20 -15 52 -15 70 0 19 -7 40 -15
+47 -21 18 -20 114 2 151 15 26 16 33 4 62 -8 17 -17 77 -21 132 -4 55 -13 126
+-19 158 -18 86 -12 151 15 155 64 9 80 88 18 86 -36 -1 -44 10 -44 66 0 25 -7
+54 -15 64 -11 14 -15 47 -15 115 -1 53 -7 125 -15 161 -9 42 -15 128 -15 240
+-1 132 -4 181 -15 200 -10 18 -14 62 -15 155 0 72 -7 195 -15 275 -8 80 -15
+188 -15 240 0 52 -7 140 -15 194 -9 58 -15 169 -15 268 0 127 -4 177 -15 205
+-11 27 -15 79 -16 212 0 97 -4 230 -8 296 -13 179 -7 185 103 85 42 -38 83
+-70 91 -70 9 0 21 -11 27 -25 6 -14 15 -25 20 -25 4 0 25 -16 47 -35 21 -19
+43 -35 48 -35 6 0 50 -30 99 -66 81 -60 126 -84 161 -84 19 0 17 107 -3 161
+-10 28 -14 61 -10 91 7 61 -9 120 -32 116 -13 -2 -17 4 -15 23 1 17 -6 28 -20
+35 -17 7 -23 20 -28 64 -3 30 -12 70 -19 88 -8 21 -10 55 -7 88 4 43 2 58 -14
+78 -14 17 -19 40 -19 83 -1 35 -6 66 -15 77 -10 13 -15 43 -15 87 0 37 -7 83
+-15 102 -8 20 -15 49 -15 64 0 15 -7 37 -15 47 -8 11 -15 41 -15 67 0 26 -7
+60 -15 75 -9 17 -15 57 -15 99 -1 42 -7 80 -15 95 -8 14 -14 44 -15 66 0 23
+-7 61 -15 84 -8 23 -15 77 -15 119 -1 47 -6 86 -15 101 -8 14 -14 43 -15 64 0
+53 -36 126 -61 126 -27 0 -34 -25 -15 -52 10 -14 16 -43 16 -78 0 -34 6 -64
+15 -76 9 -11 15 -43 15 -79 0 -33 7 -71 15 -85 9 -16 14 -55 15 -106 0 -60 4
+-85 15 -94 8 -7 15 -26 15 -42 0 -16 7 -40 16 -53 11 -17 14 -35 10 -57 -13
+-59 -4 -128 20 -163 8 -11 14 -38 14 -60 1 -22 7 -51 15 -65 8 -14 14 -48 15
+-76 0 -28 7 -68 15 -87 9 -23 15 -69 15 -124 1 -62 5 -94 15 -107 8 -11 15
+-38 15 -61 0 -23 7 -50 15 -61 8 -10 15 -33 15 -50 0 -18 7 -45 15 -60 8 -16
+15 -40 15 -54 1 -14 7 -36 15 -50 8 -14 14 -50 15 -81 0 -38 5 -61 15 -69 19
+-16 21 -110 2 -110 -7 0 -31 18 -52 40 -21 22 -46 40 -55 40 -9 0 -29 14 -45
+30 -16 17 -35 30 -43 30 -8 0 -49 34 -91 75 -43 41 -82 75 -87 75 -5 0 -32 20
+-61 45 -28 25 -55 45 -60 45 -6 0 -28 17 -51 38 -42 39 -42 39 -42 203 -1 128
+-4 168 -15 183 -11 14 -15 47 -15 115 0 56 -6 116 -15 145 -10 31 -15 92 -15
+165 -1 86 -4 121 -15 135 -11 15 -15 49 -15 135 0 74 -6 134 -15 165 -10 31
+-15 92 -15 165 -1 86 -4 121 -15 135 -8 11 -15 41 -15 67 0 29 -6 51 -15 59
+-8 7 -15 20 -15 30 0 10 7 23 15 30 19 16 19 96 0 130 -10 18 -14 61 -15 151
+0 82 -5 143 -15 175 -22 73 -22 502 1 545 8 16 13 38 10 47 -7 22 7 75 21 79
+6 2 13 -5 16 -17 3 -11 11 -20 17 -20 14 0 4 132 -11 162 -12 22 -12 365 0
+372 13 8 22 84 15 123 -9 46 -24 24 -24 -34 0 -49 -14 -62 -41 -37 -15 13 -19
+30 -19 80 0 69 11 85 41 58 13 -12 23 -14 30 -7 15 15 2 38 -30 50 -72 27 -58
+233 15 233 15 0 25 -8 29 -22 3 -13 13 -40 22 -60 14 -34 14 -39 -1 -62 -20
+-31 -20 -56 -1 -82 8 -11 15 -41 15 -70 0 -28 7 -71 15 -94 8 -23 15 -75 15
+-115 0 -40 7 -92 15 -115 8 -23 15 -71 15 -107 0 -67 12 -103 34 -103 10 0 13
+-21 13 -82 0 -100 16 -253 31 -290 19 -46 18 -145 -1 -166 -23 -26 -21 -49 6
+-63 32 -17 37 -28 37 -80 0 -26 7 -63 15 -82 8 -20 15 -67 15 -104 1 -44 6
+-75 15 -87 9 -12 15 -42 15 -76 0 -31 5 -61 12 -68 6 -6 14 -44 17 -84 5 -66
+8 -73 29 -76 31 -5 37 20 18 68 -9 22 -16 69 -16 104 0 35 -7 80 -15 99 -8 20
+-15 56 -15 80 0 25 -7 61 -15 80 -8 20 -15 65 -15 100 0 35 -7 86 -15 113 -8
+27 -15 77 -15 112 0 34 -7 79 -15 99 -8 19 -15 56 -15 82 0 25 -7 78 -15 116
+-8 39 -15 95 -15 126 0 31 -7 69 -15 85 -14 30 -32 166 -44 349 -4 55 -10 106
+-14 113 -5 6 -12 33 -17 60 -4 26 -11 58 -15 72 -7 24 -6 24 19 -5 14 -16 26
+-37 26 -45 0 -8 7 -24 15 -34 8 -11 15 -27 15 -37 0 -9 7 -22 15 -29 9 -8 15
+-30 15 -58 0 -40 5 -51 45 -93 26 -28 45 -58 45 -71 1 -61 67 -156 97 -139 20
+10 19 14 -40 133 -33 68 -65 137 -72 153 -21 52 -46 109 -61 138 -8 16 -14 36
+-14 45 0 9 -7 26 -15 36 -8 11 -15 27 -15 37 0 9 -7 22 -15 29 -8 7 -15 23
+-15 35 0 13 -6 36 -14 52 -52 108 -50 99 -27 129 14 18 19 34 15 50 -3 13 -2
+24 2 24 17 0 192 -247 224 -315 18 -38 49 -89 69 -111 20 -23 48 -61 64 -83
+15 -23 35 -44 45 -47 52 -17 162 -81 197 -115 76 -73 96 -38 36 61 -5 8 -20
+37 -32 64 -12 27 -50 77 -83 111 -34 33 -80 81 -102 105 -23 25 -81 79 -128
+120 -143 123 -256 240 -256 265 0 22 34 18 56 -6 10 -12 35 -30 54 -40 19 -11
+43 -25 52 -31 29 -21 47 6 23 33 -23 25 -129 84 -167 93 -27 6 -38 33 -21 49
+11 12 40 8 53 -8z m-390 -92 c0 -21 -7 -47 -15 -57 -8 -11 -15 -34 -15 -51 0
+-17 -7 -40 -15 -51 -8 -10 -15 -32 -15 -49 0 -16 -7 -43 -15 -59 -8 -15 -15
+-38 -15 -50 -1 -11 -7 -32 -15 -46 -8 -14 -14 -40 -15 -58 0 -18 -7 -49 -15
+-69 -8 -19 -15 -55 -15 -79 0 -32 4 -44 15 -44 10 0 15 10 15 33 0 18 7 42 15
+53 8 10 15 31 15 45 0 14 7 34 15 45 9 12 14 42 15 81 0 34 4 64 9 67 14 9 51
+90 51 113 0 26 25 47 45 39 12 -4 15 -25 15 -103 1 -66 5 -106 15 -123 10 -18
+14 -63 15 -165 0 -110 3 -145 15 -163 13 -18 15 -53 11 -229 -7 -308 2 -276
+-101 -395 -21 -25 -123 -25 -156 0 -42 31 -78 42 -142 42 -36 0 -71 6 -82 14
+-11 7 -32 16 -47 20 -43 10 -98 68 -98 104 0 41 -12 46 -40 17 -35 -37 43
+-155 102 -155 8 0 23 -7 34 -15 10 -8 28 -15 39 -15 11 0 45 -9 75 -20 l55
+-19 3 -90 c2 -66 -1 -98 -13 -120 -19 -38 -19 -120 0 -145 18 -24 20 -67 3
+-84 -26 -26 -39 -94 -47 -247 -4 -88 -13 -173 -19 -188 -7 -16 -12 -69 -12
+-118 0 -57 -5 -103 -15 -126 -9 -22 -15 -67 -15 -120 0 -52 -6 -97 -15 -120
+-9 -22 -15 -68 -15 -122 0 -61 -4 -93 -15 -107 -11 -14 -14 -50 -15 -144 0
+-133 -3 -145 -35 -151 -42 -9 -25 -54 20 -54 40 0 40 0 45 70 3 39 11 80 18
+92 7 13 12 62 12 126 0 63 6 123 15 153 8 27 15 84 15 127 0 46 6 92 15 114
+10 24 15 70 15 140 0 69 5 115 15 140 9 22 15 67 15 118 0 45 7 104 15 131 8
+27 15 86 15 130 0 47 6 100 15 124 10 27 15 80 15 146 0 56 5 115 11 131 7 15
+15 59 18 98 6 73 29 98 55 63 21 -28 112 -32 146 -7 42 32 45 23 42 -119 -2
+-70 2 -154 7 -186 22 -125 24 -334 6 -449 -15 -99 -16 -110 -1 -126 22 -24 23
+-157 0 -182 -12 -14 -15 -46 -15 -178 0 -89 -4 -172 -9 -185 -5 -15 -5 -37 2
+-60 9 -28 8 -59 -5 -138 -12 -75 -17 -165 -17 -329 0 -176 -3 -235 -15 -270
+-27 -79 -17 -483 12 -487 12 -2 27 -10 33 -18 17 -19 49 -18 57 3 4 11 0 21
+-12 27 -53 31 -70 54 -57 75 18 30 16 190 -3 215 -19 25 -19 56 -1 81 7 11 16
+58 20 105 3 47 10 119 15 160 6 41 10 165 11 275 0 155 4 206 15 225 8 14 17
+31 21 38 3 7 -4 32 -16 55 -22 41 -22 44 -5 76 14 29 16 57 14 190 -3 136 -2
+156 12 159 14 2 17 -15 23 -115 4 -65 11 -138 16 -163 5 -25 9 -70 10 -101 0
+-31 7 -73 15 -92 10 -24 15 -69 15 -131 0 -52 7 -127 15 -165 8 -39 14 -113
+14 -164 0 -50 4 -114 11 -142 6 -27 15 -122 21 -210 14 -236 19 -265 57 -312
+32 -41 32 -41 32 -304 1 -216 3 -268 15 -283 33 -44 20 -342 -15 -355 -37 -12
+-38 -19 -2 -32 39 -13 51 -78 58 -294 4 -93 12 -190 19 -215 8 -29 13 -117 14
+-243 1 -160 5 -204 18 -232 15 -31 15 -36 0 -59 -21 -31 -21 -50 -3 -65 10 -9
+14 -45 15 -147 0 -85 5 -143 13 -157 7 -13 14 -77 16 -157 2 -85 9 -149 18
+-173 9 -25 14 -77 14 -155 0 -64 7 -148 15 -187 9 -43 15 -125 15 -212 0 -139
+1 -142 27 -173 22 -27 25 -35 15 -51 -7 -10 -12 -43 -12 -73 0 -66 -13 -77
+-49 -42 -33 32 -41 33 -41 3 0 -25 33 -61 65 -71 32 -10 55 -74 55 -152 0 -38
+7 -91 15 -118 10 -31 15 -93 15 -170 1 -79 6 -135 15 -161 61 -169 -28 -276
+-185 -221 -56 19 -117 20 -150 1 -14 -8 -43 -14 -66 -15 -22 0 -49 -7 -60 -15
+-10 -8 -32 -15 -49 -15 -16 0 -41 -7 -55 -15 -14 -8 -38 -15 -55 -15 -16 0
+-39 -7 -49 -15 -13 -10 -43 -15 -87 -15 -37 0 -83 -7 -102 -15 -45 -19 -505
+-22 -539 -4 -11 6 -72 13 -136 16 -65 2 -135 10 -157 18 -22 7 -87 15 -145 18
+-58 3 -126 11 -152 18 -39 11 -60 10 -135 -4 -48 -10 -119 -17 -156 -17 -38 0
+-78 -5 -89 -11 -12 -6 -65 -13 -117 -16 -53 -2 -113 -10 -134 -18 -57 -23
+-304 -21 -337 2 -20 14 -43 17 -120 15 -73 -2 -100 1 -115 12 -11 9 -34 16
+-51 16 -17 0 -37 7 -44 15 -7 8 -26 15 -42 15 -87 0 -130 54 -117 145 5 33 10
+240 11 460 1 315 4 407 15 433 13 32 10 1060 -4 1277 -18 274 -13 1030 6 1046
+20 16 20 17 1 34 -15 14 -20 31 -20 75 0 54 -37 119 -53 93 -9 -15 1 -616 12
+-703 6 -47 10 -219 10 -383 -1 -297 -1 -299 22 -323 22 -24 22 -24 1 -47 -26
+-28 -35 -940 -10 -965 10 -10 10 -17 0 -32 -9 -14 -12 -103 -13 -327 0 -262
+-3 -312 -16 -332 -12 -19 -16 -51 -15 -138 1 -128 -2 -133 -64 -113 -25 9
+-116 12 -297 11 -269 -2 -282 -1 -412 45 -23 8 -53 14 -67 14 -32 0 -117 42
+-143 70 -10 11 -26 20 -35 20 -10 0 -23 7 -30 15 -7 8 -20 15 -30 15 -10 0
+-23 7 -30 15 -7 8 -18 15 -26 15 -77 0 -161 146 -109 190 17 14 20 56 4 65
+-16 10 -22 -1 -23 -40 -2 -59 -19 -64 -206 -65 -127 0 -172 4 -194 15 -15 8
+-39 15 -52 15 -42 0 -165 73 -236 138 -70 66 -127 102 -163 102 -12 0 -30 7
+-41 15 -10 8 -30 15 -43 15 -13 0 -57 20 -97 45 -39 25 -75 45 -80 45 -11 0
+-134 122 -134 133 0 4 11 25 25 45 14 20 25 46 25 58 0 12 7 27 15 34 8 7 15
+19 15 26 0 19 42 104 52 104 4 0 8 12 8 28 0 32 9 46 33 55 13 5 16 13 12 30
+-4 15 3 46 19 81 14 32 26 71 26 85 0 15 7 36 15 47 8 10 15 27 15 37 0 11 7
+33 16 50 39 75 44 86 44 104 0 11 7 28 15 39 8 10 15 28 15 40 0 11 7 29 15
+40 8 10 15 28 15 40 0 11 7 29 15 40 8 10 15 29 15 41 0 12 6 34 14 50 7 15
+21 46 31 68 9 22 23 53 31 68 8 16 14 36 14 46 0 9 7 26 15 37 8 10 15 30 15
+42 0 13 6 36 14 50 16 32 35 85 46 130 4 18 12 38 18 45 5 7 12 26 15 42 7 45
+32 111 84 225 32 69 50 128 62 200 4 25 12 54 18 65 5 11 18 34 27 52 9 17 16
+43 16 58 0 15 6 39 14 53 15 30 33 81 46 127 11 39 29 91 46 133 8 18 14 41
+14 50 0 10 7 27 15 38 8 10 15 31 15 45 0 14 7 34 15 45 8 10 15 30 15 44 0
+14 7 34 15 44 8 11 15 29 15 41 0 12 7 30 15 41 8 10 15 30 15 43 0 43 38 108
+66 115 23 6 25 11 19 34 -13 50 2 183 23 204 7 7 12 18 12 26 0 8 14 30 30 49
+27 30 30 41 30 98 0 35 6 76 14 92 30 60 46 105 46 126 0 13 7 32 15 43 8 10
+15 33 15 50 0 16 7 39 15 50 8 10 15 33 15 49 0 17 7 39 15 49 8 11 15 29 15
+41 0 12 7 30 15 41 8 10 15 30 15 42 0 13 6 36 14 50 40 78 76 183 76 224 0
+14 7 33 15 44 8 10 15 33 15 50 0 16 5 35 11 41 6 6 15 29 19 50 5 21 14 54
+20 73 7 19 18 51 25 70 7 19 18 51 25 70 6 19 15 52 20 73 4 21 13 44 19 50 6
+6 11 23 11 37 0 14 7 35 15 46 8 10 15 35 15 55 0 20 7 42 15 49 8 7 15 27 15
+45 0 18 7 38 15 45 8 7 15 27 15 44 0 18 7 41 15 52 8 10 15 30 15 44 0 14 7
+34 15 44 8 11 15 28 15 37 0 10 8 32 17 51 9 18 22 45 30 60 7 14 13 37 13 50
+0 12 14 47 30 77 17 30 30 68 30 86 0 17 7 40 15 51 8 10 15 31 15 45 0 14 7
+34 15 45 8 10 15 30 15 44 0 14 7 34 15 44 8 11 15 29 15 41 0 12 7 30 15 41
+8 10 15 31 15 45 0 14 7 34 15 45 8 10 15 25 15 33 0 8 20 56 45 108 25 51 45
+103 45 116 0 12 6 31 13 42 20 30 47 107 47 134 0 13 6 35 13 49 8 15 21 43
+29 62 27 63 50 115 64 143 8 16 14 37 14 47 0 9 7 23 15 30 8 7 15 18 15 25 0
+8 6 26 14 42 7 15 20 44 28 63 74 174 114 219 169 190 33 -18 38 19 6 42 -27
+20 -36 52 -17 63 6 3 10 14 10 24 0 10 7 24 15 31 8 7 15 20 15 29 1 45 24 54
+144 58 119 4 119 4 151 -42 13 -20 14 -19 47 12 32 31 568 48 1279 42 52 0 90
+4 94 10 4 7 89 11 259 11 206 0 260 3 291 15 61 26 91 4 64 -47 -18 -33 1 -35
+27 -3 49 62 53 65 93 65 71 0 93 -27 52 -64 -10 -9 -33 -46 -50 -81 -18 -36
+-36 -67 -41 -70 -6 -4 -10 -15 -10 -26 0 -12 -13 -33 -30 -47 -24 -22 -30 -34
+-30 -68 0 -31 -7 -51 -26 -73 -17 -20 -23 -37 -19 -50 4 -13 -3 -28 -20 -47
+-14 -15 -25 -36 -25 -46 0 -11 -6 -32 -14 -46 -16 -33 -36 -88 -43 -122 -3
+-14 -12 -34 -19 -45 -8 -11 -14 -30 -14 -43 0 -12 -6 -33 -14 -45 -22 -35 -30
+-121 -13 -136 23 -19 57 35 57 91 0 24 7 53 15 64 8 10 15 30 15 44 0 14 7 36
+15 50 8 14 14 36 15 50 0 14 7 36 16 49 9 12 18 43 19 67 2 34 9 49 29 65 14
+11 26 27 26 35 0 9 20 49 45 90 25 40 45 81 45 90 0 9 6 28 14 42 8 15 17 34
+20 42 3 8 10 22 16 30 5 8 37 65 71 125 83 149 87 155 104 155 11 0 15 -11 15
+-37z m622 -351 c108 -98 258 -252 258 -265 0 -64 -175 67 -252 188 -14 22 -37
+51 -52 64 -26 24 -35 61 -16 61 5 0 33 -22 62 -48z M3187 8503 c-4 -3 -7 -27
+-7 -52 0 -25 -7 -55 -15 -65 -8 -11 -15 -38 -15 -60 -1 -23 -7 -52 -15 -66 -8
+-14 -14 -43 -15 -66 0 -22 -7 -49 -15 -60 -10 -13 -14 -46 -15 -115 0 -68 -4
+-101 -15 -115 -9 -12 -14 -43 -15 -89 0 -42 -6 -81 -15 -99 -8 -16 -15 -54
+-15 -87 0 -34 -6 -69 -14 -82 -24 -37 -26 -261 -3 -265 15 -3 17 7 17 110 1
+79 5 120 15 138 8 14 14 50 15 81 0 32 6 63 15 75 10 13 14 46 15 110 0 69 4
+95 15 104 9 8 15 30 15 59 0 25 7 59 15 75 8 15 15 48 15 72 0 25 7 61 16 82
+8 20 16 66 16 102 0 37 6 75 14 87 25 40 17 152 -9 126z M2916 6683 c-3 -3 -6
+-40 -6 -80 0 -44 -6 -85 -14 -101 -11 -22 -15 -82 -15 -267 -1 -185 -5 -251
+-16 -286 -18 -52 -18 -634 -1 -634 29 0 30 24 41 570 6 297 11 396 21 417 19
+36 18 102 -1 118 -8 7 -15 20 -15 30 0 10 7 23 15 30 11 9 15 35 15 106 0 85
+-7 114 -24 97z M5197 5514 c-4 -4 -7 -27 -7 -51 0 -24 -7 -60 -15 -80 -9 -20
+-15 -67 -15 -112 -1 -47 -6 -86 -15 -101 -9 -15 -14 -53 -15 -96 0 -46 -5 -77
+-15 -90 -11 -14 -14 -49 -15 -134 0 -92 -3 -120 -17 -140 -18 -26 -31 -86 -39
+-190 -3 -36 -10 -77 -16 -92 -19 -51 11 -81 59 -57 43 22 103 77 103 96 0 7
+14 28 30 47 46 52 19 54 -48 3 -32 -24 -63 -42 -69 -40 -15 5 -6 100 13 130 9
+15 14 53 14 110 0 49 6 108 14 133 16 48 33 168 45 316 4 50 12 97 17 105 5 8
+12 55 16 104 3 50 8 101 10 115 3 24 -19 39 -35 24z M2856 5241 c-21 -34 -6
+-874 16 -887 31 -20 45 495 17 629 -14 65 -4 92 26 67 24 -20 31 -3 12 29 -9
+16 -17 50 -17 74 0 50 -39 113 -54 88z"/></g></svg>

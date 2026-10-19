@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { request, errorMessage } from './api'
 import { Empty, Notice } from './primitives'
 import type { Account, Catalogue, RunCommand } from './types'
-import { money } from './types'
+import { money, observedTime } from './types'
 
 export function CatalogueView({ account, run, busy, onPrepared }: { account: Account; run: RunCommand; busy: boolean; onPrepared: () => void }) {
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
@@ -38,13 +38,13 @@ export function CatalogueView({ account, run, busy, onPrepared }: { account: Acc
     }
   }
   return <div className="br-panel br-catalogue br-stack">
-    <div className="br-heading-row"><div><h2>{currentAccount.value.name} catalogue</h2><p>{money(currentAccount.value.minimumCents)} minimum · {currentAccount.value.termsDays === 0 ? 'Due on receipt' : `${currentAccount.value.termsDays}-day terms`}</p></div>
+    <div className="br-heading-row"><div><h2>{currentAccount.value.name} catalog</h2><p>{money(currentAccount.value.minimumCents)} minimum · {currentAccount.value.termsDays === 0 ? 'Due on receipt' : `${currentAccount.value.termsDays}-day terms`}</p></div>
       <button className="br-secondary" disabled={loading || busy} onClick={() => setRefresh(value => value + 1)}>Refresh stock</button></div>
     {loading && <p role="status">Fetching live stock and agreed prices from Pier…</p>}
-    {error && <Notice error><strong>Catalogue unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p></Notice>}
+    {error && <Notice error><strong>Catalog unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p></Notice>}
     {catalogue && items.length === 0 && <Empty title="No agreed products yet">Your supplier needs to add agreed SKU prices to this trade account before you can order.</Empty>}
     {catalogue && items.length > 0 && <form className="br-stack" onSubmit={event => void prepare(event)}>
-      <p className="br-small">Stock observed: {catalogue.observedAt}. Stock is reserved only after supplier approval.</p>
+      <p className="br-small">Stock observed: {observedTime(catalogue.observedAt)}. Stock is reserved only after supplier approval.</p>
       <div className="br-table-wrap"><table><caption className="br-sr-only">Products and agreed prices</caption><thead><tr><th scope="col">Product</th><th scope="col">Available</th><th scope="col">Price</th><th scope="col">Quantity</th><th scope="col">Line total</th></tr></thead>
         <tbody>{items.map(item => <tr key={item.sku}><th scope="row"><span>{item.name}</span><small>{item.sku} · {item.unit} · min. {item.minQty}</small></th><td>{item.available}</td><td>{money(item.unitCents)}</td><td><input className="br-quantity" aria-label={`Quantity for ${item.name}`} type="number" min="0" step="1" value={quantities[item.sku] ?? ''} placeholder="0" disabled={busy} onChange={event => setQuantities(current => ({ ...current, [item.sku]: event.target.value }))} /></td><td>{money(item.unitCents * (Number(quantities[item.sku]) || 0))}</td></tr>)}</tbody></table></div>
       {invalid && <Notice error>Each selected quantity must be a whole number at or above its product minimum.</Notice>}

@@ -1,0 +1,36 @@
+/* Base's shared pages (/run, /contract and the not-found page; src/base, unchanged) in Barrow's look:
+   white page, the heavy serif, white hairline step cards, ultramarine numerals and navy code cards. */
+body.br-base-page { background: #fff; color: var(--br-ink); font-family: var(--rer-font-body); }
+.br-base-page .bar { max-width: 1440px; padding: 18px 60px 0; }
+.br-base-page .brand { gap: 12px; font: 650 28px/1 var(--rer-font-heading); letter-spacing: -.015em; }
+.br-base-page .brand img { width: 40px; height: 40px; }
+.br-base-page .bar nav { gap: 44px; font-size: 17px; font-weight: 500; }
+.br-base-page h1 { font-weight: 860; letter-spacing: -.034em; word-spacing: .07em; color: var(--br-ink); }
+.br-run .intro { padding-top: 64px; }
+.br-run .intro h1 { font-size: clamp(40px, 5vw, 66px); }
+.br-run .intro .sub { color: var(--br-body); }
+.br-run .steps { gap: 20px; margin-top: 44px; }
+.br-run .step { border-radius: 18px; background: #fff; border: 1px solid var(--br-rule); box-shadow: var(--br-shadow); backdrop-filter: none; }
+.br-run .num { border-radius: 16px; background: var(--br-ultramarine); color: #fff; font-family: var(--rer-font-heading); font-weight: 750; }
+.br-run .step h2 { font-family: var(--rer-font-heading); font-weight: 760; letter-spacing: -.015em; word-spacing: .14em; }
+.br-run .body > p { color: var(--br-body); }
+.br-run .code { border-radius: 14px; background: var(--rer-code-background); color: var(--rer-code-text); }
+.br-run .code pre { font-weight: 450; }
+.br-run .go a, .br-run .facts a { color: var(--br-ultramarine); }
+.br-run .facts { margin-top: 36px; color: #575c74; }
+.br-missing .hero h1 { font-size: clamp(40px, 5vw, 64px); }
+.br-missing .link { color: var(--br-ultramarine); }
+
+@media (max-width: 760px) {
+  .br-base-page .bar { padding: 14px 16px 0; }
+  .br-base-page .brand { font-size: 24px; gap: 9px; }
+  .br-base-page .brand img { width: 34px; height: 34px; }
+  .br-base-page .bar nav { gap: 18px; font-size: 15px; }
+  .br-run .intro { padding-top: 40px; }
+  .br-run .intro h1 { font-size: 38px; }
+  .br-run .num { border-radius: 10px; }
+}
+
+/* Display type everywhere on the run site: the heavy serif's spaces are narrow and its tracking tight,
+   so every heading and title keeps at least a quarter-em between words. */
+body :is(h1, h2, h3, h4, .serif-title, .ls-sheet-title, .ls-style, .ls-tab, .serif-name, .serif-town, .hs-brand, .hc-title, .site-brand span, .brand span, .docs-pager a, .pad-price, .pb-total, .signature span) { word-spacing: .12em; }

@@ -9,7 +9,7 @@ export const identity: EditionIdentity = {
   product: branding.name,
   deployment: branding.name,
   purpose: '{deployment} gives trade customers their own prices, reviewed orders and stock reservations through Pier.',
-  tagline: 'Wholesale orders, reviewed and reserved.',
+  tagline: 'Wholesale orders, shipped and paid.',
   signInPath: '/signin',
   // The run site `rer deploy --site` publishes (deploy-site.json).
   runSite: `https://${site.domain}`,
@@ -17,7 +17,6 @@ export const identity: EditionIdentity = {
   installedHome: 'lobby',
   theme: '/rer-theme.css',
   mark: '/brand/mark.svg',
-  band: '/brand/band.svg',
   fonts: '/fonts/fonts.css',
   accentColor: branding.primaryColor,
 }

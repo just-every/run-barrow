@@ -22,7 +22,7 @@ export function BarrowApp() {
   const [accountId, setAccountId] = useState('')
   const [preparing, setPreparing] = useState(false)
   const supplier = state?.actor.role === 'owner' || state?.actor.role === 'admin'
-  const tabs = supplier ? ['Accounts', 'Orders', 'Move in', 'Data'] : ['Catalogue', 'Orders']
+  const tabs = supplier ? ['Accounts', 'Orders', 'Move in', 'Data'] : ['Catalog', 'Orders']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const selected = state?.accounts.find(account => account.id === accountId)
   const reload = useCallback(async () => {
@@ -89,7 +89,7 @@ export function BarrowApp() {
           </div>
           {!state.connection.configured && <Notice>Live stock and reservations need a Pier connection. {supplier ? 'Configure Pier in the installation settings before taking orders.' : 'Contact your supplier to enable ordering.'}</Notice>}
           {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => { setAccountId(id); setPreparing(true); setTab('Orders') }} />}
-          {activeTab === 'Catalogue' && (selected ? <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => setTab('Orders')} /> : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>)}
+          {activeTab === 'Catalog' && (selected ? <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => setTab('Orders')} /> : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>)}
           {activeTab === 'Orders' && <>
             {supplier && <details className="br-panel br-prepare" open={preparing} onToggle={event => setPreparing(event.currentTarget.open)}><summary>Prepare an order</summary><p>Choose a trade account to use its agreed prices and terms.</p><AccountPicker accounts={state.accounts} value={accountId} onChange={setAccountId} />{selected && <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => { setPreparing(false); setTab('Orders') }} />}</details>}
             <Orders orders={state.orders} supplier={supplier} busy={busy} run={run} />
@@ -99,6 +99,6 @@ export function BarrowApp() {
         </>}
       </section></HydrationUnit>
     </main>
-    <HydrationUnit><footer className="br-footer"><span>Barrow · Amounts in AUD</span><a href="/setup">Installation settings</a></footer></HydrationUnit>
+    <HydrationUnit><footer className="br-footer"><span>Barrow · Amounts in USD</span><a href="/setup">Installation settings</a></footer></HydrationUnit>
   </div>
 }

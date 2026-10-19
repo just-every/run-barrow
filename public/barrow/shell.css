@@ -4,7 +4,7 @@ body:has(.barrow){padding:0}
 .br-header{padding:20px 24px 8px;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:80px}
 .br-brand{display:flex;gap:12px;align-items:center;text-decoration:none;font-size:28px;font-weight:600;color:var(--rer-text)!important;line-height:1.1}
 .br-brand small{display:block;font-size:13px;font-weight:400;margin-top:6px}
-.br-mark{display:block;width:32px;height:36px;background:var(--rer-logo) center/contain no-repeat;flex:none}
+.br-mark{display:block;width:34px;height:34px;background:var(--rer-logo) center/contain no-repeat;flex:none}
 .br-session{display:flex;align-items:center;gap:20px;font-size:14px;flex-wrap:wrap;justify-content:flex-end}
 .br-session form{margin:0}.br-email{overflow-wrap:anywhere}
 .br-badge{display:inline-flex;align-items:center;padding:3px 14px;border:1px solid var(--rer-text);border-radius:999px;font-size:13px;font-weight:500;white-space:nowrap;background:var(--rer-surface);line-height:1.4}
@@ -25,7 +25,7 @@ body:has(.barrow){padding:0}
 .br-accounts-intro>p{font-size:24px;color:var(--rer-text)}
 @media(max-width:700px){
  .br-chrome{display:contents}.br-header{padding:18px 16px;min-height:80px;gap:12px}
- .br-brand{font-size:24px;gap:8px}.br-brand small{font-size:11px}.br-mark{width:24px;height:30px}
+ .br-brand{font-size:24px;gap:8px}.br-brand small{font-size:11px}.br-mark{width:28px;height:28px}
  .br-session{gap:12px;flex-wrap:nowrap}.br-session>.br-email{display:none}.br-session .br-quiet{font-size:14px;min-height:40px}
  .br-badge{font-size:12px;padding:3px 10px}
  .br-awning{height:32px;background-size:56px 70px}

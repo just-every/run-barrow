@@ -12,7 +12,7 @@ const explanations: Record<Order['status'], string> = {
 
 export function Orders({ orders, supplier, busy, run }: { orders: Order[]; supplier: boolean; busy: boolean; run: RunCommand }) {
   return <div className="br-stack br-orders"><div className="br-heading-row"><h2>{supplier ? 'All orders' : 'Your orders'}</h2><span className="br-small">{orders.length} {orders.length === 1 ? 'order' : 'orders'}</span></div>
-    {!orders.length && <Empty title="No orders yet">Choose products from a trade account’s catalogue to prepare your first order.</Empty>}
+    {!orders.length && <Empty title="No orders yet">Choose products from a trade account’s catalog to prepare your first order.</Empty>}
     {orders.map(order => <article key={order.id} className="br-panel br-stack">
       <div className="br-heading-row"><div><p className="br-eyebrow" title={order.id}>{order.id.slice(0, 8)}</p><h3>{order.customerName}</h3><p>{order.reference ? `Reference: ${order.reference}` : 'No customer reference'}</p></div><span className={`br-badge br-status-${order.status}`}>{order.status}</span></div>
       <p>{order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' : explanations[order.status]}</p>

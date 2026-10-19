@@ -1,19 +1,32 @@
-import { checkIdentity, type EditionIdentity } from '../../base/identity'
-import { checkRunData, type RunData } from '../../base/run-site'
+// run-barrow.com's homepage, built from the design desk's approved page (19 Oct 2026, page-s1) in its order:
+// 01 hero, 02 the season, 03 line sheet, 04 market week, 05 offline, 06 new stockist, 07 prebook, 08 interlude,
+// 09 photographed PO, 10 follow-through (the wash band), 11 connected, 12 moving in, 13 closing and footer.
+// Painted art appears only in the hero and the interlude; every card and screen is HTML and CSS.
+import { documentHtml } from '../shell/chrome'
+import { agentPoSection } from './agent-po'
+import { boothSection } from './booth'
+import { closing } from './closing'
+import { connectedSection } from './connected'
+import { followSection } from './follow'
 import { hero } from './hero'
-import { featureSections } from './sections'
-import { includedSection } from './included'
-import { actions, escapeHtml, scenery } from './shared'
+import { interlude } from './interlude'
+import { lineSheetSection } from './linesheet'
+import { moveInSection } from './move-in'
+import { offlineSection } from './offline'
+import { prebookSection } from './prebook'
+import { seasonSection } from './season'
+import { walkUpSection } from './walkup'
 
-export function homeHtml(identity: EditionIdentity, data: RunData): string {
-  checkIdentity(identity)
-  checkRunData(data)
-  const mark = escapeHtml(identity.mark)
-  const source = escapeHtml(data.repository)
-  return '<!doctype html><html lang="en-AU"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<title>Barrow — wholesale ordering for your stockists</title><meta name="description" content="Each stockist orders at its own prices against live stock. Approve, and the invoice is ready. Free and open source.">'
-    + `<link rel="icon" href="${mark}">${identity.fonts ? `<link rel="stylesheet" href="${escapeHtml(identity.fonts)}">` : ''}<link rel="stylesheet" href="${escapeHtml(identity.theme)}"><link rel="stylesheet" href="/landing/home.css"></head>`
-    + `<body class="home-page"><a class="home-skip" href="#home-main">Skip to content</a><header class="home-header home-wrap"><a class="home-brand" href="/" aria-label="Barrow home"><img src="${mark}" alt="" width="28" height="32"><span>Barrow</span></a><nav aria-label="Site"><a href="/docs">Docs</a><a href="/contract">Contract</a><a class="home-source" href="${source}">Source</a></nav></header>`
-    + `<main id="home-main">${hero()}${featureSections()}${includedSection()}<section class="home-closing" aria-labelledby="home-closing-title">${scenery('both')}<div class="home-closing-copy"><h2 id="home-closing-title">Run it beside your inbox.</h2><p>Invite one stockist and take their next order through Barrow. Keep everything else as it is.</p>${actions()}</div></section></main>`
-    + `<footer class="home-footer home-wrap"><a class="home-footer-brand" href="/"><img src="${mark}" alt="" width="25" height="29"><span>Barrow <span class="home-footer-license">· MIT licensed</span></span></a><nav aria-label="Footer"><a href="/docs">Docs</a><a href="${source}">Source</a></nav></footer></body></html>`
+// Draws the dotted wires between cards once the layout is known (03 send card to sheets, 09 PO lines to the
+// agent's rows), and gives the terminal its Copy button.
+const SCRIPT = "(()=>{const draw=()=>{document.querySelectorAll('[data-wires]').forEach(box=>{const svg=box.querySelector(':scope>.wires');if(!svg)return;const b=box.getBoundingClientRect();svg.setAttribute('viewBox',`0 0 ${b.width} ${b.height}`);svg.innerHTML=box.dataset.wires.split(';').map(pair=>{const[a,z]=pair.split('>').map(s=>box.querySelector(s));if(!a||!z||!a.offsetParent||!z.offsetParent)return'';const r=a.getBoundingClientRect(),q=z.getBoundingClientRect();const x1=r.right-b.left,y1=r.top+r.height/2-b.top,x2=q.left-b.left,y2=q.top+q.height/2-b.top,m=(x1+x2)/2;return`<path d=\"M${x1} ${y1}C${m} ${y1} ${m} ${y2} ${x2} ${y2}\"/>`}).join('')})};addEventListener('load',draw);addEventListener('resize',draw);document.fonts&&document.fonts.ready.then(draw);document.querySelectorAll('.copy').forEach(button=>{button.hidden=false;button.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(button.dataset.copy);button.querySelector('span').textContent='Copied';setTimeout(()=>{button.querySelector('span').textContent='Copy'},1600)}catch{}})})})()"
+
+export function homeHtml(styles: string[]): string {
+  const body = '<main id="main">' + hero() + seasonSection() + lineSheetSection() + boothSection() + offlineSection() + walkUpSection() + prebookSection()
+    + interlude() + agentPoSection() + followSection() + connectedSection() + moveInSection() + closing() + '</main>'
+  return documentHtml({
+    title: 'Barrow — wholesale orders, shipped and paid',
+    description: 'Barrow gives each stockist its own prices and line sheets, takes orders online, from reps and at trade shows, and follows every order to delivery and payment. 100% free and open source.',
+    styles,
+  }, body, 'home', SCRIPT)
 }

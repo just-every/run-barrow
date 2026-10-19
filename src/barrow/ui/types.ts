@@ -20,4 +20,6 @@ export interface CatalogueItem {
 }
 export interface Catalogue { account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>
-export const money = (cents: number) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(cents / 100)
+export const money = (cents: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
+/** A stock observation time as US readers write it ("Oct 19, 2026, 6:42 PM"); anything unparseable stays as given. */
+export const observedTime = (value: string) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }) }

@@ -1,0 +1,74 @@
+/* /docs: the guides from docs/*.md in the homepage's look: the same header, a sidebar of guides by section,
+   the heavy serif titles with the mark's five colors under them, ultramarine numbered steps, navy code cards. */
+.docs-page .site-header { border-bottom: 1px solid var(--br-rule); }
+.docs-page .site-header-row { padding-bottom: 16px; }
+.docs-layout { display: grid; grid-template-columns: 260px minmax(0, 780px); gap: 64px; max-width: 1440px; margin: 0 auto; padding: 48px 60px 72px; }
+.docs-side { position: relative; }
+.docs-nav { position: sticky; top: 24px; }
+.docs-nav p { margin: 22px 0 8px; font-size: 13px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #575c74; }
+.docs-nav p:first-child { margin-top: 4px; }
+.docs-nav a { display: block; padding: 8px 12px; border-radius: 10px; color: #2a3050; font-size: 16.5px; line-height: 1.35; text-decoration: none; }
+.docs-nav a:hover { background: #f3f5fb; }
+.docs-nav a[aria-current] { background: var(--br-wash); color: var(--br-ultramarine); font-weight: 600; }
+.docs-article { min-width: 0; font-size: 18px; line-height: 1.65; color: #2a3050; }
+.docs-article:focus { outline: none; }
+.docs-article h1 { margin-top: 12px; font: 860 clamp(38px, 4.4vw, 58px)/1.02 var(--rer-font-heading); letter-spacing: -.03em; word-spacing: .07em; color: var(--br-ink); text-wrap: balance; }
+.docs-swatch { display: flex; gap: 5px; margin: 18px 0 26px; }
+.docs-swatch i { width: 26px; height: 6px; border-radius: 3px; background: #1a44d8; }
+.docs-swatch i:nth-child(2) { background: #fbb315; }
+.docs-swatch i:nth-child(3) { background: #fa8650; }
+.docs-swatch i:nth-child(4) { background: #86ba93; }
+.docs-swatch i:nth-child(5) { background: #4373a8; }
+.docs-article h2 { margin: 44px 0 12px; font: 760 30px/1.15 var(--rer-font-heading); letter-spacing: -.018em; word-spacing: .05em; color: var(--br-ink); }
+.docs-article h3 { margin: 28px 0 8px; font: 700 22px/1.2 var(--rer-font-heading); color: var(--br-ink); }
+.docs-article p { margin: 0 0 16px; }
+.docs-article a { color: var(--br-ultramarine); text-underline-offset: 3px; }
+.docs-article strong { color: var(--br-ink); font-weight: 650; }
+.docs-article ul { margin: 0 0 18px; padding-left: 0; }
+.docs-article ul li { position: relative; margin: 0 0 8px; padding-left: 22px; }
+.docs-article ul li::before { content: ''; position: absolute; left: 4px; top: .7em; width: 7px; height: 7px; border-radius: 50%; background: var(--br-saffron); }
+.docs-article ol { counter-reset: step; margin: 0 0 18px; padding: 0; }
+.docs-article ol li { position: relative; counter-increment: step; margin: 0 0 12px; padding-left: 44px; }
+.docs-article ol li::before { content: counter(step); position: absolute; left: 0; top: .1em; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--br-ultramarine); color: #fff; font-size: 14px; font-weight: 650; line-height: 1; }
+.docs-article code { padding: .1em .35em; border-radius: 6px; background: #f1f3f9; font: 450 .86em/1.4 var(--rer-font-mono); color: var(--br-ink); }
+.docs-article code .nb { white-space: nowrap; }
+.docs-code { position: relative; margin: 0 0 20px; border-radius: 14px; background: var(--rer-code-background); color: var(--rer-code-text); }
+.docs-code pre { margin: 0; padding: 18px 92px 18px 22px; overflow-x: auto; font: 450 15.5px/1.7 var(--rer-font-mono); }
+.docs-code code { padding: 0; background: none; color: inherit; font-size: inherit; overflow-wrap: normal; }
+.docs-copy { position: absolute; right: 12px; top: 12px; min-height: 32px; padding: 0 12px; border: 1px solid rgba(255,255,255,.3); border-radius: 999px; background: transparent; color: inherit; font-size: 13px; cursor: pointer; }
+.docs-copy:hover { background: rgba(255,255,255,.1); }
+.docs-table { margin: 0 0 22px; overflow-x: auto; border: 1px solid var(--br-rule); border-radius: 12px; }
+.docs-table table { width: 100%; font-size: 16px; line-height: 1.5; }
+.docs-table th, .docs-table td { padding: 10px 14px; border-top: 1px solid var(--br-rule); text-align: left; vertical-align: top; }
+.docs-table thead th { border-top: 0; background: #f6f7fb; color: var(--br-ink); font-weight: 650; }
+.docs-table td:first-child { min-width: 9em; }
+.docs-article .eyebrow { font-size: 13px; }
+.docs-source { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--br-rule); font-size: 16px; }
+.docs-pager { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+.docs-pager a { display: flex; flex-direction: column; gap: 2px; padding: 16px 18px; border: 1px solid var(--br-rule); border-radius: 14px; box-shadow: var(--br-shadow); color: var(--br-ink); font: 700 19px/1.25 var(--rer-font-heading); text-decoration: none; }
+.docs-pager a span { font: 600 13px/1.4 var(--rer-font-body); letter-spacing: .14em; text-transform: uppercase; color: #575c74; }
+.docs-pager a.next { grid-column: 2; text-align: right; align-items: flex-end; }
+.docs-pager a:hover { border-color: #b9c3f2; }
+.docs-run { display: flex; align-items: center; justify-content: space-between; gap: 24px 40px; flex-wrap: wrap; max-width: 1320px; margin: 0 auto 40px; padding: 36px 44px; border-radius: 20px; background: var(--br-wash); }
+.docs-run h2 { margin: 0; font-size: clamp(30px, 3vw, 42px); }
+.docs-run p { margin-top: 8px; font-size: 18px; color: #4a4f68; }
+
+@media (max-width: 1099px) {
+  .docs-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 28px 40px 56px; }
+  .docs-nav { position: static; display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 18px; border-bottom: 1px solid var(--br-rule); }
+  .docs-nav p { display: none; }
+  .docs-nav ul { display: contents; }
+  .docs-nav a { padding: 7px 12px; border: 1px solid var(--br-rule); font-size: 15px; }
+  .docs-run { margin: 0 40px 40px; }
+}
+@media (max-width: 759px) {
+  .docs-layout { padding: 20px 16px 48px; }
+  .docs-article { font-size: 16.5px; }
+  .docs-article h1 { font-size: clamp(34px, 9.6vw, 42px); }
+  .docs-article h2 { font-size: 25px; margin-top: 36px; }
+  .docs-code pre { padding: 50px 16px 16px; font-size: 13.5px; }
+  .docs-copy { top: 10px; right: 10px; }
+  .docs-pager { grid-template-columns: minmax(0, 1fr); }
+  .docs-pager a.next { grid-column: 1; }
+  .docs-run { margin: 0 16px 32px; padding: 26px 20px; }
+}

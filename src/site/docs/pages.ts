@@ -1,17 +1,30 @@
-import type { EditionIdentity } from '../../base/identity'
-import type { RunData, SiteBuild } from '../../base/run-site'
+import type { SiteBuild } from '../../base/run-site'
+import { identity } from '../../identity'
+import run from '../run.json'
+import { actions, documentHtml, siteFooter, siteHeader } from '../shell/chrome'
+import { escapeHtml } from '../shell/html'
 import { guideHtml, guides } from './content'
 
-const escape = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]!))
+const COPY = "document.querySelectorAll('.docs-copy').forEach(b=>{b.hidden=false;b.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(b.closest('.docs-code').querySelector('code').textContent);b.textContent='Copied';setTimeout(()=>{b.textContent='Copy'},1600)}catch{}})})"
+const LEAD = 'Run Barrow on your own computer, give each stockist its agreed prices, and take its orders through to an invoice.'
 
-export function docsPages(identity: EditionIdentity, run: RunData): SiteBuild['pages'] {
-  return guides.map(guide => {
-    const nav = guides.map(item => `<a href="${item.path}"${item.path === guide.path ? ' aria-current="page"' : ''}>${escape(item.title)}</a>`).join('')
+// The mark's five colors, set as a small swatch row under every guide title.
+const swatch = '<span class="docs-swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>'
+
+export function docsPages(styles: string[]): SiteBuild['pages'] {
+  const sections = [...new Set(guides.map(guide => guide.section))]
+  return guides.map((guide, index) => {
+    const nav = sections.map(section => `<p>${section}</p><ul>${guides.filter(item => item.section === section).map(item => `<li><a href="${item.path}"${item.path === guide.path ? ' aria-current="page"' : ''}>${escapeHtml(item.title)}</a></li>`).join('')}</ul>`).join('')
+    const article = guideHtml(guide, run.repository, identity.runSite).replace(/<h1>([\s\S]*?)<\/h1>/, (_, title) => `<h1>${title}</h1>${swatch}`)
+    const previous = guides[index - 1], next = guides[index + 1]
+    const pager = `<nav class="docs-pager" aria-label="Guides in order">${previous ? `<a class="prev" href="${previous.path}"><span>Previous</span>${escapeHtml(previous.title)}</a>` : '<span></span>'}${next ? `<a class="next" href="${next.path}"><span>Next</span>${escapeHtml(next.title)}</a>` : ''}</nav>`
+    const body = `${siteHeader('docs')}<div class="docs-layout"><aside class="docs-side"><nav class="docs-nav" aria-label="Guides">${nav}</nav></aside>`
+      + `<main id="main" class="docs-article" tabindex="-1"><p class="eyebrow">Barrow docs · ${escapeHtml(guide.section)}</p>${article}`
+      + `<p class="docs-source"><a href="${escapeHtml(run.repository)}/blob/main/docs/${encodeURIComponent(guide.source)}">Read this guide on GitHub</a></p>${pager}</main></div>`
+      + `<section class="docs-run"><div><h2>Run Barrow on your computer.</h2><p>100% free and open source. MIT licensed.</p></div>${actions(false)}</section>${siteFooter()}`
     return {
       path: guide.path,
-      html: `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escape(guide.title)} · ${escape(identity.product)}</title><meta name="description" content="Practical guides for running ${escape(identity.product)}, managing trade accounts and taking wholesale orders."><link rel="icon" href="${escape(identity.mark)}">${identity.fonts ? `<link rel="stylesheet" href="${escape(identity.fonts)}">` : ''}<link rel="stylesheet" href="${escape(identity.theme)}"></head>`
-        + `<body class="br-docs"><a class="br-docs-skip" href="#guide">Skip to guide</a><header class="br-docs-header"><a class="br-docs-brand" href="/"><img src="${escape(identity.mark)}" width="32" height="32" alt=""><span>${escape(identity.product)}</span></a><nav aria-label="Site"><a href="/docs" aria-current="page">Docs</a><a href="/contract">Contract</a><a href="${escape(run.repository)}">Source</a><a class="br-docs-run" href="/run">Run ${escape(identity.product)} →</a></nav></header>`
-        + `<div class="br-docs-awning" aria-hidden="true"></div><div class="br-docs-layout"><aside><nav class="br-docs-nav" aria-label="Guides"><p>Barrow guides</p>${nav}</nav></aside><main id="guide" class="br-docs-article" tabindex="-1">${guideHtml(guide, run.repository, identity.runSite)}<footer class="br-docs-article-footer"><a href="${escape(run.repository)}/blob/main/docs/${encodeURIComponent(guide.source)}">Read this guide on GitHub</a></footer></main></div><footer class="br-docs-footer"><span>${escape(identity.product)} · MIT licensed</span><a href="/run">Run ${escape(identity.product)} →</a></footer></body></html>`,
+      html: documentHtml({ title: guide.path === '/docs' ? 'Docs · Barrow' : `${guide.title} · Barrow docs`, description: LEAD, styles }, body, 'docs-page', COPY),
     }
   })
 }

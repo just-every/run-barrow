@@ -1,16 +1,26 @@
+<p><img src="public/brand/mark.svg" alt="" width="56" height="56"></p>
+
 # Barrow
 
-A wholesale ordering portal for an Australian maker or wholesaler. Trade customers see their own prices and minimums. A supplier reviews an order, **Pier reserves the stock**, and Barrow exports an invoice CSV on the customer's terms. MIT licensed.
+A wholesale ordering portal for US brands and wholesalers, built as the free, open source alternative to NuORDER, Pepperi and Brandboom: each stockist gets its own prices and line sheets, orders come in online, from reps and at trade shows, and every order is followed to delivery and payment. [CONTRACT.md](CONTRACT.md) is the product being built and the live [contract page](https://run-barrow.com/contract) shows how far the code has come. Today trade customers see their own prices and minimums, a supplier reviews each order, **Pier reserves the stock**, and Barrow exports an invoice CSV on the customer's terms. MIT licensed.
 
 ## Run locally
 
+The same two lines as the [Run page](https://run-barrow.com/run). Install `rer`, the Run Edit Run command (it brings its own Node when you have no Node 22 or later):
+
 ```sh
-npx -y @runeditrun/rer dev just-every/run-barrow
+curl -fsSL https://runeditrun.com/install.sh | sh
 ```
 
-No Node? `curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-barrow` brings its own Node and does the same.
+If the installer ends with a line to run, run it first. Then get Barrow and start it:
 
-That line clones Barrow and starts it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
+```sh
+rer dev just-every/run-barrow
+```
+
+Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-barrow` does both in one line.
+
+`rer dev just-every/run-barrow` clones Barrow and starts it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
 
 For a real owner installation, run `npx -y @runeditrun/rer install just-every/run-barrow`, then `rer setup --owner-email you@example.com` and `rer dev` from the checkout. Local review uses the private automatic sign-in link.
 
@@ -36,11 +46,11 @@ Use Pier's actual origin and port. Hosted Pier requires HTTPS. The helper checks
 
 ## Do the first jobs
 
-- **Accounts:** add a name, lowercase customer email, exact Pier customer ID, terms, minimum order cents, and SKU prices. Prices are integer AUD cents; quantities are whole sell units. Use **Send invitation**. Local demo invitations complete without delivery. Hosted installations deliver invitations through the configured mail provider.
-- **Customer Catalogue:** enter quantities and a PO reference, prepare a draft, then review and submit it in **Orders**. Other accounts and prices are inaccessible to the customer.
+- **Accounts:** add a name, lowercase customer email, exact Pier customer ID, terms, minimum order cents, and SKU prices. Prices are integer cents, shown in US dollars; quantities are whole sell units. Use **Send invitation**. Local demo invitations complete without delivery. Hosted installations deliver invitations through the configured mail provider.
+- **Customer Catalog:** enter quantities and a PO reference, prepare a draft, then review and submit it in **Orders**. Other accounts and prices are inaccessible to the customer.
 - **Supplier Orders:** review the fixed prices and terms, then approve. Pier makes the reservation. A fully reserved order offers an invoice CSV. A shortfall needs attention in Pier; reserve the remainder there, then **Refresh stock status** in Barrow. A lost response offers **Retry stock reservation**, using the same durable Pier command ID. Never create another order to recover the first one.
 - **Move in:** upload [the documented-shape fixture](fixtures/trade-accounts.csv), run a dry run, review the plan, apply it and inspect its journal. Repeated requests resume the same job. Undo preserves native edits and refuses accounts used by orders. Replace the fixture's Pier IDs before placing orders. Details: [move-in format](docs/MOVE-IN.md).
-- **Data:** issue a seven-day agent credential for [catalogue and prepare-order commands](docs/AGENTS-API.md), revoke it, or erase an unused trade account. Agents cannot submit, approve, import, erase or export invoices. Approval identities remain on orders and in the audit table.
+- **Data:** issue a seven-day agent credential for [catalog and prepare-order commands](docs/AGENTS-API.md), revoke it, or erase an unused trade account. Agents cannot submit, approve, import, erase or export invoices. Approval identities remain on orders and in the audit table.
 
 No tax is computed or added. The CSV is a handoff to the existing accounting system, with SKU amounts, issue/due dates, stable invoice number and exact cents. Review its tax treatment there. CSV downloads do not collect money or mark an invoice paid. A backup restored for continued operation must reconnect to the same Pier origin; existing orders refuse a different one.
 

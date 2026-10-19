@@ -37,7 +37,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    const offer=available.items.find((i:any)=>i.sku===sku)
    if(!offer) fail('PRICE','This item is not on this customer’s active price list.')
    if(quantity<offer.minQty) fail('MINIMUM',`${sku} has a minimum quantity of ${offer.minQty}.`)
-   if(BigInt(quantity)*1000000n>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock. Refresh the catalogue.`)
+   if(BigInt(quantity)*1000000n>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock. Refresh the catalog.`)
    return {sku,name:offer.name,itemId:offer.itemId,quantity,unitCents:offer.unitCents,minQty:offer.minQty}
   })
   const totalCents=lines.reduce((sum,line)=>sum+line.quantity*line.unitCents,0)

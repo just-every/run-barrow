@@ -33,7 +33,7 @@ be nonempty trimmed text. Different accounts cannot share an email, including
 existing native accounts. The parent-owned native unique index also enforces
 email uniqueness during concurrent transactions.
 
-All money is AUD integer cents, zero or greater. `termsDays` is a nonnegative
+All money is integer cents, zero or greater. `termsDays` is a nonnegative
 integer; `minQty` is a positive integer. Decimal prices, currency symbols,
 exponents, signs and leading zeros are rejected. Numeric values must fit safe
 JavaScript integers. Each account has at most 200 prices and each SKU appears
