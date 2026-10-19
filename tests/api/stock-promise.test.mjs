@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation, accountValue } from './harness.mjs';
 
-test('STK-002: Pier stock by warehouse and incoming promise dates, account warehouse rules and a stale-stock limit with refresh or recorded exception', async t => {
+test('STK-002 / PRI-007: Pier stock by warehouse and incoming promise dates, account warehouse rules and a stale-stock limit with refresh or recorded exception', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const item = await pier.command('item.save', { sku: 'OAT-1', name: 'Toasted oat granola', unit: 'case', packSize: '1' });
  const mill = await pier.command('party.save', { name: 'Mill House Foods', kind: 'supplier' });

@@ -43,11 +43,12 @@ test('BAR-002: USD and legacy AUD orders retain exact human snapshots, one ackno
   const due=new Date(approved.invoice.issuedAt+'T00:00:00Z');due.setUTCDate(due.getUTCDate()+30);assert.equal(approved.invoice.dueAt,due.toISOString().slice(0,10));
   originals.push({approved,text});
  }
- // Real stock contention after draft preparation produces explicit shortfalls, never invoices.
+ // PRI-007 rechecks stock at submission; contention after those valid submissions still yields shortfalls.
  const shorts=[];for(const currency of ['USD','AUD'])shorts.push(await prepare(currency,10,`PO-${currency}-SHORT`));
+ for(const draft of shorts)await h.command('order.submit',{orderId:draft.id},as);
  await pier.command('order.create',{customerId:source.customer.id,lines:[{itemId:source.item.id,quantity:'112'}]});
  for(const [index,draft] of shorts.entries()){
-  await h.command('order.submit',{orderId:draft.id},as);await h.command('order.approve',{orderId:draft.id},{status:503});const short=await h.command('order.approve',{orderId:draft.id});
+  await h.command('order.approve',{orderId:draft.id},{status:503});const short=await h.command('order.approve',{orderId:draft.id});
   assert.equal(short.status,'shortfall');assert.equal(short.reservation[0].quantity,'10');assert.equal(short.reservation[0].reserved,index===0?'2':'0');assert.equal(short.invoice,undefined);assert.equal((await h.request(`/api/barrow/invoices/${draft.id}.csv`,as)).status,409);
  }
  account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,termsDays:7,prices:[{sku:'OAT-1',unitCents:9999,minQty:1}]}});

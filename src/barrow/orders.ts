@@ -58,15 +58,19 @@ async function recordRelease(env:Bindings,actor:Actor,order:Order,result:any) {
  const lines=result.lines.map((l:any)=>({itemId:l.itemId,quantity:l.quantity,dispatched:l.dispatched,cancelled:l.cancelled,reserved:l.reserved}))
  return save(env,actor,{...order,status:'cancelled',release:{...order.release!,confirmedAt:(await now()).toISOString(),lines}},'order.released')
 }
-async function assertCurrentPricing(env:Bindings,selected:Account,order:Order) {
- if(!order.lines.some(line=>line.pricing))return
+async function assertCurrentPricing(env:Bindings,selected:Account,order:Order,submission=false) {
+ // PRI-007: read current Pier at every admission. Submission revalidates the whole cart;
+ // approval checks current commercial terms, then Pier's reservation is authoritative for stock shortfalls.
  const offers=await catalogue(env,selected),date=supplierDate(await now())
  for(const line of order.lines){
-  if(!line.pricing)continue
-  const offer=offers.items.find(item=>item.sku===line.sku),unit=offer?sellingUnits(offer).find(unit=>unit.code===line.unit):undefined
-  if(!unit)fail('PRICE_CHANGED','A selling unit changed. Prepare a new draft for review.')
+  const offer=offers.items.find(item=>item.sku===line.sku),unit=offer?sellingUnits(offer).find(unit=>unit.code===(line.unit??offer.unit)):undefined
+  if(!unit)fail('PRICE_CHANGED','An item or selling unit changed. Prepare a new draft for review.')
   const current=priceLine(line.quantity,unit.unitCents,unit.pricing,date)
-  if(current.lineCents!==line.lineCents || current.pricing?.reason!==line.pricing.reason || JSON.stringify(current.pricing?.segments)!==JSON.stringify(line.pricing.segments) || current.pricing?.discountBps!==line.pricing.discountBps) fail('PRICE_CHANGED','The effective pricing rule changed. Prepare a new draft for review.')
+  if(current.unitCents!==line.unitCents || current.lineCents!==(line.lineCents??line.quantity*line.unitCents) || current.pricing?.reason!==line.pricing?.reason || JSON.stringify(current.pricing?.segments)!==JSON.stringify(line.pricing?.segments) || current.pricing?.discountBps!==line.pricing?.discountBps) fail('PRICE_CHANGED','The effective pricing rule changed. Prepare a new draft for review.')
+ }
+ if(submission) {
+  const lines=prepareLines(order.lines,offers.items,date)
+  if(lines.reduce((sum,line)=>sum+line.lineCents!,0)<selected.value.minimumCents)fail('MINIMUM','The order is below this customer’s minimum order value.')
  }
 }
 export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
@@ -86,7 +90,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const selected=await account(env.DB,actor,order.accountId)
   requireActiveAccount(selected)
   if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The price list or terms changed. Prepare a new draft for review.')
-  await assertCurrentPricing(env,selected,order)
+  await assertCurrentPricing(env,selected,order,true)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
   const release=await purchaseRelease(env.DB,actor,order,p.release,(await now()).toISOString())

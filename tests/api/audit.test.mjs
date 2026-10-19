@@ -14,7 +14,8 @@ test('DATA-002: every current commercial mutation has searchable, attributed, ap
  await h.command('order.submit',{orderId:draft.id},as);const approved=await h.command('order.approve',{orderId:draft.id});assert.equal(approved.status,'approved');
  const comparison=await h.command('order.reorder-preview',{orderId:approved.id,selections:[{sku:'OAT-1'}]},as);const reordered=await h.command('order.reorder',{orderId:approved.id,selections:[{sku:'OAT-1'}],fingerprint:comparison.fingerprint,acknowledged:true},as);
  draft=await h.command('order.prepare',{accountId:account.id,reference:'AUDIT-SHORT',lines:[{sku:'OAT-1',quantity:10}]},as);
- await pier.command('order.create',{customerId:source.customer.id,lines:[{itemId:source.item.id,quantity:'497'}]});await h.command('order.submit',{orderId:draft.id},as);assert.equal((await h.command('order.approve',{orderId:draft.id})).status,'shortfall');await h.command('order.refresh',{orderId:draft.id});
+ // PRI-007 requires live stock at submit; the competing reservation happens afterward.
+ await h.command('order.submit',{orderId:draft.id},as);await pier.command('order.create',{customerId:source.customer.id,lines:[{itemId:source.item.id,quantity:'497'}]});assert.equal((await h.command('order.approve',{orderId:draft.id})).status,'shortfall');await h.command('order.refresh',{orderId:draft.id});
  account=await h.command('account.save',{id:account.id,revision:account.revision,reason:' =Supplier reviewed the seasonal agreement',value:{...account.value,prices:[]}});
  const csv=(id,name,email,cents)=>`accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\n${id},${name},${email},${source.customer.id},30,0,OAT-1,${cents},1\n`;
  const apply=async text=>{const p=await h.api('/api/barrow/imports/preview',{csv:text});return h.api('/api/barrow/imports/apply',{csv:text,fingerprint:p.fingerprint})};

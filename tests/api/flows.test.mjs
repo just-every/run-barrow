@@ -49,10 +49,11 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   await h.api('/api/barrow/imports/preview',{csv:'bad'},{...agent,status:403});
   await h.command('order.submit',{orderId:order.id},{as:other,status:404});
   order=await h.command('order.submit',{orderId:order.id},{as:buyer});
+  // PRI-007 now rechecks stock at submission: contention happens after both valid submissions.
+  await h.command('order.submit',{orderId:draft.id},{as:buyer});
   await h.command('order.approve',{orderId:order.id},{as:buyer,status:403});
   order=await h.command('order.approve',{orderId:order.id});assert.equal(order.status,'approved');assert.ok(order.approvedBy);assert.ok(order.approvedAt);assert.ok(order.submittedBy);
   await h.command('order.approve',{orderId:order.id});assert.equal((await pier.api('/api/pier/state')).orders.length,1);
-  await h.command('order.submit',{orderId:draft.id},{as:buyer});
   const short=await h.command('order.approve',{orderId:draft.id});assert.equal(short.status,'shortfall');
   assert.equal((await h.request(`/api/barrow/invoices/${short.id}.csv`)).status,409);
   const state=await pier.api('/api/pier/state');assert.equal(state.positions[0].available,'0');

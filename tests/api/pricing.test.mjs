@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation, stock, accountValue, archive, restore } from './harness.mjs';
 
-test('PRI-002: dated volume/graduated breaks, account/group precedence and approved overrides explain and freeze exact commercial totals',async t=>{
+test('PRI-002 / PRI-007: dated volume/graduated breaks, account/group precedence and approved overrides explain and freeze exact commercial totals',async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());const source=await stock(pier,'500');
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  const easternDay=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
