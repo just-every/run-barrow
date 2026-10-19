@@ -11,6 +11,7 @@ import { sellingUnits } from './units'
 import { prepareLines } from './unit-lines'
 import { purchaseDetails, buyerSku, purchaseRelease } from './purchase'
 import { readDocument, documentStatement, carryDocument } from './documents'
+import { freshnessLimit, staleStock } from './freshness'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
  if(!row) fail('NOT_FOUND','Order not found.',404)
@@ -18,9 +19,9 @@ export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Ord
  await account(db,actor,order.accountId)
  return order
 }
-async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[]) {
+async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
- await commit(env.DB,actor,[...guards,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:({
+ await commit(env.DB,actor,[...guards,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
   'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
   'order.document-attached':'Attached the supporting PO document to the draft.',
   'order.submitted-release':'Submitted as an explicitly authorized numbered release of a PO already on order.',
@@ -86,6 +87,8 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   requireActiveAccount(selected)
   if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The price list or terms changed. Prepare a new draft for review.')
   await assertCurrentPricing(env,selected,order)
+  const stale=staleStock(order,await freshnessLimit(env.DB),await now())
+  if(stale) fail('STOCK_STALE',stale)
   const release=await purchaseRelease(env.DB,actor,order,p.release,(await now()).toISOString())
   return save(env,actor,{...order,status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{})},release.poRelease?'order.submitted-release':'order.submitted',[activeAccountGuard(env.DB,selected),release.guard])
  }
@@ -95,6 +98,12 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   return save(env,actor,{...order,document:{...meta,uploadedBy:actor.id,uploadedAt:(await now()).toISOString()}},'order.document-attached',[documentStatement(env,order.id,document)])
  }
  requireSupplier(actor)
+ if(type==='order.stock-exception') {
+  // STK-002: a supplier's recorded decision to accept this draft's stock observation past the freshness limit.
+  if(order.status!=='draft') fail('STOCK_EXCEPTION','Record a stock exception on a draft before it is submitted.')
+  const reason=text(p.reason,'Exception reason',240)
+  return save(env,actor,{...order,stockException:{by:actor.id,at:(await now()).toISOString(),reason}},'order.stock-exception',[],`Supplier accepted stock observed ${order.preparedAt} past the freshness limit: ${reason}`)
+ }
  if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
  if(type==='order.approve') {
   if(order.status==='approved'||order.status==='shortfall') return order

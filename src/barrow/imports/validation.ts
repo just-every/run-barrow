@@ -16,6 +16,7 @@ export type AccountValue = {
   territory?: string;
   assignedRep?: string;
   catalogs?: string[];
+  warehouses?: string[];
   providerReferences?: Record<string, string>;
 };
 
@@ -67,7 +68,7 @@ export function validatePriceUnits(input: unknown): UnitDefinition[] {
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
-  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'];
+  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses'];
   if (Object.keys(value).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !(key in value)))
     importError('ACCOUNT_VALUE', 'Use exactly the documented account fields.');
   const name = boundedText(value.name, 'name');
@@ -106,6 +107,13 @@ export function validateAccountValue(input: unknown): AccountValue {
     if (!Array.isArray(value.catalogs) || value.catalogs.length > 100) importError('ACCOUNT_CATALOGS', 'Supply at most 100 catalog identifiers.');
     profile.catalogs = value.catalogs.map(item => boundedText(item, 'catalog', 100));
     if (new Set(profile.catalogs).size !== profile.catalogs.length) importError('ACCOUNT_CATALOGS', 'Catalog identifiers must be unique.');
+  }
+  // STK-002: the Pier warehouses whose stock Barrow promises to this account; absent or empty means every warehouse.
+  if (value.warehouses !== undefined) {
+    if (!Array.isArray(value.warehouses) || value.warehouses.length > 50) importError('ACCOUNT_WAREHOUSES', 'Supply at most 50 warehouse names.');
+    const warehouses = value.warehouses.map(item => boundedText(item, 'warehouse', 100));
+    if (new Set(warehouses).size !== warehouses.length) importError('ACCOUNT_WAREHOUSES', 'Warehouse names must be unique.');
+    if (warehouses.length) profile.warehouses = warehouses;
   }
   if (value.providerReferences !== undefined) {
     if (!value.providerReferences || typeof value.providerReferences !== 'object' || Array.isArray(value.providerReferences) || Object.keys(value.providerReferences).length > 30) importError('ACCOUNT_REFERENCES', 'Supply an object with at most 30 provider references.');

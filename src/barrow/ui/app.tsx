@@ -119,7 +119,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && !supplier && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
-          {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} busy={busy} run={run} />}
+          {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
         </>}
       </section></HydrationUnit>
     </main>

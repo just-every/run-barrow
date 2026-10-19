@@ -37,18 +37,30 @@ export async function catalogue(env: Bindings,account: Account) {
  const state=await pierState(env)
  if(!Array.isArray(state.items)||!Array.isArray(state.positions)||!Array.isArray(state.locations)||!Array.isArray(state.parties)) fail('PIER_RESPONSE','Pier stock response is incomplete.',502)
  if(!state.parties.some((p:any)=>p.id===account.value.pierCustomerId && p.kind==='customer')) fail('PIER_CUSTOMER','Map this account to an existing Pier customer.',409)
- const bins=new Set(state.locations.filter((l:any)=>l.kind==='bin').map((l:any)=>l.id))
+ const bins=new Map<string,string>(state.locations.filter((l:any)=>l.kind==='bin').map((l:any)=>[l.id,typeof l.warehouse==='string'&&l.warehouse?l.warehouse:'Unnamed warehouse']))
+ const allowed=account.value.warehouses?.length?new Set(account.value.warehouses):undefined
  const unconfirmed=await unconfirmedReleases(env,state)
  const items=account.value.prices.flatMap(price=>{
   const item=state.items.find((i:any)=>i.sku===price.sku && !i.archived)
   if(!item) return []
-  const sellable=state.positions.filter((p:any)=>p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)).reduce((n:bigint,p:any)=>n+decimal(p.available),0n)
+  const byWarehouse=new Map<string,bigint>()
+  for(const p of state.positions) if(p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)) byWarehouse.set(bins.get(p.locationId)!,(byWarehouse.get(bins.get(p.locationId)!)??0n)+decimal(p.available))
+  const sellable=[...byWarehouse].filter(([name])=>!allowed||allowed.has(name)).reduce((n,[,quantity])=>n+quantity,0n)
   const held=unconfirmed.get(item.id)??0n,available=sellable>held?sellable-held:0n
-  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{})}
+  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{}),warehouses:[...byWarehouse].sort(([a],[b])=>a.localeCompare(b)).map(([warehouse,quantity])=>({warehouse,available:format(quantity),promised:!allowed||allowed.has(warehouse)})),incoming:incoming(state,item.id)}
   sellingUnits(offer)
   return [offer]
  })
  return {account,items,currency:'USD' as const,observedAt:(await now()).toISOString()}
+}
+/** STK-002: unreceived quantity on committed Pier POs for one item, by promise date (null when the PO gives none), earliest first. */
+function incoming(state:any,itemId:string) {
+ const dates=new Map<string|null,bigint>()
+ for(const po of Array.isArray(state.purchaseOrders)?state.purchaseOrders:[]) if(po.status==='committed') for(const line of po.lines??[]) if(line.itemId===itemId) {
+  const open=decimal(line.quantity)-decimal(line.received??'0')
+  if(open>0n) dates.set(po.promiseDate??null,(dates.get(po.promiseDate??null)??0n)+open)
+ }
+ return [...dates].sort(([a],[b])=>a===null?1:b===null?-1:a.localeCompare(b)).map(([date,quantity])=>({date,quantity:format(quantity)}))
 }
 /** Several selling units of one SKU become one exact base-unit reservation at Pier. */
 export function reservationLines(lines:Line[]) {

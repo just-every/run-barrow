@@ -5,7 +5,7 @@ import type { Line, Order } from './model'
 export function demoPierState() {
   return {
     items: demoProducts.map(({ available, ...product }) => ({ id: demoItemId(product.sku), ...product, archived: false })),
-    locations: [{ id: 'demo-charleston', name: 'Charleston warehouse', kind: 'bin' }],
+    locations: [{ id: 'demo-charleston', name: 'Charleston warehouse', warehouse: 'Charleston', kind: 'bin' }],
     positions: demoProducts.map(product => ({ itemId: demoItemId(product.sku), locationId: 'demo-charleston', status: 'sellable', available: String(product.available) })),
     parties: demoCustomers.map(({ id, name }) => ({ id: demoCustomerId(id), name, kind: 'customer' })),
     orders: [],

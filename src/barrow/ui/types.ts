@@ -2,7 +2,7 @@ import { supplierZone } from '../model'
 export interface Price { sku: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing }
 export interface AccountValue {
   name: string; email: string; pierCustomerId: string; termsDays: number; minimumCents: number; prices: Price[]; city?: string; state?: string
-  lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; providerReferences?: Record<string, string>
+  lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; warehouses?: string[]; providerReferences?: Record<string, string>
 }
 export interface Account { id: string; value: AccountValue; revision: string }
 export interface Order {
@@ -11,17 +11,17 @@ export interface Order {
   lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number; pricing?:import('../pricing').PricingSnapshot; buyerSku?:string }[]
   totalCents: number; currency?: 'USD' | 'AUD'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded' | 'releasing' | 'cancelled'
-  replaces?: string; supersededBy?: string
+  replaces?: string; supersededBy?: string; stockException?: { by: string; at: string; reason: string }
   preparedBy: string; submittedBy?: string; approvedBy?: string; approvedAt?: string
   pierOrderId?: string; pierReference?: string; reservation?: { quantity: string; reserved: string }[]; invoice?: { number: string; issuedAt: string; dueAt: string }
   release?: { reason: string; requestedBy: string; requestedAt: string; held: { itemId: string; quantity: string }[]; confirmedAt?: string; lines?: { quantity: string; dispatched: string; cancelled: string }[] }
 }
 export interface BarrowState {
   actor: { id: string; email: string; role: 'owner' | 'admin' | 'member'; agent: false }
-  accounts: Account[]; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }
+  accounts: Account[]; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }; settings: { stockFreshnessMinutes: number | null }
 }
 export interface CatalogueItem {
-  sku: string; itemId: string; name: string; unit: string; barcode?: string; available: string; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
+  sku: string; itemId: string; name: string; unit: string; barcode?: string; available: string; warehouses?: { warehouse: string; available: string; promised: boolean }[]; incoming?: { date: string | null; quantity: string }[]; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
 }
 export interface Catalogue { currency: 'USD'; account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>

@@ -22,6 +22,7 @@ export function profileFields(data: FormData) {
     lifecycle: String(data.get('lifecycle')) as 'active' | 'on-hold' | 'closed',
     ...Object.fromEntries(['channel', 'territory', 'assignedRep'].map(key => [key, String(data.get(key) ?? '').trim()]).filter(([, value]) => value)),
     catalogs: String(data.get('catalogs') ?? '').split(/\r?\n/).map(value => value.trim()).filter(Boolean),
+    warehouses: String(data.get('warehouses') ?? '').split(/\r?\n/).map(value => value.trim()).filter(Boolean),
     providerReferences,
   }
 }

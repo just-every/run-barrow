@@ -7,6 +7,7 @@ import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
 import { exportKinds, exportResponse } from './export'
+import { freshnessLimit, saveFreshness } from './freshness'
 import { documentResponse } from './documents'
 import { orderTimeline } from './timeline'
 import { diagnostics } from './diagnostics'
@@ -34,7 +35,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    // Order history names people, not operator IDs: the display names of everyone these orders record.
    const ids=[...new Set(orders.flatMap((order:any)=>[order.preparedBy,order.submittedBy,order.approvedBy]).filter((id:unknown)=>typeof id==='string'&&!id.startsWith('agent:')))]
    const people=ids.length?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<any>()).results.map(row=>[row.id,row.display_name])):{}
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)}})
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
@@ -82,7 +83,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    let result
    if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)
    else if(['cart.preview','cart.form'].includes(body.type)) result=await cartCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
    return json({result})
