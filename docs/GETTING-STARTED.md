@@ -45,7 +45,8 @@ Pier needs items, sellable stock in bins and a customer party for the stockist. 
 
 ```sh
 rer dev --stop
-node scripts/connect-pier.mjs --origin http://127.0.0.1:PIER_PORT --session-file /absolute/path/pier-session.txt
+node scripts/connect-pier.mjs --origin http://127.0.0.1:PIER_PORT \
+  --session-file /absolute/path/pier-session.txt
 rer dev
 ```
 

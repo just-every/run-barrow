@@ -58,11 +58,12 @@
 .bubble.blue { background: #dfe8ff; }
 .bubble b { font-weight: 500; }
 .po-draft { padding: 22px 22px 18px; }
-.po-draft table { width: 100%; margin-top: 12px; font-size: 15.5px; }
+.po-draft table { width: 100%; margin-top: 12px; font-size: 15px; }
 .po-draft th, .po-draft td { padding: 13px 4px; border-top: 1px solid var(--br-rule); text-align: left; font-weight: 400; }
 .po-draft .sku { font-size: 13px; color: #3c425c; white-space: nowrap; }
-.po-draft td:nth-child(3) { white-space: nowrap; font-size: 15px; }
-.po-draft tr.total th, .po-draft tr.total td { padding: 16px 6px; border-top: 2px solid var(--br-rule-strong); font: 700 26px/1 var(--rer-font-heading); color: var(--br-ink); }
+.po-draft td.num { padding-left: 14px; text-align: right; }
+.po-draft td:nth-child(3) { white-space: nowrap; font-size: 14px; }
+.po-draft tr.total th, .po-draft tr.total td { padding: 16px 6px; border-top: 2px solid var(--br-rule-strong); font: 700 23px/1 var(--rer-font-heading); color: var(--br-ink); }
 .po-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--br-rule); }
 .po-checks li { padding: 12px 14px; border-radius: 8px; background: var(--br-green-tint); color: #1d4a32; font-size: 15.5px; }
 .po-checks .ok { color: #11603a; }
@@ -71,7 +72,7 @@
 .po-done .pill-outline { margin-left: auto; color: var(--br-ink); }
 .po-sam { position: absolute; left: 128px; top: 38px; }
 
-@media (max-width: 1279px) {
+@media (max-width: 1399px) {
   .po-grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); }
   .po-draft { grid-column: 1 / -1; }
 }
@@ -104,10 +105,10 @@
 .queue-card { margin-top: 36px; overflow: hidden; }
 .queue-head { display: flex; align-items: center; gap: 18px; padding: 18px 30px; border-bottom: 1px solid var(--br-rule); font-weight: 400; }
 .queue-head .serif-title.xl { font-size: 36px; }
-.queue-row { display: grid; grid-template-columns: 236px minmax(0, 1fr) 262px; gap: 0 18px; align-items: start; padding: 20px 30px 18px; border-bottom: 1px solid var(--br-rule); }
+.queue-row { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 0 18px; align-items: start; padding: 20px 30px 18px; border-bottom: 1px solid var(--br-rule); }
 .queue-store p { font-size: 19px; line-height: 1.3; color: var(--br-ink); }
-.serif-name { font: 700 22px/1.2 var(--rer-font-heading); letter-spacing: -.01em; }
-.serif-town { font: 400 21px/1.2 var(--rer-font-heading); }
+.serif-name { font: 700 20px/1.2 var(--rer-font-heading); letter-spacing: -.01em; }
+.serif-town { font: 400 19px/1.2 var(--rer-font-heading); }
 .queue-store .muted { margin-top: 4px; font-size: 18px; }
 .trail { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 12px; }
 .trail::before { content: ''; position: absolute; left: 12.5%; right: 12.5%; top: 9px; height: 1.5px; background: #c9ccd8; }
@@ -118,12 +119,12 @@
 .t-note .t-dot { display: none; }
 .t-note .t-text { padding: 10px 12px; border-radius: 10px; background: #e2e9fd; border: 1px solid #c9d5fb; color: #1934b8; font-size: 14.5px; text-align: left; }
 .t-note small { display: block; margin-top: 4px; color: #4a5390; font-size: 13.5px; }
-.queue-end { justify-self: end; margin-top: -4px; font-size: 15.5px; font-weight: 500; text-align: center; }
+.queue-end { justify-self: end; margin-top: -4px; font-size: 15px; font-weight: 500; text-align: center; white-space: nowrap; }
 .queue-foot { display: flex; flex-wrap: wrap; gap: 4px 0; padding: 16px 30px 18px; font-size: 16.5px; color: #575c74; }
 .queue-foot span + span::before { content: '·'; margin: 0 10px; }
 .queue-foot .strong { color: #2a3050; font-weight: 500; }
 
-@media (max-width: 1199px) {
+@media (max-width: 1279px) {
   .queue-row { grid-template-columns: minmax(0, 1fr) auto; gap: 14px 18px; }
   .trail { grid-column: 1 / -1; grid-row: 2; }
   .queue-end { grid-column: 2; grid-row: 1; }
@@ -140,7 +141,7 @@
   .trail::before { left: 7px; right: auto; top: 10px; bottom: 10px; width: 1.5px; height: auto; }
   .trail li { align-items: flex-start; text-align: left; font-size: 15.5px; }
   .t-dot { position: absolute; left: -26px; top: 3px; width: 15px; height: 15px; margin: 0; }
-  .queue-end { grid-column: 1; grid-row: auto; justify-self: start; margin: 4px 0 0; }
+  .queue-end { grid-column: 1; grid-row: auto; justify-self: start; margin: 4px 0 0; white-space: normal; text-align: left; }
   .queue-foot { flex-direction: column; padding: 16px; font-size: 15px; }
   .queue-foot span + span::before { display: none; }
 }

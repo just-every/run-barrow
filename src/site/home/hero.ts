@@ -45,7 +45,7 @@ function lineSheet(): string {
     + `<div class="hs-tee-text" ${at(1044, 806, 236)}><p class="hs-strong">2219 Tee</p><p>entered 10 · case pack 6 → 12 suggested</p><p>buyer accepted ${ok}</p></div>`
     + `<span class="hs-ship" ${at(1282, 808, 84)}>${note('ship Feb')}</span>`
     + `<div class="hs-foot" ${at(930, 893, 446)}><div>${icon('plane', 'hs-icon')}<div><p>Sent to 28 stockists ${nb('Thu Oct 8')}</p><p class="hs-big">11 orders · ${nb('$18,940.00')}</p></div></div>`
-    + `<div>${icon('camera', 'hs-icon')}<div><p class="hs-strong">Photographed PO</p><p>Ivy &amp; Oak, Austin → Ridgeline Supply</p><p>14-line draft · approved by Sam Lee ${ok}</p></div></div></div>`
+    + `<div>${icon('camera', 'hs-icon')}<div><p class="hs-strong">Photographed PO</p><p>Ivy &amp; Oak, Austin → ${nb('Ridgeline Supply')}</p><p>14-line draft · approved by Sam Lee ${ok}</p></div></div></div>`
     + `${cursor('Sam Lee', 'hs-sam')}${cursor('Dana Ortiz', 'hs-dana')}</div>`
 }
 
