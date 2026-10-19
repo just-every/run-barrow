@@ -6,6 +6,7 @@ import { AccountPicker, Empty, Notice } from './primitives'
 import { UnitDraft } from './unit-draft'
 import { UnitOrder } from './unit-order'
 import { CartImport, type CartLine } from './cart-import'
+import { SavedLists, type SavedList } from './saved-lists'
 import { StyleCard } from './style-card'
 import { StyleMatrix, cellProblem, type PriceChange } from './style-matrix'
 import { quantityProblem } from '../quantity-rules'
@@ -23,6 +24,8 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
   const [unitOrder,setUnitOrder] = useState(false)
   const [importing,setImporting] = useState(false)
+  const [listing,setListing] = useState(false)
+  const [fromList,setFromList] = useState<SavedList | undefined>()
   const [unitLines,setUnitLines] = useState<CartLine[] | undefined>()
   // ORD-007 buyer SKU aliases carried in from an upload, kept as written on each line.
   const [aliases,setAliases] = useState<Record<string,string>>({})
@@ -111,6 +114,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   function remove(row: StyleRow) {
     setQuantities(current => { const next = { ...current }; for (const size of row.sizes) delete next[row.cells[size].sku]; return next })
   }
+  const padCart: CartLine[] = chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) }))
   const draftTotal = draft && draftCurrency === 'USD' && catalogue && Object.keys(changes).length ? total - draft.totalCents : 0
 
   if(unitDraft && draft) return <UnitDraft key={draft.id} account={account} draft={draft} catalogue={catalogue} loading={loading} error={error || commandError} busy={busy} run={run} onNew={()=>onDraft('')} onPrepared={onPrepared} />
@@ -142,6 +146,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     </div>
     <div className="br-pad-send">
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
+      {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setListing(true)}>Saved lists</button>}
       {catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>{setUnitLines(undefined);setUnitOrder(true)}}>Order by selling unit</button>}
       <button disabled={busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
       {hint && <p className="br-quiet-text">{hint}</p>}
@@ -174,6 +179,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
       </div>
     </>}
     {unitOrder && catalogue && catalogue.items.length>0 && <UnitOrder key={unitLines?'import':draft?.id??"new"} catalogue={catalogue} draft={unitDraft?draft:undefined} initial={unitLines} run={run} busy={busy} error={commandError} onClose={()=>setUnitOrder(false)} onPrepared={onPrepared} />}
-    {importing && catalogue && <CartImport accountId={account.id} cart={chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) }))} onApply={apply} onClose={() => setImporting(false)} />}
+    {(importing || fromList) && catalogue && <CartImport accountId={account.id} cart={padCart} list={fromList} onApply={apply} onClose={() => { setImporting(false); setFromList(undefined) }} />}
+    {listing && catalogue && <SavedLists accountId={account.id} cart={padCart} onAdd={list => { setListing(false); setFromList(list) }} onClose={() => setListing(false)} />}
   </form>
 }

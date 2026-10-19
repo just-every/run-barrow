@@ -12,6 +12,7 @@ import { quantityMessage, quantityProblem } from './quantity-rules'
 import { prepareLines } from './unit-lines'
 import { groupStyles, oneSize } from './ui/styles'
 import { cellValue, csvText, parseCsv, parsePaste } from './cart-csv'
+import { listCsv, readList } from './lists'
 
 type Offer = Awaited<ReturnType<typeof catalogue>>['items'][number]
 type Entry = { ref: string; code?: string; quantity: string; unit?: string; buyerSku?: string; error?: string }
@@ -132,6 +133,9 @@ export function orderForm(selected: Account, offers: Offer[], p: any) {
 }
 
 export async function cartCommand(env: Bindings, actor: Parameters<typeof account>[1], type: string, p: any) {
- const selected = await account(env.DB, actor, text(p.accountId, 'Account')), offered = await catalogue(env, selected)
- return type === 'cart.form' ? orderForm(selected, offered.items, p) : previewCart(selected, offered, p)
+ // ORD-002: a saved list previews as the same CSV a buyer could upload, against its own account's current catalog.
+ const list = type === 'cart.preview' && p.listId !== undefined ? await readList(env.DB, actor, text(p.listId, 'List')) : undefined
+ const selected = await account(env.DB, actor, list ? list.accountId : text(p.accountId, 'Account')), offered = await catalogue(env, selected)
+ if (type === 'cart.form') return orderForm(selected, offered.items, p)
+ return list ? { ...await previewCart(selected, offered, { ...p, paste: undefined, csv: listCsv(list) }), list: { id: list.id, name: list.name, revision: list.revision } } : previewCart(selected, offered, p)
 }

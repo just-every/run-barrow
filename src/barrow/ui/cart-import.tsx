@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Dialog } from './dialog'
 import { Notice } from './primitives'
 import { request, errorMessage } from './api'
@@ -12,8 +12,8 @@ interface Preview { layout: string; rows: PreviewRow[]; lines: PreviewLine[]; er
 const command = async <T,>(type: string, payload: Record<string, unknown>) => (await request<{ result: T }>('/api/barrow/commands', { type, payload })).result
 
 // ORD-001: paste or upload, review every row on the server's preview, resolve each problem, then merge or replace.
-export function CartImport({ accountId, cart, onApply, onClose }: { accountId: string; cart: CartLine[]; onApply: (lines: CartLine[]) => void; onClose: () => void }) {
-  const [source, setSource] = useState<{ csv?: string; paste?: string } | null>(null)
+export function CartImport({ accountId, cart, list, onApply, onClose }: { accountId: string; cart: CartLine[]; list?: { id: string; name: string }; onApply: (lines: CartLine[]) => void; onClose: () => void }) {
+  const [source, setSource] = useState<{ csv?: string; paste?: string; listId?: string } | null>(null)
   const [paste, setPaste] = useState('')
   const [skip, setSkip] = useState<string[]>([])
   const [set, setSet] = useState<Record<string, string>>({})
@@ -41,8 +41,11 @@ export function CartImport({ accountId, cart, onApply, onClose }: { accountId: s
     } catch (failure) { setError(errorMessage(failure)) } finally { setBusy(false) }
   }
   const restart = (next: typeof source) => { setMode(undefined); void run({ source: next, skip: [], set: {}, mode: undefined }) }
+  // ORD-002: a saved list opens straight into the preview at current prices, stock and pack rules.
+  useEffect(() => { if (list) restart({ listId: list.id }) }, [list?.id])
   const problems = preview?.rows.filter(row => row.status === 'error') ?? []
-  return <Dialog title="Add lines by paste or CSV" busy={busy} onClose={onClose}>
+  return <Dialog title={list ? `Add ${list.name} to cart` : 'Add lines by paste or CSV'} busy={busy} onClose={onClose}>
+    {list ? <p>Each line is checked at today’s price, stock and pack rules. Resolve every exception, then merge into or replace your cart.</p> : <>
     <p>Paste one line per item (SKU or barcode, quantity, optional selling unit), or upload a CSV with <code>sku</code> or <code>barcode</code> and <code>quantity</code> columns, or a filled order form. Nothing changes your cart until you choose merge or replace.</p>
     <div className="br-actions">
       <button type="button" className="br-secondary" disabled={busy} onClick={() => void download('vertical')}>Download order form (one row per item)</button>
@@ -53,10 +56,11 @@ export function CartImport({ accountId, cart, onApply, onClose }: { accountId: s
       <button type="button" disabled={busy || !paste.trim()} onClick={() => restart({ paste })}>Preview pasted lines</button>
       <label className="br-secondary">Upload CSV<input type="file" accept=".csv,text/csv" disabled={busy} onChange={event => { const file = event.target.files?.[0]; if (file) void file.text().then(csv => restart({ csv })); event.target.value = '' }} /></label>
     </div>
+    </>}
     {error && <Notice error>{error}</Notice>}
     {preview && <section aria-label="Upload preview" className="br-stack">
       <p role="status">{preview.lines.length} {preview.lines.length === 1 ? 'line' : 'lines'} · {money(preview.totalCents)}{preview.errors ? ` · ${preview.errors} to resolve` : ' · ready'}{preview.totalCents < preview.minimumCents ? ` · below the ${money(preview.minimumCents)} minimum` : ''}</p>
-      {problems.length > 0 && <ul aria-label="Rows to resolve">{problems.map(row => <li key={row.ref}>Row {row.ref}: {row.message} <button type="button" className="br-secondary" disabled={busy} onClick={() => void run({ skip: [...skip, row.ref] })}>Leave out row {row.ref}</button></li>)}</ul>}
+      {problems.length > 0 && <ul aria-label="Rows to resolve">{problems.map(row => <li key={row.ref}>{list ? row.input : `Row ${row.ref}`}: {row.message} <button type="button" className="br-secondary" disabled={busy} onClick={() => void run({ skip: [...skip, row.ref] })}>Leave out {list ? row.input : `row ${row.ref}`}</button></li>)}</ul>}
       <div className="br-table-wrap"><table><caption className="br-sr-only">Lines after this upload</caption>
         <thead><tr><th scope="col">SKU</th><th scope="col">Item</th><th scope="col">Quantity</th><th scope="col">Line</th><th scope="col">Notes</th></tr></thead>
         <tbody>{preview.lines.map(line => <tr key={line.key} aria-invalid={line.problem ? true : undefined}>
