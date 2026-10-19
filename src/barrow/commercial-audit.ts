@@ -14,8 +14,9 @@ type AuditRow = { cursor: number; id: string; subject_id: string; actor_id: stri
 // Current relations support lookup; they do not become historical event metadata.
 const from = `FROM bw_audit e
  LEFT JOIN oa_operators p ON p.id=e.actor_id AND substr(e.actor_id,1,6)<>'agent:'
- LEFT JOIN bw_orders o ON o.id=COALESCE(json_extract(e.context_json,'$.orderId'),e.subject_id)
- LEFT JOIN bw_accounts a ON a.id=e.subject_id`
+ LEFT JOIN bw_orders o ON o.id=json_extract(e.context_json,'$.orderId')
+   OR (e.context_json IS NULL AND e.action LIKE 'order.%' AND o.id=e.subject_id)
+ LEFT JOIN bw_accounts a ON e.context_json IS NULL AND e.action LIKE 'account.%' AND a.id=e.subject_id`
 const account = `COALESCE(json_extract(e.context_json,'$.accountId'),o.account_id,a.id)`
 const order = `COALESCE(json_extract(e.context_json,'$.orderId'),o.id)`
 

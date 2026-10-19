@@ -24,7 +24,8 @@ test('DATA-002: every current commercial mutation has searchable, attributed, ap
  spare=(await h.api('/api/barrow/state')).accounts.find(a=>a.id==='spare');await h.command('account.erase',{accountId:spare.id,confirm:'ERASE'});
  const read=async query=>h.api('/api/barrow/audit?'+new URLSearchParams(query));
  const all=async query=>{let cursor,events=[];do{const page=await read({...query,limit:2,...(cursor?{cursor}:{})});events.push(...page.events);cursor=page.nextCursor}while(cursor);return events};
- const events=await all({});assert.equal(new Set(events.map(e=>e.id)).size,events.length);
+ const collision=await h.command('account.save',{id:approved.id,duplicateReviews:[{id:account.id,revision:account.revision}],value:{...accountValue(source.customer.id,'collision@example.test'),name:'Distinct account with overlapping order ID',minimumCents:0,prices:[]}});
+ const events=await all({});assert.equal(events.find(e=>e.action==='account.saved'&&e.accountId===collision.id).orderId,null);assert.ok((await all({orderId:approved.id})).every(e=>e.action.startsWith('order.')));assert.equal(new Set(events.map(e=>e.id)).size,events.length);
  const actions=new Set(events.map(e=>e.action));for(const action of ['account.saved','account.invitation-requested','price.approved','price.removed','order.prepared','order.superseded','order.submitted','order.approved','order.reserved','order.shortfall','agent.granted','import.account-applied','import.account-restored','import.account-removed','account.erased'])assert.ok(actions.has(action),`Missing current event ${action}`);
  assert.ok(events.some(e=>e.action.startsWith('account.duplicates-reviewed')));assert.ok(events.some(e=>e.orderId===reordered.id&&e.source==='order.reorder'));
  assert.equal(events.filter(e=>e.action==='import.account-applied'&&e.accountId==='canal').length,1);
