@@ -392,7 +392,7 @@ Judged from the code and tests at commit `d04260c3c4799553091ce1eced1160987377f6
 | `CAT-002` | Product discovery and media | target | missing |  | Implement product discovery and media and prove the stated journey. |
 | `CAT-003` | Digital line sheets | target | missing |  | Implement digital line sheets and prove the stated journey. |
 | `CAT-004` | Shoppable lookbooks and presentations | target | missing |  | Implement shoppable lookbooks and presentations and prove the stated journey. |
-| `CAT-005` | Branded responsive storefront | target | partial | `src/barrow/ui/app.tsx`; `src/barrow/ui/catalogue.tsx` | Responsive Barrow catalog exists; merchant branding, domains and full checkout journey are missing. |
+| `CAT-005` | Branded responsive storefront | target | partial | `src/barrow/ui/app.tsx`; `src/barrow/ui/order-pad.tsx` | Responsive Barrow catalog exists; merchant branding, domains and full checkout journey are missing. |
 | `CAT-006` | Multiple brands and buying profiles | target | missing |  | Implement multiple brands and buying profiles and prove the stated journey. |
 | `CAT-007` | Style color size and assortment matrices | target | missing |  | Implement style color size and assortment matrices and prove the stated journey. |
 | `CAT-008` | Season and catalog publishing | target | missing |  | Implement season and catalog publishing and prove the stated journey. |
@@ -407,13 +407,13 @@ Judged from the code and tests at commit `d04260c3c4799553091ce1eced1160987377f6
 | `PRI-006` | Effective prices and additional currencies | target | missing |  | Implement effective prices and additional currencies and prove the stated journey. |
 | `PRI-007` | Explainable commercial validation | target | partial | `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | Server price, stock and minimum checks and stale account-revision rejection exist; credit, tax, units and shipping checks are missing. |
 | `PRI-008` | Suggested retail prices and price display | target | missing |  | Price books hold one wholesale price per account/SKU; MSRP fields, per-document price display settings and margin display are not implemented. |
-| `ORD-001` | Quick order and CSV cart upload | target | partial | `src/barrow/ui/catalogue.tsx`; `src/barrow/orders.ts` | Multi-line quantity entry exists; SKU quick lookup, barcode entry and CSV cart import do not. |
+| `ORD-001` | Quick order and CSV cart upload | target | partial | `src/barrow/ui/order-pad.tsx`; `src/barrow/orders.ts` | Multi-line quantity entry exists; SKU quick lookup, barcode entry and CSV cart import do not. |
 | `ORD-002` | Saved shopping lists | target | missing |  | Implement saved shopping lists and prove the stated journey. |
 | `ORD-003` | Reorder from history | target | partial | `src/barrow/api.ts`; `src/barrow/ui/orders.tsx` | Account-scoped order history exists; search, selective repeat-order action and difference review are missing. |
 | `ORD-004` | Negotiated wholesale quotes | target | missing |  | Implement negotiated wholesale quotes and prove the stated journey. |
 | `ORD-005` | Quote conversation revisions and notes | target | missing |  | Implement quote conversation revisions and notes and prove the stated journey. |
 | `ORD-006` | Self-service checkout | target | partial | `src/barrow/orders.ts`; `src/barrow/ui/orders.tsx`; `tests/api/flows.test.mjs` | Buyers submit drafts with terms; every order requires supplier approval and checkout tax, freight and payment are missing. |
-| `ORD-007` | Purchase references and requested dates | target | partial | `src/barrow/orders.ts`; `src/barrow/ui/catalogue.tsx`; `tests/api/flows.test.mjs` | A PO/reference string ships; attachments, aliases, dates and duplicate-PO workflow are missing. |
+| `ORD-007` | Purchase references and requested dates | target | partial | `src/barrow/orders.ts`; `src/barrow/ui/order-pad.tsx`; `tests/api/flows.test.mjs` | A PO/reference string ships; attachments, aliases, dates and duplicate-PO workflow are missing. |
 | `ORD-008` | Seasonal prebooks and ship windows | target | missing |  | Implement seasonal prebooks and ship windows and prove the stated journey. |
 | `ORD-009` | Backorders and shipment splits | target | partial | `src/barrow/orders.ts`; `src/barrow/ui/orders.tsx`; `tests/api/flows.test.mjs` | Reservation shortfalls are visible; buyer backorder acceptance, release splits and shipment billing do not exist. |
 | `ORD-010` | Immutable agreed order snapshots | target | done | `src/barrow/orders.ts`; `src/barrow/invoice.ts`; `tests/api/flows.test.mjs` |  |
@@ -424,7 +424,7 @@ Judged from the code and tests at commit `d04260c3c4799553091ce1eced1160987377f6
 | `ORD-015` | Versioned sales terms and buyer acceptance | target | missing |  | Accounts carry payment terms only; versioned sales terms, required acceptance and signature capture are not implemented. |
 | `ORD-016` | Canceled styles across open orders | target | missing |  | No style cancellation, open-order impact preview, bulk drop or per-order revision, release, deposit adjustment and buyer notice exist. |
 | `STK-001` | Live customer-visible availability | target | done | `src/barrow/pier.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs` |  |
-| `STK-002` | Available to promise by warehouse and date | target | partial | `src/barrow/pier.ts`; `src/barrow/ui/catalogue.tsx` | Live Pier availability and observation time exist; multiwarehouse selection, incoming ATP and freshness policies are missing. |
+| `STK-002` | Available to promise by warehouse and date | target | partial | `src/barrow/pier.ts`; `src/barrow/ui/order-pad.tsx` | Live Pier availability and observation time exist; multiwarehouse selection, incoming ATP and freshness policies are missing. |
 | `STK-003` | Durable order acknowledgment | target | partial | `src/barrow/orders.ts`; `src/barrow/pier.ts`; `tests/api/flows.test.mjs` | Pier command identity, destination binding and retries exist; general adapter acknowledgment and reconciliation are missing. |
 | `STK-004` | Reservation release and stock exceptions | target | missing |  | Implement reservation release and stock exceptions and prove the stated journey. |
 | `STK-005` | Buyer-approved substitutions | target | missing |  | Implement buyer-approved substitutions and prove the stated journey. |
@@ -435,7 +435,7 @@ Judged from the code and tests at commit `d04260c3c4799553091ce1eced1160987377f6
 | `REP-005` | Visits samples and trade-show selling | target | missing |  | Implement visits samples and trade-show selling and prove the stated journey. |
 | `REP-006` | Barcode scanning in the rep app | target | missing |  | No native rep app or camera/HID barcode scanning exists. |
 | `REP-007` | Trade-show prospect capture | target | missing |  | Offline prospect capture, show assortments and routing into application review are not implemented. |
-| `MOB-001` | Buyer mobile access and accessibility | target | partial | `src/barrow/ui/app.tsx`; `src/barrow/ui/catalogue.tsx`; `src/barrow/ui/orders.tsx` | Responsive catalog and order UI exists; full mobile buying/payment journeys and accessibility acceptance are unproven. |
+| `MOB-001` | Buyer mobile access and accessibility | target | partial | `src/barrow/ui/app.tsx`; `src/barrow/ui/order-pad.tsx`; `src/barrow/ui/orders.tsx` | Responsive catalog and order UI exists; full mobile buying/payment journeys and accessibility acceptance are unproven. |
 | `PAY-001` | Stripe card checkout | target | missing |  | Implement stripe card checkout and prove the stated journey. |
 | `PAY-002` | Stripe ACH collection | target | missing |  | Implement stripe ach collection and prove the stated journey. |
 | `PAY-003` | Deposits partial payments and allocations | target | missing |  | Implement deposits partial payments and allocations and prove the stated journey. |
