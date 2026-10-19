@@ -64,7 +64,7 @@ export function BarrowApp() {
         'account.save': 'Trade account saved.', 'account.invite': 'Invitation requested. Check the account email for the sign-in message.',
         'account.erase': 'Account erasure completed.', 'order.prepare': 'Draft prepared. Review it in Orders before submitting.',
         'order.submit': 'Order submitted for supplier review.', 'order.approve': 'Reservation requested. See the order for its current stock status.',
-        'order.refresh': 'Order stock status refreshed.',
+        'order.refresh': 'Order stock status refreshed.', 'order.reorder': 'Reorder draft prepared. Review it in Orders before submitting.',
       }
       setNotice(messages[type] ?? 'Action completed.')
       return true

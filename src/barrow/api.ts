@@ -4,6 +4,7 @@ import { portabilityPolicy } from './portability-policy.mjs'
 import { current,digest,commit,audit } from './access'
 import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
+import { orderHistory } from './reorders'
 import { catalogue, pierConfigured } from './pier'
 import { invoiceCsv } from './invoice'
 import { Problem,fail,requireSupplier,supplier } from './model'
@@ -29,6 +30,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const people=ids.length?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<any>()).results.map(row=>[row.id,row.display_name])):{}
    return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)}})
   }
+  if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})
   if(path==='/api/barrow/catalogue' && request.method==='GET') return json(await catalogue(env,await account(env.DB,actor,url.searchParams.get('accountId')??'')))
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
   if(invoice && request.method==='GET') {
@@ -62,7 +64,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent && body.type!=='order.prepare') fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    let result
    if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.prepare','order.submit','order.approve','order.refresh'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.prepare','order.submit','order.approve','order.refresh','order.reorder-preview','order.reorder'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
    return json({result})
   }

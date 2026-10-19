@@ -102,7 +102,7 @@ Accounts, legal sellers, currencies, source authorities and revisions are explic
 
 - **ORD-002 — Saved shopping lists.** Company buyers save, name, share and duplicate lists for stores, recurring assortments and projects. Lists store desired SKUs and quantities rather than frozen commercial promises; adding a list to a cart rechecks current price, stock and pack rules. **Acceptance evidence:** Save and share a store replenishment list, change one price and discontinue one SKU, then add it to a cart as another authorized buyer. Show current totals and explicit exceptions without exposing another company list.
 
-- **ORD-003 — Reorder from history.** Buyers find prior orders by PO, date, SKU and delivery location, then reorder all or selected lines. Current availability, replacement SKUs, prices and minimums are compared with the original and require acknowledgment of material differences. **Acceptance evidence:** Open a six-month-old order, select three lines, reorder after a price and SKU change and review the difference summary before checkout; the original order is unchanged.
+- **ORD-003 — Reorder from history.** Buyers find prior orders by PO, date, SKU and delivery location, then reorder all or selected lines. Current availability, replacement SKUs, prices and minimums are compared with the original and require acknowledgment of material differences. Today a delivery location is an order-snapshotted, user-entered label, never a validated address; ACC-003 adds its structured validated location records to history search and reorder snapshots before shipping. Date search uses inclusive calendar-day bounds in America/New_York. Replacement SKUs are explicitly selected from the current account assortment, never guessed or silently substituted. Selected original quantities stay unchanged; insufficient stock or unmet current SKU/order minimums block the reorder rather than silently correcting quantities. The review shows original and current ISO currency, unit prices, SKU minimums, current availability, payment terms and the selected-line totals; its acknowledgment binds the original revision, current account revision and comparison fingerprint. Changed inputs require a fresh review. Acknowledgment prepares a new draft for ordinary human submission and records the original order and acknowledging person; it does not reserve stock. **Acceptance evidence:** Open a six-month-old order, select three lines, reorder after a price and SKU change and review the difference summary before checkout; the original order is unchanged.
 
 - **ORD-004 — Negotiated wholesale quotes.** Buyers request quotes from a cart; reps propose account-specific line prices, quantities, discounts, shipping, terms and validity dates subject to manager limits. An accepted quote converts to exactly one linked order after current stock and credit checks; expiry or revision invalidates stale acceptance. **Acceptance evidence:** Request a quote, approve a rep discount, accept it twice through buyer and API doors and inspect one order with the accepted revision. Expire a second quote and refuse its acceptance.
 
@@ -367,14 +367,14 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `1168ad1dcdf16059d0a2e843d740ee4e9746250b` (19 October 2026).
+Judged from the code and named public-door tests in this tree (19 October 2026).
 
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 5 | 1 | 0 | 6 |
-| Target and push further | 7 | 35 | 91 | 133 |
-| All | 12 | 36 | 91 | 139 |
+| Target and push further | 8 | 34 | 91 | 133 |
+| All | 13 | 35 | 91 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -412,7 +412,7 @@ Judged from the code and tests at commit `1168ad1dcdf16059d0a2e843d740ee4e974625
 | `PRI-008` | Suggested retail prices and price display | target | missing |  | Price books hold one wholesale price per account/SKU; MSRP fields, per-document price display settings and margin display are not implemented. |
 | `ORD-001` | Quick order and CSV cart upload | target | partial | `src/barrow/ui/order-pad.tsx`; `src/barrow/orders.ts` | Multi-line quantity entry exists; SKU quick lookup, barcode entry and CSV cart import do not. |
 | `ORD-002` | Saved shopping lists | target | missing |  | Implement saved shopping lists and prove the stated journey. |
-| `ORD-003` | Reorder from history | target | partial | `src/barrow/api.ts`; `src/barrow/ui/orders.tsx` | Account-scoped order history exists; search, selective repeat-order action and difference review are missing. |
+| `ORD-003` | Reorder from history | target | done | `src/barrow/reorders.ts`; `src/barrow/orders.ts`; `src/barrow/ui/reorder.tsx`; `src/barrow/ui/orders.tsx`; `tests/api/reorder.test.mjs` |  |
 | `ORD-004` | Negotiated wholesale quotes | target | missing |  | Implement negotiated wholesale quotes and prove the stated journey. |
 | `ORD-005` | Quote conversation revisions and notes | target | missing |  | Implement quote conversation revisions and notes and prove the stated journey. |
 | `ORD-006` | Self-service checkout | target | partial | `src/barrow/orders.ts`; `src/barrow/ui/orders.tsx`; `tests/api/flows.test.mjs` | Buyers submit drafts with terms; every order requires supplier approval and checkout tax, freight and payment are missing. |

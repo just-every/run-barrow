@@ -20,6 +20,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const [refresh, setRefresh] = useState(0)
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [reference, setReference] = useState('')
+  const [deliveryLocation, setDeliveryLocation] = useState('')
   const [kept, setKept] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState('')
   const [sku, setSku] = useState('')
@@ -39,7 +40,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   // Opening a draft fills the pad with its quantities; a new order starts empty.
   useEffect(() => {
     setQuantities(Object.fromEntries((draft?.lines ?? []).map(line => [line.sku, String(line.quantity)])))
-    setReference(draft?.reference ?? ''); setKept(new Set()); setSelected('')
+    setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setKept(new Set()); setSelected('')
   }, [draft?.id, account.id])
 
   const items = catalogue?.items ?? []
@@ -67,9 +68,9 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     event.preventDefault()
     if (blocked) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
-    const prepared = await run('order.prepare', { accountId: account.id, reference, ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
+    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
     if (prepared) {
-      if (live.current) { setQuantities({}); setReference('') }
+      if (live.current) { setQuantities({}); setReference(''); setDeliveryLocation('') }
       onPrepared()
     }
   }
@@ -104,6 +105,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
           <option value="">New order</option>
           {drafts.map(value => <option key={value.id} value={value.id}>{orderNumber(value.id)} · {when(value.preparedAt)} · {money(value.totalCents, value.currency ?? 'AUD')}</option>)}
         </select></label>
+        <label>Delivery location label<input value={deliveryLocation} maxLength={240} onChange={event => setDeliveryLocation(event.target.value)} disabled={busy} placeholder="Store or delivery location" /></label>
         {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
       </div>
       <div className="br-pad-find" role="search">

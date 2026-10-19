@@ -6,7 +6,7 @@ export interface AccountValue {
 }
 export interface Account { id: string; value: AccountValue; revision: string }
 export interface Order {
-  id: string; accountId: string; customerName: string; reference: string
+  id: string; accountId: string; customerName: string; reference: string; deliveryLocation?: string; reorderedFrom?: string
   lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number }[]
   totalCents: number; currency?: 'USD' | 'AUD'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded'

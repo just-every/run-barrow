@@ -5,6 +5,7 @@ import { catalogue,decimal,reserveOrder,pierState,pierOrigin,fullyReserved } fro
 import { fail,text,integer,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order,type Line } from './model'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
+import { reviewReorder } from './reorders'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
  if(!row) fail('NOT_FOUND','Order not found.',404)
@@ -38,38 +39,15 @@ async function recordReservation(env:Bindings,actor:Actor,order:Order,result:any
  return save(env,actor,order,full?'order.reserved':'order.shortfall')
 }
 export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
- if(type==='order.prepare') {
-  const selected=await account(env.DB,actor,text(p.accountId,'Account'))
-  requireActiveAccount(selected)
-  if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
-  const available=await catalogue(env,selected),seen=new Set<string>()
-  const lines:Line[]=p.lines.map((line:any)=>{
-   const sku=text(line.sku,'SKU',100),quantity=integer(line.quantity,'Quantity',1,1000000)
-   if(seen.has(sku)) fail('LINES','Each SKU may appear only once.',400)
-   seen.add(sku)
-   const offer=available.items.find((i:any)=>i.sku===sku)
-   if(!offer) fail('PRICE','This item is not on this customer’s active price list.')
-   if(quantity<offer.minQty) fail('MINIMUM',`${sku} has a minimum quantity of ${offer.minQty}.`)
-   if(BigInt(quantity)*1000000n>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock. Refresh the catalog.`)
-   return {sku,name:offer.name,itemId:offer.itemId,quantity,unitCents:offer.unitCents,minQty:offer.minQty}
-  })
-  const totalCents=lines.reduce((sum,line)=>sum+line.quantity*line.unitCents,0)
-  if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
-  if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')
-  // Preparing from a draft replaces it: the old draft is marked superseded by this one, so it leaves Drafts and is never offered again.
-  const replaced=p.replaces===undefined?undefined:await readOrder(env.DB,actor,text(p.replaces,'Replaced draft',100))
-  if(replaced) {
-   requirePerson(actor)
-   if(replaced.accountId!==selected.id) fail('REPLACES','A draft can only be replaced by an order for the same trade account.',400)
-   if(replaced.status!=='draft') fail('REPLACES','This draft was already submitted or replaced. Refresh your orders.')
-  }
-  const id=await nextNumber(env.DB),revision=crypto.randomUUID()
-  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
-  const retired=crypto.randomUUID()
-  const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded')]:[]
-  await commit(env.DB,actor,[activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared'),...supersede])
-  return order
+ if(type==='order.reorder-preview' || type==='order.reorder') {
+  requirePerson(actor)
+  const context=await reviewReorder(env,actor,p)
+  if(type==='order.reorder-preview') return context.review
+  if(p.acknowledged!==true || p.fingerprint!==context.review.fingerprint) fail('REORDER_CHANGED','Review the current differences and explicitly acknowledge them before preparing a reorder.')
+  if(context.review.blockers.length) fail('REORDER_BLOCKED',context.review.blockers.join(' '))
+  return prepareOrder(env,actor,{accountId:context.selected.id,reference:p.reference,deliveryLocation:context.review.deliveryLocation,lines:context.review.lines.map(line=>({sku:line.sku,quantity:line.quantity}))},context)
  }
+ if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
  if(type==='order.submit') {
@@ -104,4 +82,37 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   return recordReservation(env,actor,order,result)
  }
  fail('NOT_FOUND','Unknown order command.',404)
+}
+
+async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<ReturnType<typeof reviewReorder>>) {
+  const selected=context?.selected ?? await account(env.DB,actor,text(p.accountId,'Account'))
+  requireActiveAccount(selected)
+  if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
+  const available=context?.available ?? await catalogue(env,selected),seen=new Set<string>()
+  const lines:Line[]=p.lines.map((line:any)=>{
+   const sku=text(line.sku,'SKU',100),quantity=integer(line.quantity,'Quantity',1,1000000)
+   if(seen.has(sku)) fail('LINES','Each SKU may appear only once.',400)
+   seen.add(sku)
+   const offer=available.items.find((i:any)=>i.sku===sku)
+   if(!offer) fail('PRICE','This item is not on this customer’s active price list.')
+   if(quantity<offer.minQty) fail('MINIMUM',`${sku} has a minimum quantity of ${offer.minQty}.`)
+   if(BigInt(quantity)*1000000n>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock. Refresh the catalog.`)
+   return {sku,name:offer.name,itemId:offer.itemId,quantity,unitCents:offer.unitCents,minQty:offer.minQty}
+  })
+  const totalCents=lines.reduce((sum,line)=>sum+line.quantity*line.unitCents,0)
+  if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
+  if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')
+  // Preparing from a draft replaces it: the old draft is marked superseded by this one, so it leaves Drafts and is never offered again.
+  const replaced=p.replaces===undefined?undefined:await readOrder(env.DB,actor,text(p.replaces,'Replaced draft',100))
+  if(replaced) {
+   requirePerson(actor)
+   if(replaced.accountId!==selected.id) fail('REPLACES','A draft can only be replaced by an order for the same trade account.',400)
+   if(replaced.status!=='draft') fail('REPLACES','This draft was already submitted or replaced. Refresh your orders.')
+  }
+  const id=await nextNumber(env.DB),revision=crypto.randomUUID()
+  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
+  const retired=crypto.randomUUID()
+  const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded')]:[]
+  await commit(env.DB,actor,[activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared'),...supersede])
+  return order
 }
