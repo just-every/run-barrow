@@ -72,7 +72,7 @@
 .po-done .pill-outline { margin-left: auto; color: var(--br-ink); }
 .po-sam { position: absolute; left: 128px; top: 38px; }
 
-@media (max-width: 1399px) {
+@media (max-width: 1439px) {
   .po-grid { grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); }
   .po-draft { grid-column: 1 / -1; }
 }

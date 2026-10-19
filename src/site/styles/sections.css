@@ -89,7 +89,7 @@
 .ls-fan-sheet .pdf-chip { position: absolute; right: 10px; top: 13px; }
 /* a fanned sheet too narrow for its stockist's tab and the chip side by side drops the chip below the tab */
 .ls-fan-sheet { container-type: inline-size; }
-@container (max-width: 210px) { .ls-fan-sheet .pdf-chip { top: 46px; } }
+@container (max-width: 240px) { .ls-fan-sheet .pdf-chip { top: 46px; } }
 .ls-fan-dress { width: 56%; margin: 0 auto; }
 .ls-fan-prices { display: flex; flex-direction: column; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--br-rule); font-size: 13px; line-height: 1.45; color: #2a3050; }
 .ls-fan figcaption { margin-top: 18px; text-align: center; font-size: 17px; color: #50566e; }
@@ -189,7 +189,7 @@
 .booth-strip .serif-title { font-size: 21px; }
 .booth-strip .muted { font-size: 16px; margin-top: 2px; }
 .booth-total { justify-self: start; }
-@media (max-width: 1399px) {
+@media (max-width: 1439px) {
   .booth-strip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .booth-total { grid-column: 1 / -1; justify-self: end; }
 }
@@ -221,7 +221,7 @@
   .booth-strip .serif-title { font-size: 18px; }
   .booth-strip .muted { font-size: 14.5px; }
 }
-@media (max-width: 379px) {
+@media (max-width: 389px) {
   .booth-strip .serif-title { font-size: 15.5px; }
 }
 
