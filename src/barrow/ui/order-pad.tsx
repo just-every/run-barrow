@@ -5,6 +5,7 @@ import { request, errorMessage } from './api'
 import { AccountPicker, Empty, Notice } from './primitives'
 import { UnitDraft } from './unit-draft'
 import { UnitOrder } from './unit-order'
+import { CartImport, type CartLine } from './cart-import'
 import { StyleCard } from './style-card'
 import { StyleMatrix, cellProblem, type PriceChange } from './style-matrix'
 import { quantityProblem } from '../quantity-rules'
@@ -21,6 +22,10 @@ interface Props {
 export function OrderPad({ account, accounts, supplier, drafts, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
   const [unitOrder,setUnitOrder] = useState(false)
+  const [importing,setImporting] = useState(false)
+  const [unitLines,setUnitLines] = useState<CartLine[] | undefined>()
+  // ORD-007 buyer SKU aliases carried in from an upload, kept as written on each line.
+  const [aliases,setAliases] = useState<Record<string,string>>({})
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -48,7 +53,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   // Opening a draft fills the pad with its quantities; a new order starts empty.
   useEffect(() => {
     setQuantities(Object.fromEntries((draft?.lines ?? []).map(line => [line.sku, String(line.quantity)])))
-    setUnitOrder(false);setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setDetails({ requestedDate: draft?.requestedDate ?? '', cancelAfter: draft?.cancelAfter ?? '', instructions: draft?.instructions ?? '' }); setKept(new Set()); setSelected('')
+    setUnitOrder(false);setUnitLines(undefined);setAliases(Object.fromEntries((draft?.lines ?? []).filter(line => line.buyerSku).map(line => [line.sku, line.buyerSku!])));setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setDetails({ requestedDate: draft?.requestedDate ?? '', cancelAfter: draft?.cancelAfter ?? '', instructions: draft?.instructions ?? '' }); setKept(new Set()); setSelected('')
   }, [draft?.id, account.id])
 
   const items = catalogue?.items ?? []
@@ -80,9 +85,9 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     event.preventDefault()
     if (blocked || unitOrder || unitDraft) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
-    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
+    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
-      if (live.current) { setQuantities({}); setReference(''); setDeliveryLocation('') }
+      if (live.current) { setQuantities({}); setAliases({}); setReference(''); setDeliveryLocation('') }
       onPrepared()
     }
   }
@@ -90,11 +95,18 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     event.preventDefault()
     const wanted = sku.trim().toUpperCase()
     if (!wanted) return
-    const item = items.find(value => value.sku.toUpperCase() === wanted)
+    // ORD-001: a scanner types a Pier barcode into this field like a keyboard; it finds that item's cell.
+    const item = items.find(value => value.sku.toUpperCase() === wanted) ?? items.find(value => value.barcode === sku.trim())
     const row = item ? rows.find(value => Object.values(value.cells).includes(item)) : rows.find(value => value.key.toUpperCase() === wanted || value.key.toUpperCase().endsWith(`-${wanted}`))
     if (!row) { setSkuMessage(`${sku.trim()} is not on this account’s price list.`); return }
     setSkuMessage(''); setSku(''); setSelected(row.key)
     cells.current.get((item ?? row.cells[row.sizes[0]]).sku)?.focus()
+  }
+  // A cart from the preview replaces the pad's quantities; selling-unit lines continue in the selling-unit order.
+  function apply(lines: CartLine[]) {
+    if (lines.some(line => line.unit && line.unit !== items.find(item => item.sku === line.sku)?.unit)) { setUnitLines(lines); setUnitOrder(true); return }
+    setQuantities(Object.fromEntries(lines.map(line => [line.sku, String(line.quantity)])))
+    setAliases(Object.fromEntries(lines.filter(line => line.buyerSku).map(line => [line.sku, line.buyerSku!])))
   }
   function remove(row: StyleRow) {
     setQuantities(current => { const next = { ...current }; for (const size of row.sizes) delete next[row.cells[size].sku]; return next })
@@ -129,7 +141,8 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
       </div>
     </div>
     <div className="br-pad-send">
-      {catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>setUnitOrder(true)}>Order by selling unit</button>}
+      {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
+      {catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>{setUnitLines(undefined);setUnitOrder(true)}}>Order by selling unit</button>}
       <button disabled={busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
       {hint && <p className="br-quiet-text">{hint}</p>}
       {corrections.length > 0 && <div className="br-actions">{corrections.map(({ sku, value }) => <button key={`${sku}-${value}`} type="button" className="br-secondary" disabled={busy} onClick={() => setQuantities(current => ({ ...current, [sku]: value }))}>Use {value} for {sku}</button>)}</div>}
@@ -160,6 +173,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
         {draftTotal !== 0 && <span className="br-hand">{`${draftTotal > 0 ? '+' : '−'}${money(Math.abs(draftTotal))} since draft`}</span>}
       </div>
     </>}
-    {unitOrder && catalogue && catalogue.items.length>0 && <UnitOrder key={draft?.id??"new"} catalogue={catalogue} draft={unitDraft?draft:undefined} run={run} busy={busy} error={commandError} onClose={()=>setUnitOrder(false)} onPrepared={onPrepared} />}
+    {unitOrder && catalogue && catalogue.items.length>0 && <UnitOrder key={unitLines?'import':draft?.id??"new"} catalogue={catalogue} draft={unitDraft?draft:undefined} initial={unitLines} run={run} busy={busy} error={commandError} onClose={()=>setUnitOrder(false)} onPrepared={onPrepared} />}
+    {importing && catalogue && <CartImport accountId={account.id} cart={chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) }))} onApply={apply} onClose={() => setImporting(false)} />}
   </form>
 }

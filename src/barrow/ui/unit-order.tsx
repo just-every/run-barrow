@@ -6,10 +6,10 @@ import { Notice } from './primitives'
 import { convertQuantity, sellingUnits } from '../units'
 import { money, type Catalogue, type RunCommand, type Order } from './types'
 
-export function UnitOrder({catalogue,draft,run,busy,error,onClose,onPrepared}:{catalogue:Catalogue;draft?:Order;run:RunCommand;busy:boolean;error:string;onClose:()=>void;onPrepared:()=>void}) {
+export function UnitOrder({catalogue,draft,initial,run,busy,error,onClose,onPrepared}:{catalogue:Catalogue;draft?:Order;initial?:{sku:string;unit?:string;quantity:number;buyerSku?:string}[];run:RunCommand;busy:boolean;error:string;onClose:()=>void;onPrepared:()=>void}) {
  const first=catalogue.items.find(item=>item.units?.length) ?? catalogue.items[0]
  const nextLine=()=>({sku:first.sku,unit:first.units?.[0]?.code ?? first.unit,quantity:''})
- const [lines,setLines]=useState(draft?.lines.map(line=>({sku:line.sku,unit:line.unit??catalogue.items.find(item=>item.sku===line.sku)?.unit??'',quantity:String(line.quantity)})) ?? [nextLine()]),[reference,setReference]=useState(draft?.reference??''),[location,setLocation]=useState(draft?.deliveryLocation??'')
+ const [lines,setLines]=useState(initial?.map(line=>({sku:line.sku,unit:line.unit??catalogue.items.find(item=>item.sku===line.sku)?.unit??'',quantity:String(line.quantity),...(line.buyerSku?{buyerSku:line.buyerSku}:{})})) ?? draft?.lines.map(line=>({sku:line.sku,unit:line.unit??catalogue.items.find(item=>item.sku===line.sku)?.unit??'',quantity:String(line.quantity)})) ?? [nextLine()]),[reference,setReference]=useState(draft?.reference??''),[location,setLocation]=useState(draft?.deliveryLocation??'')
  const change=(index:number,patch:Partial<typeof lines[number]>)=>setLines(current=>current.map((line,i)=>i===index?{...line,...patch}:line))
  let total=0,problem=''
  const summary=lines.map(line=>{

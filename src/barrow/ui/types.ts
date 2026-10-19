@@ -21,7 +21,7 @@ export interface BarrowState {
   accounts: Account[]; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }
 }
 export interface CatalogueItem {
-  sku: string; itemId: string; name: string; unit: string; available: string; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
+  sku: string; itemId: string; name: string; unit: string; barcode?: string; available: string; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
 }
 export interface Catalogue { currency: 'USD'; account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>

@@ -44,7 +44,7 @@ export async function catalogue(env: Bindings,account: Account) {
   if(!item) return []
   const sellable=state.positions.filter((p:any)=>p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)).reduce((n:bigint,p:any)=>n+decimal(p.available),0n)
   const held=unconfirmed.get(item.id)??0n,available=sellable>held?sellable-held:0n
-  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,available:format(available),...(held?{awaitingRelease:format(held)}:{})}
+  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{})}
   sellingUnits(offer)
   return [offer]
  })

@@ -5,6 +5,7 @@ import { portabilityPolicy } from './portability-policy.mjs'
 import { current,digest,commit,audit } from './access'
 import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
+import { cartCommand } from './cart-import'
 import { documentResponse } from './documents'
 import { orderTimeline } from './timeline'
 import { diagnostics } from './diagnostics'
@@ -74,10 +75,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    // A command carries at most one 1 MB PO document as base64.
    const body=await boundedJson(request,1500000) as any
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
-   if(actor.agent && body.type!=='order.prepare') fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
+   if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    let result
    if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['cart.preview','cart.form'].includes(body.type)) result=await cartCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
    return json({result})
   }
