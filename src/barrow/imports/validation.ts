@@ -1,10 +1,12 @@
+import { quantityMicro, formatMicro, type UnitDefinition } from '../units';
+
 export type AccountValue = {
   name: string;
   email: string;
   pierCustomerId: string;
   termsDays: number;
   minimumCents: number;
-  prices: { sku: string; unitCents: number; minQty: number }[];
+  prices: { sku: string; unitCents: number; minQty: number; units?: UnitDefinition[] }[];
   city?: string;
   state?: string;
   lifecycle?: 'active' | 'on-hold' | 'closed';
@@ -38,6 +40,28 @@ export function nonnegativeInteger(value: unknown, field: string, minimum = 0): 
   return value;
 }
 
+export function validatePriceUnits(input: unknown): UnitDefinition[] {
+  if (!Array.isArray(input) || !input.length) importError('ACCOUNT_UNITS', 'Supply a nonempty array of unit definitions.');
+  const seen = new Set<string>();
+  return input.map((entry: unknown) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) importError('ACCOUNT_UNIT', 'Every unit definition must be an object.');
+    const unit = entry as Record<string, unknown>;
+    const keys = ['code', 'baseQuantity', 'unitCents', 'packContents'];
+    if (Object.keys(unit).some(key => ![...keys, 'quantityKind'].includes(key)) || !keys.every(key => key in unit))
+      importError('ACCOUNT_UNIT', 'Each unit requires exactly code, baseQuantity, unitCents and packContents.');
+    if (unit.quantityKind !== undefined && !['whole', 'measured'].includes(unit.quantityKind as string)) importError('ACCOUNT_UNIT', 'quantityKind must be whole or measured.');
+    const code = boundedText(unit.code, 'unit code', 32);
+    if (!/^[A-Za-z0-9_-]+$/.test(code)) importError('ACCOUNT_UNIT', 'Unit codes use only ASCII letters, digits, dash or underscore.');
+    if (seen.has(code)) importError('ACCOUNT_UNIT_DUPLICATE', 'Unit codes must be unique within each SKU.');
+    seen.add(code);
+    if (typeof unit.baseQuantity !== 'string') importError('ACCOUNT_UNIT', 'baseQuantity must be an exact decimal string.');
+    quantityMicro(unit.baseQuantity);
+    const unitCents = nonnegativeInteger(unit.unitCents, 'unitCents');
+    if (unitCents > 1_000_000_000) importError('ACCOUNT_UNIT', 'Unit price must be at most 1000000000 cents.');
+    return { code, baseQuantity: formatMicro(quantityMicro(unit.baseQuantity)), unitCents, packContents: boundedText(unit.packContents, 'packContents', 160), ...(unit.quantityKind ? {quantityKind:unit.quantityKind as 'whole'|'measured'} : {}) };
+  });
+}
+
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
@@ -57,12 +81,12 @@ export function validateAccountValue(input: unknown): AccountValue {
   const prices = value.prices.map((entry: unknown) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) importError('ACCOUNT_PRICE', 'Every price must be an object.');
     const price = entry as Record<string, unknown>;
-    if (Object.keys(price).length !== 3 || !['sku', 'unitCents', 'minQty'].every(key => key in price))
-      importError('ACCOUNT_PRICE', 'Each price requires exactly sku, unitCents and minQty.');
+    if (Object.keys(price).some(key => !['sku', 'unitCents', 'minQty', 'units'].includes(key)) || !['sku', 'unitCents', 'minQty'].every(key => key in price))
+      importError('ACCOUNT_PRICE', 'Each price requires sku, unitCents and minQty, with optional units.');
     const sku = boundedText(price.sku, 'sku', 100);
     if (seen.has(sku)) importError('ACCOUNT_PRICE_DUPLICATE', 'Each account may have only one price per SKU.');
     seen.add(sku);
-    return { sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty: nonnegativeInteger(price.minQty, 'minQty', 1) };
+    return { sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty: nonnegativeInteger(price.minQty, 'minQty', 1), ...('units' in price ? { units: validatePriceUnits(price.units) } : {}) };
   });
   // The stockist's town, shown beside its name ("Columbia, SC"); both parts are optional.
   const town = Object.fromEntries(['city', 'state', 'channel', 'territory', 'assignedRep'].filter(key => value[key] !== undefined).map(key => [key, boundedText(value[key], key, key === 'state' ? 40 : key === 'assignedRep' ? 160 : 80)]));

@@ -2,6 +2,7 @@ import { demoEffect } from '../modules/demo/index.mjs'
 import { demoPierOrigin } from '../demo-data'
 import { demoPierState, demoReservation } from './demo-pier'
 import { now } from './clock'
+import { sellingUnits } from './units'
 // Decimal representation adapted from Pier model.ts at dcd4c591. Allocation stays in Pier.
 import { fail, type Account, type Line } from './model'
 import type { Bindings } from '../auth.server'
@@ -41,14 +42,23 @@ export async function catalogue(env: Bindings,account: Account) {
   const item=state.items.find((i:any)=>i.sku===price.sku && !i.archived)
   if(!item) return []
   const available=state.positions.filter((p:any)=>p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)).reduce((n:bigint,p:any)=>n+decimal(p.available),0n)
-  return [{...price,itemId:item.id,name:item.name,unit:item.unit,available:format(available)}]
+  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,available:format(available)}
+  sellingUnits(offer)
+  return [offer]
  })
  return {account,items,currency:'USD' as const,observedAt:(await now()).toISOString()}
 }
-export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[]) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:lines.map(l=>({itemId:l.itemId,quantity:String(l.quantity)}))}}).then(value=>value.result), () => demoReservation(orderId, lines))
+/** Several selling units of one SKU become one exact base-unit reservation at Pier. */
+export function reservationLines(lines:Line[]) {
+ const totals=new Map<string,bigint>()
+ for(const line of lines) totals.set(line.itemId,(totals.get(line.itemId)??0n)+decimal(line.baseQuantity ?? String(line.quantity)))
+ return [...totals].map(([itemId,quantity])=>({itemId,quantity:format(quantity)}))
+}
+export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[]) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:reservationLines(lines)}}).then(value=>value.result), () => demoReservation(orderId, reservationLines(lines).map(line=>({...lines.find(original=>original.itemId===line.itemId)!,quantity:Number(line.quantity),baseQuantity:line.quantity}))))
 export function fullyReserved(result: any,lines: Line[]) {
- return Array.isArray(result?.lines) && result.lines.length===lines.length && lines.every(line=>{
+ const expected=reservationLines(lines)
+ return Array.isArray(result?.lines) && result.lines.length===expected.length && expected.every(line=>{
   const matches=result.lines.filter((l:any)=>l.itemId===line.itemId)
-  return matches.length===1 && decimal(matches[0].quantity)===BigInt(line.quantity)*SCALE && decimal(matches[0].reserved)>=BigInt(line.quantity)*SCALE && decimal(matches[0].cancelled)===0n
+  return matches.length===1 && decimal(matches[0].quantity)===decimal(line.quantity) && decimal(matches[0].reserved)>=decimal(line.quantity) && decimal(matches[0].cancelled)===0n
  })
 }

@@ -52,6 +52,11 @@ export const rowCents = (row: StyleRow, quantities: Record<string, string>, pric
 
 /** An order's lines read back as styles: "S2 M4 L4 XL2", units, the prices paid and the style's total. */
 export function orderStyles(lines: Order['lines'], currency: 'USD' | 'AUD') {
+  if(lines.some(line=>line.unit && line.unit!==line.baseUnit)) return lines.map(line=>({
+    key:JSON.stringify([line.sku,line.unit]),name:`${line.name} · ${line.unit??'units'}`,units:line.quantity,
+    cents:line.lineCents??line.quantity*line.unitCents,sizes:`${line.quantity} ${line.unit??'units'} = ${line.baseQuantity??line.quantity} ${line.baseUnit??'base units'}`,
+    prices:`${money(line.unitCents,currency)} / ${line.unit??'unit'}`,
+  }))
   const quantities = Object.fromEntries(lines.map(line => [line.sku, String(line.quantity)]))
   return groupStyles(lines.map(line => ({ ...line, unit: '', available: '' }))).rows.map(row => ({
     key: row.key, name: row.name, units: rowUnits(row, quantities), cents: rowCents(row, quantities),

@@ -1,5 +1,5 @@
 import { supplierZone } from '../model'
-export interface Price { sku: string; unitCents: number; minQty: number }
+export interface Price { sku: string; unitCents: number; minQty: number; units?: import('../units').UnitDefinition[] }
 export interface AccountValue {
   name: string; email: string; pierCustomerId: string; termsDays: number; minimumCents: number; prices: Price[]; city?: string; state?: string
   lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; providerReferences?: Record<string, string>
@@ -7,7 +7,7 @@ export interface AccountValue {
 export interface Account { id: string; value: AccountValue; revision: string }
 export interface Order {
   id: string; accountId: string; customerName: string; reference: string; deliveryLocation?: string; reorderedFrom?: string
-  lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number }[]
+  lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number }[]
   totalCents: number; currency?: 'USD' | 'AUD'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded'
   replaces?: string; supersededBy?: string
@@ -19,7 +19,7 @@ export interface BarrowState {
   accounts: Account[]; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }
 }
 export interface CatalogueItem {
-  sku: string; itemId: string; name: string; unit: string; available: string; unitCents: number; minQty: number
+  sku: string; itemId: string; name: string; unit: string; available: string; unitCents: number; minQty: number; units?: import('../units').UnitDefinition[]
 }
 export interface Catalogue { currency: 'USD'; account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>

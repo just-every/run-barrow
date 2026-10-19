@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { request, errorMessage } from './api'
 import { AccountPicker, Empty, Notice } from './primitives'
+import { UnitDraft } from './unit-draft'
+import { UnitOrder } from './unit-order'
 import { StyleCard } from './style-card'
 import { StyleMatrix, cellProblem, type PriceChange } from './style-matrix'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
@@ -8,12 +10,14 @@ import type { Account, Catalogue, Order, RunCommand } from './types'
 import { byAgent, clock, money, orderNumber, terms, town, when } from './types'
 
 interface Props {
-  account: Account; accounts: Account[]; supplier: boolean; drafts: Order[]; draft?: Order; draftCount: number; run: RunCommand; busy: boolean
+  account: Account; accounts: Account[]; supplier: boolean; drafts: Order[]; draft?: Order; draftCount: number; commandError?: string; run: RunCommand; busy: boolean
   onAccount: (id: string) => void; onDraft: (id: string) => void; onPrepared: () => void
 }
 
 // The rep's order pad: one account, a large style card beside the size matrix, and the running total always in view.
-export function OrderPad({ account, accounts, supplier, drafts, draft, draftCount, run, busy, onAccount, onDraft, onPrepared }: Props) {
+export function OrderPad({ account, accounts, supplier, drafts, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
+  const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
+  const [unitOrder,setUnitOrder] = useState(false)
   const [catalogue, setCatalogue] = useState<Catalogue | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -40,7 +44,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   // Opening a draft fills the pad with its quantities; a new order starts empty.
   useEffect(() => {
     setQuantities(Object.fromEntries((draft?.lines ?? []).map(line => [line.sku, String(line.quantity)])))
-    setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setKept(new Set()); setSelected('')
+    setUnitOrder(false);setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setKept(new Set()); setSelected('')
   }, [draft?.id, account.id])
 
   const items = catalogue?.items ?? []
@@ -66,7 +70,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
 
   async function prepare(event: FormEvent) {
     event.preventDefault()
-    if (blocked) return
+    if (blocked || unitOrder || unitDraft) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
     const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
     if (prepared) {
@@ -88,6 +92,8 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     setQuantities(current => { const next = { ...current }; for (const size of row.sizes) delete next[row.cells[size].sku]; return next })
   }
   const draftTotal = draft && draftCurrency === 'USD' && catalogue && Object.keys(changes).length ? total - draft.totalCents : 0
+
+  if(unitDraft && draft) return <UnitDraft key={draft.id} account={account} draft={draft} catalogue={catalogue} loading={loading} error={error || commandError} busy={busy} run={run} onNew={()=>onDraft('')} onPrepared={onPrepared} />
 
   return <form className="br-pad" onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
     {inactive && <Notice error>This account is {account.value.lifecycle === 'closed' ? 'closed' : 'on hold'}. Contact the supplier before placing a new order. Existing order history remains available in Orders.</Notice>}
@@ -115,7 +121,8 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
       </div>
     </div>
     <div className="br-pad-send">
-      <button disabled={busy || blocked}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
+      {catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>setUnitOrder(true)}>Order by selling unit</button>}
+      <button disabled={busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
       {hint && <p className="br-quiet-text">{hint}</p>}
     </div>
     {loading && <p role="status" className="br-pad-status br-card">Fetching live stock and agreed prices from Pier…</p>}
@@ -139,5 +146,6 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
         {draftTotal !== 0 && <span className="br-hand">{`${draftTotal > 0 ? '+' : '−'}${money(Math.abs(draftTotal))} since draft`}</span>}
       </div>
     </>}
+    {unitOrder && catalogue && catalogue.items.length>0 && <UnitOrder key={draft?.id??"new"} catalogue={catalogue} draft={unitDraft?draft:undefined} run={run} busy={busy} error={commandError} onClose={()=>setUnitOrder(false)} onPrepared={onPrepared} />}
   </form>
 }

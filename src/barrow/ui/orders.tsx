@@ -46,7 +46,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
     {!orders.length && <Empty title="No orders yet">Choose products from a trade account’s catalog to prepare your first order.</Empty>}
     {orders.length > 0 && !shown.length && <p className="br-quiet-text">No orders in this view.</p>}
     {shown.map(order => {
-      const moved = stale(order, accounts), units = order.lines.reduce((sum, line) => sum + line.quantity, 0)
+      const moved = stale(order, accounts), units = order.lines.reduce((sum, line) => sum + Number(line.baseQuantity??line.quantity), 0)
       return <article key={order.id} className={`br-card br-order${moved ? ' br-order-moved' : ''}`}>
         <div className="br-order-main">
           <div className="br-order-meta"><span className="br-order-id">{orderNumber(order.id)}</span><span className={`br-status br-status-${order.status}`}>{order.status}</span>{byAgent(order) && <span className="br-agent-tag"><span className="br-rivet" aria-hidden="true" />Prepared by your agent</span>}{order.replaces && <span className="br-replaces">Replaces {orderNumber(order.replaces)}</span>}</div>
@@ -59,7 +59,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
         </div>
         <div className="br-order-side">
           <p className="br-order-amount">{money(order.totalCents, order.currency ?? 'AUD')}</p>
-          <p className="br-quiet-text">{units} {units === 1 ? 'unit' : 'units'} · {order.termsDays === 0 ? 'Due on receipt' : `${terms(order.termsDays)} payment terms`}</p>
+          <p className="br-quiet-text">{units} {order.lines.some(line=>line.baseQuantity) ? 'base units' : units === 1 ? 'unit' : 'units'} · {order.termsDays === 0 ? 'Due on receipt' : `${terms(order.termsDays)} payment terms`}</p>
           <div className="br-actions br-order-actions">
             {['submitted','reserving','shortfall','approved'].includes(order.status) && <button className="br-secondary" disabled={busy} onClick={() => setReorder(order)}>Reorder selected lines</button>}
             {order.status === 'draft' && moved && <button disabled={busy} onClick={() => onOpen(order)}>Open in order pad</button>}

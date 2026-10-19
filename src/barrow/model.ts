@@ -3,11 +3,11 @@ export class Problem extends Error {
 }
 export function fail(code: string, message: string, status = 409): never { throw new Problem(code, message, status) }
 export type Actor = { id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string }
-export type Price = { sku: string; unitCents: number; minQty: number }
+export type Price = { sku: string; unitCents: number; minQty: number; units?: import('./units').UnitDefinition[] }
 export type { AccountValue } from './imports/validation'
 import type { AccountValue } from './imports/validation'
 export type Account = { id: string; value: AccountValue; revision: string }
-export type Line = { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number }
+export type Line = { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?: string; baseUnit?: string; conversion?: string; baseQuantity?: string; packContents?: string; lineCents?: number }
 export type Order = { id: string; accountId: string; accountRevision: string; customerName: string; reference: string; deliveryLocation?: string; reorderedFrom?: string; reorderReview?: { fingerprint: string; acknowledgedBy: string; acknowledgedAt: string; differences: unknown }; lines: Line[]; totalCents: number; currency?: 'USD'|'AUD'; termsDays: number; status: 'draft'|'submitted'|'reserving'|'shortfall'|'approved'|'superseded'; replaces?: string; supersededBy?: string; preparedBy: string; preparedAt: string; submittedBy?: string; approvedBy?: string; approvedAt?: string; pierCustomerId: string; pierOrigin: string; pierOrderId?: string; pierReference?: string; reservation?: unknown; invoice?: {number: string; issuedAt: string; dueAt: string}; revision: string }
 export const text = (v: unknown, name: string, limit = 160): string => typeof v === 'string' && v.trim() && v.length <= limit ? v.trim() : fail('INPUT', `${name} is required (at most ${limit} characters).`, 400)
 export const integer = (v: unknown, name: string, min = 0, max = 1000000000): number => typeof v === 'number' && Number.isSafeInteger(v) && v >= min && v <= max ? v : fail('INPUT', `${name} must be a whole number between ${min} and ${max}.`, 400)

@@ -40,11 +40,11 @@ test('ORD-003: search six-month history, selectively reorder with current SKU/pr
  assert.equal((await h.command('order.submit',{orderId:draft.id},{as:buyer})).status,'submitted');
  // Current stock and minimums never silently change a historical commitment.
  account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,minimumCents:1000000,prices:account.value.prices.map(p=>({...p,minQty:4}))}});
- const blocked=await preview(selections);assert.ok(blocked.blockers.some(s=>s.includes('current minimum')));assert.ok(blocked.blockers.some(s=>s.includes('order minimum')));
+ const blocked=await preview(selections);assert.ok(blocked.blockingCodes.includes('MINIMUM'));assert.ok(blocked.blockingCodes.includes('ORDER_MINIMUM'));
  assert.equal((await h.command('order.reorder',{orderId:original.id,selections,fingerprint:blocked.fingerprint,acknowledged:true},{as:buyer,status:409})).error.code,'REORDER_BLOCKED');
  await pier.command('order.create',{customerId:products.customer.id,lines:[{itemId:products.item.id,quantity:'97'}]});
  account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,minimumCents:0,prices:[{sku:'OAT-1',unitCents:6500,minQty:1}]}});
- const short=await preview([{sku:'OAT-1'}]);assert.ok(short.blockers.some(s=>s.includes('insufficient current availability')));
+ const short=await preview([{sku:'OAT-1'}]);assert.ok(short.blockingCodes.includes('STOCK'));
  const foreign=await h.signIn('another@example.test');
  assert.equal((await h.api('/api/barrow/orders/history',undefined,{as:foreign})).orders.length,0);
  await h.command('order.reorder-preview',{orderId:original.id,selections},{as:foreign,status:404});

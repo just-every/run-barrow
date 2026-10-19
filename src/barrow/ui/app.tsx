@@ -102,7 +102,7 @@ export function BarrowApp() {
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>}
           {activeTab === pad && (selected
-            ? <OrderPad key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} drafts={drafts} draft={drafts.find(order => order.id === draftId)} draftCount={state.orders.filter(order => order.status === 'draft').length} run={run} busy={busy}
+            ? <OrderPad key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} drafts={drafts} draft={drafts.find(order => order.id === draftId)} draftCount={state.orders.filter(order => order.status === 'draft').length} run={run} busy={busy} commandError={error}
                 onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />
             : <div className="br-page-empty">{supplier
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>

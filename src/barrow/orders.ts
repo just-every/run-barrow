@@ -1,11 +1,12 @@
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
-import { catalogue,decimal,reserveOrder,pierState,pierOrigin,fullyReserved } from './pier'
-import { fail,text,integer,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order,type Line } from './model'
+import { catalogue,reserveOrder,pierState,pierOrigin,fullyReserved } from './pier'
+import { fail,text,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order } from './model'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
 import { reviewReorder } from './reorders'
+import { prepareLines } from './unit-lines'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
  if(!row) fail('NOT_FOUND','Order not found.',404)
@@ -45,7 +46,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(type==='order.reorder-preview') return context.review
   if(p.acknowledged!==true || p.fingerprint!==context.review.fingerprint) fail('REORDER_CHANGED','Review the current differences and explicitly acknowledge them before preparing a reorder.')
   if(context.review.blockers.length) fail('REORDER_BLOCKED',context.review.blockers.join(' '))
-  return prepareOrder(env,actor,{accountId:context.selected.id,reference:p.reference,deliveryLocation:context.review.deliveryLocation,lines:context.review.lines.map(line=>({sku:line.sku,quantity:line.quantity}))},context)
+  return prepareOrder(env,actor,{accountId:context.selected.id,reference:p.reference,deliveryLocation:context.review.deliveryLocation,lines:context.review.lines.map(line=>({sku:line.sku,unit:line.unit,quantity:line.quantity}))},context)
  }
  if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
@@ -88,18 +89,9 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   const selected=context?.selected ?? await account(env.DB,actor,text(p.accountId,'Account'))
   requireActiveAccount(selected)
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
-  const available=context?.available ?? await catalogue(env,selected),seen=new Set<string>()
-  const lines:Line[]=p.lines.map((line:any)=>{
-   const sku=text(line.sku,'SKU',100),quantity=integer(line.quantity,'Quantity',1,1000000)
-   if(seen.has(sku)) fail('LINES','Each SKU may appear only once.',400)
-   seen.add(sku)
-   const offer=available.items.find((i:any)=>i.sku===sku)
-   if(!offer) fail('PRICE','This item is not on this customer’s active price list.')
-   if(quantity<offer.minQty) fail('MINIMUM',`${sku} has a minimum quantity of ${offer.minQty}.`)
-   if(BigInt(quantity)*1000000n>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock. Refresh the catalog.`)
-   return {sku,name:offer.name,itemId:offer.itemId,quantity,unitCents:offer.unitCents,minQty:offer.minQty}
-  })
-  const totalCents=lines.reduce((sum,line)=>sum+line.quantity*line.unitCents,0)
+  const available=context?.available ?? await catalogue(env,selected)
+  const lines=prepareLines(p.lines,available.items)
+  const totalCents=lines.reduce((sum,line)=>sum+line.lineCents!,0)
   if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
   if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')
   // Preparing from a draft replaces it: the old draft is marked superseded by this one, so it leaves Drafts and is never offered again.
