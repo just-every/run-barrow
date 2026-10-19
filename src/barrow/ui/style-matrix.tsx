@@ -18,12 +18,12 @@ export function cellProblem(item: CatalogueItem, value: string | undefined) {
 
 interface Props {
   rows: StyleRow[]; columns: string[]; quantities: Record<string, string>; busy: boolean; selected: string; customer: string
-  changes: Record<string, PriceChange>; kept: Set<string>; writtenAt?: string; cells: RefObject<Map<string, HTMLInputElement>>
+  pricingReasons?:Record<string,string>; lineCents?:Record<string,number>; changes: Record<string, PriceChange>; kept: Set<string>; writtenAt?: string; cells: RefObject<Map<string, HTMLInputElement>>
   onQuantity: (sku: string, value: string) => void; onSelect: (key: string) => void; onKeep: (key: string) => void; onRemove: (row: StyleRow) => void
 }
 
 // Styles down, sizes across, then Units and Line $. A price that moved since the draft is settled inside its own row.
-export function StyleMatrix({ rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, onQuantity, onSelect, onKeep, onRemove }: Props) {
+export function StyleMatrix({ rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
   return <div className="br-matrix-wrap"><table className="br-matrix" style={{ ['--br-sizes' as string]: columns.length }}>
     <caption className="br-sr-only">Order quantities by style and size</caption>
     <thead><tr><th scope="col" className="br-col-style">Style</th><th scope="col" className="br-col-price">Price</th>{columns.map(size => <th scope="col" key={size} className="br-col-size">{size}</th>)}<th scope="col" className="br-col-units">Units</th><th scope="col" className="br-col-line">Line $</th></tr></thead>
@@ -31,14 +31,14 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
       const skus = row.sizes.map(size => row.cells[size].sku)
       const moved = skus.filter(sku => changes[sku] && quantityOf(quantities[sku]) > 0)
       const open = moved.length > 0 && !kept.has(row.key), settled = moved.length > 0 && kept.has(row.key)
-      const was = rowCents(row, quantities, item => changes[item.sku]?.from ?? item.unitCents), now = rowCents(row, quantities)
+      const was = rowCents(row, quantities, item => changes[item.sku]?.from ?? item.unitCents), now = lineCents ? skus.reduce((sum,sku)=>sum+(lineCents[sku]??0),0) : rowCents(row, quantities)
       const prices = [...new Set(moved.map(sku => `${money(changes[sku].from, changes[sku].currency)} → ${money(changes[sku].to)}`))]
       const newPrices = [...new Set(moved.map(sku => money(changes[sku].to)))]
       return <Fragment key={row.key}>
         <tr className={`br-style-row${selected === row.key ? ' br-selected' : ''}${open ? ' br-changed' : ''}`} aria-selected={selected === row.key}>
           <th scope="row" className="br-col-style"><button type="button" className="br-style-pick" onClick={() => onSelect(row.key)} aria-pressed={selected === row.key}>
             <Flat name={row.name} code={row.key} />
-            <span><span className="br-style-name">{row.name}</span>{row.note && <span className="br-style-note">{row.note}</span>}{settled && <span className="br-style-kept">Kept {newPrices.join(', ')} ✓</span>}</span>
+            <span><span className="br-style-name">{row.name}</span>{row.note && <span className="br-style-note">{row.note}</span>}{skus.filter(sku=>pricingReasons?.[sku]).map(sku=><span className="br-style-note" aria-label="Current pricing rules" key={sku}>{sku}: {pricingReasons![sku]}</span>)}{settled && <span className="br-style-kept">Kept {newPrices.join(', ')} ✓</span>}</span>
           </button></th>
           <td className="br-col-price">{money(row.cents)}</td>
           {columns.map(size => {

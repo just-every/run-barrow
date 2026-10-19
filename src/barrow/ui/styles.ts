@@ -58,8 +58,8 @@ export function orderStyles(lines: Order['lines'], currency: 'USD' | 'AUD') {
     prices:`${money(line.unitCents,currency)} / ${line.unit??'unit'}`,
   }))
   const quantities = Object.fromEntries(lines.map(line => [line.sku, String(line.quantity)]))
-  return groupStyles(lines.map(line => ({ ...line, unit: '', available: '' }))).rows.map(row => ({
-    key: row.key, name: row.name, units: rowUnits(row, quantities), cents: rowCents(row, quantities),
+  return groupStyles(lines.map(({pricing,...line}) => ({ ...line, unit: '', available: '' }))).rows.map(row => ({
+    key: row.key, name: row.name, units: rowUnits(row, quantities), cents: lines.filter(line=>Object.values(row.cells).some(cell=>cell.sku===line.sku)).reduce((sum,line)=>sum+(line.lineCents??line.quantity*line.unitCents),0),
     sizes: row.sizes.map(size => size === oneSize ? quantities[row.cells[size].sku] : `${size}${quantities[row.cells[size].sku]}`).join(' '),
     prices: [...new Set(row.sizes.map(size => money(row.cells[size].unitCents, currency)))].join(' / '),
   }))

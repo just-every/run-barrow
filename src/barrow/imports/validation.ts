@@ -1,3 +1,4 @@
+import { validatePricing, type Pricing } from '../pricing';
 import { quantityMicro, formatMicro, type UnitDefinition } from '../units';
 
 export type AccountValue = {
@@ -6,7 +7,7 @@ export type AccountValue = {
   pierCustomerId: string;
   termsDays: number;
   minimumCents: number;
-  prices: { sku: string; unitCents: number; minQty: number; units?: UnitDefinition[] }[];
+  prices: { sku: string; unitCents: number; minQty: number; units?: UnitDefinition[]; pricing?: Pricing }[];
   city?: string;
   state?: string;
   lifecycle?: 'active' | 'on-hold' | 'closed';
@@ -47,7 +48,7 @@ export function validatePriceUnits(input: unknown): UnitDefinition[] {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) importError('ACCOUNT_UNIT', 'Every unit definition must be an object.');
     const unit = entry as Record<string, unknown>;
     const keys = ['code', 'baseQuantity', 'unitCents', 'packContents'];
-    if (Object.keys(unit).some(key => ![...keys, 'quantityKind'].includes(key)) || !keys.every(key => key in unit))
+    if (Object.keys(unit).some(key => ![...keys, 'quantityKind', 'pricing'].includes(key)) || !keys.every(key => key in unit))
       importError('ACCOUNT_UNIT', 'Each unit requires exactly code, baseQuantity, unitCents and packContents.');
     if (unit.quantityKind !== undefined && !['whole', 'measured'].includes(unit.quantityKind as string)) importError('ACCOUNT_UNIT', 'quantityKind must be whole or measured.');
     const code = boundedText(unit.code, 'unit code', 32);
@@ -58,7 +59,7 @@ export function validatePriceUnits(input: unknown): UnitDefinition[] {
     quantityMicro(unit.baseQuantity);
     const unitCents = nonnegativeInteger(unit.unitCents, 'unitCents');
     if (unitCents > 1_000_000_000) importError('ACCOUNT_UNIT', 'Unit price must be at most 1000000000 cents.');
-    return { code, baseQuantity: formatMicro(quantityMicro(unit.baseQuantity)), unitCents, packContents: boundedText(unit.packContents, 'packContents', 160), ...(unit.quantityKind ? {quantityKind:unit.quantityKind as 'whole'|'measured'} : {}) };
+    return { ...('pricing' in unit ? {pricing:validatePricing(unit.pricing)}:{}), code, baseQuantity: formatMicro(quantityMicro(unit.baseQuantity)), unitCents, packContents: boundedText(unit.packContents, 'packContents', 160), ...(unit.quantityKind ? {quantityKind:unit.quantityKind as 'whole'|'measured'} : {}) };
   });
 }
 
@@ -81,12 +82,12 @@ export function validateAccountValue(input: unknown): AccountValue {
   const prices = value.prices.map((entry: unknown) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) importError('ACCOUNT_PRICE', 'Every price must be an object.');
     const price = entry as Record<string, unknown>;
-    if (Object.keys(price).some(key => !['sku', 'unitCents', 'minQty', 'units'].includes(key)) || !['sku', 'unitCents', 'minQty'].every(key => key in price))
+    if (Object.keys(price).some(key => !['sku', 'unitCents', 'minQty', 'units', 'pricing'].includes(key)) || !['sku', 'unitCents', 'minQty'].every(key => key in price))
       importError('ACCOUNT_PRICE', 'Each price requires sku, unitCents and minQty, with optional units.');
     const sku = boundedText(price.sku, 'sku', 100);
     if (seen.has(sku)) importError('ACCOUNT_PRICE_DUPLICATE', 'Each account may have only one price per SKU.');
     seen.add(sku);
-    return { sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty: nonnegativeInteger(price.minQty, 'minQty', 1), ...('units' in price ? { units: validatePriceUnits(price.units) } : {}) };
+    return { ...('pricing' in price ? {pricing:validatePricing(price.pricing)}:{}), sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty: nonnegativeInteger(price.minQty, 'minQty', 1), ...('units' in price ? { units: validatePriceUnits(price.units) } : {}) };
   });
   // The stockist's town, shown beside its name ("Columbia, SC"); both parts are optional.
   const town = Object.fromEntries(['city', 'state', 'channel', 'territory', 'assignedRep'].filter(key => value[key] !== undefined).map(key => [key, boundedText(value[key], key, key === 'state' ? 40 : key === 'assignedRep' ? 160 : 80)]));

@@ -32,10 +32,10 @@ async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImp
     // reopen a held account or erase staff-maintained metadata.
     const preserved = Object.fromEntries(['lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'].filter(key => current?.[key] !== undefined).map(key => [key, current![key]]));
     const supplied = incoming.get(record.sourceId)!;
-    const priorPrices = (current?.prices ?? []) as unknown as {sku:string;units?:unknown}[];
+    const priorPrices = (current?.prices ?? []) as unknown as {sku:string;units?:unknown;pricing?:unknown}[];
     const account = validateAccountValue({ ...preserved, ...supplied, prices:supplied.prices.map(price=>{
-      const units=priorPrices.find(prior=>prior.sku===price.sku)?.units;
-      return {...price,...(units ? {units} : {})};
+      const {units,pricing}=priorPrices.find(prior=>prior.sku===price.sku)??{};
+      return {...price,...(units ? {units} : {}),...(pricing ? {pricing} : {})};
     }) });
     if (native.some(row => row.targetId !== record.sourceId && (row.value as Record<string, Json>).email === account.email))
       importError('ACCOUNT_EMAIL_DUPLICATE', 'That email already belongs to another trade account.');

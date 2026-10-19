@@ -1,3 +1,5 @@
+import { priceLine } from '../pricing'
+import { supplierDate } from '../model'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { request, errorMessage } from './api'
 import { AccountPicker, Empty, Notice } from './primitives'
@@ -59,13 +61,15 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const missing = (draft?.lines ?? []).filter(line => catalogue && !items.some(item => item.sku === line.sku))
   const chosen = items.filter(item => quantityOf(quantities[item.sku]) > 0)
   const units = chosen.reduce((sum, item) => sum + quantityOf(quantities[item.sku]), 0)
-  const total = chosen.reduce((sum, item) => sum + item.unitCents * quantityOf(quantities[item.sku]), 0)
+  let pricingProblem=''
+  const priced = chosen.flatMap(item=>{try{return [{sku:item.sku,...priceLine(quantityOf(quantities[item.sku]),item.unitCents,item.pricing,supplierDate(new Date(catalogue!.observedAt)))}]}catch(error){pricingProblem=error instanceof Error?error.message:'Check quantities.';return []}})
+  const total = priced.reduce((sum,line)=>sum+line.lineCents,0)
   const inactive = (account.value.lifecycle ?? 'active') !== 'active'
   const invalid = items.some(item => cellProblem(item, quantities[item.sku]))
   const minimum = currentAccount.value.minimumCents, belowMinimum = chosen.length > 0 && total < minimum
   const unsettled = rows.filter(row => !kept.has(row.key) && row.sizes.some(size => changes[row.cells[size].sku] && quantityOf(quantities[row.cells[size].sku]) > 0))
-  const blocked = inactive || !catalogue || !chosen.length || invalid || belowMinimum || unsettled.length > 0
-  const hint = !catalogue ? '' : !chosen.length ? 'Enter quantities to prepare a draft.' : invalid ? 'Fix the highlighted quantities.' : belowMinimum ? `Add ${money(minimum - total)} to meet the minimum.` : unsettled.length ? 'Settle the price change first.' : ''
+  const blocked = inactive || !catalogue || !chosen.length || invalid || Boolean(pricingProblem) || belowMinimum || unsettled.length > 0
+  const hint = !catalogue ? '' : !chosen.length ? 'Enter quantities to prepare a draft.' : pricingProblem ? pricingProblem : invalid ? 'Fix the highlighted quantities.' : belowMinimum ? `Add ${money(minimum - total)} to meet the minimum.` : unsettled.length ? 'Settle the price change first.' : ''
   const shown = rows.find(row => row.key === selected) ?? rows.find(row => row.sizes.some(size => quantityOf(quantities[row.cells[size].sku]) > 0)) ?? rows[0]
 
   async function prepare(event: FormEvent) {
@@ -132,7 +136,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
       <StyleCard row={shown} observedAt={catalogue.observedAt} />
       <section className="br-matrix-card br-card" aria-label="Size matrix">
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}
-        <StyleMatrix rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
+        <StyleMatrix rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
           onQuantity={(key, value) => setQuantities(current => ({ ...current, [key]: value }))} onSelect={setSelected} onKeep={key => setKept(current => new Set(current).add(key))} onRemove={remove} />
         <p className="br-quiet-text br-matrix-foot">Preparing creates a draft for review. Submit it from Orders when you are ready.<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
       </section>

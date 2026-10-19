@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Account, RunCommand } from './types'
 import { validatePriceUnits, type AccountValue } from '../imports/validation'
+import { applyPricing, PricingSettings } from './pricing-settings'
 import { Notice } from './primitives'
 import { duplicateCompanies, profileFields } from './account-profile'
 
@@ -54,7 +55,7 @@ export function AccountForm({ account, accounts, run, busy, onClose }: { account
         ...profileFields(data),
         name: String(data.get('name')).trim(), email: String(data.get('email')).trim().toLowerCase(),
         pierCustomerId: String(data.get('pierCustomerId')).trim(), termsDays: Number(data.get('termsDays')),
-        minimumCents: Number(data.get('minimumCents')), prices: parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),
+        minimumCents: Number(data.get('minimumCents')), prices: applyPricing(parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),String(data.get('pricing')??'')),
         ...Object.fromEntries(['city', 'state'].map(key => [key, String(data.get(key)).trim()]).filter(([, value]) => value)),
       }
       if (duplicates.length && !reviewed) throw new Error('Review the possible duplicate companies before saving.')
@@ -81,6 +82,7 @@ export function AccountForm({ account, accounts, run, busy, onClose }: { account
       <label>Minimum order (cents)<input name="minimumCents" type="number" min="0" step="1" required defaultValue={account?.value.minimumCents ?? 0} /></label>
       <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => `${price.sku},${price.unitCents},${price.minQty}`).join('\n')} placeholder="SKU,unitCents,minQty" spellCheck={false} /><small>One row per SKU, with no header. For example: <span className="br-nowrap">JV-2214-S,4800,2</span> means $48.00 each, minimum quantity 2. Only agreed SKUs appear in this account’s catalog.</small></label>
       <label className="br-full">Selling units (optional JSON)<textarea name="units" rows={8} defaultValue={configuredUnits(account?.value.prices ?? [])} placeholder={'[{"sku":"JV-2214-S","units":[{"code":"case","baseQuantity":"12","unitCents":48000,"packContents":"12 each per case"}]}]'} spellCheck={false} /><small>List each SKU with its selling units. Each unit needs a unique code, an exact baseQuantity conversion to Pier stock units, a unitCents price and a packContents description. Base quantities must be positive, at most 1000000 and have at most six decimal places. Use quantityKind "measured" for decimal quantities; case and pallet stay whole. Unit codes must differ from the stock unit. Leave blank to use the agreed prices without configured units.</small></label>
+      <PricingSettings prices={account?.value.prices??[]} />
     </fieldset>
     {duplicates.length > 0 && <Notice><strong>Review possible duplicate companies</strong><ul>{duplicates.map(candidate => <li key={candidate.id}>{candidate.value.name} · {candidate.id}</li>)}</ul><p>Keep their accounts, sign-in emails and history separate.</p><button type="button" className="br-secondary" disabled={busy} aria-pressed={reviewed} onClick={() => setReviewed(current => !current)}>{reviewed ? 'Separate companies confirmed' : 'Confirm separate companies'}</button></Notice>}
     <div className="br-actions"><button disabled={busy || (duplicates.length > 0 && !reviewed)}>{busy ? 'Saving…' : 'Save account'}</button></div>

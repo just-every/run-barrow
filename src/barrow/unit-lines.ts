@@ -1,9 +1,10 @@
+import { priceLine, type Pricing } from './pricing'
 import { fail, integer, text, type Line } from './model'
 import { decimal } from './pier'
-import { convertQuantity, priceQuantity, quantityMicro, sellingUnits, type UnitDefinition } from './units'
+import { convertQuantity, quantityMicro, sellingUnits, type UnitDefinition } from './units'
 
-type Offer = {sku:string;itemId:string;name:string;unit:string;unitCents:number;minQty:number;available:string;units?:UnitDefinition[]}
-export function prepareLines(input:any[],offers:Offer[]):Line[] {
+type Offer = {sku:string;itemId:string;name:string;unit:string;unitCents:number;minQty:number;available:string;units?:UnitDefinition[];pricing?:Pricing}
+export function prepareLines(input:any[],offers:Offer[],date?:string):Line[] {
  const seen=new Set<string>(),totals=new Map<string,bigint>()
  const lines:Line[]=input.map(line=>{
   const sku=text(line?.sku,'SKU',100),offer=offers.find(offer=>offer.sku===sku)
@@ -18,9 +19,8 @@ export function prepareLines(input:any[],offers:Offer[]):Line[] {
   const baseQuantity=convertQuantity(line.quantity,unit.baseQuantity)
   const base=decimal(baseQuantity)
   totals.set(sku,(totals.get(sku)??0n)+base)
-  const lineCents=line.unit===undefined || code===offer.unit ? quantity*unit.unitCents : priceQuantity(line.quantity,unit.unitCents)
-  if(!Number.isSafeInteger(lineCents)) fail('MONEY','Line total is outside the supported exact-cent range.',400)
-  return {sku,name:offer.name,itemId:offer.itemId,quantity,unitCents:unit.unitCents,minQty:offer.minQty,unit:code,baseUnit:offer.unit,conversion:unit.baseQuantity,baseQuantity,packContents:unit.packContents,lineCents}
+  const priced=priceLine(line.quantity,unit.unitCents,unit.pricing,date)
+  return {sku,name:offer.name,itemId:offer.itemId,quantity,...priced,minQty:offer.minQty,unit:code,baseUnit:offer.unit,conversion:unit.baseQuantity,baseQuantity,packContents:unit.packContents}
  })
  for(const [sku,quantity] of totals) {
   const offer=offers.find(offer=>offer.sku===sku)!

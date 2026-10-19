@@ -2,10 +2,12 @@ import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
 import { catalogue,reserveOrder,pierState,pierOrigin,fullyReserved } from './pier'
-import { fail,text,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order } from './model'
+import { fail,text,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order,type Account } from './model'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
 import { reviewReorder } from './reorders'
+import { priceLine } from './pricing'
+import { sellingUnits } from './units'
 import { prepareLines } from './unit-lines'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
@@ -39,6 +41,17 @@ async function recordReservation(env:Bindings,actor:Actor,order:Order,result:any
  }
  return save(env,actor,order,full?'order.reserved':'order.shortfall')
 }
+async function assertCurrentPricing(env:Bindings,selected:Account,order:Order) {
+ if(!order.lines.some(line=>line.pricing))return
+ const offers=await catalogue(env,selected),date=supplierDate(await now())
+ for(const line of order.lines){
+  if(!line.pricing)continue
+  const offer=offers.items.find(item=>item.sku===line.sku),unit=offer?sellingUnits(offer).find(unit=>unit.code===line.unit):undefined
+  if(!unit)fail('PRICE_CHANGED','A selling unit changed. Prepare a new draft for review.')
+  const current=priceLine(line.quantity,unit.unitCents,unit.pricing,date)
+  if(current.lineCents!==line.lineCents || current.pricing?.reason!==line.pricing.reason || JSON.stringify(current.pricing?.segments)!==JSON.stringify(line.pricing.segments) || current.pricing?.discountBps!==line.pricing.discountBps) fail('PRICE_CHANGED','The effective pricing rule changed. Prepare a new draft for review.')
+ }
+}
 export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.reorder-preview' || type==='order.reorder') {
   requirePerson(actor)
@@ -56,6 +69,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const selected=await account(env.DB,actor,order.accountId)
   requireActiveAccount(selected)
   if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The price list or terms changed. Prepare a new draft for review.')
+  await assertCurrentPricing(env,selected,order)
   return save(env,actor,{...order,status:'submitted',submittedBy:actor.id},'order.submitted',[activeAccountGuard(env.DB,selected)])
  }
  requireSupplier(actor)
@@ -66,6 +80,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    const selected=await account(env.DB,actor,order.accountId)
    requireActiveAccount(selected)
    if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The account changed. Prepare and submit a new draft before approval.')
+   await assertCurrentPricing(env,selected,order)
    order=await save(env,actor,{...order,status:'reserving',approvedBy:actor.id,approvedAt:(await now()).toISOString()},'order.approved',[activeAccountGuard(env.DB,selected)])
   }
   if(order.status!=='reserving') fail('APPROVAL','The customer must review and submit this draft first.')
@@ -90,7 +105,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   requireActiveAccount(selected)
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
   const available=context?.available ?? await catalogue(env,selected)
-  const lines=prepareLines(p.lines,available.items)
+  const lines=prepareLines(p.lines,available.items,supplierDate(await now()))
   const totalCents=lines.reduce((sum,line)=>sum+line.lineCents!,0)
   if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
   if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')

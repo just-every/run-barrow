@@ -1,7 +1,9 @@
+import { priceLine } from '../pricing'
+import { supplierDate } from '../model'
 import { useState } from 'react'
 import { Dialog } from './dialog'
 import { Notice } from './primitives'
-import { convertQuantity, priceQuantity, sellingUnits } from '../units'
+import { convertQuantity, sellingUnits } from '../units'
 import { money, type Catalogue, type RunCommand, type Order } from './types'
 
 export function UnitOrder({catalogue,draft,run,busy,error,onClose,onPrepared}:{catalogue:Catalogue;draft?:Order;run:RunCommand;busy:boolean;error:string;onClose:()=>void;onPrepared:()=>void}) {
@@ -15,9 +17,9 @@ export function UnitOrder({catalogue,draft,run,busy,error,onClose,onPrepared}:{c
   try {
    if(!item||!unit) throw Error(`${line.sku}: choose an available SKU and selling unit.`)
    if((unit.quantityKind!=='measured' || ['case','pallet'].includes(unit.code.toLowerCase())) && !Number.isSafeInteger(Number(line.quantity))) throw Error('Enter whole selling units.')
-   const base=convertQuantity(line.quantity,unit.baseQuantity),cents=line.unit===item.unit ? Number(line.quantity)*unit.unitCents : priceQuantity(line.quantity,unit.unitCents)
+   const base=convertQuantity(line.quantity,unit.baseQuantity),priced=priceLine(line.quantity,unit.unitCents,unit.pricing,supplierDate(new Date(catalogue.observedAt))),cents=priced.lineCents
    total+=cents
-   return `${line.quantity} ${unit.code} = ${base} ${item.unit} · ${money(cents)}`
+   return `${line.quantity} ${unit.code} = ${base} ${item.unit} · ${money(cents)}${priced.pricing ? ` · ${priced.pricing.reason}` : ''}`
   } catch(error) {problem=error instanceof Error?error.message:'Check quantities.';return 'Enter a valid quantity.'}
  })
  async function prepare() {

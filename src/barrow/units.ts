@@ -1,6 +1,7 @@
+import type { Pricing } from './pricing'
 import { fail } from './model'
 
-export type UnitDefinition = { code: string; baseQuantity: string; unitCents: number; packContents: string; quantityKind?: 'whole'|'measured' }
+export type UnitDefinition = { code: string; baseQuantity: string; unitCents: number; packContents: string; quantityKind?: 'whole'|'measured'; pricing?: Pricing }
 
 const scale = 1_000_000n
 
@@ -40,10 +41,10 @@ export function priceQuantity(quantity: number | string, unitCents: number): num
   return Number((quantityMicro(quantity) * BigInt(unitCents) + scale / 2n) / scale)
 }
 
-export type UnitOffer = {sku:string;unit:string;unitCents:number;units?:UnitDefinition[]}
+export type UnitOffer = {sku:string;unit:string;unitCents:number;units?:UnitDefinition[];pricing?:Pricing}
 /** The legacy price remains the price for one base stock unit. Explicit units add selectable price bases. */
 export function sellingUnits(offer:UnitOffer):UnitDefinition[] {
  const configured=offer.units ?? []
  if(configured.some(unit=>unit.code===offer.unit)) fail('UNIT_CONFIG',`${offer.sku}: use a distinct selling-unit code rather than redefining the stock unit ${offer.unit}.`)
- return [{code:offer.unit,baseQuantity:'1',unitCents:offer.unitCents,packContents:`1 ${offer.unit}`},...configured]
+ return [{code:offer.unit,baseQuantity:'1',unitCents:offer.unitCents,packContents:`1 ${offer.unit}`,...(offer.pricing?{pricing:offer.pricing}:{})},...configured]
 }

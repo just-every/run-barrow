@@ -49,6 +49,7 @@ export function Reorder({ order, run, busy, onClose }: {order:Order;run:RunComma
     <p>Conversion: {line.originalConversion} → {line.conversion??'Unknown'} base units per selling unit. Base quantity: {line.originalBaseQuantity} → {line.baseQuantity??'Unknown'} {line.baseUnit??'base units'}.</p>
     <p>Unit price: {money(line.originalUnitCents,review.originalCurrency)} → {line.unitCents === null ? 'Unavailable' : money(line.unitCents)}</p>
     <p>Minimum base units: {line.originalMinQty} → {line.minQty ?? 'Unknown'} · Available now: {line.available ?? 'Unknown'}</p>
+    {line.pricing && <p>{line.pricing.reason} · {money(line.pricing.lineCents)}</p>}
     <p>{line.differences.join('; ') || 'SKU, price and minimum unchanged.'}</p>
    </div>)}
    <p>Payment terms: {terms(review.originalTermsDays)} → {terms(review.termsDays)}. Current order minimum: {money(review.minimumCents)}.</p>

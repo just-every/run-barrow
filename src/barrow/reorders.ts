@@ -1,9 +1,11 @@
 import type { Bindings } from '../auth.server'
+import { priceLine } from './pricing'
+import { now } from './clock'
 import { account, accounts } from './accounts'
 import { readOrder } from './orders'
 import { catalogue } from './pier'
 import { prepareLines } from './unit-lines'
-import { convertQuantity, priceQuantity, sellingUnits } from './units'
+import { convertQuantity, sellingUnits } from './units'
 import { digest } from './access'
 import { fail, text, supplierDate, type Actor, type Order } from './model'
 import { requireActiveAccount } from './account-profile'
@@ -13,7 +15,7 @@ export type ReorderReview = {
  orderId: string; accountId: string; sourceRevision: string; accountRevision: string
  selections: ReorderSelection[]; deliveryLocation: string; currency: 'USD'; originalCurrency: 'USD'|'AUD'
  termsDays: number; originalTermsDays: number; minimumCents: number; totalCents: number
- lines: { originalSku: string; originalUnit?: string; originalBaseQuantity:string; originalConversion:string; baseUnit?:string; unit?: string; baseQuantity?: string; conversion?: string; sku: string; quantity: number; originalUnitCents: number; originalLineCents:number; lineCents:number|null; unitCents: number|null; originalMinQty: number; minQty: number|null; available: string|null; differences: string[] }[]
+ lines: { originalSku: string; originalUnit?: string; originalBaseQuantity:string; originalConversion:string; baseUnit?:string; unit?: string; baseQuantity?: string; conversion?: string; sku: string; quantity: number; originalUnitCents: number; originalLineCents:number; lineCents:number|null; unitCents: number|null; originalMinQty: number; minQty: number|null; available: string|null; differences: string[]; pricing?:import('./pricing').PricingSnapshot }[]
  blockers: string[]; blockingCodes:string[]; fingerprint: string
 }
 
@@ -52,6 +54,7 @@ export async function reviewReorder(env: Bindings, actor: Actor, payload: any) {
   return {sku,...(before.unit ? {unit:before.unit} : {}),...(replacementSku && replacementSku!==sku ? {replacementSku} : {}),...(replacementUnit ? {replacementUnit} : {})}
  }).sort((a:ReorderSelection,b:ReorderSelection)=>JSON.stringify(a).localeCompare(JSON.stringify(b)))
  const blockers:string[] = [],blockingCodes:string[] = []
+ const date=supplierDate(await now())
  const lines = selections.map(selection => {
   const before=original.lines.find(line=>line.sku===selection.sku && line.unit===selection.unit)!, sku=selection.replacementSku??selection.sku
   const offer=available.items.find(item=>item.sku===sku)
@@ -65,8 +68,10 @@ export async function reviewReorder(env: Bindings, actor: Actor, payload: any) {
   if(offer && offer.minQty!==before.minQty) differences.push('Minimum quantity changed')
   if(unit && (code!==before.unit || unit.baseQuantity!==(before.conversion??'1'))) differences.push('Selling unit or conversion changed')
   const baseQuantity=unit ? convertQuantity(before.quantity,unit.baseQuantity) : undefined
-  const lineCents=unit ? (code===offer!.unit ? before.quantity*unit.unitCents : priceQuantity(before.quantity,unit.unitCents)) : null
-  return {originalSku:before.sku,originalUnit:before.unit,originalBaseQuantity:before.baseQuantity??String(before.quantity),originalConversion:before.conversion??'1',baseUnit:offer?.unit,unit:code,baseQuantity,conversion:unit?.baseQuantity,sku,quantity:before.quantity,originalUnitCents:before.unitCents,originalLineCents:before.lineCents??before.quantity*before.unitCents,lineCents,unitCents:unit?.unitCents??null,originalMinQty:before.minQty,minQty:offer?.minQty??null,available:offer?.available??null,differences}
+  const priced=unit ? priceLine(before.quantity,unit.unitCents,unit.pricing,date) : undefined
+  const lineCents=priced?.lineCents??null
+  if(priced && (lineCents!==(before.lineCents??before.quantity*before.unitCents)||JSON.stringify(priced.pricing)!==JSON.stringify(before.pricing))) differences.push('Pricing rule or line total changed')
+  return {originalSku:before.sku,originalUnit:before.unit,originalBaseQuantity:before.baseQuantity??String(before.quantity),originalConversion:before.conversion??'1',baseUnit:offer?.unit,unit:code,baseQuantity,conversion:unit?.baseQuantity,sku,quantity:before.quantity,originalUnitCents:before.unitCents,originalLineCents:before.lineCents??before.quantity*before.unitCents,lineCents,unitCents:priced?.unitCents??null,pricing:priced?.pricing,originalMinQty:before.minQty,minQty:offer?.minQty??null,available:offer?.available??null,differences}
  })
  if(!blockers.length) {
   try {prepareLines(lines.map(line=>({sku:line.sku,unit:line.unit,quantity:line.quantity})),available.items)}
