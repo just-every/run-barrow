@@ -1,9 +1,11 @@
 import { priceLine, type Pricing } from './pricing'
 import { fail, integer, text, type Line } from './model'
 import { decimal } from './pier'
+const format=(value:bigint)=>`${value/1000000n}${value%1000000n?'.'+(value%1000000n).toString().padStart(6,'0').replace(/0+$/,''):''}`
 import { convertQuantity, quantityMicro, sellingUnits, type UnitDefinition } from './units'
+import { quantityProblem, quantityMessage } from './quantity-rules'
 
-type Offer = {sku:string;itemId:string;name:string;unit:string;unitCents:number;minQty:number;available:string;units?:UnitDefinition[];pricing?:Pricing}
+type Offer = {sku:string;itemId:string;name:string;unit:string;unitCents:number;minQty:number;casePack?:number;increment?:number;available:string;units?:UnitDefinition[];pricing?:Pricing}
 export function prepareLines(input:any[],offers:Offer[],date?:string):Line[] {
  const seen=new Set<string>(),totals=new Map<string,bigint>()
  const lines:Line[]=input.map(line=>{
@@ -24,7 +26,9 @@ export function prepareLines(input:any[],offers:Offer[],date?:string):Line[] {
  })
  for(const [sku,quantity] of totals) {
   const offer=offers.find(offer=>offer.sku===sku)!
-  if(quantity<BigInt(offer.minQty)*1000000n) fail('MINIMUM',`${sku} has a minimum quantity of ${offer.minQty} ${offer.unit}.`)
+  // PRI-003: the explanation names the nearest valid quantities; the buyer must choose one, nothing is corrected here.
+  const problem=quantityProblem(format(quantity),offer,offer.unit)
+  if(problem) fail(quantity<BigInt(offer.minQty)*1000000n?'MINIMUM':'QUANTITY',quantityMessage(sku,format(quantity),problem,offer.unit))
   if(quantity>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock across its selected units. Refresh the catalog.`)
  }
  return lines

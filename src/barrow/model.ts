@@ -3,7 +3,7 @@ export class Problem extends Error {
 }
 export function fail(code: string, message: string, status = 409): never { throw new Problem(code, message, status) }
 export type Actor = { id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string }
-export type Price = { sku: string; unitCents: number; minQty: number; units?: import('./units').UnitDefinition[]; pricing?: import('./pricing').Pricing }
+export type Price = { sku: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('./units').UnitDefinition[]; pricing?: import('./pricing').Pricing }
 export type { AccountValue } from './imports/validation'
 import type { AccountValue } from './imports/validation'
 export type Account = { id: string; value: AccountValue; revision: string }

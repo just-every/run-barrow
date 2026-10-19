@@ -7,6 +7,7 @@ import { UnitDraft } from './unit-draft'
 import { UnitOrder } from './unit-order'
 import { StyleCard } from './style-card'
 import { StyleMatrix, cellProblem, type PriceChange } from './style-matrix'
+import { quantityProblem } from '../quantity-rules'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
 import type { Account, Catalogue, Order, RunCommand } from './types'
 import { byAgent, clock, money, orderNumber, terms, town, when } from './types'
@@ -67,6 +68,8 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const total = priced.reduce((sum,line)=>sum+line.lineCents,0)
   const inactive = (account.value.lifecycle ?? 'active') !== 'active'
   const invalid = items.some(item => cellProblem(item, quantities[item.sku]))
+  // PRI-003: suggested quantities are offered, never applied; the buyer picks one.
+  const corrections = items.flatMap(item => { const quantity = quantityOf(quantities[item.sku]); const problem = quantity > 0 && Number.isSafeInteger(quantity) ? quantityProblem(String(quantity), item) : null; return problem ? [problem.below, problem.above].filter((value): value is string => Boolean(value)).map(value => ({ sku: item.sku, value })) : [] })
   const minimum = currentAccount.value.minimumCents, belowMinimum = chosen.length > 0 && total < minimum
   const unsettled = rows.filter(row => !kept.has(row.key) && row.sizes.some(size => changes[row.cells[size].sku] && quantityOf(quantities[row.cells[size].sku]) > 0))
   const blocked = inactive || !catalogue || !chosen.length || invalid || Boolean(pricingProblem) || belowMinimum || unsettled.length > 0
@@ -129,6 +132,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
       {catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>setUnitOrder(true)}>Order by selling unit</button>}
       <button disabled={busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
       {hint && <p className="br-quiet-text">{hint}</p>}
+      {corrections.length > 0 && <div className="br-actions">{corrections.map(({ sku, value }) => <button key={`${sku}-${value}`} type="button" className="br-secondary" disabled={busy} onClick={() => setQuantities(current => ({ ...current, [sku]: value }))}>Use {value} for {sku}</button>)}</div>}
     </div>
     {loading && <p role="status" className="br-pad-status br-card">Fetching live stock and agreed prices from Pier…</p>}
     {error && <div className="br-pad-status"><Notice error><strong>Catalog unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p><div><button type="button" className="br-secondary" onClick={() => setRefresh(value => value + 1)} disabled={busy}>Refresh stock</button></div></Notice></div>}

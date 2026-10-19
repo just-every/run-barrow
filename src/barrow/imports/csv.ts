@@ -5,10 +5,13 @@ import { boundedText, importError, stableId, validateAccountValue, type AccountV
 export const accountCSVHeaders = ['accountId', 'name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'sku', 'unitCents', 'minQty'] as const;
 /** The same columns followed by the stockist's town; either header row is accepted. */
 export const accountCSVTownHeaders = [...accountCSVHeaders, 'city', 'state'] as const;
+/** PRI-003: optional whole-unit case pack and increment for each price row. */
+export const accountCSVRuleHeaders = [...accountCSVTownHeaders, 'casePack', 'increment'] as const;
 function headerColumns(row: string[] | undefined): number {
   const header = row?.join(',');
   if (header === accountCSVHeaders.join(',')) return accountCSVHeaders.length;
   if (header === accountCSVTownHeaders.join(',')) return accountCSVTownHeaders.length;
+  if (header === accountCSVRuleHeaders.join(',')) return accountCSVRuleHeaders.length;
   return 0;
 }
 export const defaultAccountNamespace = 'barrow-trade-accounts';
@@ -62,12 +65,12 @@ export function accountImportSource(csv: string, namespace = defaultAccountNames
   if (bytes.length > 256 * 1024 || bytes.toString('utf8') !== csv) importError('CSV_SIZE', 'CSV must be valid UTF-8 text of at most 256 KiB.');
   const rows = parseCSV(csv);
   const columns = headerColumns(rows.shift());
-  if (!columns) importError('CSV_HEADERS', `Use these exact headers: ${accountCSVHeaders.join(',')} (optionally followed by ,city,state)`);
+  if (!columns) importError('CSV_HEADERS', `Use these exact headers: ${accountCSVHeaders.join(',')} (optionally followed by ,city,state or ,city,state,casePack,increment)`);
   if (!rows.length) importError('CSV_EMPTY', 'Supply at least one account.');
   const accounts = new Map<string, { value: AccountValue; row: number }>();
   for (const [index, cells] of rows.entries()) {
     if (cells.length !== columns) importError('CSV_COLUMNS', `CSV row ${index + 2} must have ${columns} columns.`);
-    const [sourceId, name, email, pierCustomerId, terms, minimum, sku, unit, quantity, city, state] = cells;
+    const [sourceId, name, email, pierCustomerId, terms, minimum, sku, unit, quantity, city, state, casePack, increment] = cells;
     const id = stableId(sourceId);
     const value = validateAccountValue({ name, email, pierCustomerId, termsDays: integerCell(terms, 'termsDays'), minimumCents: integerCell(minimum, 'minimumCents'), prices: [], ...(city ? { city } : {}), ...(state ? { state } : {}) });
     const prior = accounts.get(id);
@@ -76,7 +79,8 @@ export function accountImportSource(csv: string, namespace = defaultAccountNames
     const current = accounts.get(id)!;
     if (sku || unit || quantity) {
       if (!sku || !unit || !quantity) importError('CSV_PRICE', `CSV row ${index + 2} requires all three price fields.`);
-      current.value.prices.push({ sku: boundedText(sku, 'sku', 100), unitCents: integerCell(unit, 'unitCents'), minQty: integerCell(quantity, 'minQty') });
+      current.value.prices.push({ sku: boundedText(sku, 'sku', 100), unitCents: integerCell(unit, 'unitCents'), minQty: integerCell(quantity, 'minQty'), ...(casePack ? { casePack: integerCell(casePack, 'casePack') } : {}), ...(increment ? { increment: integerCell(increment, 'increment') } : {}) });
+    } else if (casePack || increment) { importError('CSV_PRICE', `CSV row ${index + 2} sets a case pack or increment without a price.`);
     } else if (prior) importError('CSV_ACCOUNT_DUPLICATE', 'Repeated account rows must each provide a distinct SKU.');
   }
   if (accounts.size > 200) importError('CSV_ACCOUNTS', 'Supply at most 200 accounts per import.');

@@ -8,12 +8,12 @@ import { duplicateCompanies, profileFields } from './account-profile'
 function parsePrices(text: string, unitText: string): AccountValue['prices'] {
   const prices: AccountValue['prices'] = text.split(/\r?\n/).filter(line => line.trim()).map((line, index) => {
     const values = line.split(',').map(value => value.trim())
-    const [sku, cents, quantity] = values
+    const [sku, cents, quantity, pack = '', step = ''] = values
     const unitCents = Number(cents), minQty = Number(quantity)
-    if (values.length !== 3 || !sku || !/^\d+$/.test(cents) || !Number.isSafeInteger(unitCents) || !/^\d+$/.test(quantity) || !Number.isSafeInteger(minQty) || minQty < 1) {
-      throw new Error(`Price row ${index + 1}: enter SKU, non-negative unit price in cents, and a minimum quantity of at least 1.`)
+    if (values.length < 3 || values.length > 5 || !sku || !/^\d+$/.test(cents) || !Number.isSafeInteger(unitCents) || !/^\d+$/.test(quantity) || !Number.isSafeInteger(minQty) || minQty < 1 || [pack, step].some(value => value && !/^[1-9]\d{0,4}$/.test(value))) {
+      throw new Error(`Price row ${index + 1}: enter SKU, non-negative unit price in cents, a minimum quantity of at least 1, and optionally a case pack and an increment of at least 1.`)
     }
-    return { sku, unitCents, minQty }
+    return { sku, unitCents, minQty, ...(pack ? { casePack: Number(pack) } : {}), ...(step ? { increment: Number(step) } : {}) }
   })
   if (new Set(prices.map(price => price.sku)).size !== prices.length) throw new Error('Each SKU can have one agreed price. Remove duplicate rows.')
   if (unitText.trim()) {
@@ -80,7 +80,7 @@ export function AccountForm({ account, accounts, run, busy, onClose }: { account
       <label>Provider references<textarea name="providerReferences" rows={3} defaultValue={Object.entries(account?.value.providerReferences ?? {}).map(([provider, reference]) => `${provider}=${reference}`).join('\n')} /><small>One provider=reference per line. Pier uses the separate Pier customer ID.</small></label>
       <label>Payment terms (days)<input name="termsDays" type="number" min="0" max="365" step="1" required defaultValue={account?.value.termsDays ?? 30} /></label>
       <label>Minimum order (cents)<input name="minimumCents" type="number" min="0" step="1" required defaultValue={account?.value.minimumCents ?? 0} /></label>
-      <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => `${price.sku},${price.unitCents},${price.minQty}`).join('\n')} placeholder="SKU,unitCents,minQty" spellCheck={false} /><small>One row per SKU, with no header. For example: <span className="br-nowrap">JV-2214-S,4800,2</span> means $48.00 each, minimum quantity 2. Only agreed SKUs appear in this account’s catalog.</small></label>
+      <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => [price.sku, price.unitCents, price.minQty, ...(price.casePack || price.increment ? [price.casePack ?? '', price.increment ?? ''] : [])].join(',').replace(/,$/, '')).join('\n')} placeholder="SKU,unitCents,minQty[,casePack[,increment]]" spellCheck={false} /><small>One row per SKU, with no header. For example: <span className="br-nowrap">JV-2214-S,4800,2</span> means $48.00 each, minimum quantity 2. Add a case pack and an increment in base units to require whole cases and steps above the minimum: <span className="br-nowrap">JV-2214-S,4800,12,6,12</span> allows 12, 24, 36… Only agreed SKUs appear in this account’s catalog.</small></label>
       <label className="br-full">Selling units (optional JSON)<textarea name="units" rows={8} defaultValue={configuredUnits(account?.value.prices ?? [])} placeholder={'[{"sku":"JV-2214-S","units":[{"code":"case","baseQuantity":"12","unitCents":48000,"packContents":"12 each per case"}]}]'} spellCheck={false} /><small>List each SKU with its selling units. Each unit needs a unique code, an exact baseQuantity conversion to Pier stock units, a unitCents price and a packContents description. Base quantities must be positive, at most 1000000 and have at most six decimal places. Use quantityKind "measured" for decimal quantities; case and pallet stay whole. Unit codes must differ from the stock unit. Leave blank to use the agreed prices without configured units.</small></label>
       <label className="br-full">Reason for change (optional)<input name="reason" maxLength={240} /><small>Recorded in the supplier audit with this revision. An override retains its approved reason when this field is empty.</small></label>
       <PricingSettings prices={account?.value.prices??[]} />

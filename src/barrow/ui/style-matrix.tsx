@@ -2,6 +2,7 @@ import { Fragment, type RefObject } from 'react'
 import { Flat } from './flat'
 import { quantityOf, rowCents, rowUnits, type StyleRow } from './styles'
 import type { CatalogueItem } from './types'
+import { quantityProblem } from '../quantity-rules'
 import { money, when } from './types'
 
 /** A draft line whose agreed price moved after the draft was written. */
@@ -11,7 +12,8 @@ export function cellProblem(item: CatalogueItem, value: string | undefined) {
   if (!value) return ''
   const quantity = Number(value)
   if (!Number.isSafeInteger(quantity) || quantity < 0) return 'Enter a whole number.'
-  if (quantity > 0 && quantity < item.minQty) return `Minimum ${item.minQty}.`
+  const rule = quantity > 0 ? quantityProblem(String(quantity), item) : null
+  if (rule) return `${rule.reason[0].toUpperCase()}${rule.reason.slice(1)}: choose ${[rule.below, rule.above].filter(Boolean).join(' or ')}.`
   if (quantity > Number(item.available)) return `Only ${item.available} available.`
   return ''
 }

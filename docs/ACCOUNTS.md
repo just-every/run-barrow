@@ -15,7 +15,7 @@ In the supplier workspace, open Accounts and choose **Add trade account**.
 | Pier customer ID | The exact customer party ID from Pier. Names are not matched automatically. |
 | Payment terms (days) | Whole days, from 0 to 365. Zero means due on receipt. |
 | Minimum order (cents) | A whole number of cents; `15000` means $150.00. |
-| Agreed prices | One line per SKU: `SKU,unitCents,minQty`, without a header. |
+| Agreed prices | One line per SKU: `SKU,unitCents,minQty`, without a header. Optionally add `,casePack,increment` in base units: a quantity must then be a whole number of case packs and the minimum plus whole steps (`JV-2214-S,4800,12,6,12` allows 12, 24, 36…). An invalid quantity is refused with the nearest valid choices; Barrow never changes it for the buyer. |
 
 For example, a price line of `JV-2214-S,4800,2` means USD 48.00 per sell unit with a minimum quantity of two. Only agreed SKUs appear in that account's catalog. Use the exact SKUs held in Pier. Quantities are whole sell units. A SKU that ends in a size (`JV-2214-S`, `JV-2214-1X`) shows in its style's row of the order pad, one column per size.
 

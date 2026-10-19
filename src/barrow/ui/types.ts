@@ -1,5 +1,5 @@
 import { supplierZone } from '../model'
-export interface Price { sku: string; unitCents: number; minQty: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing }
+export interface Price { sku: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing }
 export interface AccountValue {
   name: string; email: string; pierCustomerId: string; termsDays: number; minimumCents: number; prices: Price[]; city?: string; state?: string
   lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; providerReferences?: Record<string, string>
@@ -21,7 +21,7 @@ export interface BarrowState {
   accounts: Account[]; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }
 }
 export interface CatalogueItem {
-  sku: string; itemId: string; name: string; unit: string; available: string; awaitingRelease?: string; unitCents: number; minQty: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
+  sku: string; itemId: string; name: string; unit: string; available: string; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
 }
 export interface Catalogue { currency: 'USD'; account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>
