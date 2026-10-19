@@ -46,7 +46,7 @@ Accounts, legal sellers, currencies, source authorities and revisions are explic
 
 - **ACC-003 — Billing and delivery locations.** An account maintains separate bill-to, ship-to and contact records with US address validation, default delivery instructions and location-specific tax exemption references. Orders snapshot the chosen addresses; an address edit never rewrites an already accepted order. **Acceptance evidence:** Save a headquarters and two stores, place an order to each store, change the default afterward and inspect unchanged order addresses and the correct tax jurisdictions.
 
-- **ACC-004 — Account lifecycle and commercial profile.** Staff maintain account identifiers, active/on-hold/closed states, channel, territory, assigned rep, catalogs, negotiated terms and provider references. Deactivation blocks new orders while buyers retain permitted history and statements. Duplicate companies are reviewed without silently reassigning historical ownership. **Acceptance evidence:** Place an order, hold then close its account and attempt checkout. History remains readable to the same authorized buyer; new orders are refused and a duplicate email cannot take over the company.
+- **ACC-004 — Account lifecycle and commercial profile.** Staff maintain account identifiers, active/on-hold/closed states, channel, territory, assigned rep, catalogs, negotiated terms and provider references. Deactivation blocks new orders while buyers retain permitted history and statements. Duplicate companies are reviewed without silently reassigning historical ownership. Until ACC-005 supplies functional supplier roles, the owner or admin maintains this profile. Legacy accounts without a state are active. On-hold and closed accounts cannot prepare a new draft, submit a draft or receive a first supplier approval; history, invoices and recovery of an already approved reservation remain available. Channel, territory, rep, catalog and provider references are recorded profile metadata; ACC-005, ACC-006, CAT-006 and CAT-008 add their scoped role, assignment and catalog capabilities before shipping them. A matching company name after NFKC normalization, trimming, whitespace collapsing and lowercasing, or an exact Pier customer ID, is a possible duplicate. The supplier reviews the matching account IDs and current revisions as separate companies before a native create or company-name/Pier-customer-ID change. CSV previews bind native and source-company matches into the reviewed fingerprint; applying it records the review actor and time and never merges identities. CSV updates preserve existing lifecycle and profile metadata absent from that format. **Acceptance evidence:** Record the commercial profile, place an order, hold then close its account and attempt checkout through the buyer and agent HTTP doors, including submission and first approval of earlier drafts. History and invoices remain readable to the same authorized buyer; new orders are refused and a duplicate email cannot take over the company. Recover an already-approved lost reservation response after closure without a second stock command. Refuse an unreviewed or stale duplicate-company save, review separate companies, import a duplicate-bearing CSV plan and inspect the attributed review through an owner export; original identities and native profile fields survive.
 
 - **ACC-005 — Supplier roles and separation of duties.** Owner manages installation and grants; sales managers control catalogs, prices, assignments and exceptions; reps sell only assigned accounts; operations staff manage fulfillment and returns; finance controls credit, refunds and reconciliation; analysts read authorized reports. Permissions apply equally to screens, API, exports and background work, with amount limits for exceptions. **Acceptance evidence:** Invite each supplier role, attempt a credit override as a rep and a catalog edit as operations, allow the authorized finance and manager actions and inspect attributed audit events.
 
@@ -367,14 +367,14 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `c2948ce2fa4d173b502a125171807c342cf4294f` (19 October 2026).
+Judged from the code and tests at commit `1168ad1dcdf16059d0a2e843d740ee4e9746250b` (19 October 2026).
 
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 5 | 1 | 0 | 6 |
-| Target and push further | 6 | 36 | 91 | 133 |
-| All | 11 | 37 | 91 | 139 |
+| Target and push further | 7 | 35 | 91 | 133 |
+| All | 12 | 36 | 91 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -387,7 +387,7 @@ Judged from the code and tests at commit `c2948ce2fa4d173b502a125171807c342cf429
 | `ACC-001` | Trade applications and approval | target | partial | `src/barrow/accounts.ts`; `src/barrow/ui/account-form.tsx`; `tests/api/flows.test.mjs` | Supplier-created accounts and invitations exist; buyer application, review states and document collection do not. |
 | `ACC-002` | Company buyers and purchasing rights | target | missing |  | Implement company buyers and purchasing rights and prove the stated journey. |
 | `ACC-003` | Billing and delivery locations | target | missing |  | Implement billing and delivery locations and prove the stated journey. |
-| `ACC-004` | Account lifecycle and commercial profile | target | partial | `src/barrow/accounts.ts`; `src/barrow/imports/validation.ts`; `tests/api/flows.test.mjs` | Stable account identity and terms exist; lifecycle states, company profile and duplicate-company review are missing. |
+| `ACC-004` | Account lifecycle and commercial profile | target | done | `src/barrow/accounts.ts`; `src/barrow/account-profile.ts`; `src/barrow/imports/service.ts`; `src/barrow/orders.ts`; `src/barrow/ui/account-form.tsx`; `tests/api/flows.test.mjs`; `tests/api/acknowledgment.test.mjs` |  |
 | `ACC-005` | Supplier roles and separation of duties | target | partial | `src/barrow/model.ts`; `src/barrow/api.ts`; `tests/api/flows.test.mjs` | Owner/admin and customer separation exists; functional supplier roles, scoped rights and limits are missing. |
 | `ACC-006` | Rep territories and delegated coverage | target | missing |  | Implement rep territories and delegated coverage and prove the stated journey. |
 | `ACC-007` | Buyer purchasing approvals | target | partial | `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | Human buyer submission and supplier approval exist; company approval policies, revisions and escalation do not. |
