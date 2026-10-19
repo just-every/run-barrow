@@ -87,6 +87,9 @@
 .tone-celadon { background: #8fbf9f; }
 .tone-denim { background: #6f95cf; color: #fff; }
 .ls-fan-sheet .pdf-chip { position: absolute; right: 10px; top: 13px; }
+/* a fanned sheet too narrow for its stockist's tab and the chip side by side drops the chip below the tab */
+.ls-fan-sheet { container-type: inline-size; }
+@container (max-width: 210px) { .ls-fan-sheet .pdf-chip { top: 46px; } }
 .ls-fan-dress { width: 56%; margin: 0 auto; }
 .ls-fan-prices { display: flex; flex-direction: column; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--br-rule); font-size: 13px; line-height: 1.45; color: #2a3050; }
 .ls-fan figcaption { margin-top: 18px; text-align: center; font-size: 17px; color: #50566e; }
