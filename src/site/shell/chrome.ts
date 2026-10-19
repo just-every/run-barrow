@@ -1,5 +1,6 @@
 // The run site's document head, header, footer and the page's one action, shared by the homepage and /docs.
 import run from '../run.json'
+import { bindText } from './bind'
 import { escapeHtml, glyphDefs, icon } from './html'
 
 export const links = { home: '/', run: '/run', docs: '/docs', contract: '/contract', source: run.repository, license: `${run.repository}/blob/main/LICENSE` }
@@ -11,12 +12,6 @@ const SHARE_IMAGE = 'https://run-barrow.com/site/share.jpg'
 
 export interface PageHead { title: string; description: string; styles: string[]; preload?: string[] }
 
-/** Text between tags (code blocks aside): a separator, arrow or operator stays with the word before it, and a check with its line. */
-const eyebrows = (html: string) => html.replace(/(<p class="eyebrow[^"]*">)([\s\S]*?)(<\/p>)/g, (_, open: string, text: string, close: string) => open + text.split(' · ').map(part => `<span class="nb">${part}</span>`).join(' · ') + close)
-const bindSeparators = (html: string) => eyebrows(html).split(/(<pre[\s\S]*?<\/pre>)/).map((part, index) => index % 2 ? part : part
-  .replace(/>([^<]+)</g, (_, text: string) => `>${text.replace(/ ([·→=+×–−—])(?= |$)/g, '\u00a0$1')}<`)
-  .replaceAll(' <span class="ok"', '\u00a0<span class="ok"')).join('')
-
 export function documentHtml(head: PageHead, body: string, bodyClass: string, script = ''): string {
   const preload = ['/fonts/source-serif-4/source-serif-4-latin-standard-normal.woff2', '/fonts/inter/inter-latin-wght-normal.woff2']
   return '<!doctype html><html lang="en-US"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -26,7 +21,7 @@ export function documentHtml(head: PageHead, body: string, bodyClass: string, sc
     + '<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/favicon-32.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
     + [...preload, ...(head.preload ?? [])].map(href => `<link rel="preload" href="${href}" as="${href.endsWith('.woff2') ? 'font' : 'image'}"${href.endsWith('.woff2') ? ' type="font/woff2" crossorigin' : ''}>`).join('')
     + '<link rel="stylesheet" href="/rer-theme.css">' + head.styles.map(href => `<link rel="stylesheet" href="${escapeHtml(href)}">`).join('')
-    + `</head><body class="${bodyClass}"><a class="skip-link" href="#main">Skip to content</a>${glyphDefs}${bindSeparators(body)}${script ? `<script>${script}</script>` : ''}</body></html>`
+    + `</head><body class="${bodyClass}"><a class="skip-link" href="#main">Skip to content</a>${glyphDefs}${bindText(body)}${script ? `<script>${script}</script>` : ''}</body></html>`
 }
 
 export const lockup = (className = 'site-brand'): string => `<a class="${className}" href="${links.home}" aria-label="Barrow home"><img src="/brand/mark.svg" alt="" width="40" height="40"><span>Barrow</span></a>`

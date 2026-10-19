@@ -1,5 +1,5 @@
-// The page's drawn product pictures. The 2214 Wrap Dress is one vector drawing (public/site/dress-2214.svg,
-// traced from the desk's dress and printed with the hero's small red-orange and celadon flowers) at every size;
+// The page's drawn product pictures. The 2214 Wrap Dress is one vector drawing (public/site/dress-2214.svg, the
+// desk's own dress traced line, flower and leaf at its drawn weight and color) at every size;
 // the mug, bowl, pitcher, pack and cap are the desk's own small drawings.
 
 export const dress = (className: string, alt = ''): string => `<img class="${className}" src="/site/dress-2214.svg" alt="${alt}" width="310" height="470" loading="lazy">`

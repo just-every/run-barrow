@@ -12,7 +12,7 @@ const fan = [
 ]
 
 const sheet = (title: string, sub: string, rows: [string, string][], extra = '') => `<article class="ls-sheet">`
-  + `<header><p class="ls-sheet-title">${title}</p><p class="ls-sheet-sub">${sub}</p><span class="pdf-chip">PDF</span></header><div class="ls-dress-wrap">${dress('ls-sheet-dress')}${extra}</div>`
+  + `<header><span class="pdf-chip">PDF</span><p class="ls-sheet-title">${title}</p><p class="ls-sheet-sub">${sub}</p></header><div class="ls-dress-wrap">${dress('ls-sheet-dress')}${extra}</div>`
   + `<p class="ls-style">2214 Wrap Dress</p><dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl></article>`
 
 export function lineSheetSection(): string {
@@ -29,7 +29,7 @@ export function lineSheetSection(): string {
     + fan.map((item, index) => `<div class="ls-fan-sheet f${index}"><span class="ls-tab tone-${item.tone}">${item.name}</span><span class="pdf-chip">PDF</span>${dress('ls-fan-dress')}<p class="ls-fan-prices">${item.prices.map(price => `<span>${price}</span>`).join('')}</p></div>`).join('')
     + '</div><figcaption>28 priced PDFs · one per stockist</figcaption></figure>'
     + '<div class="ls-recipients"><span class="wire w1" aria-hidden="true"></span><span class="wire w2" aria-hidden="true"></span>'
-    + sheet('Marlowe Boutique', 'wholesale + MSRP', [['S–XL', '$48.00'], ['1X–3X', '$52.00'], ['MSRP', '$118.00'], ['margin', '$70.00 (59%) / $66.00 (56%)']])
+    + sheet('Marlowe Boutique', 'wholesale + MSRP', [['S–XL', '$48.00'], ['1X–3X', '$52.00'], ['MSRP', '$118.00'], ['margin', `${nb('$70.00 (59%)')} / ${nb('$66.00 (56%)')}`]])
     + sheet('Halsey’s, Raleigh NC', 'Volume price list · wholesale only', [['S–XL', '$46.00'], ['1X–3X', '$50.00']], `<span class="sticky">${note('their price book, not Marlowe’s')}</span>`)
     + '</div>'
     + '<div class="ls-results card"><div class="ls-results-head"><h3 class="serif-title xl">By Fri Oct 16</h3>'

@@ -15,7 +15,9 @@ body.br-base-page { background: #fff; color: var(--br-ink); font-family: var(--r
 .br-run .step h2 { font-family: var(--rer-font-heading); font-weight: 760; letter-spacing: -.015em; word-spacing: .14em; }
 .br-run .body > p { color: var(--br-body); }
 .br-run .code { border-radius: 14px; background: var(--rer-code-background); color: var(--rer-code-text); }
-.br-run .code pre { font-weight: 450; }
+.br-run .code pre { font-weight: 450; white-space: pre; overflow-x: auto;
+  background: linear-gradient(90deg, var(--rer-code-background) 40%, transparent) left / 28px 100% no-repeat local, linear-gradient(270deg, var(--rer-code-background) 40%, transparent) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(255,255,255,.22), transparent) left / 12px 100% no-repeat scroll, radial-gradient(farthest-side at 100% 50%, rgba(255,255,255,.22), transparent) right / 12px 100% no-repeat scroll; }
 .br-run .go a, .br-run .facts a { color: var(--br-ultramarine); }
 .br-run .facts { margin-top: 36px; color: #575c74; }
 .br-missing .hero h1 { font-size: clamp(40px, 5vw, 64px); }
