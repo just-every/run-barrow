@@ -45,10 +45,11 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const items = catalogue?.items ?? []
   const { rows, columns } = useMemo(() => groupStyles(items), [catalogue])
   const currentAccount = catalogue?.account ?? account
+  const draftCurrency = draft?.currency ?? 'AUD'
   const changes: Record<string, PriceChange> = {}
   for (const line of draft?.lines ?? []) {
     const item = items.find(value => value.sku === line.sku)
-    if (item && item.unitCents !== line.unitCents) changes[line.sku] = { from: line.unitCents, to: item.unitCents }
+    if (item && (item.unitCents !== line.unitCents || draftCurrency !== 'USD')) changes[line.sku] = { from: line.unitCents, to: item.unitCents, currency: draftCurrency }
   }
   const missing = (draft?.lines ?? []).filter(line => catalogue && !items.some(item => item.sku === line.sku))
   const chosen = items.filter(item => quantityOf(quantities[item.sku]) > 0)
@@ -84,7 +85,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   function remove(row: StyleRow) {
     setQuantities(current => { const next = { ...current }; for (const size of row.sizes) delete next[row.cells[size].sku]; return next })
   }
-  const draftTotal = draft && catalogue && Object.keys(changes).length ? total - draft.totalCents : 0
+  const draftTotal = draft && draftCurrency === 'USD' && catalogue && Object.keys(changes).length ? total - draft.totalCents : 0
 
   return <form className="br-pad" onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
     <div className="br-pad-head">
@@ -99,7 +100,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
         {supplier && <AccountPicker accounts={accounts} value={account.id} onChange={id => id && onAccount(id)} />}
         <label>Start from<select value={draft?.id ?? ''} onChange={event => onDraft(event.target.value)} disabled={busy}>
           <option value="">New order</option>
-          {drafts.map(value => <option key={value.id} value={value.id}>{orderNumber(value.id)} · {when(value.preparedAt)} · {money(value.totalCents)}</option>)}
+          {drafts.map(value => <option key={value.id} value={value.id}>{orderNumber(value.id)} · {when(value.preparedAt)} · {money(value.totalCents, value.currency ?? 'AUD')}</option>)}
         </select></label>
         {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
       </div>

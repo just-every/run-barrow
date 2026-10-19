@@ -51,11 +51,11 @@ export const rowCents = (row: StyleRow, quantities: Record<string, string>, pric
   row.sizes.reduce((sum, size) => sum + price(row.cells[size]) * quantityOf(quantities[row.cells[size].sku]), 0)
 
 /** An order's lines read back as styles: "S2 M4 L4 XL2", units, the prices paid and the style's total. */
-export function orderStyles(lines: Order['lines']) {
+export function orderStyles(lines: Order['lines'], currency: 'USD' | 'AUD') {
   const quantities = Object.fromEntries(lines.map(line => [line.sku, String(line.quantity)]))
   return groupStyles(lines.map(line => ({ ...line, unit: '', available: '' }))).rows.map(row => ({
     key: row.key, name: row.name, units: rowUnits(row, quantities), cents: rowCents(row, quantities),
     sizes: row.sizes.map(size => size === oneSize ? quantities[row.cells[size].sku] : `${size}${quantities[row.cells[size].sku]}`).join(' '),
-    prices: [...new Set(row.sizes.map(size => money(row.cells[size].unitCents)))].join(' / '),
+    prices: [...new Set(row.sizes.map(size => money(row.cells[size].unitCents, currency)))].join(' / '),
   }))
 }

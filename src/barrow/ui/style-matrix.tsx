@@ -5,7 +5,7 @@ import type { CatalogueItem } from './types'
 import { money, when } from './types'
 
 /** A draft line whose agreed price moved after the draft was written. */
-export interface PriceChange { from: number; to: number }
+export interface PriceChange { from: number; to: number; currency: 'USD' | 'AUD' }
 
 export function cellProblem(item: CatalogueItem, value: string | undefined) {
   if (!value) return ''
@@ -32,7 +32,7 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
       const moved = skus.filter(sku => changes[sku] && quantityOf(quantities[sku]) > 0)
       const open = moved.length > 0 && !kept.has(row.key), settled = moved.length > 0 && kept.has(row.key)
       const was = rowCents(row, quantities, item => changes[item.sku]?.from ?? item.unitCents), now = rowCents(row, quantities)
-      const prices = [...new Set(moved.map(sku => `${money(changes[sku].from)} → ${money(changes[sku].to)}`))]
+      const prices = [...new Set(moved.map(sku => `${money(changes[sku].from, changes[sku].currency)} → ${money(changes[sku].to)}`))]
       const newPrices = [...new Set(moved.map(sku => money(changes[sku].to)))]
       return <Fragment key={row.key}>
         <tr className={`br-style-row${selected === row.key ? ' br-selected' : ''}${open ? ' br-changed' : ''}`} aria-selected={selected === row.key}>
@@ -54,7 +54,7 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
           <td className="br-col-line">{now ? money(now) : <span className="br-none">–</span>}</td>
         </tr>
         {open && <tr className="br-change-row"><td colSpan={columns.length + 4}>
-          <p className="br-change-note"><span className="br-warn" aria-hidden="true">!</span>Price changed since this draft was written: {prices.join(', ')}{writtenAt && ` (written ${when(writtenAt)})`} · line {money(was)} → {money(now)}</p>
+          <p className="br-change-note"><span className="br-warn" aria-hidden="true">!</span>Price changed since this draft was written: {prices.join(', ')}{writtenAt && ` (written ${when(writtenAt)})`} · line {money(was, changes[moved[0]].currency)} → {money(now)}</p>
           <div className="br-change-actions">
             <p className="br-agent-line"><span className="br-rivet" aria-hidden="true" />Barrow prepares a new draft at today’s price to replace this one; {customer} re-confirms it.</p>
             <button type="button" onClick={() => onKeep(row.key)} disabled={busy}>Keep {newPrices.length === 1 ? newPrices[0] : 'the new prices'}, buyer re-confirms</button>

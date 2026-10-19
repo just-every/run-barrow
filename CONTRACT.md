@@ -64,7 +64,7 @@ Accounts, legal sellers, currencies, source authorities and revisions are explic
 
 - **CAT-005 — Branded responsive storefront.** A wholesaler configures its logo, colors, domain, collections and navigation for a trade storefront with sign-in, clear support contact and account-aware merchandising. Responsive layout preserves shopping and checkout on desktop and phone. **Acceptance evidence:** Configure a brand, sign in and complete a representative cart at 1440px and 390px. Logo, navigation, prices, validation and the final confirmation remain readable and operable.
 
-- **CAT-006 — Multiple brands and buying profiles.** One installation can present separate branded storefronts, assortments and price books while an authorized buyer switches purchasing profiles deliberately. Legal seller, currency, permissions and order ownership remain visible and a cart cannot accidentally mix sellers. **Acceptance evidence:** Configure two brands and a buyer approved for one, refuse the other brand, then approve a second profile and switch. Each cart, invoice and export names the correct seller.
+- **CAT-006 — Multiple brands and buying profiles.** One installation can present separate branded storefronts, assortments and price books while an authorized buyer switches purchasing profiles deliberately. Legal seller, currency, permissions and order ownership remain visible and a cart cannot accidentally mix sellers. Additional brands inherit PRI-001: explicit ISO currency labels and exact integer minor units without conversion by relabeling; whole-unit quantities × integer cents need no rounding. **Acceptance evidence:** Configure two brands and a buyer approved for one, refuse the other brand, then approve a second profile and switch. Each cart, invoice and export names the correct seller and ISO currency, retaining exact integer minor units without conversion by relabeling.
 
 - **CAT-007 — Style color size and assortment matrices.** Products support style/color/size variants, barcodes, images, size runs and fixed assortment packs. A matrix order resolves into exact variant SKUs, with variant-specific stock and minimum rules rather than a single ambiguous style quantity. Wholesale price and MSRP may differ per size within one style (for example extended sizes), and the matrix shows each size's price. **Acceptance evidence:** Order a size run that includes a higher-priced extended size and a case assortment through a line-sheet matrix, inspect exact SKU quantities and per-size prices in the order and inventory handoff, and reject an unavailable size without silently reallocating it.
 
@@ -78,7 +78,7 @@ Accounts, legal sellers, currencies, source authorities and revisions are explic
 
 ### Commercial pricing
 
-- **PRI-001 — Negotiated USD price books.** US accounts receive negotiated price books in USD with exact integer minor units, visible currency and documented rounding. Existing AUD orders retain their original currency; currency is never inferred from a dollar symbol or converted by relabeling an amount. Each price book row may also carry a suggested retail price (MSRP) per currency beside the wholesale price, governed by PRI-008. **Acceptance evidence:** Assign different USD prices to two accounts, prepare orders and compare checkout, invoice and exported cents. Restore a legacy AUD order and show AUD unchanged.
+- **PRI-001 — Negotiated USD price books.** US accounts receive negotiated price books in USD with exact integer minor units, visible currency and documented rounding. Integer-cent prices multiplied by whole-unit quantities require no rounding; screens label the ISO currency code. New orders record USD; orders without a currency field are legacy AUD and retain that label and their cents through restore. Existing AUD orders retain their original currency; currency is never inferred from a dollar symbol or converted by relabeling an amount. PRI-008 adds optional suggested retail prices (MSRP) per currency beside the wholesale price and inherits these exact-cent and visible-currency obligations before it ships. CAT-006 and PRI-006 inherit them for additional brands and currencies. **Acceptance evidence:** Assign different USD prices to two accounts, prepare orders and compare checkout, invoice and exported cents. Restore a legacy AUD order and show AUD unchanged.
 
 - **PRI-002 — Quantity breaks and account discounts.** Price books express volume or graduated breaks, account/group discounts and approved overrides with an explicit precedence and effective period. Cart and quote explain which rule won; changing quantity recomputes the full eligible total before approval. **Acceptance evidence:** Price quantities just below and above a volume break, combine an account discount and a negotiated override, and verify the displayed rule and exact total survive the order snapshot.
 
@@ -88,11 +88,11 @@ Accounts, legal sellers, currencies, source authorities and revisions are explic
 
 - **PRI-005 — Bundles and wholesale promotions.** Staff create fixed bundles, mix-and-match offers and time-limited promotions with eligible accounts, SKU groups, redemption rules and stacking precedence. Preview exposes the discount and margin impact; returns reverse only the original applicable discount. **Acceptance evidence:** Combine eligible styles to qualify for a mix-and-match promotion, remove one, apply a nonstackable discount and return part of the bundle. Totals and credits follow the published rule once.
 
-- **PRI-006 — Effective prices and additional currencies.** Merchants schedule price-book revisions and, after the USD default, offer explicit CAD/EUR/GBP books where enabled. One order has one currency, taxes and provider collections use it, and reports disclose their recorded USD conversion basis rather than rewriting transaction amounts. **Acceptance evidence:** Schedule a future USD revision, quote before and after it, then place a CAD order through a compatible payment sandbox. All documents keep the agreed currency and the report shows its dated USD conversion.
+- **PRI-006 — Effective prices and additional currencies.** Merchants schedule price-book revisions and, after the USD default, offer explicit CAD/EUR/GBP books where enabled. One order has one explicitly labeled ISO currency; all prices and totals retain exact integer minor units (whole-unit quantity × integer cents requires no rounding), taxes and provider collections use it, and reports disclose their recorded USD conversion basis rather than rewriting transaction amounts. **Acceptance evidence:** Schedule a future USD revision, quote before and after it, then place a CAD order through a compatible payment sandbox. All documents keep the agreed ISO currency and original integer minor units and the report shows its dated USD conversion; whole-unit quantities × integer cents need no rounding.
 
 - **PRI-007 — Explainable commercial validation.** The server revalidates account entitlement, price revision, minimums, units, stock freshness, credit, tax and shipping before acceptance. Buyers see each blocking rule and whether a manager can approve an exception. Stale client totals and agent-provided prices cannot become authoritative. **Acceptance evidence:** Alter client totals, change an account price and exhaust credit after drafting, then submit through the public API. The order blocks with the current reasons and only an authorized, recorded exception can release it.
 
-- **PRI-008 — Suggested retail prices and price display.** Price books carry an optional suggested retail price (MSRP) per variant and currency next to the wholesale price; it is imported, edited and exported with the price book and may differ by size. Merchants choose for each line sheet, lookbook, storefront and document type whether buyers see wholesale, retail or both, and where both show, the buyer sees the margin between them. MSRP is informational only: it never feeds cart, quote, tax, invoice, payment or commission totals, and a missing MSRP shows as absent rather than derived from wholesale. **Acceptance evidence:** Import a price book with wholesale and MSRP columns in USD and CAD, publish one line sheet showing both prices and one showing wholesale only, and open each as its buyer on the page, PDF, order confirmation (ORD-014) and order CSV. Each shows exactly the configured columns, the displayed margin matches the two prices, and every order total equals the wholesale lines alone.
+- **PRI-008 — Suggested retail prices and price display.** Price books retain exact integer minor units and explicit ISO currency labels under PRI-001, and carry an optional suggested retail price (MSRP) per variant and currency next to the wholesale price; it is imported, edited and exported with the price book and may differ by size. Merchants choose for each line sheet, lookbook, storefront and document type whether buyers see wholesale, retail or both, and where both show, the buyer sees the margin between them. MSRP is informational only: it never feeds cart, quote, tax, invoice, payment or commission totals, and a missing MSRP shows as absent rather than derived from wholesale. **Acceptance evidence:** Import a price book with wholesale and MSRP columns in USD and CAD, publish one line sheet showing both prices and one showing wholesale only, and open each as its buyer on the page, PDF, order confirmation (ORD-014) and order CSV. Each shows exactly the configured columns and ISO currency with exact integer minor units, the displayed margin matches the two prices, and every order total equals the wholesale lines alone. Whole-unit quantities × integer cents require no rounding.
 
 ### Buying quoting and order lifecycle
 
@@ -365,18 +365,20 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `d04260c3c4799553091ce1eced1160987377f676` (17 October 2026).
+Judged from the code and tests at commit `ff70408c19f2ef4fab66a3a94d16dd8e8e8ac6f4` (19 October 2026).
+
+PRI-001 is judged from its clause-named tests and code in the same commit as this table.
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 5 | 1 | 0 | 6 |
-| Target and push further | 3 | 39 | 91 | 133 |
-| All | 8 | 40 | 91 | 139 |
+| Target and push further | 4 | 38 | 91 | 133 |
+| All | 9 | 39 | 91 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
 | `BAR-001` | Accounts and access | published | done | `src/barrow/access.ts`; `src/barrow/accounts.ts`; `src/barrow/api.ts`; `tests/api/flows.test.mjs` |  |
-| `BAR-002` | Orders and invoices | published | partial | `src/barrow/orders.ts`; `src/barrow/invoice.ts`; `tests/api/flows.test.mjs` | Existing exact-cent AUD snapshots and Pier idempotency ship; USD, other inventory authorities and invoiceable shipment splits are absent. |
+| `BAR-002` | Orders and invoices | published | partial | `src/barrow/orders.ts`; `src/barrow/invoice.ts`; `tests/api/flows.test.mjs` | Exact-cent USD and legacy AUD snapshots and Pier idempotency ship; other inventory authorities and invoiceable shipment splits are absent. |
 | `BAR-003` | Agent preparation | published | done | `src/barrow/api.ts`; `src/barrow/access.ts`; `scripts/barrow.mjs`; `tests/api/flows.test.mjs` |  |
 | `BAR-004` | Account move-in | published | done | `src/barrow/imports/service.ts`; `src/barrow/imports/targets.ts`; `tests/api/flows.test.mjs` |  |
 | `BAR-005` | Export, restore and erasure | published | done | `src/barrow/accounts.ts`; `src/barrow/portability-policy.mjs`; `tests/api/flows.test.mjs` |  |
@@ -399,7 +401,7 @@ Judged from the code and tests at commit `d04260c3c4799553091ce1eced1160987377f6
 | `CAT-009` | Bulk product and catalog maintenance | target | missing |  | Implement bulk product and catalog maintenance and prove the stated journey. |
 | `CAT-010` | Bulk image upload and naming rules | target | missing |  | Bulk image upload, filename naming rules, held unmatched files and in-place slot replacement are not implemented. |
 | `CAT-011` | Line sheet group sends and campaigns | target | missing |  | Group sends, saved segments, suggested-products order forms, per-recipient priced links and campaign tracking are not implemented. |
-| `PRI-001` | Negotiated USD price books | target | partial | `src/barrow/imports/validation.ts`; `src/barrow/invoice.ts`; `src/barrow/ui/types.ts`; `tests/api/flows.test.mjs` | Per-account exact-cent prices exist but currency and presentation are fixed to AUD. |
+| `PRI-001` | Negotiated USD price books | target | done | `src/barrow/imports/validation.ts`; `src/barrow/invoice.ts`; `src/barrow/ui/types.ts`; `tests/api/currency.test.mjs` |  |
 | `PRI-002` | Quantity breaks and account discounts | target | partial | `src/barrow/imports/validation.ts`; `src/barrow/orders.ts` | One agreed price per account/SKU exists; tiers, discount rules and precedence do not. |
 | `PRI-003` | Case packs minimums and increments | target | partial | `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | SKU and order-value minimums ship; case multiples, increments and per-split rules are missing. |
 | `PRI-004` | Unit of measure pricing | target | partial | `src/barrow/pier.ts`; `src/barrow/model.ts` | Pier supplies a unit label; selectable units, conversion and unit-specific prices are missing. |
@@ -443,7 +445,7 @@ Judged from the code and tests at commit `d04260c3c4799553091ce1eced1160987377f6
 | `PAY-005` | Credit holds and controlled release | target | missing |  | Implement credit holds and controlled release and prove the stated journey. |
 | `PAY-006` | B2B pay later through Resolve | target | missing |  | Implement b2b pay later through resolve and prove the stated journey. |
 | `PAY-007` | Customer account statements | target | missing |  | Implement customer account statements and prove the stated journey. |
-| `PAY-008` | Invoice documents and delivery | target | partial | `src/barrow/invoice.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | Stable fully reserved AUD invoice CSV and due dates exist; PDF, tax, freight, delivery and accounting authority sync are missing. |
+| `PAY-008` | Invoice documents and delivery | target | partial | `src/barrow/invoice.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | Stable fully reserved USD/legacy AUD invoice CSV and due dates exist; PDF, tax, freight, delivery and accounting authority sync are missing. |
 | `PAY-009` | Receivables aging and collections | target | missing |  | Implement receivables aging and collections and prove the stated journey. |
 | `PAY-010` | Credit notes and refunds | target | missing |  | Implement credit notes and refunds and prove the stated journey. |
 | `PAY-011` | Payment disputes and reconciliation | target | missing |  | Implement payment disputes and reconciliation and prove the stated journey. |

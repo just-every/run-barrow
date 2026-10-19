@@ -7,7 +7,7 @@ export interface Account { id: string; value: AccountValue; revision: string }
 export interface Order {
   id: string; accountId: string; customerName: string; reference: string
   lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number }[]
-  totalCents: number; termsDays: number; accountRevision: string; preparedAt: string
+  totalCents: number; currency?: 'USD' | 'AUD'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded'
   replaces?: string; supersededBy?: string
   preparedBy: string; submittedBy?: string; approvedBy?: string; approvedAt?: string
@@ -20,10 +20,17 @@ export interface BarrowState {
 export interface CatalogueItem {
   sku: string; itemId: string; name: string; unit: string; available: string; unitCents: number; minQty: number
 }
-export interface Catalogue { account: Account; items: CatalogueItem[]; observedAt: string }
+export interface Catalogue { currency: 'USD'; account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>
-export const money = (cents: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100)
-
+/** Shift the decimal point as text so large exact-cent amounts never lose a cent to division. */
+export const money = (cents: number, currency: 'USD' | 'AUD' = 'USD') => {
+  const [coefficient, exponent = '0'] = String(cents).split('e')
+  const negative = coefficient.startsWith('-'), [whole, fraction = ''] = coefficient.replace('-', '').split('.')
+  const digits = whole + fraction, point = whole.length + Number(exponent) - 2
+  const decimal = point <= 0 ? `0.${'0'.repeat(-point)}${digits}` : point >= digits.length ? digits + '0'.repeat(point - digits.length) : `${digits.slice(0, point)}.${digits.slice(point)}`
+  // Intl accepts decimal strings without converting them to binary floating point.
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, currencyDisplay: 'code' }).format((negative ? '-' + decimal : decimal) as unknown as number)
+}
 // Every moment reads in the supplier's zone (Eastern), never the viewer's; "ET" follows wherever the viewer's clock reads differently.
 const zoneLabel = 'ET'
 const inZone = (date: Date, options: Intl.DateTimeFormatOptions, timeZone = supplierZone) => date.toLocaleString('en-US', { ...options, timeZone })

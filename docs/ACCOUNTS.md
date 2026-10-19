@@ -17,7 +17,7 @@ In the supplier workspace, open Accounts and choose **Add trade account**.
 | Minimum order (cents) | A whole number of cents; `15000` means $150.00. |
 | Agreed prices | One line per SKU: `SKU,unitCents,minQty`, without a header. |
 
-For example, a price line of `JV-2214-S,4800,2` means $48.00 per sell unit with a minimum quantity of two. Only agreed SKUs appear in that account's catalog. Use the exact SKUs held in Pier. Quantities are whole sell units. A SKU that ends in a size (`JV-2214-S`, `JV-2214-1X`) shows in its style's row of the order pad, one column per size.
+For example, a price line of `JV-2214-S,4800,2` means USD 48.00 per sell unit with a minimum quantity of two. Only agreed SKUs appear in that account's catalog. Use the exact SKUs held in Pier. Quantities are whole sell units. A SKU that ends in a size (`JV-2214-S`, `JV-2214-1X`) shows in its style's row of the order pad, one column per size.
 
 Choose **Save account**. You can use **Edit account** to update prices, minimums and terms. Existing order snapshots retain their commercial details. The account ID and buyer email cannot be changed through the editor: create a separate account for a different buyer email so existing order access cannot be reassigned.
 

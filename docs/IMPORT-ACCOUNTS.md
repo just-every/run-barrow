@@ -36,3 +36,5 @@ In History, use **Refresh journal**, then **View** beside a job. The journal sho
 Undo restores the before-images of a completed import where it is safe. Review the journal before confirming **Undo import**, and resume an undo if its state is still `undoing`. Later native edits are preserved and can block reversal. Orders that reference imported accounts block undo. Undo a newer import before its predecessor.
 
 The import creates accounts and prices only. It sends no invitations, creates no orders and makes no Pier stock mutations. Invite buyers from [Accounts](ACCOUNTS.md) after reviewing the imported records.
+
+Account price books use USD integer cents; the catalog API labels that currency and each new order snapshots it. CSV amounts are not converted. Legacy order records retain their recorded currency (AUD when the old record has no currency field), including after restore.

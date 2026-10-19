@@ -69,7 +69,7 @@ export async function installation({pier=false,bindings={}}={}) {
 }
 export async function stock(pier,quantity='24') {
  const item=await pier.command('item.save',{sku:'OAT-1',name:'Toasted oat granola',unit:'case',packSize:'1'});
- const location=await pier.command('location.save',{name:'Shelf A1',warehouse:'Brisbane',kind:'bin'});
+ const location=await pier.command('location.save',{name:'Shelf A1',warehouse:'New York',kind:'bin'});
  const supplier=await pier.command('party.save',{name:'Mill House Foods',kind:'supplier'});
  const customer=await pier.command('party.save',{name:'Cedar Street Pantry',kind:'customer'});
  const po=await pier.command('po.draft',{supplierId:supplier.id,promiseDate:'2026-10-20',reason:'Opening stock',lines:[{itemId:item.id,quantity,price:'20.00'}]});

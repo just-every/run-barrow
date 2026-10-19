@@ -43,7 +43,7 @@ export async function catalogue(env: Bindings,account: Account) {
   const available=state.positions.filter((p:any)=>p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)).reduce((n:bigint,p:any)=>n+decimal(p.available),0n)
   return [{...price,itemId:item.id,name:item.name,unit:item.unit,available:format(available)}]
  })
- return {account,items,observedAt:(await now()).toISOString()}
+ return {account,items,currency:'USD' as const,observedAt:(await now()).toISOString()}
 }
 export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[]) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:lines.map(l=>({itemId:l.itemId,quantity:String(l.quantity)}))}}).then(value=>value.result), () => demoReservation(orderId, lines))
 export function fullyReserved(result: any,lines: Line[]) {

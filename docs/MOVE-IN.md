@@ -125,3 +125,5 @@ from sanitized source after erasure.
 
 No test suite, build, dev server or heavy process was run by this subsystem
 lane; the integrating parent owns the targeted real-D1 and transport checks.
+
+Account price books use USD integer cents; the catalog API labels that currency and each new order snapshots it. CSV amounts are not converted. Legacy order records retain their recorded currency (AUD when the old record has no currency field), including after restore.

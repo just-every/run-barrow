@@ -114,6 +114,6 @@ export function BarrowApp() {
         </>}
       </section></HydrationUnit>
     </main>
-    <HydrationUnit><footer className="br-footer"><span>Barrow · Amounts in USD</span><a href="/setup">Installation settings</a></footer></HydrationUnit>
+    <HydrationUnit><footer className="br-footer"><span>Barrow · Current prices in USD · Orders retain their recorded currency</span><a href="/setup">Installation settings</a></footer></HydrationUnit>
   </div>
 }

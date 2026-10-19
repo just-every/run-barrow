@@ -16,7 +16,7 @@ Take a stockist's order from its agreed price list to an invoice CSV. Barrow kee
 
 ## Keep the boundaries clear
 
-Barrow stores money as integer cents and quantities as whole sell units, and shows amounts in US dollars. The invoice CSV's currency column reads the currency the order recorded: `USD` for orders prepared now, `AUD` for records written before orders carried a currency. Stock shown in a catalog is an observation; Pier reserves it after supplier approval. An invoice CSV is available only when every ordered unit is reserved.
+Barrow stores money as integer cents and quantities as whole sell units, and labels amounts with their ISO currency code. Current price books and new orders use USD. Whole-unit quantities multiplied by integer cents need no rounding; no currency conversion is performed. The invoice CSV's currency column reads the currency the order recorded: `USD` for orders prepared now, `AUD` for records written before orders carried a currency. Restoring those older records preserves their original cents and AUD labels in both Orders and the CSV. Stock shown in a catalog is an observation; Pier reserves it after supplier approval. An invoice CSV is available only when every ordered unit is reserved.
 
 The CSV is a handoff to your accounting system. Barrow does not calculate tax, collect payment or mark invoices paid. Review the tax treatment in your accounting system.
 
