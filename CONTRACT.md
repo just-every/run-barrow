@@ -367,14 +367,14 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `e0eddc48ea7eebfd42751cbb30add7dbb0901b1c` (19 October 2026).
+Judged from the code and tests at commit `c2948ce2fa4d173b502a125171807c342cf4294f` (19 October 2026).
 
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 5 | 1 | 0 | 6 |
-| Target and push further | 5 | 37 | 91 | 133 |
-| All | 10 | 38 | 91 | 139 |
+| Target and push further | 6 | 36 | 91 | 133 |
+| All | 11 | 37 | 91 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -507,7 +507,7 @@ Judged from the code and tests at commit `e0eddc48ea7eebfd42751cbb30add7dbb0901b
 | `DATA-002` | Commercial audit and decision history | target | partial | `src/barrow/access.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | Product writes record actor/action audit rows and order identities; searchable audit door and expanded commercial decision fields are missing. |
 | `DATA-003` | Retention erasure and provider custody | target | partial | `src/barrow/accounts.ts`; `src/barrow/imports/erasure.ts`; `tests/api/flows.test.mjs` | Unused-account erasure, import-custody retirement and restore fencing ship; policy retention, held-request workflows and broader provider custody reporting are missing. |
 | `DATA-004` | Connection and document security | target | partial | `src/barrow/access.ts`; `src/barrow/api.ts`; `src/barrow/pier.ts`; `tests/api/flows.test.mjs` | Session/grant, same-origin and server-only Pier authority checks exist; new provider secret lifecycle and secure document intake are missing. |
-| `BASE-001` | Native installation and shared foundations | target | partial | `src/server.ts`; `src/auth.server.ts`; `src/barrow/ui/app.tsx`; `tests/api/flows.test.mjs` | Native foundations and API/portability checks exist; the complete fresh-install owner journey and all target connectors are not yet evidenced. |
+| `BASE-001` | Native installation and shared foundations | target | done | `src/server.ts`; `src/auth.server.ts`; `tests/journeys/installation.test.mjs`; `tests/journeys/install-harness.mjs`; `.github/workflows/installation.yml` |  |
 | `OPS-001` | Actionable diagnostics and recovery | target | partial | `src/barrow/orders.ts`; `src/barrow/ui/app.tsx`; `tests/api/flows.test.mjs` | Visible Pier failures, retry/refresh and load errors exist; cross-provider diagnostics and operational exception management are missing. |
 | `AGT-001` | Turn inbound purchase orders into validated drafts | push-further | partial | `src/barrow/api.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | Revocable agents prepare stock/price-validated drafts; document/mail intake, extraction citations and exception dialogue are missing. |
 | `AGT-002` | Resolve substitution and stock exceptions | push-further | missing |  | Implement resolve substitution and stock exceptions and prove the stated journey. |
