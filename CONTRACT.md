@@ -86,7 +86,7 @@ Accounts, legal sellers, currencies, source authorities and revisions are explic
 
 - **PRI-003 — Case packs minimums and increments.** Merchants set SKU minimums, order-value minimums, case-pack multiples and allowed increments, including per-split minimum policies. Invalid quantities receive an explanation and an explicit suggested correction; no import silently inflates a buyer commitment. **Acceptance evidence:** Enter below-minimum and non-case quantities in the cart, CSV and API, then split a valid order. Each door enforces the configured rules and requires the buyer to accept any corrected quantities.
 
-- **PRI-004 — Unit of measure pricing.** Buyers select allowed each/case/pallet or measured units with exact conversions, price basis, pack contents and stock deductions. Mixed units cannot create fractional cases accidentally and invoice lines name both ordered units and base units. **Acceptance evidence:** Order two cases of 12 and six each of one SKU, inspect 30 base units in the handoff and the correct separate invoice bases, and reject an undefined unit conversion.
+- **PRI-004 — Unit of measure pricing.** Buyers select allowed each/case/pallet or measured units with exact conversions, price basis, pack contents and stock deductions. Mixed units cannot create fractional cases accidentally and invoice lines name both ordered units and base units. The current account price is per one Pier stock unit; optional, case-sensitive selling-unit definitions add a distinct code, exact base-quantity conversion, integer USD-cent price and pack contents. Counts, including case and pallet, are whole units. Explicit measured units accept positive quantities and conversions with up to six decimal places and at most 1,000,000; conversions requiring finer base precision or exceeding the inventory authority range are refused. Each measured line rounds once to the nearest cent, exact half cents up, and the order adds those integer line cents. Combined base quantities per SKU enforce minimums and stock and become one Pier reservation line per item. Orders and invoice CSV retain ordered unit, conversion, base unit/quantity, pack contents and line-price basis; old records leave unrecorded unit labels absent. Draft editing and ORD-003 reorders preserve separate SKU/unit lines and revalidate current conversions and prices; issued snapshots never change. Later order doors in ORD-001, ORD-002, ORD-004, ORD-008, ORD-009, ORD-013, ORD-014, REP-002 and INT-012 inherit these unit and price-basis obligations before shipping. **Acceptance evidence:** Order two cases of 12 and six each of one SKU, inspect 30 base units in the handoff and the correct separate invoice bases, and reject an undefined unit conversion.
 
 - **PRI-005 — Bundles and wholesale promotions.** Staff create fixed bundles, mix-and-match offers and time-limited promotions with eligible accounts, SKU groups, redemption rules and stacking precedence. Preview exposes the discount and margin impact; returns reverse only the original applicable discount. **Acceptance evidence:** Combine eligible styles to qualify for a mix-and-match promotion, remove one, apply a nonstackable discount and return part of the bundle. Totals and credits follow the published rule once.
 
@@ -367,14 +367,14 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `63629e2c20fe1633a95b8ca9dc672a9011f24e2a` (19 October 2026).
+Judged from the code and tests at commit `42a18868397a084863407ab5ed422a7f1d81dc72` (19 October 2026).
 
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 5 | 1 | 0 | 6 |
-| Target and push further | 8 | 34 | 91 | 133 |
-| All | 13 | 35 | 91 | 139 |
+| Target and push further | 9 | 33 | 91 | 133 |
+| All | 14 | 34 | 91 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -405,7 +405,7 @@ Judged from the code and tests at commit `63629e2c20fe1633a95b8ca9dc672a9011f24e
 | `PRI-001` | Negotiated USD price books | target | done | `src/barrow/imports/validation.ts`; `src/barrow/invoice.ts`; `src/barrow/ui/types.ts`; `tests/api/currency.test.mjs` |  |
 | `PRI-002` | Quantity breaks and account discounts | target | partial | `src/barrow/imports/validation.ts`; `src/barrow/orders.ts` | One agreed price per account/SKU exists; tiers, discount rules and precedence do not. |
 | `PRI-003` | Case packs minimums and increments | target | partial | `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | SKU and order-value minimums ship; case multiples, increments and per-split rules are missing. |
-| `PRI-004` | Unit of measure pricing | target | partial | `src/barrow/pier.ts`; `src/barrow/model.ts` | Pier supplies a unit label; selectable units, conversion and unit-specific prices are missing. |
+| `PRI-004` | Unit of measure pricing | target | done | `src/barrow/units.ts`; `src/barrow/unit-lines.ts`; `src/barrow/orders.ts`; `src/barrow/pier.ts`; `src/barrow/invoice.ts`; `src/barrow/ui/unit-order.tsx`; `tests/api/units.test.mjs` |  |
 | `PRI-005` | Bundles and wholesale promotions | target | missing |  | Implement bundles and wholesale promotions and prove the stated journey. |
 | `PRI-006` | Effective prices and additional currencies | target | missing |  | Implement effective prices and additional currencies and prove the stated journey. |
 | `PRI-007` | Explainable commercial validation | target | partial | `src/barrow/orders.ts`; `tests/api/flows.test.mjs` | Server price, stock and minimum checks and stale account-revision rejection exist; credit, tax, units and shipping checks are missing. |
