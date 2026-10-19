@@ -67,6 +67,8 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   await h.command('account.erase',{accountId:'cedar',confirm:'ERASE'},{status:409});
  });
  await t.test('move-in dry run, explicit review, journal, replay and guarded undo',async()=>{
+  // MOVE-007: every imported price SKU must be an active item in the connected Pier.
+  for(const sku of ['APPLE-BOX','PEAR-BOX']) await pier.command('item.save',{sku,name:sku,unit:'case',packSize:'1'});
   const fixture=await readFile('fixtures/trade-accounts.csv','utf8');
   const csv=[fixture.trim(),...Array.from({length:12},(_,i)=>`partner-${i},Trade partner ${i},partner-${i}@example.test,pier-partner-${i},30,0,OAT-1,6500,1`)].join('\n')+'\n';
   const preview=await h.api('/api/barrow/imports/preview',{csv});assert.equal((await h.api('/api/barrow/state')).accounts.length,2);
@@ -125,7 +127,8 @@ test('a draft whose prices moved is replaced by the order prepared from it, then
 });
 
 test('erasing imported unused account retires custody and fences old restores',async t=>{
- const h=await installation();t.after(()=>h.close());
+ const pier=await installation({pier:true});t.after(()=>pier.close());await stock(pier);
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  const csv='accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\nerase-me,Cedar Street Pantry,erase@example.test,pier-cedar,30,0,OAT-1,6500,1\n';
  const preview=await h.api('/api/barrow/imports/preview',{csv});await h.api('/api/barrow/imports/apply',{csv,fingerprint:preview.fingerprint});
  const before=await archive(h);
@@ -172,7 +175,8 @@ test('ACC-004: profile, hold and closure preserve buyer history and refuse new c
 });
 
 test('ACC-004: duplicate companies require an exact recorded review; imports show duplicates without reassigning history', async t => {
- const h = await installation(); t.after(() => h.close());
+ const pier = await installation({ pier: true }); t.after(() => pier.close()); await stock(pier);
+ const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
  const original = await h.command('account.save', { id: 'cedar', value: accountValue('pier-cedar') });
  const value = { ...accountValue('pier-other', 'second@example.test'), name: '  CEDAR   STREET PANTRY  '.trim() };
  const unreviewed = await h.command('account.save', { id: 'second', value }, { status: 409 });

@@ -9,10 +9,14 @@ import { importError, stableId, validateAccountValue } from './validation';
 import { accountTargets } from './targets';
 import { duplicateCompany } from '../account-profile';
 import { stored } from '../../modules/import-kit/src/d1/jobs';
+import { commercialAuditEvent } from '../audit-event';
+import { approvalReason, reconciliation } from './reconcile';
 
 export type AccountImportInput = { csv: string; namespace?: string };
+/** The connected Pier catalog's active SKUs, or null when Pier could not be read (the check then refuses apply). */
+export type PierSkus = Set<string> | null;
 
-async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImportInput) {
+async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImportInput, skus: PierSkus) {
   await authorizeAccountImport(db, actor);
   const source = accountImportSource(input.csv, input.namespace);
   // A source identity names one immutable export. Account target IDs remain the
@@ -23,6 +27,8 @@ async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImp
   const existing = new Map(native.map(row => [row.targetId, row]));
   const incoming = new Map(source.records.map(record => [record.sourceId, validateAccountValue(record.payload)]));
   const companyNames = new Map([...native.map(row => [row.targetId, (row.value as Record<string, Json>).name as string] as const), ...[...incoming].map(([id, value]) => [id, value.name] as const)]);
+  const unknownSkus: string[] = [], planned: Parameters<typeof reconciliation>[1] = [];
+  if (!skus) source.diagnostics.push({ severity: 'error', code: 'IMPORT_SKU_UNCHECKED', message: 'Pier could not be reached, so price SKUs were not checked against its catalog. Reconnect Pier and run the dry run again before applying.' });
   const directory = native.map(row => ({ id: row.targetId, revision: row.revision, name: (row.value as Record<string, Json>).name, pierCustomerId: (row.value as Record<string, Json>).pierCustomerId }));
   for (const [index, record] of source.records.entries()) {
     record.namespace = namespace;
@@ -52,6 +58,11 @@ async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImp
       message: `Possible duplicate companies: ${[...new Set(duplicateReviews.map(row => row.id))].map(id => `${companyNames.get(id)} (${id})`).join(', ')}. Apply only after reviewing them as separate companies; sign-in emails and history stay separate.` });
     // The complete directory also fences newly inserted normalized-name matches
     // between the reviewed preview and a later publication batch.
+    for (const price of account.prices) if (skus && !skus.has(price.sku)) {
+      unknownSkus.push(price.sku);
+      source.diagnostics.push({ severity: 'error', code: 'IMPORT_SKU_UNKNOWN', sourceId: record.sourceId, kind: record.kind, location: record.location, message: `${account.name} (${record.sourceId}): SKU ${price.sku} is not an active item in the connected Pier catalog. Correct it in the source CSV.` });
+    }
+    planned.push({ account, previous: (previous ?? null) as { value: unknown } | null });
     record.payload = { account, previous: (previous ?? null) as unknown as Json, duplicateReviews, ...(index === 0 ? { reviewDirectory: directory } : {}) };
     record.payloadHash = sha256(canonicalJson(record.payload));
   }
@@ -63,15 +74,15 @@ async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImp
         ...(payload.previous ? { expectedRevision: payload.previous.revision } : {}) }] };
     },
   }, context);
-  return { plan, context };
+  return { plan, context, reconciliation: reconciliation([...incoming.values()], planned, [...new Set(unknownSkus)], Boolean(skus)) };
 }
 
-export async function dryRunAccountImport(db: D1Database, actor: ImportActor, input: AccountImportInput) {
-  const { plan } = await preparePlan(db, actor, input);
-  return { plan, fingerprint: plan.fingerprint, counts: plan.counts, diagnostics: plan.diagnostics };
+export async function dryRunAccountImport(db: D1Database, actor: ImportActor, input: AccountImportInput, skus: PierSkus) {
+  const { plan, reconciliation } = await preparePlan(db, actor, input, skus);
+  return { plan, fingerprint: plan.fingerprint, counts: plan.counts, diagnostics: plan.diagnostics, reconciliation };
 }
 
-export async function applyAccountImport(db: D1Database, actor: ImportActor, input: AccountImportInput & { fingerprint: string }) {
+export async function applyAccountImport(db: D1Database, actor: ImportActor, input: AccountImportInput & { fingerprint: string }, skus: PierSkus) {
   await authorizeAccountImport(db, actor);
   if (typeof input.fingerprint !== 'string' || !/^[a-f0-9]{64}$/.test(input.fingerprint)) importError('IMPORT_APPROVAL', 'Supply the exact fingerprint approved after dry-run.');
   const source = accountImportSource(input.csv, input.namespace);
@@ -86,11 +97,14 @@ export async function applyAccountImport(db: D1Database, actor: ImportActor, inp
     context.storage.targets = accountTargets(false, { plan: retained.plan, jobId: prior.id, actorId: actor.id });
     return resumeD1Import(prior.id, context);
   }
-  const prepared = await preparePlan(db, actor, input);
+  const prepared = await preparePlan(db, actor, input, skus);
   if (prepared.plan.fingerprint !== input.fingerprint) importError('IMPORT_REVIEW_CHANGED', 'The source or account state changed. Dry-run and approve the new fingerprint.');
   if (prepared.plan.diagnostics.some(diagnostic => diagnostic.severity === 'error')) importError('IMPORT_DIAGNOSTICS', 'Resolve all dry-run errors before applying.');
   // Recheck the reviewed before-images immediately before creating custody.
   // Batch publication additionally fences each complete native snapshot.
+  // The owner/admin's approval of this exact fingerprint and its reconciliation is recorded before custody begins.
+  const approval = commercialAuditEvent(actor.id, `import:${input.fingerprint}`, 'import.approved', { revision: input.fingerprint, source: 'import.apply', reason: approvalReason(input.fingerprint, prepared.reconciliation) });
+  await db.batch([db.prepare(approval.sql).bind(...approval.params)]);
   const job = await createD1ImportJob(prepared.plan, context);
   context.storage.targets = accountTargets(false, { plan: prepared.plan, jobId: job.id, actorId: actor.id });
   return applyD1ImportBatches(job.id, context);

@@ -12,10 +12,15 @@ import { documentResponse } from './documents'
 import { orderTimeline } from './timeline'
 import { diagnostics } from './diagnostics'
 import { orderHistory } from './reorders'
-import { catalogue, pierConfigured } from './pier'
+import { catalogue, pierConfigured, pierState } from './pier'
 import { invoiceCsv } from './invoice'
 import { Problem,fail,requireSupplier,supplier } from './model'
-import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport } from './imports'
+import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport,type PierSkus } from './imports'
+/** MOVE-007: read-only SKU check of the connected Pier catalog; null when Pier cannot be read. */
+async function pierSkus(env:Bindings):Promise<PierSkus> {
+ try { const state=await pierState(env); return Array.isArray(state?.items)?new Set(state.items.filter((item:any)=>!item.archived).map((item:any)=>String(item.sku))):null }
+ catch(error) { if(error instanceof Problem) return null; throw error }
+}
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}})
 export async function barrowResponse(request:Request,original:Bindings):Promise<Response|null> {
  const url=new URL(request.url),path=url.pathname
@@ -59,8 +64,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path.startsWith('/api/barrow/imports')) {
    requireSupplier(actor)
    if(path==='/api/barrow/imports'&&request.method==='GET') return json({jobs:await listAccountImports(env.DB,actor)})
-   if(path==='/api/barrow/imports/preview'&&request.method==='POST') return json(await dryRunAccountImport(env.DB,actor,await boundedJson(request,1000000)))
-   if(path==='/api/barrow/imports/apply'&&request.method==='POST') return json(await applyAccountImport(env.DB,actor,await boundedJson(request,1000000)))
+   if(path==='/api/barrow/imports/preview'&&request.method==='POST') return json(await dryRunAccountImport(env.DB,actor,await boundedJson(request,1000000),await pierSkus(env)))
+   if(path==='/api/barrow/imports/apply'&&request.method==='POST') return json(await applyAccountImport(env.DB,actor,await boundedJson(request,1000000),await pierSkus(env)))
    const match=/^\/api\/barrow\/imports\/([^/]+)(\/undo)?$/.exec(path)
    if(match && match[2] && request.method==='POST') return json(await undoAccountImport(env.DB,actor,match[1]))
    if(match && !match[2] && request.method==='GET') return json(await getAccountImport(env.DB,actor,match[1]))

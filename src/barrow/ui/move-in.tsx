@@ -5,7 +5,9 @@ import { JsonDetail, Notice } from './primitives'
 import { ImportJournal, type Journal } from './import-journal'
 import { Dialog } from './dialog'
 
-interface Preview { plan: ImportPlan; fingerprint: string; counts: ImportPlan['counts']; diagnostics: Diagnostic[] }
+interface Totals { accounts: number; prices: number; unitCentsUsd: number; minimumCentsUsd: number }
+interface Reconciliation { source: Totals; planned: Totals & { create: number; update: number; unchanged: number }; matches: boolean; rejectedColumns: string[]; skuCheck: string; unknownSkus: string[] }
+interface Preview { plan: ImportPlan; fingerprint: string; counts: ImportPlan['counts']; diagnostics: Diagnostic[]; reconciliation: Reconciliation }
 
 export function MoveIn({ reload }: { reload: () => Promise<void> }) {
   const [csv, setCsv] = useState('')
@@ -77,6 +79,11 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
     <div className="br-card br-stack"><h2><span className="br-step-number">2.</span> Review & apply</h2>
       {!preview && <p>Run a dry run to review the account changes before applying them.</p>}
       {preview && <>
+      <div className="br-table-wrap"><table><caption>Reconciliation: source against planned Barrow records (USD cents)</caption>
+        <thead><tr><th scope="col">Measure</th><th scope="col">Source CSV</th><th scope="col">Planned in Barrow</th></tr></thead>
+        <tbody>{(['accounts', 'prices', 'unitCentsUsd', 'minimumCentsUsd'] as const).map(key => <tr key={key}><th scope="row">{({ accounts: 'Accounts', prices: 'Price rows', unitCentsUsd: 'Sum of unit prices', minimumCentsUsd: 'Sum of order minimums' })[key]}</th><td>{preview.reconciliation.source[key]}</td><td>{preview.reconciliation.planned[key]}</td></tr>)}</tbody>
+      </table></div>
+      <p>{preview.reconciliation.matches ? 'Source and planned totals match.' : 'Source and planned totals differ; review before applying.'} {preview.reconciliation.planned.create} new, {preview.reconciliation.planned.update} updated, {preview.reconciliation.planned.unchanged} unchanged. Rejected columns: {preview.reconciliation.rejectedColumns.length ? preview.reconciliation.rejectedColumns.join(', ') : 'none (unknown columns refuse the file)'}. SKU check: {preview.reconciliation.skuCheck}{preview.reconciliation.unknownSkus.length ? `; unknown: ${preview.reconciliation.unknownSkus.join(', ')}` : ''}.</p>
       <dl className="br-counts">{Object.entries(preview.counts).filter(([, value]) => typeof value === 'number').map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl>
       {preview.diagnostics.length ? <ul className="br-diagnostics">{preview.diagnostics.map((diagnostic, index) => <li key={index}><strong>{diagnostic.severity}: {diagnostic.code}</strong><p>{diagnostic.message}</p>{diagnostic.location?.row && <small>CSV row {diagnostic.location.row}</small>}</li>)}</ul> : <p>No diagnostics reported.</p>}
       {duplicateReview && <Notice><p>Review the possible duplicates as separate companies. Preserve their separate accounts and history.</p><button type="button" className="br-secondary" disabled={busy || !!applied} aria-pressed={duplicatesReviewed} onClick={() => setDuplicatesReviewed(current => !current)}>{duplicatesReviewed ? 'Separate companies confirmed' : 'Confirm separate companies in this import'}</button></Notice>}

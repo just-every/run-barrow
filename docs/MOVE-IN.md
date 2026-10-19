@@ -41,8 +41,16 @@ once per account. Files are at most 256 KiB, 1000 account/price rows and 200
 distinct accounts. BOM, CRLF and ordinary CSV quoting are supported. Unknown
 columns, mismatched counts, conflicting duplicates and broken quotes reject.
 
+Every dry run reconciles the source against the planned Barrow records:
+accounts, price rows and the USD sums of unit-price and order-minimum cents on
+both sides, with new, updated and unchanged accounts. Each price SKU must be an
+active item in the connected Pier catalog; an unknown SKU is an error naming the
+account and SKU, and when Pier cannot be read the dry run says the check did not
+run and apply refuses. Apply records the owner/admin's approval of the exact
+fingerprint, with those counts and sums, in the commercial audit (MOVE-007).
+
 The fixture `fixtures/trade-accounts.csv` is illustrative input for a human
-move-in; it is never loaded automatically and creates no sign-in grants,
+move-in (its SKUs must exist in the connected Pier); it is never loaded automatically and creates no sign-in grants,
 invitations, orders, messages, background jobs or Pier mutations.
 
 ## Native integration
