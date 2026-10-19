@@ -59,7 +59,7 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   await h.api('/api/barrow/agent-token/revoke',{});await h.api('/api/barrow/state',undefined,{...agent,status:401});
  });
  await t.test('invoice export is stable exact-cent snapshot on agreed terms',async()=>{
-  const first=await (await h.request(`/api/barrow/invoices/${order.id}.csv`,{as:buyer})).text();assert.ok(first.includes('117000'));assert.ok(first.includes('6500'));assert.ok(first.includes('PO-October'));
+  const first=await (await h.request(`/api/barrow/invoices/${order.id}.csv`,{as:buyer})).text();assert.ok(first.includes('117000'));assert.ok(first.includes('6500'));assert.ok(first.includes('PO-October'));assert.ok(first.includes('"USD"'));
   const days=(Date.parse(order.invoice.dueAt)-Date.parse(order.invoice.issuedAt))/86400000;assert.equal(days,30);
   await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,termsDays:7,prices:[{sku:'OAT-1',unitCents:9900,minQty:1}]}});
   const second=await (await h.request(`/api/barrow/invoices/${order.id}.csv`,{as:buyer})).text();assert.equal(first,second);

@@ -60,17 +60,23 @@
   --br-rule:#e6e8ef;
   --br-rule-strong:#d7dae6;
   --br-row:#f5f6fa;
+  --br-canvas:#f8f9fc;
+  --br-amber-tint:#fffaeb;
+  --br-amber-line:#f4cf74;
+  --br-amber-pill:#fff0c4;
+  --br-red-tint:#fff4f1;
   --br-shadow:0 1px 2px rgba(13,13,64,.05),0 10px 30px -12px rgba(13,13,64,.16);
   --br-shadow-float:0 2px 4px rgba(13,13,64,.06),0 18px 40px -16px rgba(13,13,64,.22);
 }
 /* The shared frame supplies markup, security and behavior; only its theme changes. */
-html.rer-themed body{display:block;place-items:normal;padding:96px 20px 64px;font-size:16px;line-height:1.5;background:var(--rer-page)}
-html.rer-themed main{margin:0 auto;padding:36px;max-width:480px;border:1px solid var(--br-rule);border-radius:16px;box-shadow:var(--br-shadow)}
+html.rer-themed body{display:block;place-items:normal;padding:96px 20px 64px;font-size:16px;line-height:1.5;background:var(--br-canvas)}
+html.rer-themed main{margin:0 auto;padding:36px;max-width:480px;background:#fff;border:1px solid var(--br-rule);border-radius:16px;box-shadow:var(--br-shadow)}
 html.rer-themed .brand,html.rer-themed .rer-brand{font:var(--rer-wordmark-weight) 26px/1.2 var(--rer-font-heading);letter-spacing:var(--rer-wordmark-tracking);margin-bottom:28px}
 html.rer-themed .brand::before,html.rer-themed .rer-brand::before{width:34px;height:34px}
 html.rer-themed h1{font-family:var(--rer-font-heading);font-weight:800;font-size:40px;line-height:1.02;letter-spacing:-.025em;word-spacing:.04em;margin-bottom:18px}
 html.rer-themed button{border-radius:var(--rer-button-radius);font-weight:600;min-height:48px}
-html.rer-themed input:not([type=checkbox]):not([type=hidden]){border-radius:10px;min-height:48px}
+html.rer-themed input:not([type=checkbox]):not([type=hidden]),html.rer-themed select,html.rer-themed textarea{border:1px solid var(--br-rule-strong);border-radius:10px;min-height:48px;transition:border-color .15s,box-shadow .15s}
+html.rer-themed input:not([type=checkbox]):not([type=hidden]):focus,html.rer-themed select:focus,html.rer-themed textarea:focus{outline:none;border-color:var(--br-ultramarine);box-shadow:0 0 0 3px rgba(31,63,224,.16)}
 html.rer-themed input[type=checkbox]{accent-color:var(--br-ultramarine)}
 html.rer-themed label,html.rer-themed dt{font-size:14px}
 html.rer-themed dl{padding:20px 0;border-block:1px solid var(--br-rule)}

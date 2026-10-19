@@ -60,9 +60,9 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
   return <div className="br-stack">
     <p>Bring existing trade accounts and agreed prices into Barrow. Review a dry run before applying any changes.</p>
     {error && <Notice error>{error}</Notice>}{notice && <Notice>{notice}</Notice>}
-    <div className="br-panel br-stack">
+    <div className="br-card br-stack">
       <div className="br-heading-row"><h2><span className="br-step-number">1.</span> Add your CSV</h2><a href="/fixtures/trade-accounts.csv" download>Download example CSV</a></div>
-      <p className="br-small">Columns: accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty. Use lowercase emails and repeat account details for each SKU price.</p>
+      <p className="br-quiet-text">Columns: accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty. Use lowercase emails and repeat account details for each SKU price.</p>
       <label>Choose a CSV file<input type="file" accept=".csv,text/csv" disabled={busy} onChange={event => {
         const file = event.target.files?.[0]
         if (file) void act(async () => { const value = await file.text(); changed(); setCsv(value) })
@@ -72,7 +72,7 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
       <div className="br-actions"><button disabled={busy || !csv.trim()} onClick={() => void act(dryRun)}>Run dry run</button></div>
       {resume && <Notice>Keep this exact CSV and reviewed fingerprint to resume job {applied.id}. Changing the source requires a new dry run.</Notice>}
     </div>
-    <div className="br-panel br-stack"><h2><span className="br-step-number">2.</span> Review & apply</h2>
+    <div className="br-card br-stack"><h2><span className="br-step-number">2.</span> Review & apply</h2>
       {!preview && <p>Run a dry run to review the account changes before applying them.</p>}
       {preview && <>
       <dl className="br-counts">{Object.entries(preview.counts).filter(([, value]) => typeof value === 'number').map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl>

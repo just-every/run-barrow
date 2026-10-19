@@ -42,7 +42,7 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
       <label>Pier customer ID<input name="pierCustomerId" required defaultValue={account?.value.pierCustomerId} /></label>
       <label>Payment terms (days)<input name="termsDays" type="number" min="0" max="365" step="1" required defaultValue={account?.value.termsDays ?? 30} /></label>
       <label>Minimum order (cents)<input name="minimumCents" type="number" min="0" step="1" required defaultValue={account?.value.minimumCents ?? 0} /></label>
-      <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => `${price.sku},${price.unitCents},${price.minQty}`).join('\n')} placeholder="SKU,unitCents,minQty" spellCheck={false} /><small>One row per SKU, with no header. For example: COFFEE-1KG,2400,6 means $24.00 each, minimum quantity 6. Only agreed SKUs appear in this account’s catalog.</small></label>
+      <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => `${price.sku},${price.unitCents},${price.minQty}`).join('\n')} placeholder="SKU,unitCents,minQty" spellCheck={false} /><small>One row per SKU, with no header. For example: JV-2214-S,4800,2 means $48.00 each, minimum quantity 2. Only agreed SKUs appear in this account’s catalog.</small></label>
     </fieldset>
     <div className="br-actions"><button disabled={busy}>{busy ? 'Saving…' : 'Save account'}</button></div>
   </form>

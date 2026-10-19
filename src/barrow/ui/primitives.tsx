@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import type { Account } from './types'
 
-export function Empty({ title, children }: { title: string; children: ReactNode }) {
-  return <div className="br-empty"><span className="br-empty-motif" aria-hidden="true" /><h3>{title}</h3><p>{children}</p></div>
+// A small size matrix, one cell filled: the pad's own motif for a place with nothing in it yet.
+export function Empty({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
+  return <div className="br-empty"><svg className="br-empty-motif" viewBox="0 0 92 52" aria-hidden="true">{[0, 1, 2, 3].flatMap(column => [0, 1].map(row => <rect key={`${column}-${row}`} x={2 + column * 23} y={2 + row * 25} width="19" height="21" rx="4" className={column === 1 && row === 0 ? 'br-empty-filled' : undefined} />))}</svg><h3>{title}</h3><p>{children}</p>{actions && <div className="br-actions br-empty-actions">{actions}</div>}</div>
 }
 
 export function Notice({ children, error = false }: { children: ReactNode; error?: boolean }) {

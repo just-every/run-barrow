@@ -2,12 +2,20 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { HydrationUnit } from '../../base/hydration/unit'
 import { request, errorMessage } from './api'
 import { Accounts } from './accounts'
-import { CatalogueView } from './catalogue'
+import { OrderPad } from './order-pad'
 import { Orders } from './orders'
 import { MoveIn } from './move-in'
 import { DataTools } from './data'
-import { AccountPicker, Empty, Notice } from './primitives'
-import type { BarrowState } from './types'
+import { Empty, Notice } from './primitives'
+import type { BarrowState, Order } from './types'
+import { stale } from './types'
+
+const newestFirst = (orders: Order[]) => [...orders].sort((a, b) => b.preparedAt.localeCompare(a.preparedAt))
+// The pad opens where work waits: the newest draft whose prices moved, else the newest draft, else the first account.
+function waiting(state: BarrowState) {
+  const drafts = newestFirst(state.orders.filter(order => order.status === 'draft'))
+  return drafts.find(order => stale(order, state.accounts)) ?? drafts[0]
+}
 
 export function BarrowApp() {
   const [state, setState] = useState<BarrowState | null>(null)
@@ -20,17 +28,21 @@ export function BarrowApp() {
   const loaded = useRef(false)
   const [tab, setTab] = useState('')
   const [accountId, setAccountId] = useState('')
-  const [preparing, setPreparing] = useState(false)
+  const [draftId, setDraftId] = useState('')
   const supplier = state?.actor.role === 'owner' || state?.actor.role === 'admin'
-  const tabs = supplier ? ['Accounts', 'Orders', 'Move in', 'Data'] : ['Catalog', 'Orders']
+  const pad = supplier ? 'Order pad' : 'Catalog'
+  const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data'] : [pad, 'Orders']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const selected = state?.accounts.find(account => account.id === accountId)
+  const drafts = newestFirst(state?.orders.filter(order => order.status === 'draft' && order.accountId === accountId) ?? [])
   const reload = useCallback(async () => {
     const first = !loaded.current
     loaded.current = true
     const next = await request<BarrowState>('/api/barrow/state', undefined, first)
     setState(next)
-    setAccountId(current => next.accounts.some(account => account.id === current) ? current : next.accounts[0]?.id ?? '')
+    const open = first ? waiting(next) : undefined
+    setAccountId(current => next.accounts.some(account => account.id === current) ? current : open?.accountId ?? next.accounts[0]?.id ?? '')
+    setDraftId(current => open?.id ?? (next.orders.some(order => order.id === current && order.status === 'draft') ? current : ''))
   }, [])
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -68,32 +80,35 @@ export function BarrowApp() {
       window.location.assign('/')
     } catch (error) { setError(errorMessage(error)); setSigningOut(false) }
   }
+  const go = (next: string) => { setTab(next); setNotice('') }
+  const openPad = (id: string, draft = '') => { setAccountId(id); setDraftId(draft); go(pad) }
 
   return <div className="barrow">
-    <div className="br-chrome"><HydrationUnit><header className="br-header">
-      <a href="/app" className="br-brand"><span className="br-mark" aria-hidden="true" /><span><span data-rer-name>Barrow</span><small>Wholesale, together.</small></span></a>
+    <HydrationUnit><header className="br-top">
+      <a href="/app" className="br-brand"><img className="br-mark" src="/brand/mark.svg" alt="" width="26" height="26" /><span data-rer-name>Barrow</span></a>
+      <nav className="br-nav" aria-label="Barrow pages">{state && tabs.map(item => <button key={item} aria-current={activeTab === item ? 'page' : undefined} onClick={() => go(item)}>{item}</button>)}</nav>
       <div className="br-session">{state && <><span className="br-email">{state.actor.email}</span><span className="br-badge">{supplier ? 'Supplier' : 'Trade customer'}</span></>}
         <form method="post" action="/auth/signout" onSubmit={event => { event.preventDefault(); void signOut() }}><button className="br-quiet" disabled={signingOut || busy}>{signingOut ? 'Signing out…' : 'Sign out'}</button></form>
       </div>
     </header></HydrationUnit>
-    <HydrationUnit><nav className="br-nav" aria-label="Barrow pages">{state && tabs.map(item => <button key={item} aria-current={activeTab === item ? 'page' : undefined} onClick={() => { setTab(item); setNotice('') }}>{item}</button>)}</nav></HydrationUnit></div>
-    <div className="br-awning" aria-hidden="true" />
-    <main id="main-content" className="br-main" aria-busy={loading || busy}>
+    <main id="main-content" className={`br-main${activeTab === pad && selected ? ' br-main-pad' : ''}`} aria-busy={loading || busy}>
       <HydrationUnit><section>
         {error && <Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice>}
         {notice && <Notice>{notice}</Notice>}
-        {!state && loading && <p role="status">Loading your wholesale workspace…</p>}
+        {!state && loading && <p role="status" className="br-loading">Loading your wholesale workspace…</p>}
         {state && <>
-          <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1></div>
-            <span className={`br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
-          </div>
           {!state.connection.configured && <Notice>Live stock and reservations need a Pier connection. {supplier ? 'Configure Pier in the installation settings before taking orders.' : 'Contact your supplier to enable ordering.'}</Notice>}
-          {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => { setAccountId(id); setPreparing(true); setTab('Orders') }} />}
-          {activeTab === 'Catalog' && (selected ? <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => setTab('Orders')} /> : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>)}
-          {activeTab === 'Orders' && <>
-            {supplier && <details className="br-panel br-prepare" open={preparing} onToggle={event => setPreparing(event.currentTarget.open)}><summary>Prepare an order</summary><p>Choose a trade account to use its agreed prices and terms.</p><AccountPicker accounts={state.accounts} value={accountId} onChange={setAccountId} />{selected && <CatalogueView key={selected.id} account={selected} run={run} busy={busy} onPrepared={() => { setPreparing(false); setTab('Orders') }} />}</details>}
-            <Orders orders={state.orders} supplier={supplier} busy={busy} run={run} />
-          </>}
+          {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1></div>
+            <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
+          </div>}
+          {activeTab === pad && (selected
+            ? <OrderPad key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} drafts={drafts} draft={drafts.find(order => order.id === draftId)} draftCount={state.orders.filter(order => order.status === 'draft').length} run={run} busy={busy}
+                onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />
+            : <div className="br-page-empty">{supplier
+              ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
+              : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
+          {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
+          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} busy={busy} run={run} />}
         </>}

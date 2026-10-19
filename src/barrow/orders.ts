@@ -44,7 +44,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
   if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')
   const id=crypto.randomUUID(),revision=crypto.randomUUID()
-  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',lines,totalCents,termsDays:selected.value.termsDays,status:'draft',preparedBy:actorLabel(actor),preparedAt:new Date().toISOString(),revision}
+  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',lines,totalCents,currency:'USD',termsDays:selected.value.termsDays,status:'draft',preparedBy:actorLabel(actor),preparedAt:new Date().toISOString(),revision}
   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(selected.id,selected.revision),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared')])
   return order
  }

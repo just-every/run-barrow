@@ -1,0 +1,154 @@
+/* The order pad (desk pick A): a large style card beside the size matrix, the price change settled in its own row,
+   and a sticky footer with the running total. The reference field rides in the footer's right end on wide screens. */
+.br-pad{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr) auto;grid-template-areas:"head head send" "card matrix matrix" "foot foot foot";gap:16px 14px;align-items:start}
+.br-pad-head{grid-area:head;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;min-width:0}
+.br-pad-title{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+.barrow .br-pad-title h1{font-size:32px}
+.br-chips{display:flex;gap:8px;flex-wrap:wrap}
+.br-pad-pickers{order:3;flex-basis:100%;display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap}
+.br-pad-pickers label{display:flex;align-items:center;gap:8px;font-weight:500}
+.barrow .br-pad-pickers select{width:auto;min-width:200px;max-width:420px;min-height:36px;padding-block:6px;font-size:14px}
+.br-pad-context{display:flex;align-items:center;font-size:13px;color:var(--br-body)}
+.br-pad-find{position:relative}
+.barrow .br-sku input{width:250px;padding-left:38px;background:var(--rer-surface) url('/barrow/search.svg') 12px center/18px no-repeat}
+.br-sku-message{position:absolute;top:calc(100% + 4px);right:0;z-index:5;padding:6px 10px;border-radius:8px;background:var(--br-ink);color:var(--rer-accent-text);font-size:12px;white-space:nowrap}
+.br-pad-send{grid-area:send;display:grid;justify-items:end;gap:6px;max-width:260px}
+.barrow .br-pad-send button{min-height:48px;padding:12px 22px;font-size:16px}
+.br-pad-send p{text-align:right}
+.br-pad-status{grid-column:1/-1}
+.br-pad-status.br-card{color:var(--br-body)}
+/* The large style card. */
+.br-style-card{grid-area:card;position:sticky;top:88px;padding:10px 10px 20px}
+.br-style-figure{margin:0;display:grid;place-items:center;aspect-ratio:1/1;border-radius:10px;background:linear-gradient(180deg,var(--br-row),var(--br-wash));overflow:hidden}
+.br-flat{display:grid;place-items:center;flex:none;width:72px;height:80px;border-radius:8px;background:var(--br-row);overflow:hidden}
+.br-flat img{display:block;width:84%;height:88%;object-fit:contain}
+.br-style-figure .br-flat-large{width:100%;height:100%;background:transparent}
+.br-flat-large img{width:74%;height:86%}
+.br-flat-code{font:700 15px/1 var(--rer-font-body);color:var(--br-body)}
+.br-style-head{padding:16px 10px 0}
+.br-style-head>.br-flat{display:none}
+.barrow .br-style-head h2{font:500 26px/1.2 var(--rer-font-body);letter-spacing:-.015em}
+.br-style-price{margin-top:6px!important;font-size:18px}
+.br-style-price strong{font-weight:600}.br-style-price span{color:var(--br-body)}
+.br-style-sku{margin-top:4px!important;font:400 12px/1.4 var(--rer-font-mono);color:var(--br-soft)}
+.br-style-stock{padding:16px 10px 0}
+.br-size-stock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 12px}
+.br-size-stock div{padding:6px 4px;border:1px solid var(--br-rule);border-radius:8px;text-align:center}
+.br-size-stock dt{font-size:12px;color:var(--br-soft)}.br-size-stock dd{margin:0;font-size:16px;font-weight:600}
+/* The size matrix. */
+.br-matrix-card{grid-area:matrix;padding:6px 10px 0}
+.br-matrix-wrap{overflow-x:auto}
+.br-matrix{width:100%;border-collapse:separate;border-spacing:0;font-size:15px}
+.br-matrix thead th{height:48px;padding:0 4px;border-bottom:1px solid var(--br-rule);color:var(--br-body);font-size:14px;font-weight:500;text-align:center;white-space:nowrap}
+.br-matrix th.br-col-style{text-align:left;padding-left:10px}
+.br-matrix thead .br-col-price{text-align:left}
+.br-matrix thead .br-col-line{text-align:right;padding-right:16px}
+.br-matrix tbody th,.br-matrix tbody td{padding:14px 4px;border-bottom:1px solid var(--br-rule);vertical-align:middle;text-align:center}
+.br-matrix tbody tr:last-child>*{border-bottom:0}
+.br-matrix tbody th{text-align:left;padding-left:6px;font-weight:400}
+.br-col-style{width:30%;min-width:210px}
+.br-matrix td.br-col-price{text-align:left;font-size:17px;white-space:nowrap;padding-right:12px}
+.br-col-size{width:64px}
+.br-matrix td.br-col-units{font-size:18px;width:64px}
+.br-matrix td.br-col-line{text-align:right;padding-right:16px;font:700 25px/1 var(--rer-font-heading);letter-spacing:-.01em;white-space:nowrap;width:132px}
+.barrow .br-style-pick{display:flex;align-items:center;justify-content:flex-start;gap:12px;width:100%;min-height:0;padding:4px;border:0;border-radius:10px;background:transparent;color:var(--br-ink);font-weight:400;text-align:left;box-shadow:none}
+.barrow .br-style-pick:hover{background:var(--br-row);border-color:transparent}
+.br-style-name{display:block;font:500 17px/1.3 var(--rer-font-body);color:var(--br-ink)}
+.br-style-note{display:block;margin-top:3px;font-size:14px;color:var(--br-body)}
+.br-style-kept{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;background:var(--br-green-tint);color:var(--br-green-ink);font-size:12px;font-weight:500}
+.br-selected>th{box-shadow:inset 3px 0 0 var(--br-ultramarine)}
+.br-selected .br-flat{box-shadow:0 0 0 2px var(--br-ultramarine)}
+.barrow .br-cell{display:block;width:56px;height:56px;min-height:0;margin:0 auto;padding:0;border:1px solid var(--br-rule);border-radius:6px;background:var(--br-row);color:var(--br-ink);font:500 18px/1 var(--rer-font-body);text-align:center;-moz-appearance:textfield;appearance:textfield}
+.br-cell::-webkit-inner-spin-button,.br-cell::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.barrow .br-cell::placeholder{color:var(--br-faint)}
+.barrow .br-cell-filled{background:var(--rer-surface);border-color:var(--br-rule-strong);box-shadow:none}
+.barrow .br-cell:focus{background:var(--rer-surface);border-color:var(--br-ultramarine);box-shadow:0 0 0 3px var(--br-wash-strong)}
+.barrow .br-cell[aria-invalid]{border-color:var(--br-red);background:var(--br-red-tint)}
+.barrow .br-cell-none{display:grid;place-items:center;background:var(--br-row);border-color:var(--br-rule);color:var(--br-faint);cursor:default}
+/* The price change, settled in its own row: amber tint around the row and its note. */
+.br-changed>th,.br-changed>td{background:var(--br-amber-tint);border-top:1px solid var(--br-amber-line);border-bottom:0!important}
+.br-changed>th{border-left:1px solid var(--br-amber-line);border-top-left-radius:8px}
+.br-changed>td:last-child{border-right:1px solid var(--br-amber-line);border-top-right-radius:8px}
+.br-changed .br-cell-filled{border-color:var(--br-rule-strong)}
+.br-matrix .br-change-row>td{padding:0 16px 14px 100px;text-align:left;background:var(--br-amber-tint);border:1px solid var(--br-amber-line);border-top:0;border-radius:0 0 8px 8px}
+.br-change-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:12px;margin-top:12px}
+.br-change-actions p{flex:1 1 200px;font-size:13px;color:var(--br-body)}
+.br-change-actions button{min-height:48px;white-space:nowrap;font-weight:500}
+.br-none{color:var(--br-faint);font:400 18px/1 var(--rer-font-body)}
+.br-matrix-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 6px 10px;border-top:1px solid var(--br-rule)}
+/* The footer: the running total always in view. */
+.br-pad-foot{grid-area:foot;position:sticky;bottom:12px;z-index:10;display:flex;align-items:center;gap:18px;flex-wrap:wrap;min-height:104px;padding:18px 310px 18px 22px;background:var(--rer-surface);border:1px solid var(--br-rule);border-radius:14px;box-shadow:var(--br-shadow)}
+.br-pad-total{font:700 44px/1.1 var(--rer-font-heading);letter-spacing:-.02em;color:var(--br-ink);white-space:nowrap}
+.br-pad-terms{display:inline-flex;align-items:center;gap:10px;padding-left:22px;border-left:1px solid var(--br-rule-strong);font-size:16px;font-weight:500;white-space:nowrap}
+.br-pad-foot .br-hand{font-size:22px}
+.br-pad-terms svg{width:22px;height:22px;fill:none;stroke:var(--br-ultramarine);stroke-width:1.8;stroke-linecap:round}
+.br-pad-ref{grid-area:foot;justify-self:end;align-self:center;position:sticky;bottom:28px;z-index:11;width:270px;margin-right:22px}
+.barrow .br-pad-ref input{border-radius:999px;padding-inline:18px;border-color:var(--br-rule-strong)}
+@media(max-width:1400px){
+ .br-pad{grid-template-columns:minmax(280px,320px) minmax(0,1fr) auto}
+ .br-col-style{min-width:190px}.br-col-size{width:58px}
+ .barrow .br-cell{width:50px;height:52px;font-size:17px}
+ .br-flat{width:64px;height:76px}
+ .br-matrix td.br-col-line{font-size:23px;width:112px}.br-matrix td.br-col-price{font-size:15px}
+ .br-matrix .br-change-row>td{padding-left:82px}
+ .br-pad-total{font-size:36px}.br-pad-foot{gap:18px}
+}
+@media(max-width:1100px){
+ .br-pad{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"head send" "card card" "matrix matrix" "foot foot"}
+ .br-style-card{position:static;display:flex;flex-wrap:wrap;gap:16px;padding:14px}
+ .br-style-figure{display:none}.br-style-head{display:flex;gap:14px;padding:0;flex:1 1 280px}.br-style-head>.br-flat{display:grid}
+ .br-style-stock{padding:0;flex:1 1 320px}.br-size-stock{grid-template-columns:repeat(7,minmax(0,1fr))}
+ .br-pad-foot{flex-wrap:wrap;padding-right:26px}.br-pad-ref{position:static;grid-area:auto;grid-column:1/-1;justify-self:stretch;width:auto;margin:0}
+}
+/* 390: the matrix stays one full-width card of size columns plus Units; each style is a block with Line $ under its name. */
+@media(max-width:720px){
+ .br-pad{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "card" "matrix" "ref" "send" "foot";gap:12px}
+ .br-pad-head{flex-direction:column;align-items:stretch;gap:12px}
+ .barrow .br-pad-title h1{font-size:28px}
+ .br-chip{white-space:normal}
+ .br-pad-pickers{order:0;flex-direction:column;align-items:stretch;gap:10px}
+ .br-pad-pickers label{display:grid;gap:6px}
+ .barrow .br-pad-pickers select{width:100%;max-width:none;min-width:0;min-height:44px}
+ .barrow .br-sku input{width:100%}
+ .br-sku-message{position:static;margin-top:6px;white-space:normal}
+ .br-pad-send{max-width:none;justify-items:stretch}.br-pad-send p{text-align:left}
+ .br-style-card{padding:12px;gap:12px}.br-style-head{flex-basis:100%}
+ .barrow .br-style-head h2{font-size:21px}.br-style-price{font-size:16px}
+ .br-style-stock{flex-basis:100%;min-width:0}
+ .br-size-stock{display:flex;overflow-x:auto;gap:6px;margin:6px 0 8px}.br-size-stock div{flex:0 0 52px}
+ .br-matrix-card{padding:0}
+ .br-matrix,.br-matrix tbody{display:block}
+ .br-matrix thead tr,.br-matrix .br-style-row{display:grid;grid-template-columns:repeat(calc(var(--br-sizes) + 1),minmax(0,1fr));gap:4px;padding:0 10px}
+ .br-matrix thead{display:block;position:sticky;top:0;z-index:2;background:var(--rer-surface);border-bottom:1px solid var(--br-rule);border-radius:12px 12px 0 0}
+ .br-matrix thead th{height:38px;padding:0;border:0;font-size:13px}
+ .br-matrix thead .br-col-style,.br-matrix thead .br-col-price,.br-matrix thead .br-col-line{display:none}
+ .br-matrix .br-style-row{padding:12px 10px;border-bottom:1px solid var(--br-rule)}
+ .br-matrix tbody .br-style-row>*{padding:0;border:0;width:auto;min-width:0}
+ .br-matrix .br-style-row>th{grid-column:1/-1;grid-row:1}
+ .br-matrix .br-style-row>td.br-col-price{grid-column:1/-1;grid-row:2;align-self:center;padding-left:72px;font-size:14px}
+ .br-matrix .br-style-row>td.br-col-line{grid-column:1/-1;grid-row:2;justify-self:end;align-self:center;font-size:20px}
+ .br-matrix .br-style-row>td.br-col-size,.br-matrix .br-style-row>td.br-col-units{grid-row:3;align-self:center;margin-top:8px}
+ .br-matrix td.br-col-units{font-size:16px;font-weight:600}
+ .barrow .br-style-pick{gap:12px;padding:0}
+ .br-flat{width:60px;height:64px}
+ .barrow .br-cell{width:100%;min-width:36px;height:44px;font-size:16px}
+ .br-cell-none{height:44px}
+ .br-selected>th{box-shadow:none}.br-matrix .br-selected{box-shadow:inset 3px 0 0 var(--br-ultramarine)}
+ .br-matrix .br-changed{border:1px solid var(--br-amber-line);border-bottom:0;border-radius:12px 12px 0 0;background:var(--br-amber-tint)}
+ .br-matrix .br-changed>*{background:transparent;border:0!important}
+ .br-matrix .br-change-row{display:block}
+ .br-matrix .br-change-row>td{display:block;padding:0 12px 14px;border-radius:0 0 8px 8px}
+ .br-change-note{border-radius:12px;align-items:flex-start;font-size:13px;padding:8px 12px 8px 8px}
+ .br-change-actions{flex-direction:column;align-items:stretch;gap:8px}
+ .br-change-actions p{flex:auto}
+ .br-change-actions button{white-space:normal}
+.br-matrix-foot{flex-direction:column;align-items:flex-start;padding:10px 12px}
+ .br-pad-ref{grid-area:ref;position:static;width:auto;margin:0;justify-self:stretch}
+ .br-pad-foot{position:sticky;bottom:8px;gap:6px 10px;min-height:0;padding:10px 14px}
+ .br-pad-total{font-size:22px}
+ .br-pill{padding:5px 10px;font-size:12px}.br-pill-check{width:16px;height:16px;font-size:11px}
+ .br-pad-terms{padding-left:12px;font-size:13px}.br-pad-foot .br-hand{font-size:22px}
+.br-pad-terms svg{width:18px;height:18px}
+ .br-pad-foot .br-hand{font-size:17px;padding-bottom:3px}
+ .br-pad-terms{border-left:0;padding-left:0}
+}

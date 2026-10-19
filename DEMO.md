@@ -4,9 +4,15 @@
 link; `rer demo --stop` deletes that session's data. Normal `.wrangler/state` is
 unchanged. The nav and title say **Barrow Demo**, with no bar or outbox.
 
-The idempotent `src/demo.ts` hook inserts twelve Australian trade accounts and
-24 orders with agreed SKU prices, payment terms and invoice history. It builds
-on the Cedar Street Pantry fixture; dates are relative to the start time.
+The idempotent `src/demo.ts` hook tells one supplier's story: Juniper & Vale (apparel,
+Charleston SC) at Atlanta market week, dated as the story stood at Tue Oct 20, 2026,
+6:44 pm ET (`src/demo-data.ts`); stock observation times are the real clock. Twelve US stockists take USD prices for
+the Spring '27 styles (2214 Wrap Dress, 2219 Tee, 2223 Linen Shirt, 2227 Wide-Leg Pant,
+2236 Cardigan, 2241 Linen Pant), one SKU per style and size. Ten orders span the season:
+approved line-sheet and booth orders with invoices, one in review, and the evening's
+drafts, among them one an agent prepared and Palmetto & Pine's 1:30 pm draft, written at
+$22.00 for the 2219 Tee before the noon price update to $23.00 reached its price list.
+The order pad opens on that draft so the price change can be settled in its row.
 
 Base's demo guard permits public reads, while effects reaching people or accounts
 return success without sending. Barrow's private Pier integration uses

@@ -10,7 +10,7 @@ export function ImportJournal({ jobs, journal, busy, onOpen, onUndo, onResume }:
     <h2>Import journal</h2>
     {jobs.length === 0 ? <Empty title="No imports recorded">Applied imports will appear here with their progress and undo history.</Empty> :
       <div className="br-table-wrap"><table><caption className="br-sr-only">Account import jobs</caption><thead><tr><th scope="col">Job</th><th scope="col">Status</th><th scope="col">Progress</th><th scope="col">Journal</th></tr></thead><tbody>{jobs.map(job => <tr key={job.id}><th scope="row">{job.id}<small>{job.namespace}</small></th><td>{job.state}</td><td>{job.checkpoint} / {job.total}</td><td><button className="br-secondary" onClick={() => onOpen(job.id)} disabled={busy}>View</button></td></tr>)}</tbody></table></div>}
-    {journal && <div className="br-panel br-stack">
+    {journal && <div className="br-card br-stack">
       <div className="br-heading-row"><h3>Job {journal.job.id}</h3><span className="br-badge">{journal.job.state}</span></div>
       <p>{journal.job.checkpoint} / {journal.job.total} records processed · {journal.job.namespace}</p>
       {journal.job.error && <p role="alert">{journal.job.error}</p>}
