@@ -50,7 +50,7 @@ test('PRI-007: server admission rejects hidden items, undefined units, minimums 
  const awaitingApproval = await prepare([{ sku: 'OAT-1', quantity: 4 }], { reference: 'REVOKED-APPROVAL' });
  await h.command('order.submit', { orderId: awaitingApproval.id }, { as: buyer });
  const awaitingSubmission = await prepare([{ sku: 'OAT-1', quantity: 4 }], { reference: 'REVOKED-SUBMISSION' });
- assert.equal((await pier.request('/auth/signout', { method: 'POST' })).status, 303);
+ assert.equal((await pier.request('/auth/signout', { method: 'POST', body: {} })).status, 204);
  assert.equal((await h.command('order.submit', { orderId: awaitingSubmission.id }, { as: buyer, status: 503 })).error.code, 'PIER_UNAVAILABLE');
  assert.equal((await h.command('order.approve', { orderId: awaitingApproval.id }, { status: 503 })).error.code, 'PIER_UNAVAILABLE');
  const retained = (await h.api('/api/barrow/state')).orders;
