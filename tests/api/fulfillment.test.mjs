@@ -68,6 +68,12 @@ test('RPT-003: live Pier line fill, dispatch timeliness, open/aging backorders, 
  await h.command('order.cancel', { orderId: short.id, reason: 'Buyer cancelled unshipped demand' });
  const cancelled = (await h.api('/api/barrow/reports/fulfillment')).lines.find(line => line.orderId === short.id);
  assert.deepEqual([cancelled.ordered, cancelled.cancelled, cancelled.outstanding, cancelled.fillBasisPoints], ['4', '4', '0', null]);
+ // A connected destination cannot silently supply a different recorded order.
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.pierOrigin',?) WHERE id=?").bind('https://different-source.example.test', short.id).run();
+ const mismatched = await h.api('/api/barrow/reports/fulfillment');
+ assert.equal(mismatched.lines.length, 2); assert.equal(mismatched.exceptions[0].orderId, short.id);
+ assert.equal(mismatched.exceptions[0].owner, 'Supplier'); assert.match(mismatched.exceptions[0].reason, /destination differs/);
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.pierOrigin',?) WHERE id=?").bind(`http://127.0.0.1:${proxy.address().port}`, short.id).run();
  // The same source timestamp falls on different calendar days in the installation zone.
  await pier.db.prepare("UPDATE pier_records SET data=json_set(data,'$.createdAt',?) WHERE kind='shipments' AND id=?").bind('2026-10-20T05:00:00Z', firstShipment.id).run();
  await pier.db.prepare("UPDATE pier_records SET data=json_set(data,'$.promiseDate',?) WHERE kind='orders' AND id=?").bind('2026-10-19', onTime.pierOrderId).run();
