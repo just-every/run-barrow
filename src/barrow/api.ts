@@ -7,6 +7,7 @@ import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
 import { documentResponse } from './documents'
 import { orderTimeline } from './timeline'
+import { diagnostics } from './diagnostics'
 import { orderHistory } from './reorders'
 import { catalogue, pierConfigured } from './pier'
 import { invoiceCsv } from './invoice'
@@ -33,6 +34,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const people=ids.length?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<any>()).results.map(row=>[row.id,row.display_name])):{}
    return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)}})
   }
+  if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
+  if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
   if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
   if(path==='/api/barrow/audit.csv' && request.method==='GET') return await exportCommercialAudit(env.DB,actor,url.searchParams)
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})

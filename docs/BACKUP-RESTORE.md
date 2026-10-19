@@ -25,7 +25,7 @@ rer setup
 rer dev
 ```
 
-Complete setup, invite users again and issue new agent credentials if needed. Reconnect Pier using the [connection guide](GETTING-STARTED.md). A restore intended for continued operation must use the same Pier origin: existing orders refuse a different one.
+Complete setup, invite users again and issue new agent credentials if needed. Reconnect Pier using the [connection guide](GETTING-STARTED.md). Then open **Data → Diagnostics**: it checks Pier and lists every stock reservation or release still awaiting Pier's acknowledgment, with its command ID and the action that resumes it on the same order. **Export diagnostics** downloads that list without sessions or credentials. A restore intended for continued operation must use the same Pier origin: existing orders refuse a different one.
 
 Import validates the archive and restores it atomically into an empty destination. It is not a way to merge into a live store. `rer reset --yes` destroys that checkout's local state, owner and settings; use an empty destination for routine restore work.
 
