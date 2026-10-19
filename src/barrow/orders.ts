@@ -3,6 +3,7 @@ import { account } from './accounts'
 import { audit,changed,commit } from './access'
 import { catalogue,decimal,reserveOrder,pierState,pierOrigin,fullyReserved } from './pier'
 import { fail,text,integer,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order,type Line } from './model'
+import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
@@ -39,6 +40,7 @@ async function recordReservation(env:Bindings,actor:Actor,order:Order,result:any
 export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.prepare') {
   const selected=await account(env.DB,actor,text(p.accountId,'Account'))
+  requireActiveAccount(selected)
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
   const available=await catalogue(env,selected),seen=new Set<string>()
   const lines:Line[]=p.lines.map((line:any)=>{
@@ -65,7 +67,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded')]:[]
-  await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(selected.id,selected.revision),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared'),...supersede])
+  await commit(env.DB,actor,[activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared'),...supersede])
   return order
  }
  requirePerson(actor)
@@ -73,14 +75,20 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.submit') {
   if(order.status!=='draft') return order
   const selected=await account(env.DB,actor,order.accountId)
+  requireActiveAccount(selected)
   if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The price list or terms changed. Prepare a new draft for review.')
-  return save(env,actor,{...order,status:'submitted',submittedBy:actor.id},'order.submitted',[env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(selected.id,selected.revision)])
+  return save(env,actor,{...order,status:'submitted',submittedBy:actor.id},'order.submitted',[activeAccountGuard(env.DB,selected)])
  }
  requireSupplier(actor)
  if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
  if(type==='order.approve') {
   if(order.status==='approved'||order.status==='shortfall') return order
-  if(order.status==='submitted') order=await save(env,actor,{...order,status:'reserving',approvedBy:actor.id,approvedAt:(await now()).toISOString()},'order.approved')
+  if(order.status==='submitted') {
+   const selected=await account(env.DB,actor,order.accountId)
+   requireActiveAccount(selected)
+   if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The account changed. Prepare and submit a new draft before approval.')
+   order=await save(env,actor,{...order,status:'reserving',approvedBy:actor.id,approvedAt:(await now()).toISOString()},'order.approved',[activeAccountGuard(env.DB,selected)])
+  }
   if(order.status!=='reserving') fail('APPROVAL','The customer must review and submit this draft first.')
   // Current approver authority must still hold before an external stock effect.
   const approver=await env.DB.prepare("SELECT id FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')").bind(order.approvedBy!).first()

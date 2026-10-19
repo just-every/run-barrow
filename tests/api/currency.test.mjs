@@ -14,9 +14,9 @@ test('PRI-001: negotiated USD checkout and invoice cents survive changes and leg
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const products = await stock(pier);
  const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
- const orders = [];
+ const orders = []; let reviewed;
  for (const [id, unitCents] of [['cedar', 6501], ['harbor', 7203]]) {
-  const account = await h.command('account.save', { id, value: { ...accountValue(products.customer.id, `${id}@example.test`), minimumCents: 0, prices: [{ sku: 'OAT-1', unitCents, minQty: 1 }] } });
+  const account = await h.command('account.save', { id, duplicateReviews: reviewed ? [{ id: reviewed.id, revision: reviewed.revision }] : [], value: { ...accountValue(products.customer.id, `${id}@example.test`), minimumCents: 0, prices: [{ sku: 'OAT-1', unitCents, minQty: 1 }] } });
   const buyer = await h.signIn(account.value.email);
   const catalog = await h.api(`/api/barrow/catalogue?accountId=${id}`, undefined, { as: buyer });
   assert.equal(catalog.items[0].unitCents, unitCents); assert.equal(catalog.currency, 'USD');
@@ -30,7 +30,7 @@ test('PRI-001: negotiated USD checkout and invoice cents survive changes and leg
   assert.equal(line.currency, 'USD'); assert.equal(Number(line.unit_cents), unitCents);
   assert.equal(Number(line.line_cents), order.totalCents); assert.equal(Number(line.invoice_total_cents), order.totalCents);
   const snapshot = await (await h.request(`/api/barrow/invoices/${order.id}.csv`, { as: buyer })).text();
-  await h.command('account.save', { id, revision: account.revision, value: { ...account.value, termsDays: 7, prices: [{ sku: 'OAT-1', unitCents: 9999, minQty: 1 }] } });
+  reviewed = await h.command('account.save', { id, revision: account.revision, value: { ...account.value, termsDays: 7, prices: [{ sku: 'OAT-1', unitCents: 9999, minQty: 1 }] } });
   assert.equal(await (await h.request(`/api/barrow/invoices/${order.id}.csv`, { as: buyer })).text(), snapshot);
   orders.push(order);
  }

@@ -21,3 +21,11 @@ Barrow stores money as integer cents and quantities as whole sell units, and lab
 The CSV is a handoff to your accounting system. Barrow does not calculate tax, collect payment or mark invoices paid. Review the tax treatment in your accounting system.
 
 For implementation details, see the [CSV format and import contract](MOVE-IN.md) and [source lineage](SOURCES.md). The [repository README](../README.md) also covers deployment and development.
+
+## Account lifecycle and recorded assignments
+
+In Accounts, an owner or admin records the sales channel, territory, rep and catalog references, provider references, and active/on-hold/closed state. These references describe existing assignments; they do not grant additional portal access. Agreed SKUs still determine the account assortment. Older accounts without a state remain active.
+
+On hold and closed stop new drafts, submission and the first supplier approval. Buyers keep their existing history and invoice downloads. A reservation already approved before the account changed can still be retried or reconciled with its original command identity. Reopening an account does not refresh old drafts: prepare a new draft against its current revision.
+
+A matching company name (Unicode-normalized, case-insensitive, with repeated spaces collapsed) or Pier customer ID requires a review of the matching account IDs and revisions. Confirm separate companies before saving; this never merges their sign-ins or history. Duplicate email ownership remains refused. Move in shows possible duplicates in its reviewed preview, and applying that exact fingerprint records the review with its actor and time. CSV updates preserve existing lifecycle and profile fields that are absent from the CSV format.

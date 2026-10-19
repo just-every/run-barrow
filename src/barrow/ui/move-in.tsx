@@ -11,6 +11,7 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
   const [csv, setCsv] = useState('')
   const [namespace, setNamespace] = useState('')
   const [preview, setPreview] = useState<Preview | null>(null)
+  const [duplicatesReviewed, setDuplicatesReviewed] = useState(false)
   const [applied, setApplied] = useState<ImportJob | null>(null)
   const [jobs, setJobs] = useState<ImportJob[]>([])
   const [journal, setJournal] = useState<Journal | null>(null)
@@ -28,8 +29,8 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
     finally { lock.current = false; setBusy(false) }
   }
   const input = { csv, ...(namespace.trim() ? { namespace: namespace.trim() } : {}) }
-  function changed() { setPreview(null); setApplied(null); setNotice('') }
-  async function dryRun() { setPreview(await request<Preview>('/api/barrow/imports/preview', input)); setApplied(null) }
+  function changed() { setDuplicatesReviewed(false); setPreview(null); setApplied(null); setNotice('') }
+  async function dryRun() { setDuplicatesReviewed(false); setPreview(await request<Preview>('/api/barrow/imports/preview', input)); setApplied(null) }
   async function apply() {
     if (!preview) return
     const job = await request<ImportJob>('/api/barrow/imports/apply', { ...input, fingerprint: preview.fingerprint })
@@ -56,7 +57,8 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
     await list(); await reload()
   }
   const resume = applied && !['completed', 'undone', 'rolled_back', 'undoing'].includes(applied.state)
-  const canApply = preview && !preview.diagnostics.some(diagnostic => diagnostic.severity === 'error') && !applied
+  const duplicateReview = preview?.diagnostics.some(diagnostic => diagnostic.code === 'ACCOUNT_DUPLICATE_REVIEW')
+  const canApply = (!duplicateReview || duplicatesReviewed) && preview && !preview.diagnostics.some(diagnostic => diagnostic.severity === 'error') && !applied
   return <div className="br-stack">
     <p>Bring existing trade accounts and agreed prices into Barrow. Review a dry run before applying any changes.</p>
     {error && <Notice error>{error}</Notice>}{notice && <Notice>{notice}</Notice>}
@@ -77,6 +79,7 @@ export function MoveIn({ reload }: { reload: () => Promise<void> }) {
       {preview && <>
       <dl className="br-counts">{Object.entries(preview.counts).filter(([, value]) => typeof value === 'number').map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{String(value)}</dd></div>)}</dl>
       {preview.diagnostics.length ? <ul className="br-diagnostics">{preview.diagnostics.map((diagnostic, index) => <li key={index}><strong>{diagnostic.severity}: {diagnostic.code}</strong><p>{diagnostic.message}</p>{diagnostic.location?.row && <small>CSV row {diagnostic.location.row}</small>}</li>)}</ul> : <p>No diagnostics reported.</p>}
+      {duplicateReview && <Notice><p>Review the possible duplicates as separate companies. Preserve their separate accounts and history.</p><button type="button" className="br-secondary" disabled={busy || !!applied} aria-pressed={duplicatesReviewed} onClick={() => setDuplicatesReviewed(current => !current)}>{duplicatesReviewed ? 'Separate companies confirmed' : 'Confirm separate companies in this import'}</button></Notice>}
       <label>Reviewed fingerprint<input readOnly value={preview.fingerprint} className="br-mono" /></label>
       <JsonDetail value={preview.plan.entries.map(entry => ({ sourceId: entry.source.sourceId, effects: entry.effects, unmapped: entry.unmapped, rejection: entry.rejection }))} label="Review planned account changes" />
       <p>Applying writes these account changes. Existing account prices and terms may be updated. Each request processes a bounded batch; resume until complete.</p>

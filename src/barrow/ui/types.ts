@@ -2,6 +2,7 @@ import { supplierZone } from '../model'
 export interface Price { sku: string; unitCents: number; minQty: number }
 export interface AccountValue {
   name: string; email: string; pierCustomerId: string; termsDays: number; minimumCents: number; prices: Price[]; city?: string; state?: string
+  lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; providerReferences?: Record<string, string>
 }
 export interface Account { id: string; value: AccountValue; revision: string }
 export interface Order {

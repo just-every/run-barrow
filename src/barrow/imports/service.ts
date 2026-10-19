@@ -7,6 +7,7 @@ import { accountImportContext, accountImportPrincipal, authorizeAccountImport, t
 import { accountImportDestination, accountImportMappingVersion, accountImportSource } from './csv';
 import { importError, stableId, validateAccountValue } from './validation';
 import { accountTargets } from './targets';
+import { duplicateCompany } from '../account-profile';
 import { stored } from '../../modules/import-kit/src/d1/jobs';
 
 export type AccountImportInput = { csv: string; namespace?: string };
@@ -20,14 +21,33 @@ async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImp
   const context = accountImportContext(db, actor, namespace);
   const native = await context.storage.targets.list(db, context.destination);
   const existing = new Map(native.map(row => [row.targetId, row]));
-  for (const record of source.records) {
+  const incoming = new Map(source.records.map(record => [record.sourceId, validateAccountValue(record.payload)]));
+  const companyNames = new Map([...native.map(row => [row.targetId, (row.value as Record<string, Json>).name as string] as const), ...[...incoming].map(([id, value]) => [id, value.name] as const)]);
+  const directory = native.map(row => ({ id: row.targetId, revision: row.revision, name: (row.value as Record<string, Json>).name, pierCustomerId: (row.value as Record<string, Json>).pierCustomerId }));
+  for (const [index, record] of source.records.entries()) {
     record.namespace = namespace;
-    const account = validateAccountValue(record.payload);
+    const previous = existing.get(record.sourceId);
+    const current = previous?.value as Record<string, Json> | undefined;
+    // CSV does not own the native commercial profile. Omitted columns must not
+    // reopen a held account or erase staff-maintained metadata.
+    const preserved = Object.fromEntries(['lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'].filter(key => current?.[key] !== undefined).map(key => [key, current![key]]));
+    const account = validateAccountValue({ ...preserved, ...incoming.get(record.sourceId)! });
     if (native.some(row => row.targetId !== record.sourceId && (row.value as Record<string, Json>).email === account.email))
       importError('ACCOUNT_EMAIL_DUPLICATE', 'That email already belongs to another trade account.');
-    // Bind the complete before-image into the reviewed fingerprint, including
-    // edits whose writer failed to change revision. The kit fences it on apply.
-    record.payload = { account, previous: (existing.get(record.sourceId) ?? null) as unknown as Json };
+    const duplicateReviews: { id: string; revision: string }[] = [];
+    for (const row of native) if (row.targetId !== record.sourceId && duplicateCompany(validateAccountValue(row.value), account))
+      duplicateReviews.push({ id: row.targetId, revision: row.revision });
+    for (const other of source.records) if (other.sourceId !== record.sourceId && duplicateCompany(incoming.get(other.sourceId)!, account)) {
+      // A source hash identifies the exact reviewed company before it has an
+      // applied native revision. Keep both snapshots if it also exists natively.
+      duplicateReviews.push({ id: other.sourceId, revision: `source:${sha256(canonicalJson(incoming.get(other.sourceId)))}` });
+    }
+    duplicateReviews.sort((a, b) => a.id.localeCompare(b.id) || a.revision.localeCompare(b.revision));
+    if (duplicateReviews.length) source.diagnostics.push({ severity: 'warning', code: 'ACCOUNT_DUPLICATE_REVIEW', sourceId: record.sourceId, kind: record.kind, location: record.location,
+      message: `Possible duplicate companies: ${[...new Set(duplicateReviews.map(row => row.id))].map(id => `${companyNames.get(id)} (${id})`).join(', ')}. Apply only after reviewing them as separate companies; sign-in emails and history stay separate.` });
+    // The complete directory also fences newly inserted normalized-name matches
+    // between the reviewed preview and a later publication batch.
+    record.payload = { account, previous: (previous ?? null) as unknown as Json, duplicateReviews, ...(index === 0 ? { reviewDirectory: directory } : {}) };
     record.payloadHash = sha256(canonicalJson(record.payload));
   }
   const plan = await planD1Import(source, {
@@ -58,7 +78,7 @@ export async function applyAccountImport(db: D1Database, actor: ImportActor, inp
     .bind(context.destination, accountImportPrincipal, context.operationKey).first<{ id: string }>();
   if (prior) {
     const retained = await stored(prior.id, context, 'apply');
-    context.storage.targets = accountTargets(false, { plan: retained.plan, jobId: prior.id });
+    context.storage.targets = accountTargets(false, { plan: retained.plan, jobId: prior.id, actorId: actor.id });
     return resumeD1Import(prior.id, context);
   }
   const prepared = await preparePlan(db, actor, input);
@@ -67,7 +87,7 @@ export async function applyAccountImport(db: D1Database, actor: ImportActor, inp
   // Recheck the reviewed before-images immediately before creating custody.
   // Batch publication additionally fences each complete native snapshot.
   const job = await createD1ImportJob(prepared.plan, context);
-  context.storage.targets = accountTargets(false, { plan: prepared.plan, jobId: job.id });
+  context.storage.targets = accountTargets(false, { plan: prepared.plan, jobId: job.id, actorId: actor.id });
   return applyD1ImportBatches(job.id, context);
 }
 

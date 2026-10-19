@@ -1,6 +1,7 @@
 import { canonicalJson, sha256, type D1Database, type D1Sql, type D1TargetAdapter, type ImportPlan, type Json, type TargetRow } from '../../modules/import-kit/src/d1/index';
 import { accountImportDestination } from './csv';
 import { importError, validateAccountValue } from './validation';
+import { duplicateReviewAction } from '../account-profile';
 
 const sql = (sql: string, ...params: unknown[]): D1Sql => ({ sql, params });
 function checkScope(destination: string, kind = 'account') {
@@ -10,9 +11,25 @@ function decode(row: { id: string; value_json: string; revision: string }): Targ
   return { destination: accountImportDestination, targetKind: 'account', targetId: row.id, revision: row.revision, value: JSON.parse(row.value_json) };
 }
 
-export function accountTargets(reversing = false, review?: { plan: ImportPlan; jobId: string }): D1TargetAdapter {
+export function accountTargets(reversing = false, review?: { plan: ImportPlan; jobId: string; actorId: string }): D1TargetAdapter {
   const beforeImages = new Map(review?.plan.entries.filter(entry => !entry.erased).map(entry => [entry.source.sourceId,
     (entry.source.payload as unknown as { previous: TargetRow | null }).previous]) ?? []);
+  type DirectoryRow = { id: string; revision: string; name: string; pierCustomerId: string };
+  type ReviewPayload = { reviewDirectory?: DirectoryRow[]; duplicateReviews?: { id: string; revision: string }[] };
+  const directory = review?.plan.entries.map(entry => entry.source.payload as unknown as ReviewPayload).find(payload => payload.reviewDirectory)?.reviewDirectory;
+  const planned = review ? review.plan.entries.filter(entry => !entry.erased).flatMap(entry => entry.effects.map((effect,index) => ({
+    id: effect.targetId, revision: sha256(canonicalJson([review.jobId,entry.identity,index,'applied'])),
+    name: (effect.value as Record<string,Json>).name, pierCustomerId: (effect.value as Record<string,Json>).pierCustomerId,
+  }))) : [];
+  const reviews = new Map(review?.plan.entries.filter(entry => !entry.erased).map(entry => [entry.source.sourceId,
+    (entry.source.payload as unknown as ReviewPayload).duplicateReviews ?? []]) ?? []);
+  const directoryGuard = directory ? sql(`INSERT INTO bw_guard(value) SELECT CASE WHEN
+    NOT EXISTS(SELECT 1 FROM bw_accounts a WHERE NOT EXISTS(SELECT 1 FROM json_each(?) s
+      WHERE json_extract(s.value,'$.id')=a.id AND json_extract(s.value,'$.revision')=a.revision
+      AND json_extract(s.value,'$.name')=json_extract(a.value_json,'$.name')
+      AND json_extract(s.value,'$.pierCustomerId')=json_extract(a.value_json,'$.pierCustomerId')))
+    AND NOT EXISTS(SELECT 1 FROM json_each(?) s WHERE NOT EXISTS(SELECT 1 FROM bw_accounts a WHERE a.id=json_extract(s.value,'$.id')))
+    THEN 1 ELSE 0 END`, JSON.stringify([...directory,...planned]), JSON.stringify(directory)) : undefined;
   return {
     async read(db, destination, kind, id) {
       checkScope(destination, kind);
@@ -45,7 +62,12 @@ export function accountTargets(reversing = false, review?: { plan: ImportPlan; j
       validateAccountValue(row.value);
       // Preserve the supplied key order: Base's exact after-image predicates
       // compare the same JSON representation, including on before-image restore.
-      return [sql("INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND json_extract(value_json,'$.email')<>?) THEN 1 ELSE 0 END", row.targetId, (row.value as Record<string, Json>).email), sql('INSERT INTO bw_accounts(id,value_json,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision', row.targetId, JSON.stringify(row.value), row.revision), sql('DELETE FROM bw_guard')];
+      const duplicateReviews = reviews.get(row.targetId) ?? [];
+      return [...(directoryGuard ? [directoryGuard] : []),
+        sql("INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_accounts WHERE (id=? AND json_extract(value_json,'$.email')<>?) OR (id<>? AND json_extract(value_json,'$.email')=?)) THEN 1 ELSE 0 END", row.targetId, (row.value as Record<string, Json>).email, row.targetId, (row.value as Record<string, Json>).email),
+        sql('INSERT INTO bw_accounts(id,value_json,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision', row.targetId, JSON.stringify(row.value), row.revision),
+        ...(review && duplicateReviews.length ? [sql('INSERT INTO bw_audit VALUES(?,?,?,?,?)',crypto.randomUUID(),row.targetId,review.actorId,duplicateReviewAction(duplicateReviews),new Date().toISOString())] : []),
+        sql('DELETE FROM bw_guard')];
     },
     remove(destination, kind, id) {
       checkScope(destination, kind);

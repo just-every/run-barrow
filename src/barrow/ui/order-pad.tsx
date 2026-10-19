@@ -55,10 +55,11 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const chosen = items.filter(item => quantityOf(quantities[item.sku]) > 0)
   const units = chosen.reduce((sum, item) => sum + quantityOf(quantities[item.sku]), 0)
   const total = chosen.reduce((sum, item) => sum + item.unitCents * quantityOf(quantities[item.sku]), 0)
+  const inactive = (account.value.lifecycle ?? 'active') !== 'active'
   const invalid = items.some(item => cellProblem(item, quantities[item.sku]))
   const minimum = currentAccount.value.minimumCents, belowMinimum = chosen.length > 0 && total < minimum
   const unsettled = rows.filter(row => !kept.has(row.key) && row.sizes.some(size => changes[row.cells[size].sku] && quantityOf(quantities[row.cells[size].sku]) > 0))
-  const blocked = !catalogue || !chosen.length || invalid || belowMinimum || unsettled.length > 0
+  const blocked = inactive || !catalogue || !chosen.length || invalid || belowMinimum || unsettled.length > 0
   const hint = !catalogue ? '' : !chosen.length ? 'Enter quantities to prepare a draft.' : invalid ? 'Fix the highlighted quantities.' : belowMinimum ? `Add ${money(minimum - total)} to meet the minimum.` : unsettled.length ? 'Settle the price change first.' : ''
   const shown = rows.find(row => row.key === selected) ?? rows.find(row => row.sizes.some(size => quantityOf(quantities[row.cells[size].sku]) > 0)) ?? rows[0]
 
@@ -88,6 +89,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const draftTotal = draft && draftCurrency === 'USD' && catalogue && Object.keys(changes).length ? total - draft.totalCents : 0
 
   return <form className="br-pad" onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
+    {inactive && <Notice error>This account is {account.value.lifecycle === 'closed' ? 'closed' : 'on hold'}. Contact the supplier before placing a new order. Existing order history remains available in Orders.</Notice>}
     <div className="br-pad-head">
       <div className="br-pad-title">
         <h1>{currentAccount.value.name}{town(currentAccount.value) && <span className="br-pad-town"> · {town(currentAccount.value)}</span>}</h1>

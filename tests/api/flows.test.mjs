@@ -16,7 +16,7 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
  await t.test('native invitation, customer isolation and direct-handler authorization',async()=>{
   assert.equal((await h.request('/api/barrow/state',{as:''})).status,401);
   account=await h.command('account.save',{id:'cedar',value:accountValue(products.customer.id)});
-  await h.command('account.save',{id:'other',value:{...accountValue(products.customer.id,'other@example.test'),name:'Harbour Provisions',prices:[{sku:'OAT-1',unitCents:7200,minQty:1}]}});
+  await h.command('account.save',{id:'other',duplicateReviews:[{id:account.id,revision:account.revision}],value:{...accountValue(products.customer.id,'other@example.test'),name:'Harbour Provisions',prices:[{sku:'OAT-1',unitCents:7200,minQty:1}]}});
   buyer=await h.signIn('buyer@example.test');other=await h.signIn('other@example.test');
   const state=await h.api('/api/barrow/state',undefined,{as:buyer});assert.equal(state.accounts.length,1);assert.equal(state.accounts[0].id,'cedar');
   await h.api('/api/barrow/catalogue?accountId=other',undefined,{as:buyer,status:404});
@@ -87,7 +87,7 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   const fresh=csv.replace('cedar,Cedar Street Pantry,intruder@example.test','native-change,Cedar Street Pantry,native@example.test');
   const plan=await h.api('/api/barrow/imports/preview',{csv:fresh});const job=await h.api('/api/barrow/imports/apply',{csv:fresh,fingerprint:plan.fingerprint});
   const native=(await h.api('/api/barrow/state')).accounts.find(a=>a.id==='native-change');
-  await h.command('account.save',{id:native.id,revision:native.revision,value:{...native.value,name:'Owner corrected name'}});
+  await h.command('account.save',{id:native.id,revision:native.revision,duplicateReviews:(await h.api('/api/barrow/state')).accounts.filter(row=>['cedar','other'].includes(row.id)).map(({id,revision})=>({id,revision})),value:{...native.value,name:'Owner corrected name'}});
   const refused=await h.api(`/api/barrow/imports/${job.id}/undo`,{},{status:409});assert.equal(refused.error.code,'NATIVE_EDIT_CONFLICT');
   assert.equal((await h.api('/api/barrow/state')).accounts.find(a=>a.id==='native-change').value.name,'Owner corrected name');
   await h.command('account.erase',{accountId:'native-change',confirm:'ERASE'});
@@ -132,4 +132,71 @@ test('erasing imported unused account retires custody and fences old restores',a
  await h.command('account.erase',{accountId:'erase-me',confirm:'ERASE'});assert.equal((await h.api('/api/barrow/state')).accounts.length,0);
  const after=await archive(h);assert.equal(JSON.stringify(after).includes('erase@example.test'),false);
  const target=await installation();try{await restore(target,before,{status:400,laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal}});assert.equal((await target.api('/api/barrow/state')).accounts.length,0)}finally{await target.close()}
+});
+
+test('ACC-004: profile, hold and closure preserve buyer history and refuse new commitments or identity takeover', async t => {
+ const pier = await installation({ pier: true }); t.after(() => pier.close());
+ const products = await stock(pier);
+ const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
+ const profile = { channel: 'Independent stockist', territory: 'Northeast', assignedRep: 'rep-avery', catalogs: ['fall-2026'], providerReferences: { accounting: 'CUST-782' } };
+ let account = await h.command('account.save', { id: 'cedar', value: { ...accountValue(products.customer.id), ...profile } });
+ const buyer = await h.signIn(account.value.email);
+ const draft = () => h.command('order.prepare', { accountId: account.id, reference: 'PO-Cedar-fall', lines: [{ sku: 'OAT-1', quantity: 2 }] }, { as: buyer });
+ const accepted = await draft(); await h.command('order.submit', { orderId: accepted.id }, { as: buyer });
+ const original = await h.command('order.approve', { orderId: accepted.id });
+ const invoice = await (await h.request(`/api/barrow/invoices/${accepted.id}.csv`, { as: buyer })).text();
+ const unsubmitted = await draft(), awaitingApproval = await draft();
+ await h.command('order.submit', { orderId: awaitingApproval.id }, { as: buyer });
+ const grant = await h.api('/api/barrow/agent-token', {});
+ for (const lifecycle of ['on-hold', 'closed']) {
+  account = await h.command('account.save', { id: account.id, revision: account.revision, value: { ...account.value, lifecycle } });
+  const state = await h.api('/api/barrow/state', undefined, { as: buyer });
+  assert.equal(state.accounts[0].value.lifecycle, lifecycle);
+  for (const [key, value] of Object.entries(profile).filter(([key]) => key !== 'lifecycle')) assert.deepEqual(state.accounts[0].value[key], value);
+  assert.deepEqual(state.orders.find(order => order.id === original.id), original);
+  assert.equal(await (await h.request(`/api/barrow/invoices/${original.id}.csv`, { as: buyer })).text(), invoice);
+  await h.command('order.prepare', { accountId: account.id, lines: [{ sku: 'OAT-1', quantity: 2 }] }, { as: buyer, status: 409 });
+  await h.command('order.prepare', { accountId: account.id, lines: [{ sku: 'OAT-1', quantity: 2 }] }, { as: '', headers: { authorization: `Bearer ${grant.token}` }, status: 409 });
+  await h.command('order.submit', { orderId: unsubmitted.id }, { as: buyer, status: 409 });
+  await h.command('order.approve', { orderId: awaitingApproval.id }, { status: 409 });
+  assert.equal((await h.command('order.approve', { orderId: original.id })).id, original.id);
+  assert.equal((await pier.api('/api/pier/state')).orders.length, 1);
+ }
+ await h.command('account.save', { id: 'email-takeover', value: { ...account.value, name: 'Another company', pierCustomerId: 'another-source' } }, { status: 409 });
+ await h.command('account.save', { id: account.id, revision: account.revision, value: { ...account.value, email: 'intruder@example.test' } }, { status: 409 });
+ await h.command('account.save', { id: account.id, revision: account.revision, value: { ...account.value, lifecycle: 'active' } }, { as: buyer, status: 403 });
+ const target = await installation(); t.after(() => target.close()); await restore(target, await archive(h));
+ assert.deepEqual((await target.api('/api/barrow/state')).accounts[0], account);
+});
+
+test('ACC-004: duplicate companies require an exact recorded review; imports show duplicates without reassigning history', async t => {
+ const h = await installation(); t.after(() => h.close());
+ const original = await h.command('account.save', { id: 'cedar', value: accountValue('pier-cedar') });
+ const value = { ...accountValue('pier-other', 'second@example.test'), name: '  CEDAR   STREET PANTRY  '.trim() };
+ const unreviewed = await h.command('account.save', { id: 'second', value }, { status: 409 });
+ assert.equal(unreviewed.error.code, 'DUPLICATE_REVIEW');
+ await h.command('account.save', { id: 'second', value, duplicateReviews: [{ id: original.id, revision: 'stale' }] }, { status: 409 });
+ const second = await h.command('account.save', { id: 'second', value, duplicateReviews: [{ id: original.id, revision: original.revision }] });
+ const state = await h.api('/api/barrow/state'); assert.equal(state.accounts.length, 2); assert.deepEqual(state.accounts.find(row => row.id === original.id), original);
+ const exported = await archive(h);
+ assert.ok(exported.filter(row => row.kind === 'part').flatMap(row => row.items).some(item => JSON.stringify(item).includes('account.duplicates-reviewed:')));
+ const changed = await h.command('account.save', { id: original.id, revision: original.revision, value: { ...original.value, lifecycle: 'closed', territory: 'East', assignedRep: 'rep-jordan', catalogs: ['winter'], providerReferences: { accounting: 'C-901' } } });
+ const csv = 'accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\ncedar,Cedar Street Pantry,buyer@example.test,pier-cedar,15,0,OAT-1,7000,1\nthird,Cedar Street Pantry,third@example.test,pier-third,30,0,OAT-1,6500,1\n';
+ const preview = await h.api('/api/barrow/imports/preview', { csv });
+ assert.ok(preview.diagnostics.some(row => row.code === 'ACCOUNT_DUPLICATE_REVIEW'));
+ const imported = await h.api('/api/barrow/imports/apply', { csv, fingerprint: preview.fingerprint });
+ const journal = await h.api(`/api/barrow/imports/${imported.id}`); assert.equal(journal.job.state, 'completed');
+ const auditRows = (await archive(h)).filter(row => row.kind === 'part').flatMap(row => row.items).filter(item => item.table === 'bw_audit').map(item => item.row);
+ const review = auditRows.find(row => row.subject_id === 'third' && row.action.startsWith('account.duplicates-reviewed:'));
+ assert.ok(review); assert.equal(review.actor_id, state.actor.id); assert.ok(Number.isFinite(Date.parse(review.created_at)));
+ assert.ok(JSON.parse(review.action.slice('account.duplicates-reviewed:'.length)).some(row => row.id === original.id && row.revision === changed.revision));
+ const after = await h.api('/api/barrow/state');
+ const retained = after.accounts.find(row => row.id === original.id);
+ assert.equal(retained.value.lifecycle, 'closed'); assert.equal(retained.value.territory, changed.value.territory);
+ assert.equal(retained.value.assignedRep, changed.value.assignedRep); assert.deepEqual(retained.value.catalogs, changed.value.catalogs); assert.deepEqual(retained.value.providerReferences, changed.value.providerReferences);
+ assert.deepEqual(after.accounts.find(row => row.id === second.id), second);
+ const third = after.accounts.find(row => row.id === 'third'); assert.equal(third.value.email, 'third@example.test');
+ const user = await h.signIn(third.value.email); assert.deepEqual((await h.api('/api/barrow/state', undefined, { as: user })).accounts.map(row => row.id), ['third']);
+ const sameEmail = csv.replace('third@example.test', second.value.email);
+ await h.api('/api/barrow/imports/preview', { csv: sameEmail }, { status: 409 });
 });

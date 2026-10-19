@@ -7,6 +7,12 @@ export type AccountValue = {
   prices: { sku: string; unitCents: number; minQty: number }[];
   city?: string;
   state?: string;
+  lifecycle?: 'active' | 'on-hold' | 'closed';
+  channel?: string;
+  territory?: string;
+  assignedRep?: string;
+  catalogs?: string[];
+  providerReferences?: Record<string, string>;
 };
 
 export function importError(code: string, message: string): never {
@@ -35,7 +41,7 @@ export function nonnegativeInteger(value: unknown, field: string, minimum = 0): 
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
-  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state'];
+  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'];
   if (Object.keys(value).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !(key in value)))
     importError('ACCOUNT_VALUE', 'Use exactly the documented account fields.');
   const name = boundedText(value.name, 'name');
@@ -59,6 +65,20 @@ export function validateAccountValue(input: unknown): AccountValue {
     return { sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty: nonnegativeInteger(price.minQty, 'minQty', 1) };
   });
   // The stockist's town, shown beside its name ("Columbia, SC"); both parts are optional.
-  const town = Object.fromEntries(optional.filter(key => value[key] !== undefined).map(key => [key, boundedText(value[key], key, key === 'city' ? 80 : 40)]));
-  return { name, email, pierCustomerId, termsDays, minimumCents, prices, ...town };
+  const town = Object.fromEntries(['city', 'state', 'channel', 'territory', 'assignedRep'].filter(key => value[key] !== undefined).map(key => [key, boundedText(value[key], key, key === 'state' ? 40 : key === 'assignedRep' ? 160 : 80)]));
+  const profile: Partial<AccountValue> = {};
+  if (value.lifecycle !== undefined) {
+    if (!['active', 'on-hold', 'closed'].includes(value.lifecycle as string)) importError('ACCOUNT_LIFECYCLE', 'lifecycle must be active, on-hold or closed.');
+    profile.lifecycle = value.lifecycle as AccountValue['lifecycle'];
+  }
+  if (value.catalogs !== undefined) {
+    if (!Array.isArray(value.catalogs) || value.catalogs.length > 100) importError('ACCOUNT_CATALOGS', 'Supply at most 100 catalog identifiers.');
+    profile.catalogs = value.catalogs.map(item => boundedText(item, 'catalog', 100));
+    if (new Set(profile.catalogs).size !== profile.catalogs.length) importError('ACCOUNT_CATALOGS', 'Catalog identifiers must be unique.');
+  }
+  if (value.providerReferences !== undefined) {
+    if (!value.providerReferences || typeof value.providerReferences !== 'object' || Array.isArray(value.providerReferences) || Object.keys(value.providerReferences).length > 30) importError('ACCOUNT_REFERENCES', 'Supply an object with at most 30 provider references.');
+    profile.providerReferences = Object.fromEntries(Object.entries(value.providerReferences).map(([key, reference]) => [stableId(key, 'provider'), boundedText(reference, 'provider reference')]));
+  }
+  return { name, email, pierCustomerId, termsDays, minimumCents, prices, ...town, ...profile };
 }

@@ -13,7 +13,7 @@ export async function freshCheckout(parent, name) {
  return root;
 }
 export const workspace = () => mkdtemp(join(tmpdir(), 'barrow-install-journey-'));
-export const removeWorkspace = path => rm(path, { recursive: true, force: true });
+export const removeWorkspace = path => rm(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 export async function rer(root, args) {
  try { return await exec('pnpm', ['exec', 'rer', ...args], { cwd: root, maxBuffer: 1024 * 1024 }); }
  catch (error) { throw new Error(`rer ${args[0]} failed (exit ${error.code}); inspect the private checkout ${root}`); }

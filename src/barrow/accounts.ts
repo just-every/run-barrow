@@ -4,6 +4,7 @@ import { validateAccountValue, retireAccountImportCustody } from './imports'
 import { commit, changed, audit } from './access'
 import { createPortability } from '@runeditrun/rer/modules/portability'
 import { toD1Sql } from '@runeditrun/rer/modules/erasure/fence'
+import { accountDirectorySnapshot, directoryPredicate, companyIdentityChanged, duplicateCompany, duplicateReviewAction, validateDuplicateReviews } from './account-profile'
 import { portabilityPolicy } from './portability-policy.mjs'
 export async function accounts(db:D1Database,actor:Actor):Promise<Account[]> {
  const rows=await db.prepare('SELECT * FROM bw_accounts'+(supplier(actor)?'':" WHERE json_extract(value_json,'$.email')=?")+' ORDER BY id').bind(...(supplier(actor)?[]:[actor.email])).all<any>()
@@ -30,8 +31,15 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
   const prior=await env.DB.prepare('SELECT * FROM bw_accounts WHERE id=?').bind(id).first<any>()
   if(prior && p.revision!==prior.revision) fail('CHANGED','This account changed. Refresh it before saving.')
   if(prior && JSON.parse(prior.value_json).email!==value.email) fail('ACCOUNT_EMAIL','Create a separate account to change the customer email; existing order access cannot be reassigned.')
+  const directory=await accounts(env.DB,actor)
+  if(directory.some(row=>row.id!==id&&row.value.email===value.email)) fail('ACCOUNT_EMAIL_DUPLICATE','That email already belongs to another trade account.')
+  const reviewing=companyIdentityChanged(prior?JSON.parse(prior.value_json):undefined,value)
+  const candidates=reviewing?directory.filter(row=>row.id!==id&&duplicateCompany(row.value,value)):[]
+  const reviews=validateDuplicateReviews(p.duplicateReviews,candidates)
+  const snapshot=accountDirectorySnapshot(directory)
+  const guard=env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${directoryPredicate}) THEN 1 ELSE 0 END`).bind(JSON.stringify(snapshot),snapshot.length)
   const statement=prior ? env.DB.prepare('UPDATE bw_accounts SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(value),revision,id,prior.revision) : env.DB.prepare('INSERT INTO bw_accounts VALUES(?,?,?)').bind(id,JSON.stringify(value),revision)
-  await commit(env.DB,actor,[statement,changed(env.DB),audit(env.DB,actor,id,'account.saved')])
+  await commit(env.DB,actor,[guard,statement,changed(env.DB),audit(env.DB,actor,id,'account.saved'),...(reviews.length?[audit(env.DB,actor,id,duplicateReviewAction(reviews))]:[])])
   return {id,value,revision}
  }
  const selected=await account(env.DB,actor,p.accountId)

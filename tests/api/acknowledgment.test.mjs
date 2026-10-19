@@ -4,7 +4,7 @@ import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { installation, stock, accountValue, archive, restore } from './harness.mjs';
 
-test('STK-003: lost acknowledgment remains pending, retries reconcile one real Pier order, destination changes refuse', async t => {
+test('STK-003 / ACC-004: lost acknowledgment remains pending, retries reconcile one real Pier order, destination changes refuse', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const products = await stock(pier);
  const identities = []; let discard = true;
@@ -26,7 +26,7 @@ test('STK-003: lost acknowledgment remains pending, retries reconcile one real P
  t.after(async () => { proxy.closeAllConnections(); await new Promise(resolve => proxy.close(resolve)); });
  const origin = `http://127.0.0.1:${proxy.address().port}`;
  const h = await installation({ bindings: { PIER_ORIGIN: origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
- await h.command('account.save', { id: 'cedar', value: accountValue(products.customer.id) });
+ const account = await h.command('account.save', { id: 'cedar', value: accountValue(products.customer.id) });
  const buyer = await h.signIn('buyer@example.test');
  const draft = await h.command('order.prepare', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 3 }] }, { as: buyer });
  await h.command('order.submit', { orderId: draft.id }, { as: buyer });
@@ -35,6 +35,7 @@ test('STK-003: lost acknowledgment remains pending, retries reconcile one real P
  assert.equal(pending.status, 'reserving'); assert.equal(pending.pierOrderId, undefined); assert.equal(pending.invoice, undefined);
  assert.equal((await h.request(`/api/barrow/invoices/${draft.id}.csv`, { as: buyer })).status, 409);
  const upstreamBefore = (await pier.api('/api/pier/state')).orders; assert.equal(upstreamBefore.length, 1);
+ await h.command('account.save', { id: account.id, revision: account.revision, value: { ...account.value, lifecycle: 'closed' } });
  const accepted = await h.command('order.approve', { orderId: draft.id });
  assert.equal(accepted.status, 'approved'); assert.equal(accepted.pierOrderId, upstreamBefore[0].id); assert.equal(accepted.pierReference, upstreamBefore[0].reference);
  assert.deepEqual(identities, [identities[0], identities[0]]); assert.ok(identities[0]);
