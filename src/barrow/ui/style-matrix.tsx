@@ -47,7 +47,7 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
             const value = quantities[item.sku] ?? '', problem = cellProblem(item, value)
             return <td key={size} className="br-col-size"><input ref={element => { if (element) cells.current?.set(item.sku, element); else cells.current?.delete(item.sku) }}
               className={`br-cell${quantityOf(value) > 0 ? ' br-cell-filled' : ''}`} type="number" inputMode="numeric" min="0" step="1" placeholder="–" value={value} disabled={busy}
-              aria-label={`${size} quantity for ${row.name}`} aria-invalid={problem ? true : undefined} title={problem || `${item.sku} · ${item.available} available`}
+              aria-label={`${size} quantity for ${row.name}`} aria-invalid={problem ? true : undefined} title={problem || `${item.sku} · ${item.available} available${item.awaitingRelease ? ` · ${item.awaitingRelease} held until Pier confirms a cancelled order’s release` : ''}`}
               onFocus={() => onSelect(row.key)} onChange={event => onQuantity(item.sku, event.target.value)} /></td>
           })}
           <td className="br-col-units">{rowUnits(row, quantities) || '–'}</td>

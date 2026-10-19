@@ -65,11 +65,16 @@ export function BarrowApp() {
         'account.save': 'Trade account saved.', 'account.invite': 'Invitation requested. Check the account email for the sign-in message.',
         'account.erase': 'Account erasure completed.', 'order.prepare': 'Draft prepared. Review it in Orders before submitting.',
         'order.submit': 'Order submitted for supplier review.', 'order.approve': 'Reservation requested. See the order for its current stock status.',
-        'order.refresh': 'Order stock status refreshed.', 'order.reorder': 'Reorder draft prepared. Review it in Orders before submitting.',
+        'order.refresh': 'Order stock status refreshed.', 'order.cancel': 'Order cancelled. Pier confirmed the stock release.', 'order.reorder': 'Reorder draft prepared. Review it in Orders before submitting.',
       }
       setNotice(messages[type] ?? 'Action completed.')
       return true
-    } catch (error) { setError(errorMessage(error)); return false }
+    } catch (error) {
+      setError(errorMessage(error))
+      // A failed provider step may still have recorded a pending state (reserving, releasing): show it.
+      try { await reload() } catch {}
+      return false
+    }
     finally { lock.current = false; setBusy(false) }
   }
 

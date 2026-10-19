@@ -1,7 +1,7 @@
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
-import { catalogue,reserveOrder,pierState,pierOrigin,fullyReserved } from './pier'
+import { catalogue,reserveOrder,pierState,pierOrigin,fullyReserved,pierOrder,releaseOrder,released,decimal } from './pier'
 import { fail,text,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order,type Account } from './model'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
@@ -23,6 +23,8 @@ async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1
   'order.approved':'Supplier approved the submitted revision for stock reservation.',
   'order.reserved':'Pier acknowledged reservation of every requested unit.',
   'order.shortfall':'Pier acknowledged a stock shortfall; invoicing remains blocked.',
+  'order.release-requested':'Supplier cancelled the order; its Pier stock release is requested and the units stay unpromised until Pier confirms.',
+  'order.released':'Pier acknowledged the stock release; the cancelled order holds no stock.',
  } as Record<string,string>)[action]??action})])
  return order
 }
@@ -45,6 +47,11 @@ async function recordReservation(env:Bindings,actor:Actor,order:Order,result:any
   order.invoice={number:`BAR-${order.id}`,issuedAt,dueAt:due.toISOString().slice(0,10)}
  }
  return save(env,actor,order,full?'order.reserved':'order.shortfall')
+}
+async function recordRelease(env:Bindings,actor:Actor,order:Order,result:any) {
+ if(!released(result)) fail('RELEASE_PENDING','Pier has not confirmed the release. The units stay out of promiseable stock; retry the release.',502)
+ const lines=result.lines.map((l:any)=>({itemId:l.itemId,quantity:l.quantity,dispatched:l.dispatched,cancelled:l.cancelled,reserved:l.reserved}))
+ return save(env,actor,{...order,status:'cancelled',release:{...order.release!,confirmedAt:(await now()).toISOString(),lines}},'order.released')
 }
 async function assertCurrentPricing(env:Bindings,selected:Account,order:Order) {
  if(!order.lines.some(line=>line.pricing))return
@@ -97,10 +104,27 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  }
  if(type==='order.refresh') {
   if(!order.pierOrderId) fail('RESERVATION','Approve this order or retry its pending approval first.')
-  if(order.status==='approved') return order
+  if(order.status==='approved'||order.status==='cancelled') return order
+  if(order.status==='releasing') {
+   const upstream=await pierOrder(env,order)
+   return released(upstream) ? recordRelease(env,actor,order,upstream) : order
+  }
   const state=await pierState(env),result=state.orders.find((o:any)=>o.id===order.pierOrderId)
   if(!result) fail('PIER_ORDER','The recorded Pier order is missing. Check the stock desk.')
   return recordReservation(env,actor,order,result)
+ }
+ if(type==='order.cancel') {
+  // STK-004: cancelling an allocated, unshipped order asks Pier to release its stock; only Pier's acknowledgment clears it.
+  if(order.status==='cancelled') return order
+  if(order.status==='approved'||order.status==='shortfall') {
+   const reason=text(p.reason,'Cancellation reason',160)
+   const upstream=await pierOrder(env,order)
+   if(upstream.lines.some((l:any)=>decimal(l.dispatched)>0n)) fail('SHIPPED','Pier has dispatched units on this order. Shipped units cannot be cancelled; return them instead.')
+   const held=upstream.lines.filter((l:any)=>decimal(l.reserved)>0n).map((l:any)=>({itemId:l.itemId,quantity:l.reserved}))
+   order=await save(env,actor,{...order,status:'releasing',release:{reason,requestedBy:actor.id,requestedAt:(await now()).toISOString(),held}},'order.release-requested')
+  }
+  if(order.status!=='releasing') fail('CANCEL','Only an approved or short order holding Pier stock can be cancelled here.')
+  return recordRelease(env,actor,order,await releaseOrder(env,order))
  }
  fail('NOT_FOUND','Unknown order command.',404)
 }

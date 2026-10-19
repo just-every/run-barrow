@@ -1,10 +1,10 @@
 import { demoEffect } from '../modules/demo/index.mjs'
 import { demoPierOrigin } from '../demo-data'
-import { demoPierState, demoReservation } from './demo-pier'
+import { demoPierState, demoReservation, demoPierOrder, demoRelease } from './demo-pier'
 import { now } from './clock'
 import { sellingUnits } from './units'
 // Decimal representation adapted from Pier model.ts at dcd4c591. Allocation stays in Pier.
-import { fail, type Account, type Line } from './model'
+import { fail, type Account, type Line, type Order } from './model'
 import type { Bindings } from '../auth.server'
 const SCALE=1000000n
 export function decimal(value: string): bigint {
@@ -38,11 +38,13 @@ export async function catalogue(env: Bindings,account: Account) {
  if(!Array.isArray(state.items)||!Array.isArray(state.positions)||!Array.isArray(state.locations)||!Array.isArray(state.parties)) fail('PIER_RESPONSE','Pier stock response is incomplete.',502)
  if(!state.parties.some((p:any)=>p.id===account.value.pierCustomerId && p.kind==='customer')) fail('PIER_CUSTOMER','Map this account to an existing Pier customer.',409)
  const bins=new Set(state.locations.filter((l:any)=>l.kind==='bin').map((l:any)=>l.id))
+ const unconfirmed=await unconfirmedReleases(env,state)
  const items=account.value.prices.flatMap(price=>{
   const item=state.items.find((i:any)=>i.sku===price.sku && !i.archived)
   if(!item) return []
-  const available=state.positions.filter((p:any)=>p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)).reduce((n:bigint,p:any)=>n+decimal(p.available),0n)
-  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,available:format(available)}
+  const sellable=state.positions.filter((p:any)=>p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)).reduce((n:bigint,p:any)=>n+decimal(p.available),0n)
+  const held=unconfirmed.get(item.id)??0n,available=sellable>held?sellable-held:0n
+  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,available:format(available),...(held?{awaitingRelease:format(held)}:{})}
   sellingUnits(offer)
   return [offer]
  })
@@ -61,4 +63,38 @@ export function fullyReserved(result: any,lines: Line[]) {
   const matches=result.lines.filter((l:any)=>l.itemId===line.itemId)
   return matches.length===1 && decimal(matches[0].quantity)===decimal(line.quantity) && decimal(matches[0].reserved)>=decimal(line.quantity) && decimal(matches[0].cancelled)===0n
  })
+}
+/**
+ * STK-004: promiseable stock is Pier's sellable-less-reserved figure minus every unit a requested release has not
+ * been confirmed for. A unit counts as unconfirmed when Pier reserved it for the order at the request and Barrow has
+ * not recorded Pier's cancellation acknowledgment, even if Pier has already freed it; units Pier still reserves are
+ * already excluded by Pier, so nothing is subtracted twice.
+ */
+async function unconfirmedReleases(env: Bindings,state: any) {
+ const held=new Map<string,bigint>()
+ const rows=await env.DB.prepare("SELECT value_json FROM bw_orders WHERE json_extract(value_json,'$.status')='releasing'").all<{value_json:string}>(),connected=await pierOrigin(env)
+ for(const row of rows.results) {
+  const order=JSON.parse(row.value_json) as Order
+  if(order.pierOrigin!==connected) continue
+  const upstream=Array.isArray(state.orders)?state.orders.find((o:any)=>o.id===order.pierOrderId):undefined
+  for(const line of order.release?.held??[]) {
+   const still=(upstream?.lines??[]).filter((l:any)=>l.itemId===line.itemId).reduce((n:bigint,l:any)=>n+decimal(l.reserved),0n)
+   const gap=decimal(line.quantity)-still
+   if(gap>0n) held.set(line.itemId,(held.get(line.itemId)??0n)+gap)
+  }
+ }
+ return held
+}
+/** Pier's current view of one recorded order: per line quantity, reserved, dispatched and cancelled. */
+export async function pierOrder(env: Bindings,order: Order) {
+ const state=await demoEffect(() => call(env,'/api/pier/state'), () => ({orders:[demoPierOrder(order)]}))
+ const found=Array.isArray(state.orders)?state.orders.find((o:any)=>o.id===order.pierOrderId):undefined
+ if(!found || !Array.isArray(found.lines)) fail('PIER_ORDER','The recorded Pier order is missing. Check the stock desk.')
+ return found
+}
+/** One durable release identity per order; a retry repeats the identical command so Pier replays its first outcome. */
+export const releaseOrder = (env: Bindings,order: Order) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-release-${order.id}`,type:'order.cancel',payload:{orderId:order.pierOrderId,reason:order.release!.reason}}).then(value=>value.result), () => demoRelease(order))
+/** Released means Pier holds no reservation for the order and every unshipped unit is cancelled. */
+export function released(result: any) {
+ return Array.isArray(result?.lines) && result.lines.length>0 && result.lines.every((l:any)=>decimal(l.reserved)===0n && decimal(l.cancelled)+decimal(l.dispatched)===decimal(l.quantity))
 }

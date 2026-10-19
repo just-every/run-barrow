@@ -27,8 +27,16 @@ Open **Order history & Pier details** for preparation, submission and approval i
 | `reserving` | If the response is uncertain and no Pier order is confirmed, use **Retry stock reservation** on this same order. If a Pier order is known, use **Refresh stock status**. |
 | `shortfall` | Resolve the shortfall and reserve the remainder in Pier, then use **Refresh stock status**. |
 | `approved` | Every ordered unit is reserved. Use **Download invoice CSV**. |
+| `releasing` | The order is cancelled but Pier has not confirmed the stock release. Its units stay out of every buyer's available stock. Use **Retry stock release** or **Refresh release status**. |
+| `cancelled` | Pier confirmed the release. The order holds no stock and has no invoice. |
 
 Never create a second order to recover an uncertain reservation response. The retry action reuses the first order's durable Pier command ID. If the Pier session expires, reconnect Pier and recover the same order.
+
+## Cancel an order and release its stock
+
+As the supplier, choose **Cancel order & release stock** on an `approved` or `shortfall` order and give a reason. Barrow sends one Pier cancellation with the durable command ID `barrow-release-<order>` and keeps the order `releasing` until Pier confirms that every unshipped unit is cancelled and nothing is reserved. If the response is lost, **Retry stock release** repeats the same command, so Pier releases only once; **Refresh release status** reads Pier's order instead.
+
+Until Pier confirms, the units Pier held for the order stay out of the available stock every buyer sees, even if Pier has already freed them. An order with dispatched units cannot be cancelled; arrange a return instead. Buyers cannot cancel an order themselves yet.
 
 ## Hand the invoice to accounting
 

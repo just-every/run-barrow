@@ -4,6 +4,7 @@ import { byAgent, day, money, orderNumber, stale, terms, when } from './types'
 import { Empty } from './primitives'
 import { orderStyles } from './styles'
 import { Reorder } from './reorder'
+import { CancelOrder } from './cancel-order'
 import { request, errorMessage } from './api'
 
 const explanations: Record<Order['status'], string> = {
@@ -13,13 +14,16 @@ const explanations: Record<Order['status'], string> = {
   shortfall: 'Stock could not be reserved in full. The supplier must resolve the shortfall in Pier, then refresh this order.',
   approved: 'Stock is reserved in full. The invoice is ready to download.',
   superseded: 'Replaced by a draft prepared at today’s prices.',
+  releasing: 'Cancelled. Pier has not confirmed the stock release yet, so these units stay unavailable to other buyers. Retry the release.',
+  cancelled: 'Cancelled. Pier confirmed the stock release; this order holds no stock and has no invoice to download.',
 }
-const filters: [string, (order: Order) => boolean][] = [['All', () => true], ['Drafts', order => order.status === 'draft'], ['In review', order => ['submitted', 'reserving', 'shortfall'].includes(order.status)], ['Approved', order => order.status === 'approved']]
+const filters: [string, (order: Order) => boolean][] = [['All', () => true], ['Drafts', order => order.status === 'draft'], ['In review', order => ['submitted', 'reserving', 'shortfall', 'releasing'].includes(order.status)], ['Approved', order => order.status === 'approved'], ['Cancelled', order => order.status === 'cancelled']]
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
 export function Orders({ orders: all, accounts, people, viewer, supplier, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
   const [filter, setFilter] = useState('All')
   const [reorder,setReorder] = useState<Order|null>(null)
+  const [cancel,setCancel] = useState<Order|null>(null)
   const [query,setQuery] = useState({po:'',from:'',to:'',sku:'',location:''})
   const [matched,setMatched] = useState<string[]|null>(null)
   const [searchError,setSearchError] = useState('')
@@ -69,12 +73,16 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
             {supplier && order.status === 'submitted' && <button disabled={busy} onClick={() => void run('order.approve', { orderId: order.id })}>Approve & reserve stock</button>}
             {supplier && order.status === 'reserving' && !order.pierOrderId && <button disabled={busy} onClick={() => void run('order.approve', { orderId: order.id })}>Retry stock reservation</button>}
             {supplier && (order.status === 'shortfall' || (order.status === 'reserving' && order.pierOrderId)) && <button disabled={busy} onClick={() => void run('order.refresh', { orderId: order.id })}>Refresh stock status</button>}
+            {supplier && (order.status === 'approved' || order.status === 'shortfall') && <button className="br-secondary" disabled={busy} onClick={() => setCancel(order)}>Cancel order & release stock</button>}
+            {supplier && order.status === 'releasing' && <button disabled={busy} onClick={() => void run('order.cancel', { orderId: order.id })}>Retry stock release</button>}
+            {supplier && order.status === 'releasing' && <button className="br-secondary" disabled={busy} onClick={() => void run('order.refresh', { orderId: order.id })}>Refresh release status</button>}
             {order.status === 'approved' && <a className="br-button" href={`/api/barrow/invoices/${encodeURIComponent(order.id)}.csv`} download>Download invoice CSV</a>}
           </div>
-          <details className="br-details"><summary>Order history & Pier details</summary><dl className="br-facts br-facts-wrap"><div><dt>Prepared by</dt><dd>{person(order.preparedBy)}</dd></div>{order.submittedBy && <div><dt>Submitted by</dt><dd>{person(order.submittedBy)}</dd></div>}{order.approvedBy && <div><dt>Approved by</dt><dd>{person(order.approvedBy)}</dd></div>}{order.approvedAt && <div><dt>Approved at</dt><dd>{when(order.approvedAt)}</dd></div>}{order.pierReference && <div><dt>Pier order</dt><dd>{order.pierReference}</dd></div>}{order.reservation && <div><dt>Reserved</dt><dd>{order.reservation.reduce((sum, line) => sum + Number(line.reserved), 0)} of {units} units</dd></div>}{order.invoice && <><div><dt>Invoice</dt><dd>{order.invoice.number}</dd></div><div><dt>Issued</dt><dd>{day(order.invoice.issuedAt)}</dd></div><div><dt>Due</dt><dd>{day(order.invoice.dueAt)}</dd></div></>}</dl></details>
+          <details className="br-details"><summary>Order history & Pier details</summary><dl className="br-facts br-facts-wrap"><div><dt>Prepared by</dt><dd>{person(order.preparedBy)}</dd></div>{order.submittedBy && <div><dt>Submitted by</dt><dd>{person(order.submittedBy)}</dd></div>}{order.approvedBy && <div><dt>Approved by</dt><dd>{person(order.approvedBy)}</dd></div>}{order.approvedAt && <div><dt>Approved at</dt><dd>{when(order.approvedAt)}</dd></div>}{order.pierReference && <div><dt>Pier order</dt><dd>{order.pierReference}</dd></div>}{order.reservation && <div><dt>Reserved</dt><dd>{order.reservation.reduce((sum, line) => sum + Number(line.reserved), 0)} of {units} units</dd></div>}{order.release && <><div><dt>Cancelled by</dt><dd>{person(order.release.requestedBy)}</dd></div><div><dt>Cancelled at</dt><dd>{when(order.release.requestedAt)}</dd></div><div><dt>Reason</dt><dd>{order.release.reason}</dd></div><div><dt>Stock release</dt><dd>{order.release.confirmedAt ? `Confirmed by Pier ${when(order.release.confirmedAt)}` : 'Awaiting Pier confirmation'}</dd></div></>}{order.invoice && <><div><dt>{order.release ? 'Withdrawn invoice' : 'Invoice'}</dt><dd>{order.invoice.number}</dd></div><div><dt>Issued</dt><dd>{day(order.invoice.issuedAt)}</dd></div><div><dt>Due</dt><dd>{day(order.invoice.dueAt)}</dd></div></>}</dl></details>
         </div>
       </article>
     })}
     {reorder && <Reorder order={reorder} run={run} busy={busy} onClose={() => setReorder(null)} />}
+    {cancel && <CancelOrder order={cancel} run={run} busy={busy} onClose={() => setCancel(null)} />}
   </div>
 }
