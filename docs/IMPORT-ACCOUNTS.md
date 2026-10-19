@@ -14,6 +14,8 @@ trade-river,River Grocer,buyer@river.example,pier-river,14,10000,PEAR-BOX,3000,1
 
 These rows illustrate the format. Replace the account details, Pier IDs and SKUs with your real records before ordering.
 
+To carry each stockist's town, add two columns at the end of the header, `,city,state`, and fill them on every row of that account (or leave both empty).
+
 Repeat the account details for every SKU price, with each SKU appearing once per account. Repeated account fields must agree. For an account without prices, leave `sku`, `unitCents` and `minQty` empty. Use stable non-email account IDs, exact Pier customer IDs and lowercase emails. No customer matching or guessing occurs. An existing account's buyer email cannot be reassigned by an import.
 
 Money uses nonnegative integer cents; quantities are positive whole units. Decimal prices, currency symbols, signs, exponents and leading zeros are rejected. Files are limited to 256 KiB, 1,000 account/price rows and 200 distinct accounts, with at most 200 prices per account. See the [complete CSV contract](MOVE-IN.md) for validation rules.

@@ -5,7 +5,7 @@ import { StyleCard } from './style-card'
 import { StyleMatrix, cellProblem, type PriceChange } from './style-matrix'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
 import type { Account, Catalogue, Order, RunCommand } from './types'
-import { byAgent, clock, money, terms, when } from './types'
+import { byAgent, clock, money, orderNumber, terms, town, when } from './types'
 
 interface Props {
   account: Account; accounts: Account[]; supplier: boolean; drafts: Order[]; draft?: Order; draftCount: number; run: RunCommand; busy: boolean
@@ -64,7 +64,8 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   async function prepare(event: FormEvent) {
     event.preventDefault()
     if (blocked) return
-    const prepared = await run('order.prepare', { accountId: account.id, reference, lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
+    // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
+    const prepared = await run('order.prepare', { accountId: account.id, reference, ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })
     if (prepared) {
       if (live.current) { setQuantities({}); setReference('') }
       onPrepared()
@@ -88,7 +89,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   return <form className="br-pad" onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
     <div className="br-pad-head">
       <div className="br-pad-title">
-        <h1>{currentAccount.value.name}</h1>
+        <h1>{currentAccount.value.name}{town(currentAccount.value) && <span className="br-pad-town"> · {town(currentAccount.value)}</span>}</h1>
         <div className="br-chips">
           <span className="br-chip">{money(minimum)} minimum · {terms(currentAccount.value.termsDays)}</span>
           {catalogue && <span className="br-chip">Pier stock {clock(catalogue.observedAt)} <span className="br-check" aria-label="observed">✓</span> · {draftCount} {draftCount === 1 ? 'draft' : 'drafts'}</span>}
@@ -98,7 +99,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
         {supplier && <AccountPicker accounts={accounts} value={account.id} onChange={id => id && onAccount(id)} />}
         <label>Start from<select value={draft?.id ?? ''} onChange={event => onDraft(event.target.value)} disabled={busy}>
           <option value="">New order</option>
-          {drafts.map(value => <option key={value.id} value={value.id}>{value.id.slice(0, 8)} · {when(value.preparedAt)} · {money(value.totalCents)}</option>)}
+          {drafts.map(value => <option key={value.id} value={value.id}>{orderNumber(value.id)} · {when(value.preparedAt)} · {money(value.totalCents)}</option>)}
         </select></label>
         {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
       </div>

@@ -10,7 +10,8 @@ In the supplier workspace, open Accounts and choose **Add trade account**.
 | --- | --- |
 | Business name | The stockist's business name. |
 | Customer email | Its buyer's email, stored lowercase. Each account needs a distinct email. |
-| Account ID | A permanent, stable ID; leave blank to generate one. Use the same ID in future imports. |
+| City and State | Optional. The stockist's town, shown beside its name in the order pad ("Palmetto & Pine · Columbia, SC"). |
+| Account ID | A permanent, stable ID; leave blank to take one from the business name (`palmetto-pine`). Use the same ID in future imports. |
 | Pier customer ID | The exact customer party ID from Pier. Names are not matched automatically. |
 | Payment terms (days) | Whole days, from 0 to 365. Zero means due on receipt. |
 | Minimum order (cents) | A whole number of cents; `15000` means $150.00. |

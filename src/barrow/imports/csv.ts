@@ -3,6 +3,14 @@ import { canonicalJson, sha256, type SourceBundle } from '../../modules/import-k
 import { boundedText, importError, stableId, validateAccountValue, type AccountValue } from './validation';
 
 export const accountCSVHeaders = ['accountId', 'name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'sku', 'unitCents', 'minQty'] as const;
+/** The same columns followed by the stockist's town; either header row is accepted. */
+export const accountCSVTownHeaders = [...accountCSVHeaders, 'city', 'state'] as const;
+function headerColumns(row: string[] | undefined): number {
+  const header = row?.join(',');
+  if (header === accountCSVHeaders.join(',')) return accountCSVHeaders.length;
+  if (header === accountCSVTownHeaders.join(',')) return accountCSVTownHeaders.length;
+  return 0;
+}
 export const defaultAccountNamespace = 'barrow-trade-accounts';
 export const accountImportMappingVersion = 'barrow-trade-accounts-v1';
 export const accountImportDestination = 'barrow-trade-accounts';
@@ -38,7 +46,7 @@ function parseCSV(input: string): string[][] {
 /** Exact email-field matching only; never a substring search over personal data. */
 export function accountCSVHoldsEmail(bytes: Uint8Array, email: string): boolean {
   const rows = parseCSV(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-  if (rows.shift()?.join(',') !== accountCSVHeaders.join(',')) importError('CSV_HEADERS', 'Retained account CSV has unexpected headers.');
+  if (!headerColumns(rows.shift())) importError('CSV_HEADERS', 'Retained account CSV has unexpected headers.');
   return rows.some(row => row[2] === email);
 }
 
@@ -53,14 +61,15 @@ export function accountImportSource(csv: string, namespace = defaultAccountNames
   const bytes = Buffer.from(csv, 'utf8');
   if (bytes.length > 256 * 1024 || bytes.toString('utf8') !== csv) importError('CSV_SIZE', 'CSV must be valid UTF-8 text of at most 256 KiB.');
   const rows = parseCSV(csv);
-  if (rows.shift()?.join(',') !== accountCSVHeaders.join(',')) importError('CSV_HEADERS', `Use these exact headers: ${accountCSVHeaders.join(',')}`);
+  const columns = headerColumns(rows.shift());
+  if (!columns) importError('CSV_HEADERS', `Use these exact headers: ${accountCSVHeaders.join(',')} (optionally followed by ,city,state)`);
   if (!rows.length) importError('CSV_EMPTY', 'Supply at least one account.');
   const accounts = new Map<string, { value: AccountValue; row: number }>();
   for (const [index, cells] of rows.entries()) {
-    if (cells.length !== accountCSVHeaders.length) importError('CSV_COLUMNS', `CSV row ${index + 2} must have nine columns.`);
-    const [sourceId, name, email, pierCustomerId, terms, minimum, sku, unit, quantity] = cells;
+    if (cells.length !== columns) importError('CSV_COLUMNS', `CSV row ${index + 2} must have ${columns} columns.`);
+    const [sourceId, name, email, pierCustomerId, terms, minimum, sku, unit, quantity, city, state] = cells;
     const id = stableId(sourceId);
-    const value = validateAccountValue({ name, email, pierCustomerId, termsDays: integerCell(terms, 'termsDays'), minimumCents: integerCell(minimum, 'minimumCents'), prices: [] });
+    const value = validateAccountValue({ name, email, pierCustomerId, termsDays: integerCell(terms, 'termsDays'), minimumCents: integerCell(minimum, 'minimumCents'), prices: [], ...(city ? { city } : {}), ...(state ? { state } : {}) });
     const prior = accounts.get(id);
     if (prior && canonicalJson({ ...prior.value, prices: [] }) !== canonicalJson(value)) importError('CSV_ACCOUNT_CONFLICT', `Repeated accountId ${id} has conflicting account details.`);
     if (!prior) accounts.set(id, { value, row: index + 2 });

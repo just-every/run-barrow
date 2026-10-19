@@ -12,5 +12,5 @@ export function demoPierState() {
   }
 }
 export function demoReservation(orderId: string, lines: Line[]) {
-  return { id: `pier-${orderId}`, reference: `SO-${orderId.slice(-8)}`, lines: lines.map(line => ({ itemId: line.itemId, quantity: String(line.quantity), reserved: String(line.quantity), cancelled: '0' })) }
+  return { id: `pier-${orderId}`, reference: `SO-${orderId.split('-').pop()}`, lines: lines.map(line => ({ itemId: line.itemId, quantity: String(line.quantity), reserved: String(line.quantity), cancelled: '0' })) }
 }

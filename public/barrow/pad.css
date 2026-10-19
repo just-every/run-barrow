@@ -4,14 +4,15 @@
 .br-pad-head{grid-area:head;display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;min-width:0}
 .br-pad-title{display:flex;align-items:center;gap:10px 16px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
 .barrow .br-pad-title h1{font-size:32px}
+.br-pad-town{font:500 20px/1.2 var(--rer-font-body);letter-spacing:0;color:var(--br-body)}
 .br-chips{display:flex;gap:8px;flex-wrap:wrap}
 .br-pad-pickers{order:3;flex-basis:100%;display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap}
 .br-pad-pickers label{display:flex;align-items:center;gap:8px;font-weight:500}
 .barrow .br-pad-pickers select{width:auto;min-width:200px;max-width:420px;min-height:36px;padding-block:6px;font-size:14px}
 .br-pad-context{display:flex;align-items:center;font-size:13px;color:var(--br-body)}
-.br-pad-find{position:relative}
+.br-pad-find{display:grid;justify-items:end}
 .barrow .br-sku input{width:250px;padding-left:38px;background:var(--rer-surface) url('/barrow/search.svg') 12px center/18px no-repeat}
-.br-sku-message{position:absolute;top:calc(100% + 4px);right:0;z-index:5;padding:6px 10px;border-radius:8px;background:var(--br-ink);color:var(--rer-accent-text);font-size:12px;white-space:nowrap}
+.br-sku-message{max-width:250px;margin-top:6px!important;padding:6px 10px;border-radius:8px;background:var(--br-ink);color:var(--rer-accent-text);font-size:12px}
 .br-pad-send{grid-area:send;display:grid;justify-items:end;gap:6px;max-width:260px}
 .barrow .br-pad-send button{min-height:48px;padding:12px 22px;font-size:16px}
 .br-pad-send p{text-align:right}
@@ -102,15 +103,16 @@
 }
 /* 390: the matrix stays one full-width card of size columns plus Units; each style is a block with Line $ under its name. */
 @media(max-width:720px){
- .br-pad{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "card" "matrix" "ref" "send" "foot";gap:12px}
+ /* The summary sits before the reference field and Prepare, so sticking to the bottom never lays it over them. */
+ .br-pad{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "card" "matrix" "foot" "ref" "send";gap:12px}
  .br-pad-head{flex-direction:column;align-items:stretch;gap:12px}
- .barrow .br-pad-title h1{font-size:28px}
+ .barrow .br-pad-title h1{font-size:28px}.br-pad-town{font-size:16px}
  .br-chip{white-space:normal}
  .br-pad-pickers{order:0;flex-direction:column;align-items:stretch;gap:10px}
  .br-pad-pickers label{display:grid;gap:6px}
  .barrow .br-pad-pickers select{width:100%;max-width:none;min-width:0;min-height:44px}
  .barrow .br-sku input{width:100%}
- .br-sku-message{position:static;margin-top:6px;white-space:normal}
+ .br-pad-find{justify-items:stretch}.br-sku-message{max-width:none}
  .br-pad-send{max-width:none;justify-items:stretch}.br-pad-send p{text-align:left}
  .br-style-card{padding:12px;gap:12px}.br-style-head{flex-basis:100%}
  .barrow .br-style-head h2{font-size:21px}.br-style-price{font-size:16px}

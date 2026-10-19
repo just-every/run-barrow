@@ -5,6 +5,8 @@ export type AccountValue = {
   termsDays: number;
   minimumCents: number;
   prices: { sku: string; unitCents: number; minQty: number }[];
+  city?: string;
+  state?: string;
 };
 
 export function importError(code: string, message: string): never {
@@ -33,8 +35,8 @@ export function nonnegativeInteger(value: unknown, field: string, minimum = 0): 
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
-  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'];
-  if (Object.keys(value).some(key => !keys.includes(key)) || keys.some(key => !(key in value)))
+  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state'];
+  if (Object.keys(value).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !(key in value)))
     importError('ACCOUNT_VALUE', 'Use exactly the documented account fields.');
   const name = boundedText(value.name, 'name');
   const email = boundedText(value.email, 'email', 254);
@@ -56,5 +58,7 @@ export function validateAccountValue(input: unknown): AccountValue {
     seen.add(sku);
     return { sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty: nonnegativeInteger(price.minQty, 'minQty', 1) };
   });
-  return { name, email, pierCustomerId, termsDays, minimumCents, prices };
+  // The stockist's town, shown beside its name ("Columbia, SC"); both parts are optional.
+  const town = Object.fromEntries(optional.filter(key => value[key] !== undefined).map(key => [key, boundedText(value[key], key, key === 'city' ? 80 : 40)]));
+  return { name, email, pierCustomerId, termsDays, minimumCents, prices, ...town };
 }

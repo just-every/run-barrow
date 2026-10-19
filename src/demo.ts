@@ -12,7 +12,7 @@ export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail:
     const updated = customer.id === demoPriceUpdate.customer
     // Palmetto & Pine's list took the scheduled noon update, so its revision moved on from the one its drafts were written against.
     const prices = priceLists.get(customer.id)!.map(price => updated && price.sku.startsWith(`JV-${demoPriceUpdate.style}-`) ? { ...price, unitCents: demoPriceUpdate.cents } : price)
-    statements.push(env.DB.prepare('INSERT OR IGNORE INTO bw_accounts VALUES(?,?,?)').bind(`demo-${customer.id}`, JSON.stringify({ name: customer.name, email: `${customer.buyer}@${customer.id}.example.test`, pierCustomerId: demoCustomerId(customer.id), termsDays: customer.termsDays, minimumCents: 50000, prices }), `demo-account-${customer.id}-${updated ? 2 : 1}`))
+    statements.push(env.DB.prepare('INSERT OR IGNORE INTO bw_accounts VALUES(?,?,?)').bind(`demo-${customer.id}`, JSON.stringify({ name: customer.name, email: `${customer.buyer}@${customer.id}.example.test`, pierCustomerId: demoCustomerId(customer.id), termsDays: customer.termsDays, minimumCents: 50000, prices, ...(customer.city ? { city: customer.city, state: customer.state } : {}) }), `demo-account-${customer.id}-${updated ? 2 : 1}`))
   }
   for (const record of demoOrders) {
     const customer = demoCustomers.find(value => value.id === record.customer)!, prices = priceLists.get(customer.id)!

@@ -1,6 +1,8 @@
 // One supplier story, shared by the seed and the private Pier demo response: Juniper & Vale (apparel,
 // Charleston SC) at Atlanta market week, as it stood at Tue Oct 20, 2026, 6:44 pm ET, the evening the hall Wi-Fi came back.
 export const demoPierOrigin = 'https://stock.demo.invalid'
+/** The story's clock: Tue Oct 20, 2026, 6:42 pm ET, when the hall synced. Demo stock reads and new records never read earlier. */
+export const demoStoryClock = Date.parse('2026-10-20T22:42:00Z')
 
 const core = ['S', 'M', 'L', 'XL']
 const extended = ['1X', '2X', '3X']
@@ -22,13 +24,14 @@ export const demoProducts = demoStyles.flatMap((style, index) => style.sizes.map
 })))
 
 // Stockists on the Boutique price list unless a price list says otherwise.
-export const demoCustomers: { id: string; name: string; buyer: string; termsDays: number; list?: 'volume' }[] = [
-  { id: 'palmetto', name: 'Palmetto & Pine', buyer: 'lena', termsDays: 30 },
-  { id: 'marlowe', name: 'Marlowe Boutique', buyer: 'nia', termsDays: 30 },
-  { id: 'bayside', name: 'Bayside Threads', buyer: 'orders', termsDays: 30 },
-  { id: 'wren', name: 'Wren & Co.', buyer: 'buying', termsDays: 30 },
-  { id: 'ivy-oak', name: 'Ivy & Oak', buyer: 'sam', termsDays: 30 },
-  { id: 'halseys', name: 'Halsey’s', buyer: 'buyer', termsDays: 14, list: 'volume' },
+// Towns come from the run site's records; a stockist the page never places keeps no town.
+export const demoCustomers: { id: string; name: string; buyer: string; termsDays: number; list?: 'volume'; city?: string; state?: string }[] = [
+  { id: 'palmetto', name: 'Palmetto & Pine', buyer: 'lena', termsDays: 30, city: 'Columbia', state: 'SC' },
+  { id: 'marlowe', name: 'Marlowe Boutique', buyer: 'nia', termsDays: 30, city: 'Savannah', state: 'GA' },
+  { id: 'bayside', name: 'Bayside Threads', buyer: 'orders', termsDays: 30, city: 'Charleston', state: 'SC' },
+  { id: 'wren', name: 'Wren & Co.', buyer: 'buying', termsDays: 30, city: 'Asheville', state: 'NC' },
+  { id: 'ivy-oak', name: 'Ivy & Oak', buyer: 'sam', termsDays: 30, city: 'Austin', state: 'TX' },
+  { id: 'halseys', name: 'Halsey’s', buyer: 'buyer', termsDays: 14, list: 'volume', city: 'Raleigh', state: 'NC' },
   { id: 'magnolia', name: 'Magnolia & Moss', buyer: 'hello', termsDays: 30 },
   { id: 'linen-porch', name: 'The Linen Porch', buyer: 'shop', termsDays: 30 },
   { id: 'sweetgrass', name: 'Sweetgrass Supply', buyer: 'orders', termsDays: 30 },

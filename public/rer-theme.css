@@ -71,7 +71,10 @@
 /* The shared frame supplies markup, security and behavior; only its theme changes. */
 html.rer-themed body{display:block;place-items:normal;padding:96px 20px 64px;font-size:16px;line-height:1.5;background:var(--br-canvas)}
 html.rer-themed main{margin:0 auto;padding:36px;max-width:480px;background:#fff;border:1px solid var(--br-rule);border-radius:16px;box-shadow:var(--br-shadow)}
-html.rer-themed .brand,html.rer-themed .rer-brand{font:var(--rer-wordmark-weight) 26px/1.2 var(--rer-font-heading);letter-spacing:var(--rer-wordmark-tracking);margin-bottom:28px}
+/* One wordmark face everywhere: "Barrow" in the sans, as the app's top bar sets it (Lobby, sign-in and setup included). */
+html.rer-themed .brand,html.rer-themed .rer-brand{font:var(--rer-wordmark-weight) 26px/1.2 var(--rer-font-body);letter-spacing:var(--rer-wordmark-tracking);margin-bottom:28px}
+.door-card .lockup .word{font-family:var(--rer-font-body)}
+main>p.brand{font-family:var(--rer-font-body);font-weight:var(--rer-wordmark-weight);letter-spacing:var(--rer-wordmark-tracking)}
 html.rer-themed .brand::before,html.rer-themed .rer-brand::before{width:34px;height:34px}
 html.rer-themed h1{font-family:var(--rer-font-heading);font-weight:800;font-size:40px;line-height:1.02;letter-spacing:-.025em;word-spacing:.04em;margin-bottom:18px}
 html.rer-themed button{border-radius:var(--rer-button-radius);font-weight:600;min-height:48px}

@@ -23,7 +23,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/state' && request.method==='GET') {
    const selected=await accounts(env.DB,actor)
    const rows=await env.DB.prepare('SELECT value_json,revision FROM bw_orders'+(supplier(actor)?'':" WHERE account_id IN (SELECT id FROM bw_accounts WHERE json_extract(value_json,'$.email')=?)")+' ORDER BY rowid DESC').bind(...(supplier(actor)?[]:[actor.email])).all<any>()
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders:rows.results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})),connection:{configured:await pierConfigured(env)}})
+   const orders=rows.results.map(row=>({...JSON.parse(row.value_json),revision:row.revision}))
+   // Order history names people, not operator IDs: the display names of everyone these orders record.
+   const ids=[...new Set(orders.flatMap((order:any)=>[order.preparedBy,order.submittedBy,order.approvedBy]).filter((id:unknown)=>typeof id==='string'&&!id.startsWith('agent:')))]
+   const people=ids.length?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<any>()).results.map(row=>[row.id,row.display_name])):{}
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)}})
   }
   if(path==='/api/barrow/catalogue' && request.method==='GET') return json(await catalogue(env,await account(env.DB,actor,url.searchParams.get('accountId')??'')))
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)

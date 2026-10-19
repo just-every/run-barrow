@@ -12,6 +12,7 @@
 .br-account-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .br-account{display:flex;flex-direction:column;gap:16px}
 .br-account .br-eyebrow{font-family:var(--rer-font-mono);text-transform:none;letter-spacing:0;font-weight:400!important}
+.br-account .br-eyebrow.br-town{font-family:var(--rer-font-body);text-transform:uppercase;letter-spacing:.07em;font-weight:600!important}
 .br-account h2{margin:4px 0 2px}.br-account .br-email{font-size:14px;color:var(--br-body)}
 .br-account .br-actions{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .br-account .br-actions .br-quiet{grid-column:1/-1;justify-self:start}
@@ -27,6 +28,7 @@
 .br-order-main{display:grid;gap:10px;align-content:start;min-width:0}
 .br-order-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .br-order-id{font:500 12px/1 var(--rer-font-mono);color:var(--br-soft)}
+.br-replaces{font-size:12px;color:var(--br-soft)}
 .br-order-main .br-change-note{justify-self:start}
 .br-order-explain{font-size:14px;color:var(--br-body)}
 .br-order-side{display:grid;gap:10px;align-content:start;padding-left:24px;border-left:1px solid var(--br-rule);min-width:0}

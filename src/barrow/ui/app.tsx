@@ -108,7 +108,7 @@ export function BarrowApp() {
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
-          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} busy={busy} run={run} />}
         </>}

@@ -28,6 +28,7 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
         name: String(data.get('name')).trim(), email: String(data.get('email')).trim().toLowerCase(),
         pierCustomerId: String(data.get('pierCustomerId')).trim(), termsDays: Number(data.get('termsDays')),
         minimumCents: Number(data.get('minimumCents')), prices: parsePrices(String(data.get('prices'))),
+        ...Object.fromEntries(['city', 'state'].map(key => [key, String(data.get(key)).trim()]).filter(([, value]) => value)),
       }
       if (await run('account.save', { ...(id ? { id } : {}), ...(account ? { revision: account.revision } : {}), value })) onClose()
     } catch (error) { setError(error instanceof Error ? error.message : 'Check the account fields.') }
@@ -39,10 +40,12 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
       <label>Business name<input name="name" required defaultValue={account?.value.name} autoComplete="organization" /></label>
       <label>Customer email<input name="email" type="email" required readOnly={!!account} defaultValue={account?.value.email} autoComplete="email" />{account && <small>Create a separate account to change the customer’s sign-in email.</small>}</label>
       <label>Account ID<input name="id" defaultValue={account?.id} readOnly={!!account} placeholder="Generated when left blank" /><small>{account ? 'The account ID is permanent.' : 'Use a stable ID for imports and account updates.'}</small></label>
+      <label>City<input name="city" defaultValue={account?.value.city} autoComplete="address-level2" maxLength={80} /></label>
+      <label>State<input name="state" defaultValue={account?.value.state} autoComplete="address-level1" maxLength={40} placeholder="SC" /></label>
       <label>Pier customer ID<input name="pierCustomerId" required defaultValue={account?.value.pierCustomerId} /></label>
       <label>Payment terms (days)<input name="termsDays" type="number" min="0" max="365" step="1" required defaultValue={account?.value.termsDays ?? 30} /></label>
       <label>Minimum order (cents)<input name="minimumCents" type="number" min="0" step="1" required defaultValue={account?.value.minimumCents ?? 0} /></label>
-      <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => `${price.sku},${price.unitCents},${price.minQty}`).join('\n')} placeholder="SKU,unitCents,minQty" spellCheck={false} /><small>One row per SKU, with no header. For example: JV-2214-S,4800,2 means $48.00 each, minimum quantity 2. Only agreed SKUs appear in this account’s catalog.</small></label>
+      <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => `${price.sku},${price.unitCents},${price.minQty}`).join('\n')} placeholder="SKU,unitCents,minQty" spellCheck={false} /><small>One row per SKU, with no header. For example: <span className="br-nowrap">JV-2214-S,4800,2</span> means $48.00 each, minimum quantity 2. Only agreed SKUs appear in this account’s catalog.</small></label>
     </fieldset>
     <div className="br-actions"><button disabled={busy}>{busy ? 'Saving…' : 'Save account'}</button></div>
   </form>

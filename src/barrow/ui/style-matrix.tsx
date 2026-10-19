@@ -56,7 +56,7 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
         {open && <tr className="br-change-row"><td colSpan={columns.length + 4}>
           <p className="br-change-note"><span className="br-warn" aria-hidden="true">!</span>Price changed since this draft was written: {prices.join(', ')}{writtenAt && ` (written ${when(writtenAt)})`} · line {money(was)} → {money(now)}</p>
           <div className="br-change-actions">
-            <p>Submitting needs today’s price: Barrow prepares a new draft and {customer} re-confirms it.</p>
+            <p className="br-agent-line"><span className="br-rivet" aria-hidden="true" />Barrow prepares a new draft at today’s price to replace this one; {customer} re-confirms it.</p>
             <button type="button" onClick={() => onKeep(row.key)} disabled={busy}>Keep {newPrices.length === 1 ? newPrices[0] : 'the new prices'}, buyer re-confirms</button>
             <button type="button" className="br-secondary" onClick={() => onRemove(row)} disabled={busy}>Remove {row.key.replace(/^[A-Z]+-/, '')} from this order</button>
           </div>

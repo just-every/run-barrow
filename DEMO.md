@@ -6,7 +6,10 @@ unchanged. The nav and title say **Barrow Demo**, with no bar or outbox.
 
 The idempotent `src/demo.ts` hook tells one supplier's story: Juniper & Vale (apparel,
 Charleston SC) at Atlanta market week, dated as the story stood at Tue Oct 20, 2026,
-6:44 pm ET (`src/demo-data.ts`); stock observation times are the real clock. Twelve US stockists take USD prices for
+6:44 pm ET (`src/demo-data.ts`). While real time is earlier than the story, the demo's
+stock observations, new drafts, approvals and invoice dates read the story clock (Tue Oct 20,
+6:42 pm ET, when the hall synced), so nothing reads earlier than the drafts it follows; a real
+install always uses the real clock. Every time in the app reads in Eastern time. Twelve US stockists take USD prices for
 the Spring '27 styles (2214 Wrap Dress, 2219 Tee, 2223 Linen Shirt, 2227 Wide-Leg Pant,
 2236 Cardigan, 2241 Linen Pant), one SKU per style and size. Ten orders span the season:
 approved line-sheet and booth orders with invoices, one in review, and the evening's

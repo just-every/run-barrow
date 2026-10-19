@@ -8,6 +8,10 @@ The customer prepares and submits an order. The supplier approves it, Pier reser
 2. Enter whole-unit quantities and an optional purchase order reference, then choose **Prepare draft**. The minimum quantities and minimum order must be met.
 3. In Orders, review the lines, prices, total and payment terms. Choose **Submit for supplier review** when ready.
 
+Orders are numbered in sequence, the next after the highest number on record (`JV-10438` is followed by `JV-10439`; a new installation starts at `ORD-10001`). The invoice number (`BAR-JV-10439`) and the demo's Pier reference follow it. Every date and time in the app reads in Eastern time, the supplier's zone, marked "ET" when your device's clock reads differently.
+
+If a draft's prices or terms changed after it was written, it cannot be submitted as it stands. Open it in the order pad, settle the change in its row and choose **Prepare draft**: the new draft replaces the old one, which leaves Drafts and is shown only as the new order's "Replaces JV-10431" note. An agent cannot replace a draft; a person must.
+
 A draft reserves no stock. Submission also reserves no stock. Barrow snapshots the commercial details on the order, so later account edits do not rewrite that order's agreed prices and terms.
 
 ## Approve and reserve

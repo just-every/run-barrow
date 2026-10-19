@@ -100,6 +100,30 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
  });
 });
 
+test('a draft whose prices moved is replaced by the order prepared from it, then approved and invoiced once',async t=>{
+ const pier=await installation({pier:true});t.after(()=>pier.close());
+ const products=await stock(pier);
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
+ const account=await h.command('account.save',{value:{...accountValue(products.customer.id),city:'Columbia',state:'SC'}});
+ assert.doesNotMatch(account.id,/^[0-9a-f]{8}-/);
+ const draft=await h.command('order.prepare',{accountId:account.id,reference:'Market week · booth',lines:[{sku:'OAT-1',quantity:4}]});
+ await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:[{sku:'OAT-1',unitCents:6600,minQty:2}]}});
+ assert.equal((await h.command('order.submit',{orderId:draft.id},{status:409})).error.code,'PRICE_CHANGED');
+ const order=await h.command('order.prepare',{accountId:account.id,reference:draft.reference,replaces:draft.id,lines:[{sku:'OAT-1',quantity:4}]});
+ const [prefix,number]=draft.id.split('-');assert.equal(order.id,`${prefix}-${Number(number)+1}`);
+ assert.equal(order.replaces,draft.id);assert.equal(order.totalCents,26400);
+ let state=await h.api('/api/barrow/state');
+ assert.deepEqual(state.orders.filter(o=>o.status==='draft').map(o=>o.id),[order.id]);
+ assert.equal(state.orders.find(o=>o.id===draft.id).supersededBy,order.id);
+ await h.command('order.prepare',{accountId:account.id,replaces:draft.id,lines:[{sku:'OAT-1',quantity:4}]},{status:409});
+ await h.command('order.submit',{orderId:order.id});
+ assert.equal((await h.command('order.approve',{orderId:order.id})).status,'approved');
+ const invoice=await (await h.request(`/api/barrow/invoices/${order.id}.csv`)).text();assert.ok(invoice.includes(`"BAR-${order.id}"`));assert.ok(invoice.includes('"26400"'));
+ state=await h.api('/api/barrow/state');
+ assert.deepEqual(state.orders.filter(o=>o.status!=='superseded').map(o=>o.id),[order.id]);
+ assert.equal(state.accounts[0].value.city,'Columbia');
+});
+
 test('erasing imported unused account retires custody and fences old restores',async t=>{
  const h=await installation();t.after(()=>h.close());
  const csv='accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\nerase-me,Cedar Street Pantry,erase@example.test,pier-cedar,30,0,OAT-1,6500,1\n';

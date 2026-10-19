@@ -14,10 +14,18 @@ export async function account(db:D1Database,actor:Actor,id:string):Promise<Accou
  if(!row || (!supplier(actor) && JSON.parse(row.value_json).email!==actor.email)) fail('NOT_FOUND','Trade account not found.',404)
  return {id:row.id,value:JSON.parse(row.value_json),revision:row.revision}
 }
+// A new account without a chosen ID takes one from its name ("Palmetto & Pine" → palmetto-pine, then palmetto-pine-2).
+async function freeId(db:D1Database,name:string) {
+ const base=name.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60).replace(/-+$/,'')||'account'
+ const taken=new Set((await db.prepare('SELECT id FROM bw_accounts WHERE id=? OR id LIKE ?').bind(base,base+'-%').all<{id:string}>()).results.map(row=>row.id))
+ let id=base
+ for(let n=2;taken.has(id);n++) id=`${base}-${n}`
+ return id
+}
 export async function accountCommand(request:Request,env:Bindings,actor:Actor,type:string,p:any) {
  requireSupplier(actor)
  if(type==='account.save') {
-  const value=validateAccountValue(p.value),id=p.id??crypto.randomUUID(),revision=crypto.randomUUID()
+  const value=validateAccountValue(p.value),id=p.id??await freeId(env.DB,value.name),revision=crypto.randomUUID()
   if(typeof id!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(id)) fail('INPUT','Use a stable account ID with letters, digits, dash or underscore.',400)
   const prior=await env.DB.prepare('SELECT * FROM bw_accounts WHERE id=?').bind(id).first<any>()
   if(prior && p.revision!==prior.revision) fail('CHANGED','This account changed. Refresh it before saving.')
