@@ -4,6 +4,8 @@ Target edition: 17 October 2026. Barrow is the wholesale ordering portal a US br
 
 This is the product being built towards, not a description limited to today's release. Missing providers, native mobile applications, credit agreements and migrations are engineering work below. The canonical Status table records current implementation separately. Every clause states the buyer behavior and acceptance evidence through a screen, form, command, HTTP API, download or provider event; [ACCEPTANCE.md](ACCEPTANCE.md) lists the same journeys and statuses. Existing BAR-001 through BAR-006 IDs are preserved. BAR-002 extends the former AUD/Pier-only, tax-and-payment-excluded slice to the full US commercial job; legacy records keep their original currency.
 
+Historical currency terminology throughout this contract: “former” and “legacy” AUD refer to orders written before USD currency snapshots were introduced on 19 October 2026 (`src/barrow/orders.ts`, `src/barrow/pier.ts`). Those historical records retain their original currency and cents; new orders use USD.
+
 ## Product target
 
 | | |

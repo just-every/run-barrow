@@ -4,6 +4,8 @@ Target edition: 17 October 2026. These numbered public-door journeys match every
 
 Existing release journeys remain BAR-001 through BAR-006. The earlier exclusions of checkout, tax, payment and shipping are superseded by the target clauses. Inventory, accounting, carriers and financing remain separate connected authorities, with Pier optional. Counts and the code-judgment commit are canonical in CONTRACT.md.
 
+Historical currency terminology throughout these journeys: “former” and “legacy” AUD refer to orders written before USD currency snapshots were introduced on 19 October 2026 (`src/barrow/orders.ts`, `src/barrow/pier.ts`). Those historical records retain their original currency and cents; new orders use USD.
+
 ## Published guarantees carried forward
 
 1. **BAR-001 — Accounts and access.** **Status:** done. Using the native sign-in and HTTP commands, read as two different buyers, attempt foreign account reads, cross-origin writes and supplier actions as a buyer, then revoke an agent grant. Unauthorized requests return no commercial data and perform no mutation. **Current evidence:** `src/barrow/access.ts`; `src/barrow/accounts.ts`; `src/barrow/api.ts`; `tests/api/flows.test.mjs`.
