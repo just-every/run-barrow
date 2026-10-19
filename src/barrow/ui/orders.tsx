@@ -5,6 +5,7 @@ import { Empty } from './primitives'
 import { orderStyles } from './styles'
 import { Reorder } from './reorder'
 import { CancelOrder } from './cancel-order'
+import { OrderTimeline } from './order-timeline'
 import { request, errorMessage } from './api'
 
 const explanations: Record<Order['status'], string> = {
@@ -90,6 +91,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
             {order.status === 'approved' && <a className="br-button" href={`/api/barrow/invoices/${encodeURIComponent(order.id)}.csv`} download>Download invoice CSV</a>}
           </div>
           <details className="br-details"><summary>Order history & Pier details</summary><dl className="br-facts br-facts-wrap"><div><dt>Prepared by</dt><dd>{person(order.preparedBy)}</dd></div>{order.submittedBy && <div><dt>Submitted by</dt><dd>{person(order.submittedBy)}</dd></div>}{order.approvedBy && <div><dt>Approved by</dt><dd>{person(order.approvedBy)}</dd></div>}{order.approvedAt && <div><dt>Approved at</dt><dd>{when(order.approvedAt)}</dd></div>}{order.pierReference && <div><dt>Pier order</dt><dd>{order.pierReference}</dd></div>}{order.reservation && <div><dt>Reserved</dt><dd>{order.reservation.reduce((sum, line) => sum + Number(line.reserved), 0)} of {units} units</dd></div>}{order.release && <><div><dt>Cancelled by</dt><dd>{person(order.release.requestedBy)}</dd></div><div><dt>Cancelled at</dt><dd>{when(order.release.requestedAt)}</dd></div><div><dt>Reason</dt><dd>{order.release.reason}</dd></div><div><dt>Stock release</dt><dd>{order.release.confirmedAt ? `Confirmed by Pier ${when(order.release.confirmedAt)}` : 'Awaiting Pier confirmation'}</dd></div></>}{order.invoice && <><div><dt>{order.release ? 'Withdrawn invoice' : 'Invoice'}</dt><dd>{order.invoice.number}</dd></div><div><dt>Issued</dt><dd>{day(order.invoice.issuedAt)}</dd></div><div><dt>Due</dt><dd>{day(order.invoice.dueAt)}</dd></div></>}</dl></details>
+          {order.status !== 'draft' && <OrderTimeline order={order} />}
         </div>
       </article>
     })}

@@ -38,6 +38,10 @@ Open **Order history & Pier details** for preparation, submission and approval i
 
 Never create a second order to recover an uncertain reservation response. The retry action reuses the first order's durable Pier command ID. If the Pier session expires, reconnect Pier and recover the same order.
 
+## Follow an order
+
+Open **Order timeline** on a submitted order. It lists what Barrow recorded (submitted, accepted, allocated, backordered, cancelled) and what Pier records for the order: each dispatch as a shipment with its reference and units, and each return. Every entry shows where it came from, when, and who. Delivery, holds and closing are shown as not recorded, because no connected source reports them yet; if Pier does not answer, shipments are shown as unknown rather than guessed.
+
 ## Cancel an order and release its stock
 
 As the supplier, choose **Cancel order & release stock** on an `approved` or `shortfall` order and give a reason. Barrow sends one Pier cancellation with the durable command ID `barrow-release-<order>` and keeps the order `releasing` until Pier confirms that every unshipped unit is cancelled and nothing is reserved. If the response is lost, **Retry stock release** repeats the same command, so Pier releases only once; **Refresh release status** reads Pier's order instead.

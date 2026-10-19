@@ -6,6 +6,7 @@ import { current,digest,commit,audit } from './access'
 import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
 import { documentResponse } from './documents'
+import { orderTimeline } from './timeline'
 import { orderHistory } from './reorders'
 import { catalogue, pierConfigured } from './pier'
 import { invoiceCsv } from './invoice'
@@ -44,6 +45,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   }
   const document=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/document$/.exec(path)
   if(document && request.method==='GET') return await documentResponse(env,actor,await readOrder(env.DB,actor,document[1]))
+  const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
+  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
   if(path.startsWith('/api/barrow/imports')) {
    requireSupplier(actor)
    if(path==='/api/barrow/imports'&&request.method==='GET') return json({jobs:await listAccountImports(env.DB,actor)})
