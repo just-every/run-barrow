@@ -90,7 +90,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
  if(type==='shipping.select' || type==='shipping.quote') {
   if(order.status!=='draft')fail('SHIPPING_LOCKED','Delivery changes require a new reviewed draft.')
-  const selected=await account(env.DB,actor,order.accountId),context={account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes}
+  const selected=await account(env.DB,actor,order.accountId),context={currency:order.currency??'AUD',account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes}
   if(type==='shipping.quote') {
    const quoted=await freightQuote(env,actor,context,p)
    return save(env,actor,{...order,delivery:undefined,totalCents:deliveryTotal(order.lines),freightQuotes:[...(order.freightQuotes??[]),quoted]},'shipping.quoted',[],`Merchant freight quote: ${quoted.cents} USD cents; ${quoted.reason}`)
@@ -107,7 +107,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
   if(order.delivery && actor.email!==selected.value.email)fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
-  const delivery=await acceptDelivery(env,actor,{account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
+  const delivery=await acceptDelivery(env,actor,{currency:order.currency??'AUD',account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
   const release=await purchaseRelease(env.DB,actor,order,p.release,(await now()).toISOString())
   return save(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{})},release.poRelease?'order.submitted-release':'order.submitted',[activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard])
  }

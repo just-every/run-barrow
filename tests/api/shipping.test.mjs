@@ -30,6 +30,8 @@ test('SHIP-001: pickup, parcel, own-account and approved freight preserve explic
  assert.equal((await h.request('/api/barrow/shipping/settings',agent)).status,403);
  assert.equal((await h.command('shipping.settings',{revision:null,methods},{status:409})).error.code,'SHIPPING_CHANGED');
  const first=await draft(),offered=await options(first);
+ const legacy={...first,id:'historical-aud-draft',currency:'AUD',revision:'historical-fixture'};await h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(legacy.id,legacy.accountId,JSON.stringify(legacy),legacy.revision).run();
+ assert.equal((await h.api(`/api/barrow/shipping/options?orderId=${legacy.id}`,undefined,{...buyer,status:409})).error.code,'SHIPPING_CURRENCY');assert.deepEqual([(await h.api(`/api/barrow/orders/${legacy.id}`,undefined,buyer)).currency,(await h.api(`/api/barrow/orders/${legacy.id}`,undefined,buyer)).totalCents],['AUD',first.totalCents]);
  assert.deepEqual(offered.options.map(o=>o.methodId),['pickup','ups','ltl','own']);
  assert.deepEqual([offered.options[1].shippingCents,offered.options[1].handlingCents,offered.options[1].totalCents,offered.options[1].windowStart,offered.options[1].windowEnd],[1500,250,1750,day(2),day(5)]);
  assert.equal((await h.request(`/api/barrow/shipping/options?orderId=${first.id}`,other)).status,404);
