@@ -10,7 +10,7 @@ function TaskEditor({ task, people, busy, update }: { task: Task; people: Board[
   const [ownerId, setOwner] = useState(task.ownerId), [nextContactDate, setDate] = useState(task.nextContactDate)
   const [note, setNote] = useState(''), [outcome, setOutcome] = useState('failed'), [resolution, setResolution] = useState('')
   const save = (extra: Record<string, unknown> = {}) => update({ id: task.id, revision: task.revision, ownerId, nextContactDate, ...extra })
-  return <article className="br-card br-stack"><h3>{task.title}</h3>
+  return <article id={`followup-${task.id}`} style={{scrollMarginTop:'7rem'}} className="br-card br-stack"><h3>{task.title}</h3>
     <p>Last recorded source: {task.reason} · {task.status} · next contact {task.nextContactDate}</p>
     <a href={task.sourcePath}>Open source record</a>
     {task.status === 'closed' ? <p>Resolution: {task.resolution}</p> : <>
@@ -34,6 +34,8 @@ function TaskEditor({ task, people, busy, update }: { task: Task; people: Board[
 export function Followups() {
   const [board, setBoard] = useState<Board | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const [view, setView] = useState('due'), [on, setOn] = useState('')
+  useEffect(() => { if (new URLSearchParams(window.location.search).get('task')) setView('all') }, [])
+  useEffect(() => { const id=new URLSearchParams(window.location.search).get('task'); if(id&&board?.tasks.some(task=>task.id===id))document.getElementById(`followup-${id}`)?.scrollIntoView({block:'start'}) }, [board])
   const query = new URLSearchParams({ view, ...(on ? { on } : {}) })
   const currentQuery = useRef(String(query)), latestRequest = useRef(0)
   currentQuery.current = String(query)

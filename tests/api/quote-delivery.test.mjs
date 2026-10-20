@@ -11,7 +11,7 @@ async function quoting(t,bindings,publicOrigin) {
  await h.command('account.save',{id:'wren',value:{...accountValue(other.id,'wren@example.test'),name:'Wren Market',prices:[{sku:'OAT-1',unitCents:6500,minQty:1}]}});
  const buyer={as:await h.signIn('buyer@example.test')},wren={as:await h.signIn('wren@example.test')};
  const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
- return {h,buyer,wren,agent,quoteOf:(id,opts={})=>h.api(`/api/barrow/quotes/${id}`,undefined,opts)};
+ return {h,pier,buyer,wren,agent,quoteOf:(id,opts={})=>h.api(`/api/barrow/quotes/${id}`,undefined,opts)};
 }
 test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 / INT-015: quote emails preserve audiences and links, expiry is once per revision, signed bounce creates an owned persistent failed-contact task and restore sends nothing',async t=>{
  const key=randomBytes(32),{h,buyer,wren,agent,quoteOf}=await quoting(t,{MAIL_WEBHOOK_SECRET:'whsec_'+key.toString('base64'),MAIL_EVENT_TENANT:'barrow-test'},'https://barrow.example.test');
@@ -99,7 +99,7 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
 
 
 test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry window and unused-account custody erasure stay explicit through restore',async t=>{
- const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,wren}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},'https://barrow.example.test');
+ const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,wren,pier}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},'https://barrow.example.test');
  const deliveries=async()=> (await h.command('quote-mail.dispatch',{})).deliveries;
  // Queue while unconfigured, then supersede the last-day revision before enabling submission.
  await h.configure({MAIL_WEBHOOK_SECRET:undefined});
@@ -137,7 +137,8 @@ test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry win
  await h.db.prepare('UPDATE bw_quote_mail SET first_attempt_at=? WHERE id=?').bind(new Date(Date.now()-25*86400000).toISOString(),limited.id).run();
  h.mail.failStatus=undefined;const attempts=h.mail.requests.length;await deliveries();assert.equal(h.mail.requests.length,attempts);
  assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(row=>row.sourceId===q.id&&row.status==='open'));
- const missing=await h.command('account.save',{id:'missing',value:{...accountValue('missing-pier','missing@example.test'),name:'Missing buyer Market'}});
+ const missingParty=await pier.command('party.save',{name:'Missing buyer Market',kind:'customer'});
+ const missing=await h.command('account.save',{id:'missing',value:{...accountValue(missingParty.id,'missing@example.test'),name:'Missing buyer Market'}});
  // A request needs live catalogue stock but no invented buyer identity.
  const requested=await h.command('quote.request',{accountId:missing.id,lines:[{sku:'OAT-1',quantity:5}]});
  await h.command('quote.propose',{quoteId:requested.id,revision:requested.revision,validUntil:easternDay(2),lines:[{sku:'OAT-1',quantity:5}]});
