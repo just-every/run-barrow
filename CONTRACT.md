@@ -367,7 +367,7 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `b2a3018a740541532fa77a73eee0e60f7d95d365` (20 October 2026).
+Judged from the code and tests at commit `c4834f3e3760918d77a63889f9b2db45073df32c` (20 October 2026).
 
 
 | Clauses | Done | Partial | Missing | Total |
