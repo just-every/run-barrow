@@ -35,7 +35,7 @@ test('AUTO-005: source-linked next actions retain failed contacts, ownership and
  assert.equal(board.tasks.length,5);
  assert.deepEqual(new Set(board.tasks.map(task=>task.sourceId)),new Set([quote.id,unanswered.id,draft.id,pending.id,'dormant']));
  assert.equal(board.tasks[0].sourceId,pending.id);
- assert.match(board.notes.exceptions,/not recorded/); assert.match(board.notes.contact,/no email.*sent/i);
+ assert.match(board.notes.exceptions,/not recorded/);
  assert.ok(board.tasks.every(task=>task.ownerId && task.nextContactDate===board.today && task.reason && task.priority>=0));
  for (const task of board.tasks) assert.equal((await h.request(task.sourcePath)).status,200);
  await refresh(); assert.equal((await read('view=all')).tasks.length,5);
@@ -43,7 +43,9 @@ test('AUTO-005: source-linked next actions retain failed contacts, ownership and
  board=await read('view=all'); assert.match(board.tasks.find(task=>task.sourceId===unanswered.id).reason,/proposed/);
  const before = board.tasks.find(task=>task.sourceId===unanswered.id);
  const future = new Date(Date.parse(board.today+'T12:00:00Z')+3*86400000).toISOString().slice(0,10);
+ const deliveriesBeforeContact=h.mail.deliveries.length;
  await h.command('followup.update',{id:before.id,revision:before.revision,ownerId:adminId,nextContactDate:future,contact:{outcome:'failed',note:'Called the store; no answer. No message sent.'}});
+ assert.equal(h.mail.deliveries.length,deliveriesBeforeContact,'Recording a manual contact must not send outreach.');
  const snoozed = (await read('view=all')).tasks.find(task=>task.id===before.id);
  assert.equal(snoozed.status,'open'); assert.equal(snoozed.ownerId,adminId); assert.equal(snoozed.contacts.length,1); assert.equal(snoozed.contacts[0].outcome,'failed'); assert.ok(snoozed.contacts[0].by && snoozed.contacts[0].at);
  assert.ok(!(await read()).tasks.some(task=>task.id===before.id));
