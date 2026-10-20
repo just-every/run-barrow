@@ -104,7 +104,7 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
 
 
 test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry window and unused-account custody erasure stay explicit through restore',async t=>{
- const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,wren,pier}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},true);
+ const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,buyer,wren,pier}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},true);
  const deliveries=async()=> (await h.command('quote-mail.dispatch',{})).deliveries;
  // Queue while unconfigured, then supersede the last-day revision before enabling submission.
  await h.configure({MAIL_WEBHOOK_SECRET:undefined});
@@ -118,6 +118,15 @@ test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry win
  let discount=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:5}]});
  discount=await h.command('quote.propose',{quoteId:discount.id,revision:discount.revision,validUntil:easternDay(0),lines:[{sku:'OAT-1',quantity:5,unitCents:5000}]});
  assert.equal(discount.status,'awaiting-approval');assert.ok(!(await deliveries()).some(row=>row.quote_id===discount.id&&row.kind==='expiry'));
+ // Acceptance before submission withdraws every pending last-day reminder.
+ await h.configure({MAIL_WEBHOOK_SECRET:undefined});
+ let accepted=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:5}]});
+ accepted=await h.command('quote.propose',{quoteId:accepted.id,revision:accepted.revision,validUntil:easternDay(0),lines:[{sku:'OAT-1',quantity:5}]});
+ const pending=(await deliveries()).filter(row=>row.quote_id===accepted.id&&row.kind==='expiry');assert.equal(pending.length,2);
+ await h.command('quote.accept',{quoteId:accepted.id,number:accepted.revisions.at(-1).number},buyer);
+ await h.configure({MAIL_WEBHOOK_SECRET:secret});rows=await deliveries();
+ assert.ok(pending.every(row=>rows.find(after=>after.id===row.id).status==='withdrawn'));
+ assert.ok(!h.mail.deliveries.some(row=>pending.some(old=>old.id===row.key)));
  // Missing active member is a withdrawn row and an owned task, never an address guess.
  await h.command('account.save',{id:'unused',value:{...accountValue('historical-unused','unused@example.test'),name:'Unused Market'}});
  // Historical archive fixture: the quote was removed at source, leaving delivery custody to erase.
@@ -139,7 +148,7 @@ test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry win
  h.mail.failStatus=429;await h.command('quote.message',{quoteId:q.id,body:'Later update'});
  limited=(await h.api('/api/barrow/export.json')).quotedeliveries.find(row=>row.status==='rate_limited');assert.ok(limited);
  // Historical elapsed-time fixture; the public dispatch must refuse a blind resubmit after the window.
- await h.db.prepare('UPDATE bw_quote_mail SET first_attempt_at=? WHERE id=?').bind(new Date(Date.now()-25*86400000).toISOString(),limited.id).run();
+ await h.db.prepare('UPDATE bw_quote_mail SET first_attempt_at=? WHERE id=?').bind(new Date(Date.now()-25*60*60*1000).toISOString(),limited.id).run();
  h.mail.failStatus=undefined;const attempts=h.mail.requests.length;await deliveries();assert.equal(h.mail.requests.length,attempts);
  assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(row=>row.sourceId===q.id&&row.status==='open'));
  // Current recipient authority is rechecked after queueing, through the native identity door.
