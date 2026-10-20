@@ -14,9 +14,10 @@ import { nextNumber, readOrder } from './orders'
 import { catalogue, pierOrigin } from './pier'
 import { prepareLines } from './unit-lines'
 import { quantityMicro } from './units'
+import { attachmentResponse, notice, threadCommand, threadEntries, unreadNotices } from './quote-thread'
 
 export type QuoteLine = Line & { basisUnitCents: number; basisLineCents: number; discountBps?: number; negotiatedUnitCents?: number }
-export type QuoteRevision = { number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedBy: string; proposedAt: string; discounted: boolean; approval?: { by: string; at: string; reason: string } }
+export type QuoteRevision = { number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedBy: string; proposedByEmail?: string; proposedAt: string; changes?: string[]; discounted: boolean; approval?: { by: string; at: string; reason: string } }
 export type Quote = { id: string; accountId: string; customerName: string; currency: 'USD'; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedBy: string; requestedAt: string; note: string; request: Line[]; revisions: QuoteRevision[]; accepted?: { revision: number; by: string; at: string; orderId: string }; revision: string }
 
 function missing(): never { return fail('NOT_FOUND', 'Quote not found.', 404) }
@@ -32,6 +33,11 @@ function view(actor: Actor, quote: Quote, today: string) {
  const shown = supplier(actor) ? quote : { ...quote, revisions: quote.revisions.map(({ approval, ...revision }) => ({ ...revision, approved: Boolean(approval) })) }
  return { ...shown, expired: expired(quote, today) }
 }
+// ORD-005: each quote read carries its conversation as the actor may see it and the actor's side's unread notices.
+async function threaded(db: D1Database, actor: Actor, quotes: Quote[], today: string) {
+ const ids = quotes.map(quote => quote.id), [entries, notices] = await Promise.all([threadEntries(db, actor, ids), unreadNotices(db, actor, ids)])
+ return quotes.map(quote => ({ ...view(actor, quote, today), thread: entries.filter(row => row.quoteId === quote.id), notices: notices.filter(row => row.quoteId === quote.id) }))
+}
 
 async function readQuote(db: D1Database, actor: Actor, id: string) {
  const row = await db.prepare('SELECT value_json,revision FROM bw_quotes WHERE id=?').bind(id).first<any>()
@@ -45,13 +51,36 @@ export async function readQuotes(db: D1Database, actor: Actor, accountId: string
  requirePerson(actor)
  const ids = accountId ? [(await account(db, actor, accountId)).id] : (await accounts(db, actor)).map(row => row.id)
  const rows = ids.length ? (await db.prepare('SELECT value_json,revision FROM bw_quotes WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid DESC').bind(JSON.stringify(ids)).all<any>()).results : []
- const today = supplierDate(await now())
- return rows.map(row => view(actor, parse(row), today))
+ return threaded(db, actor, rows.map(parse), supplierDate(await now()))
 }
 
 export async function quoteResponse(db: D1Database, actor: Actor, id: string) {
  requirePerson(actor)
- return view(actor, await readQuote(db, actor, id), supplierDate(await now()))
+ return (await threaded(db, actor, [await readQuote(db, actor, id)], supplierDate(await now())))[0]
+}
+
+export async function quoteAttachment(env: Bindings, actor: Actor, id: string, entryId: string) {
+ requirePerson(actor)
+ await readQuote(env.DB, actor, id)
+ return attachmentResponse(env, actor, id, entryId)
+}
+
+const usd = (cents: number) => `$${Math.floor(cents / 100).toLocaleString('en-US')}.${String(cents % 100).padStart(2, '0')}`
+const lineKey = (line: Line) => `${line.sku}${line.unit ? ` (${line.unit})` : ''}`
+/** ORD-005: what a revision changed against the one before it (the request, for revision 1), in the buyer's terms. */
+function changesFrom(previous: { lines: Line[]; termsDays?: number; shipping?: string; validUntil?: string } | undefined, next: QuoteRevision) {
+ const before = new Map((previous?.lines ?? []).map(line => [lineKey(line), line])), after = new Set(next.lines.map(lineKey)), changes: string[] = []
+ for (const line of next.lines) {
+  const old = before.get(lineKey(line))
+  if (!old) { changes.push(`${lineKey(line)} added: ${line.quantity} for ${usd(line.lineCents!)}`); continue }
+  if (String(old.quantity) !== String(line.quantity)) changes.push(`${lineKey(line)} quantity ${old.quantity} → ${line.quantity}`)
+  if (old.lineCents !== line.lineCents) changes.push(`${lineKey(line)} ${usd(old.lineCents!)} → ${usd(line.lineCents!)}${line.negotiatedUnitCents !== undefined ? ` (${usd(line.negotiatedUnitCents)} each)` : line.discountBps !== undefined ? ` (${line.discountBps} bps off)` : ''}`)
+ }
+ for (const key of before.keys()) if (!after.has(key)) changes.push(`${key} removed`)
+ if (previous?.termsDays !== undefined && previous.termsDays !== next.termsDays) changes.push(`Payment terms net ${previous.termsDays} → net ${next.termsDays} days`)
+ if (previous?.shipping !== undefined && previous.shipping !== next.shipping) changes.push(`Shipping note “${previous.shipping}” → “${next.shipping}”`)
+ if (previous?.validUntil !== undefined && previous.validUntil !== next.validUntil) changes.push(`Valid through ${previous.validUntil} → ${next.validUntil}`)
+ return changes
 }
 
 // Quotes read as people say them, like orders: Q-10001, then the next number.
@@ -96,10 +125,11 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   const offers = await catalogue(env, selected), lines = prepareLines(p.lines, offers.items, today, false)
   const id = await nextQuote(env.DB), revision = crypto.randomUUID()
   const quote: Omit<Quote, 'revision'> = { id, accountId: selected.id, customerName: selected.value.name, currency: 'USD', status: 'requested', requestedBy: actor.id, requestedAt: at, note: note(p.note, 'Quote note', 1000), request: lines, revisions: [] }
-  await commit(env.DB, actor, [activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_quotes(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(quote), revision), audit(env.DB, actor, id, 'quote.requested', { accountId: selected.id, revision: `${id}:r0:${revision}`, source: 'quote.request', reason: `Requested a quote for ${lines.length} cart ${lines.length === 1 ? 'line' : 'lines'} at current prices; no stock reserved.` })])
+  await commit(env.DB, actor, [activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_quotes(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(quote), revision), audit(env.DB, actor, id, 'quote.requested', { accountId: selected.id, revision: `${id}:r0:${revision}`, source: 'quote.request', reason: `Requested a quote for ${lines.length} cart ${lines.length === 1 ? 'line' : 'lines'} at current prices; no stock reserved.` }), notice(env.DB, actor, { id, accountId: selected.id }, 'supplier', 'requested', `${selected.value.name} requested quote ${id} for ${lines.length} ${lines.length === 1 ? 'line' : 'lines'}.`, at)])
   return { ...quote, revision }
  }
  const quote = await readQuote(env.DB, actor, text(p.quoteId, 'Quote', 40)), latest = quote.revisions.at(-1)
+ if (type === 'quote.message' || type === 'quote.read') return threadCommand(env, actor, type, quote, p, at)
  if (type === 'quote.accept') {
   if (supplier(actor)) fail('BUYER_REQUIRED', 'The trade account’s buyer accepts a quote.', 403)
   const number = integer(p.number, 'Quote revision', 1, 1000)
@@ -126,7 +156,7 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   const order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, totalCents: latest.totalCents, currency: 'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, revision: orderRevision }
   const accepted = { ...quote, status: 'accepted' as const, accepted: { revision: number, by: actor.id, at, orderId: id } }
   try {
-   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision), audit(env.DB, actor, id, 'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` })], id)
+   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision), audit(env.DB, actor, id, 'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at)], id)
    return { quote: view(actor, saved, today), order }
   } catch (error) {
    // A concurrent acceptance of the same revision already converted it: return that one order.
@@ -147,13 +177,16 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   const basisCents = lines.reduce((sum, line) => sum + line.basisLineCents, 0), totalCents = lines.reduce((sum, line) => sum + line.lineCents!, 0)
   if (!Number.isSafeInteger(basisCents) || !Number.isSafeInteger(totalCents)) fail('MONEY', 'Quote total is outside the supported exact-cent range.', 400)
   const discounted = lines.some(line => line.lineCents! < line.basisLineCents), number = quote.revisions.length + 1
-  const revision: QuoteRevision = { number, lines, basisCents, totalCents, termsDays: p.termsDays === undefined ? selected.value.termsDays : integer(p.termsDays, 'Payment terms (days)', 0, 365), shipping: note(p.shipping, 'Shipping', 160), validUntil, note: note(p.note, 'Quote note', 1000), proposedBy: actor.id, proposedAt: at, discounted }
-  return save(env.DB, actor, quote, { ...quote, status: discounted ? 'awaiting-approval' : 'proposed', revisions: [...quote.revisions, revision] }, 'quote.proposed', `Proposed revision ${number}: ${totalCents} USD cents against a current price basis of ${basisCents}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time)${discounted ? '; discount awaits approval' : ''}.`)
+  const revision: QuoteRevision = { number, lines, basisCents, totalCents, termsDays: p.termsDays === undefined ? selected.value.termsDays : integer(p.termsDays, 'Payment terms (days)', 0, 365), shipping: note(p.shipping, 'Shipping', 160), validUntil, note: note(p.note, 'Quote note', 1000), proposedBy: actor.id, proposedByEmail: actor.email, proposedAt: at, discounted }
+  revision.changes = changesFrom(latest ?? { lines: quote.request }, revision)
+  // The buyer hears of a revision once it can be accepted; a discount first notifies the staff who approve it.
+  const told = discounted ? notice(env.DB, actor, quote, 'supplier', 'revision', `Revision ${number} of ${quote.id} by ${actor.email} waits for discount approval.`, at) : notice(env.DB, actor, quote, 'buyer', 'revision', `Revision ${number} of ${quote.id} from ${actor.email} is ready: ${usd(totalCents)}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time).`, at)
+  return save(env.DB, actor, quote, { ...quote, status: discounted ? 'awaiting-approval' : 'proposed', revisions: [...quote.revisions, revision] }, 'quote.proposed', `Proposed revision ${number}: ${totalCents} USD cents against a current price basis of ${basisCents}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time)${discounted ? '; discount awaits approval' : ''}.`, [told])
  }
  if (type === 'quote.approve') {
   if (!latest || quote.status !== 'awaiting-approval' || latest.number !== integer(p.number, 'Quote revision', 1, 1000)) fail('QUOTE_APPROVAL', 'Only the latest revision waiting for discount approval can be approved.')
   const reason = text(p.reason, 'Approval reason', 240)
-  return save(env.DB, actor, quote, { ...quote, status: 'proposed', revisions: [...quote.revisions.slice(0, -1), { ...latest, approval: { by: actor.id, at, reason } }] }, 'quote.discount-approved', `Approved a ${latest.basisCents - latest.totalCents} USD cent discount below the current price basis on revision ${latest.number}: ${reason}`)
+  return save(env.DB, actor, quote, { ...quote, status: 'proposed', revisions: [...quote.revisions.slice(0, -1), { ...latest, approval: { by: actor.id, at, reason } }] }, 'quote.discount-approved', `Approved a ${latest.basisCents - latest.totalCents} USD cent discount below the current price basis on revision ${latest.number}: ${reason}`, [notice(env.DB, actor, quote, 'buyer', 'revision', `Revision ${latest.number} of ${quote.id} from ${latest.proposedByEmail ?? 'your supplier'} is ready: ${usd(latest.totalCents)}, net ${latest.termsDays} days, valid through ${latest.validUntil} (Eastern time).`, at)])
  }
  fail('COMMAND', 'Unknown quote command.', 404)
 }

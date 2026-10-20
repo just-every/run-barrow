@@ -1,0 +1,7 @@
+-- ORD-005: the quote conversation beside bw_quotes. Entries are buyer-visible messages or supplier-only internal notes,
+-- with at most one attached PDF/PNG/JPEG; Barrow has no door that edits or deletes them. Notices tell the other side
+-- (the account's buyer, or the supplier staff acting for the rep) that something changed, until they read the quote.
+CREATE TABLE bw_quote_entries (id TEXT PRIMARY KEY, quote_id TEXT NOT NULL REFERENCES bw_quotes(id), account_id TEXT NOT NULL, kind TEXT NOT NULL CHECK(kind IN ('message','internal')), side TEXT NOT NULL CHECK(side IN ('buyer','supplier')), author_id TEXT NOT NULL, author_email TEXT NOT NULL, body TEXT NOT NULL, quote_revision INTEGER NOT NULL, created_at TEXT NOT NULL, attachment_name TEXT, attachment_type TEXT CHECK(attachment_type IS NULL OR attachment_type IN ('application/pdf','image/png','image/jpeg')), attachment_size INTEGER CHECK(attachment_size IS NULL OR attachment_size BETWEEN 1 AND 1048576), attachment_sha256 TEXT, attachment_base64 TEXT);
+CREATE INDEX bw_quote_entries_quote ON bw_quote_entries(quote_id);
+CREATE TABLE bw_quote_notices (id TEXT PRIMARY KEY, quote_id TEXT NOT NULL REFERENCES bw_quotes(id), account_id TEXT NOT NULL, audience TEXT NOT NULL CHECK(audience IN ('buyer','supplier')), kind TEXT NOT NULL CHECK(kind IN ('requested','message','internal','revision','accepted')), summary TEXT NOT NULL, actor_id TEXT NOT NULL, created_at TEXT NOT NULL, read_by TEXT, read_at TEXT);
+CREATE INDEX bw_quote_notices_quote ON bw_quote_notices(quote_id, audience);

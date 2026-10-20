@@ -7,8 +7,9 @@ import { fail, requirePerson, supplier, type Actor, type Order } from './model'
 import { csvText } from './cart-csv'
 import { now } from './clock'
 import type { Quote } from './quotes'
+import { exportEntries } from './quote-thread'
 
-export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'audit'] as const
+export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
@@ -21,6 +22,8 @@ const columns: Record<Kind, string[]> = {
  // ORD-004: one quotes row per quote (its latest revision) and one quotelines row per line of every revision.
  quotes: ['id', 'revision', 'accountId', 'customerName', 'status', 'currency', 'latestRevision', 'validUntil', 'termsDays', 'shipping', 'basisCents', 'totalCents', 'requestedBy', 'requestedAt', 'acceptedRevision', 'acceptedBy', 'acceptedAt', 'orderId'],
  quotelines: ['quoteId', 'quoteRevision', 'line', 'sku', 'name', 'quantity', 'unit', 'currency', 'basisUnitCents', 'basisLineCents', 'discountBps', 'negotiatedUnitCents', 'unitCents', 'lineCents', 'pricing', 'proposedBy', 'proposedAt', 'discountApprovedBy', 'discountApprovedAt'],
+ // ORD-005: one row per quote conversation entry; internal notes appear in supplier exports only.
+ quotemessages: ['id', 'quoteId', 'accountId', 'quoteRevision', 'visibility', 'side', 'authorId', 'authorEmail', 'body', 'createdAt', 'attachmentName', 'attachmentType', 'attachmentBytes', 'attachmentSha256', 'attachmentPath'],
  audit: ['id', 'subjectId', 'actorId', 'action', 'createdAt', 'accountId', 'orderId', 'revision'],
 }
 const json = (value: unknown) => value === undefined ? '' : JSON.stringify(value)
@@ -36,6 +39,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const quotes = ids.length ? (await env.DB.prepare('SELECT value_json,revision FROM bw_quotes WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid').bind(JSON.stringify(ids)).all<{ value_json: string; revision: string }>()).results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Quote) : []
  // A requested quote has no proposal yet; its total is the cart at the prices of the request.
  const quoted = (quote: Quote) => quote.revisions.at(-1)?.totalCents ?? quote.request.reduce((sum, line) => sum + lineCents(line), 0)
+ const entries = await exportEntries(env.DB, actor, ids)
  const audit = supplier(actor) ? (await env.DB.prepare("SELECT id,subject_id,actor_id,action,created_at,json_extract(context_json,'$.accountId') AS account_id,json_extract(context_json,'$.orderId') AS order_id,json_extract(context_json,'$.revision') AS revision FROM bw_audit ORDER BY rowid").all<Record<string, string | null>>()).results : undefined
  const records = {
   accounts: selected.map(({ id, revision, value }) => ({ id, revision, name: value.name, email: value.email, pierCustomerId: value.pierCustomerId, termsDays: value.termsDays, minimumCents: value.minimumCents, currency: 'USD', city: value.city ?? '', state: value.state ?? '', lifecycle: value.lifecycle ?? 'active', channel: value.channel ?? '', territory: value.territory ?? '', assignedRep: value.assignedRep ?? '', catalogs: json(value.catalogs), providerReferences: json(value.providerReferences) })),
@@ -47,6 +51,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
   quotes: quotes.map(quote => { const latest = quote.revisions.at(-1); return { id: quote.id, revision: quote.revision, accountId: quote.accountId, customerName: quote.customerName, status: quote.status, currency: quote.currency, latestRevision: latest?.number ?? 0, validUntil: latest?.validUntil ?? '', termsDays: latest?.termsDays ?? '', shipping: latest?.shipping ?? '', basisCents: latest?.basisCents ?? quoted(quote), totalCents: quoted(quote), requestedBy: quote.requestedBy, requestedAt: quote.requestedAt, acceptedRevision: quote.accepted?.revision ?? '', acceptedBy: quote.accepted?.by ?? '', acceptedAt: quote.accepted?.at ?? '', orderId: quote.accepted?.orderId ?? '' } }),
   // The supplier's discount approval is an internal decision: buyer exports leave it blank.
   quotelines: quotes.flatMap(quote => quote.revisions.flatMap(revision => revision.lines.map((line, index) => ({ quoteId: quote.id, quoteRevision: revision.number, line: index + 1, sku: line.sku, name: line.name, quantity: line.quantity, unit: line.unit ?? '', currency: quote.currency, basisUnitCents: line.basisUnitCents, basisLineCents: line.basisLineCents, discountBps: line.discountBps ?? '', negotiatedUnitCents: line.negotiatedUnitCents ?? '', unitCents: line.unitCents, lineCents: lineCents(line), pricing: json(line.pricing), proposedBy: revision.proposedBy, proposedAt: revision.proposedAt, discountApprovedBy: supplier(actor) ? revision.approval?.by ?? '' : '', discountApprovedAt: supplier(actor) ? revision.approval?.at ?? '' : '' })))),
+  quotemessages: entries.map(row => ({ id: row.id, quoteId: row.quoteId, accountId: row.accountId, quoteRevision: row.quoteRevision, visibility: row.kind === 'internal' ? 'internal' : 'buyer-visible', side: row.side, authorId: row.authorId, authorEmail: row.authorEmail, body: row.body, createdAt: row.at, attachmentName: row.attachment?.name ?? '', attachmentType: row.attachment?.type ?? '', attachmentBytes: row.attachment?.size ?? '', attachmentSha256: row.attachment?.sha256 ?? '', attachmentPath: row.attachment?.path ?? '' })),
   ...(audit ? { audit: audit.map(row => ({ id: row.id, subjectId: row.subject_id, actorId: row.actor_id, action: row.action, createdAt: row.created_at, accountId: row.account_id ?? '', orderId: row.order_id ?? '', revision: row.revision ?? '' })) } : {}),
  }
  const totals = [...new Set([...orders.map(currency), ...quotes.map(quote => quote.currency)])].sort().map(code => {

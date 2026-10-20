@@ -48,6 +48,16 @@ The buyer chooses **Accept revision N and place order**. Only the latest approve
 
 Commands: `quote.request {accountId, lines, note?}`, `quote.propose {quoteId, revision, lines:[{sku, unit?, quantity, unitCents? | discountBps?}], validUntil, termsDays?, shipping?, note?}`, `quote.approve {quoteId, revision, number, reason}` and `quote.accept {quoteId, number}`. Read with `GET /api/barrow/quotes` and `GET /api/barrow/quotes/<id>`. Agents cannot read or change quotes. Quotes appear in the data export as `quotes.csv` and `quotelines.csv`.
 
+## Talk through a quote
+
+Open **Conversation** on a quote to write a message the other side reads, with one PDF, PNG or JPEG attachment up to 1 MB. Supplier staff can tick **Internal note** instead: the buyer never sees it, in the app, in a download or in their data export. Messages and notes are kept as written; nothing edits or deletes them, and writing one never changes the quote, so a revision in progress stays valid.
+
+**Revision history** shows who proposed each revision and what it changed against the one before: lines, quantities, amounts, payment terms, shipping note and valid-through date. The buyer can accept only the latest revision; an older one they still have open is refused.
+
+New activity shows as **N new** on the quote, for the other side only: the buyer hears of supplier messages and of a revision once it can be accepted; supplier staff hear of requests, buyer messages, internal notes and acceptance. **Mark read** clears it for everyone on your side. Until reps exist, the owner and admins share the rep's notices. Barrow does not email these notices yet.
+
+Commands: `quote.message {quoteId, body, internal?, attachment?: {name, contentBase64}}` and `quote.read {quoteId}`. `GET /api/barrow/quotes/<id>` returns the quote with its `thread` and your unread `notices`; attachments download from `/api/barrow/quotes/<id>/attachments/<entryId>`. Entries appear in the data export as `quotemessages.csv`.
+
 ## Follow an order
 
 Open **Order timeline** on a submitted order. It lists what Barrow recorded (submitted, accepted, allocated, backordered, cancelled) and what Pier records for the order: each dispatch as a shipment with its reference and units, and each return. Every entry shows where it came from, when, and who. Delivery, holds and closing are shown as not recorded, because no connected source reports them yet; if Pier does not answer, shipments are shown as unknown rather than guessed.

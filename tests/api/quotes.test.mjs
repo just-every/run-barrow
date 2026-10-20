@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { installation, archive } from './harness.mjs';
 
 const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
 
-test('ORD-004: a buyer requests a quote, a discount is approved, double acceptance through the buyer and API doors yields one order at the accepted revision, and stale, revised or expired quotes are refused', async t => {
+// Real pinned Pier with stock for two SKUs; Cedar has a PRI-002 volume break and account discount on OAT-1.
+async function quoting(t) {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const items = [];
  for (const sku of ['OAT-1', 'RYE-1']) items.push(await pier.command('item.save', { sku, name: `Granola ${sku}`, unit: 'case', packSize: '1' }));
@@ -26,6 +28,11 @@ test('ORD-004: a buyer requests a quote, a discount is approved, double acceptan
  const buyer = { as: await h.signIn('buyer@example.test') }, wren = { as: await h.signIn('wren@example.test') };
  const { token } = await h.api('/api/barrow/agent-token', {}), agent = { as: '', headers: { authorization: `Bearer ${token}` } };
  const quoteOf = (id, opts = {}) => h.api(`/api/barrow/quotes/${id}`, undefined, opts);
+ return { pier, h, rule, prices, buyer, wren, agent, quoteOf };
+}
+
+test('ORD-004: a buyer requests a quote, a discount is approved, double acceptance through the buyer and API doors yields one order at the accepted revision, and stale, revised or expired quotes are refused', async t => {
+ const { h, rule, prices, buyer, wren, agent, quoteOf } = await quoting(t);
 
  // The buyer requests a quote from a cart; the request carries PRI-002's explanation and exact cents, and reserves nothing.
  const requested = await h.command('quote.request', { accountId: 'cedar', note: 'Holiday floor set', lines: [{ sku: 'OAT-1', quantity: 12 }, { sku: 'RYE-1', quantity: 5 }] }, buyer);
@@ -137,4 +144,103 @@ test('ORD-004: a buyer requests a quote, a discount is approved, double acceptan
  assert.ok(mine.quotelines.every(line => line.discountApprovedBy === ''));
  assert.equal((await h.request('/api/barrow/export.json', agent)).status, 403);
  assert.ok(JSON.stringify(await archive(h)).includes('Freight prepaid by supplier'));
+});
+
+test('ORD-005: buyer messages and staff-only internal notes with attachments, revisions that name who changed which terms, participant notices, and acceptance bound to one version', async t => {
+ const { h, rule, prices, buyer, wren, agent, quoteOf } = await quoting(t);
+ const rep = { as: await h.signIn('rep@example.test', 'admin') };
+ const kinds = async (opts = {}) => (await quoteOf('Q-10001', opts)).notices.map(notice => notice.kind);
+ const pdf = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n'), png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
+ const validUntil = easternDay(10);
+
+ // The buyer's request notifies the supplier staff acting for the rep (owner and admin), never the buyer.
+ await h.command('quote.request', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 12 }, { sku: 'RYE-1', quantity: 5 }] }, buyer);
+ assert.deepEqual(await kinds(), ['requested']); assert.deepEqual(await kinds(rep), ['requested']); assert.deepEqual(await kinds(buyer), []);
+
+ // Revision 1 (owner): a negotiated OAT-1 price against the PRI-002 basis, explained, exact and awaiting approval.
+ const r1 = await h.command('quote.propose', { quoteId: 'Q-10001', revision: (await quoteOf('Q-10001')).revision, validUntil, lines: [{ sku: 'OAT-1', quantity: 12, unitCents: 5400 }, { sku: 'RYE-1', quantity: 5 }] });
+ const first = r1.revisions[0];
+ assert.deepEqual([first.proposedByEmail, first.basisCents, first.totalCents, first.termsDays], ['owner@example.test', 88400, 84800, 30]);
+ assert.match(first.lines[0].pricing.reason, /Volume break at 10 selling units · Account discount 500 bps/);
+ assert.deepEqual(first.changes, ['OAT-1 (case) $684.00 → $648.00 ($54.00 each)']);
+ assert.deepEqual(await kinds(buyer), [], 'a revision awaiting discount approval is not offered to the buyer');
+ assert.deepEqual(await kinds(rep), ['requested', 'revision']);
+ const approved = await h.command('quote.approve', { quoteId: 'Q-10001', revision: r1.revision, number: 1, reason: 'Opening order' });
+
+ // The buyer opens revision 1 and is notified it is ready; they write with a PDF, which notifies every staff member.
+ const open = await quoteOf('Q-10001', buyer);
+ assert.deepEqual(open.notices.map(notice => notice.summary), [`Revision 1 of Q-10001 from owner@example.test is ready: $848.00, net 30 days, valid through ${validUntil} (Eastern time).`]);
+ const asked = await h.command('quote.message', { quoteId: 'Q-10001', body: 'Could you do net 60 if we take 14 cases?', attachment: { name: 'floor plan.pdf', contentBase64: pdf.toString('base64') } }, buyer);
+ assert.deepEqual([asked.kind, asked.side, asked.authorEmail, asked.quoteRevision, asked.attachment.name, asked.attachment.sha256], ['message', 'buyer', 'buyer@example.test', 1, 'floor-plan.pdf', createHash('sha256').update(pdf).digest('hex')]);
+ assert.equal((await h.command('quote.message', { quoteId: 'Q-10001', body: 'Note to self', internal: true }, { ...buyer, status: 403 })).error.code, 'FORBIDDEN');
+ assert.equal((await h.command('quote.message', { quoteId: 'Q-10001', body: 'Agent note' }, { ...agent, status: 403 })).error.code, 'PERSON_REQUIRED');
+ assert.equal((await h.command('quote.message', { quoteId: 'Q-10001', body: 'Wrong company' }, { ...wren, status: 404 })).error.code, 'NOT_FOUND');
+ assert.equal((await h.command('quote.message', { quoteId: 'Q-10001', body: 'Script', attachment: { name: 'x.html', contentBase64: Buffer.from('<html>').toString('base64') } }, { ...buyer, status: 400 })).error.code, 'DOCUMENT');
+ assert.deepEqual(await kinds(), ['requested', 'message']); assert.deepEqual(await kinds(rep), ['requested', 'revision', 'message']);
+
+ // The owner's internal margin note (with a PNG) reaches the other staff only; the owner replies to the buyer.
+ const note = await h.command('quote.message', { quoteId: 'Q-10001', body: 'Margin 31% at $54.00; floor is $52.00', internal: true, attachment: { name: 'margin.png', contentBase64: png.toString('base64') } });
+ await h.command('quote.message', { quoteId: 'Q-10001', body: 'Net 60 works at 14 cases; revision 2 follows.' });
+ assert.deepEqual(await kinds(rep), ['requested', 'revision', 'message', 'internal']);
+ assert.deepEqual(await kinds(buyer), ['revision', 'message']);
+ // Reading the quote clears the notices for everyone on the same side.
+ assert.deepEqual((await h.command('quote.read', { quoteId: 'Q-10001' }, rep)).notices, []);
+ assert.deepEqual(await kinds(), []);
+ // Messages and notes never change the quote's version: the token from the approval still proposes.
+ assert.equal((await quoteOf('Q-10001')).revision, approved.revision);
+
+ // Revision 2 (the admin acting as rep) while the buyer still has revision 1 open, at today's changed PRI-002 rule.
+ const cedar = (await h.api('/api/barrow/state')).accounts.find(account => account.id === 'cedar');
+ await h.command('account.save', { id: 'cedar', revision: cedar.revision, value: { ...cedar.value, prices: [{ ...prices[0], pricing: { ...rule, accountDiscountBps: 700 } }, prices[1]] } });
+ const r2 = await h.command('quote.propose', { quoteId: 'Q-10001', revision: approved.revision, validUntil, termsDays: 60, shipping: 'Freight prepaid', lines: [{ sku: 'OAT-1', quantity: 14, unitCents: 5300 }, { sku: 'RYE-1', quantity: 5 }] }, rep);
+ const second = r2.revisions[1];
+ assert.deepEqual([second.proposedByEmail, second.basisCents, second.totalCents], ['rep@example.test', 14 * 5580 + 20000, 14 * 5300 + 20000]);
+ assert.match(second.lines[0].pricing.reason, /Account discount 700 bps/);
+ assert.deepEqual(second.changes, ['OAT-1 (case) quantity 12 → 14', 'OAT-1 (case) $648.00 → $742.00 ($53.00 each)', 'Payment terms net 30 → net 60 days', 'Shipping note “” → “Freight prepaid”']);
+ // Revision 1's frozen PRI-002 snapshot is unchanged.
+ assert.deepEqual([r2.revisions[0].basisCents, r2.revisions[0].lines[0].basisLineCents], [88400, 68400]);
+ // Approval binds to the latest version and the current quote token; acceptance binds to one revision.
+ assert.equal((await h.command('quote.approve', { quoteId: 'Q-10001', revision: r2.revision, number: 1, reason: 'Old one' }, { status: 409 })).error.code, 'QUOTE_APPROVAL');
+ assert.equal((await h.command('quote.approve', { quoteId: 'Q-10001', revision: approved.revision, number: 2, reason: 'Stale token' }, { status: 409 })).error.code, 'CHANGED');
+ assert.equal((await h.command('quote.accept', { quoteId: 'Q-10001', number: open.revisions.at(-1).number }, { ...buyer, status: 409 })).error.code, 'QUOTE_REVISED');
+ await h.command('quote.approve', { quoteId: 'Q-10001', revision: r2.revision, number: 2, reason: 'Fourteen cases at net 60' });
+ assert.equal((await h.command('quote.accept', { quoteId: 'Q-10001', number: 1 }, { ...buyer, status: 409 })).error.code, 'QUOTE_REVISED');
+
+ // The buyer sees both revisions, both messages and the notices, never the internal note or its attachment.
+ const seen = await quoteOf('Q-10001', buyer);
+ assert.deepEqual(seen.notices.map(notice => notice.kind), ['revision', 'message', 'revision']);
+ assert.deepEqual(seen.thread.map(entry => [entry.side, entry.kind]), [['buyer', 'message'], ['supplier', 'message']]);
+ assert.equal(JSON.stringify(seen).includes('Margin'), false);
+ assert.deepEqual((await quoteOf('Q-10001')).thread.map(entry => entry.kind), ['message', 'internal', 'message']);
+ assert.deepEqual((await h.api('/api/barrow/quotes', undefined, buyer)).quotes[0].thread.length, 2);
+ assert.deepEqual(Buffer.from(await (await h.request(asked.attachment.path, buyer)).arrayBuffer()), pdf);
+ assert.deepEqual(Buffer.from(await (await h.request(note.attachment.path)).arrayBuffer()), png);
+ assert.equal((await h.request(note.attachment.path, buyer)).status, 404);
+ assert.equal((await h.request(asked.attachment.path, wren)).status, 404);
+ assert.equal((await h.request(asked.attachment.path, agent)).status, 403);
+ assert.equal((await quoteOf('Q-10001', { ...agent, status: 403 })).error.code, 'PERSON_REQUIRED');
+
+ // Accepting revision 2 converts it once, with its terms and frozen basis, and notifies the staff.
+ const { order } = await h.command('quote.accept', { quoteId: 'Q-10001', number: 2 }, buyer);
+ assert.deepEqual([order.quote.revision, order.termsDays, order.totalCents, order.lines[0].quote.basisLineCents], [2, 60, 94200, 78120]);
+ assert.deepEqual(await kinds(rep), ['accepted']);
+ await h.command('quote.read', { quoteId: 'Q-10001' }, buyer);
+ assert.deepEqual(await kinds(buyer), []);
+
+ // Inherited DATA-002: revision 2's discount approval is attributed staff audit, private from the buyer.
+ const { events } = await h.api('/api/barrow/audit?accountId=cedar');
+ const decision = events.find(event => event.action === 'quote.discount-approved' && /^Q-10001:r2:/.test(event.revision));
+ assert.deepEqual([decision.actorKind, decision.source], ['human', 'quote.approve']); assert.match(decision.reason, /Fourteen cases at net 60/);
+ assert.equal((await h.request('/api/barrow/audit?accountId=cedar', buyer)).status, 403);
+
+ // DATA-001: every entry exports with its attachment reference; the buyer's export holds no internal note.
+ const all = JSON.parse(await (await h.request('/api/barrow/export.json')).text());
+ assert.equal(all.manifest.counts.quotemessages, 3);
+ assert.deepEqual(all.quotemessages.map(row => row.visibility), ['buyer-visible', 'internal', 'buyer-visible']);
+ assert.equal(all.quotemessages[0].attachmentSha256, asked.attachment.sha256); assert.equal(all.quotemessages[0].attachmentPath, asked.attachment.path);
+ const mine = await (await h.request('/api/barrow/export.json', buyer)).text();
+ assert.equal(JSON.parse(mine).manifest.counts.quotemessages, 2); assert.equal(mine.includes('Margin'), false);
+ const csv = await (await h.request('/api/barrow/export/quotemessages.csv', buyer)).text();
+ assert.match(csv, /^"?id"?,"?quoteId"?/); assert.match(csv, /net 60 if we take 14 cases/); assert.equal(csv.includes('Margin'), false);
+ assert.ok(JSON.stringify(await archive(h)).includes('Margin 31% at $54.00'));
 });

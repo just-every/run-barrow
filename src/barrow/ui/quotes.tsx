@@ -2,10 +2,11 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { request, errorMessage } from './api'
 import { Notice } from './primitives'
 import { day, money, orderNumber, when, type RunCommand } from './types'
+import { QuoteConversation, QuoteNotices, RevisionHistoryList, type QuoteNotice, type ThreadEntry } from './quote-thread'
 
 interface QuoteLine { sku: string; name: string; unit?: string; quantity: number | string; unitCents: number; lineCents?: number; basisUnitCents?: number; basisLineCents?: number; discountBps?: number; negotiatedUnitCents?: number; pricing?: { reason: string } }
-interface Revision { number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedAt: string; discounted: boolean; approved?: boolean; approval?: { reason: string; at: string } }
-export interface Quote { id: string; accountId: string; customerName: string; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedAt: string; note: string; request: QuoteLine[]; revisions: Revision[]; accepted?: { revision: number; at: string; orderId: string }; expired: boolean; revision: string }
+interface Revision { number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedAt: string; proposedByEmail?: string; changes?: string[]; discounted: boolean; approved?: boolean; approval?: { reason: string; at: string } }
+export interface Quote { id: string; accountId: string; customerName: string; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedAt: string; note: string; request: QuoteLine[]; revisions: Revision[]; accepted?: { revision: number; at: string; orderId: string }; expired: boolean; revision: string; thread: ThreadEntry[]; notices: QuoteNotice[] }
 
 const statusLabel = (quote: Quote) => quote.accepted ? `Accepted · order ${orderNumber(quote.accepted.orderId)}` : quote.expired ? 'Expired' : { requested: 'Requested', 'awaiting-approval': 'Discount awaiting approval', proposed: 'Ready to accept', accepted: 'Accepted' }[quote.status]
 // Exact dollars-and-cents text to integer cents; blank keeps the current price basis.
@@ -29,7 +30,8 @@ export function Quotes({ supplier, busy, run, version }: { supplier: boolean; bu
     {quotes?.map(quote => {
       const latest = quote.revisions.at(-1), lines = latest?.lines ?? quote.request
       return <article key={quote.id} className="br-stack">
-        <div className="br-order-meta"><span className="br-order-id">{quote.id}</span><span className="br-status">{statusLabel(quote)}</span></div>
+        <div className="br-order-meta"><span className="br-order-id">{quote.id}</span><span className="br-status">{statusLabel(quote)}</span>{quote.notices.length > 0 && <span className="br-status">{quote.notices.length} new</span>}</div>
+        <QuoteNotices quoteId={quote.id} notices={quote.notices} busy={busy} run={run} />
         <h3>{quote.customerName}</h3>
         <p className="br-quiet-text">Requested {when(quote.requestedAt)}{quote.note && ` · ${quote.note}`}{latest && ` · revision ${latest.number}, valid through ${day(latest.validUntil)} (Eastern time)`}</p>
         <table className="br-order-lines"><caption className="br-sr-only">Quote {quote.id} lines</caption>
@@ -47,6 +49,8 @@ export function Quotes({ supplier, busy, run, version }: { supplier: boolean; bu
           {!supplier && quote.status === 'awaiting-approval' && <p className="br-quiet-text">Your supplier is preparing this quote.</p>}
           {!supplier && quote.expired && <p className="br-quiet-text">This quote expired. Ask your supplier for a revised quote.</p>}
         </div>
+        <RevisionHistoryList revisions={quote.revisions} />
+        <QuoteConversation quoteId={quote.id} thread={quote.thread} supplier={supplier} busy={busy} run={run} />
         {editing === quote.id && <Proposal quote={quote} lines={lines} busy={busy} run={run} onDone={() => setEditing('')} />}
       </article>
     })}

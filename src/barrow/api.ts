@@ -7,7 +7,7 @@ import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
 import { listCommand, readLists } from './lists'
-import { quoteCommand, quoteResponse, readQuotes } from './quotes'
+import { quoteAttachment, quoteCommand, quoteResponse, readQuotes } from './quotes'
 import { statementResponse } from './statements'
 import { exportKinds, exportResponse } from './export'
 import { freshnessLimit, saveFreshness } from './freshness'
@@ -60,6 +60,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/quotes' && request.method==='GET') return json({quotes:await readQuotes(env.DB,actor,url.searchParams.get('accountId'))})
   const quote=/^\/api\/barrow\/quotes\/(Q-\d{1,9})$/.exec(path)
   if(quote && request.method==='GET') return json(await quoteResponse(env.DB,actor,quote[1]))
+  const attachment=/^\/api\/barrow\/quotes\/(Q-\d{1,9})\/attachments\/([-a-f0-9]{36})$/.exec(path)
+  if(attachment && request.method==='GET') return await quoteAttachment(env,actor,attachment[1],attachment[2])
   if(path==='/api/barrow/catalogue' && request.method==='GET') return json(await catalogue(env,await account(env.DB,actor,url.searchParams.get('accountId')??'')))
   const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
   if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
@@ -105,7 +107,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)
    else if(['cart.preview','cart.form'].includes(body.type)) result=await cartCommand(env,actor,body.type,body.payload)
    else if(['list.save','list.duplicate','list.delete'].includes(body.type)) result=await listCommand(env.DB,actor,body.type,body.payload)
-   else if(['quote.request','quote.propose','quote.approve','quote.accept'].includes(body.type)) result=await quoteCommand(env,actor,body.type,body.payload)
+   else if(['quote.request','quote.propose','quote.approve','quote.accept','quote.message','quote.read'].includes(body.type)) result=await quoteCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
    return json({result})
   }

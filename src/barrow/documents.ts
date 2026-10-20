@@ -6,14 +6,15 @@ const kinds: [string, number[]][] = [['application/pdf', [0x25, 0x50, 0x44, 0x46
 const extension: Record<string, string> = { 'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg' }
 /** The stored name keeps letters, digits, dot, dash and underscore; the extension always follows the detected type. */
 const safeName = (name: string, type: string) => `${name.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[-.]+|[-.]+$/g, '').slice(0, 80) || 'purchase-order'}.${extension[type]}`
-export async function readDocument(p: any) {
+/** The same byte rules hold for ORD-005 quote attachments; `noun` and `kind` name the file in refusals. */
+export async function readDocument(p: any, noun = 'A PO document', kind = 'purchase order') {
  const name = text(p?.name, 'File name', 200)
  if (typeof p?.contentBase64 !== 'string' || !/^[A-Za-z0-9+/]*={0,2}$/.test(p.contentBase64)) fail('DOCUMENT', 'Attach the file contents as base64.', 400)
  let bytes: Uint8Array<ArrayBuffer>
  try { bytes = Uint8Array.from(atob(p.contentBase64), c => c.charCodeAt(0)) } catch { return fail('DOCUMENT', 'Attach the file contents as base64.', 400) }
- if (!bytes.length || bytes.length > documentLimit) fail('DOCUMENT', 'A PO document must be between 1 byte and 1 MB.', 400)
+ if (!bytes.length || bytes.length > documentLimit) fail('DOCUMENT', `${noun} must be between 1 byte and 1 MB.`, 400)
  const type = kinds.find(([, magic]) => magic.every((byte, index) => bytes[index] === byte))?.[0]
- if (!type) fail('DOCUMENT', 'Attach a PDF, PNG or JPEG purchase order.', 400)
+ if (!type) fail('DOCUMENT', `Attach a PDF, PNG or JPEG ${kind}.`, 400)
  const sha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('')
  return { name: safeName(name, type), type, size: bytes.length, sha256, contentBase64: p.contentBase64 }
 }
