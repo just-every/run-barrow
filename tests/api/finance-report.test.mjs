@@ -56,7 +56,15 @@ test('RPT-004: invoice aging reconciles frozen source cents and due dates at eve
  assert.equal((await h.request(source.statementPath)).status, 200);
  const csvResponse = await h.request(`/api/barrow/reports/finance.csv?asOf=${asOf}`), csv = await csvResponse.text();
  assert.match(csvResponse.headers.get('content-type'), /text\/csv/);
- for (const row of report.rows) assert.ok(csv.includes(`"${row.orderId}"`) && csv.includes(`"${row.invoiceNumber}"`) && csv.includes(`"${row.amountCents}"`));
+ const csvLines = csv.split('\r\n').filter(Boolean).map(line => [...line.matchAll(/"((?:[^"]|"")*)"(?:,|$)/g)].map(match => match[1].replaceAll('""', '"')));
+ const [headers, ...values] = csvLines;
+ const exported = values.map(value => Object.fromEntries(headers.map((name, index) => [name, value[index]]))).filter(row => row.orderId?.startsWith('ORD-'));
+ assert.equal(exported.length, report.rows.length);
+ for (const row of report.rows) {
+  const entry = exported.find(item => item.orderId === row.orderId);
+  assert.deepEqual([entry.invoiceNumber, entry.accountId, entry.currency, Number(entry.amountCents), entry.dueAt, entry.bucket, Number(entry.overdueDays)], [row.invoiceNumber, row.accountId, row.currency, row.amountCents, row.dueAt, row.bucket, row.overdueDays]);
+ }
+ for (const total of report.totals) assert.equal(exported.filter(row => row.currency === total.currency).reduce((sum, row) => sum + Number(row.amountCents), 0), total.totalCents);
  assert.match(report.notes.amounts, /not.*confirmed unpaid/i); assert.match(csv, /not.*confirmed unpaid/i);
  assert.match(report.notes.unrecorded, /not recorded/i);
  for (const key of ['availableCredit', 'exposure', 'deposits', 'failedPayments', 'disputedBalances', 'refundStatus', 'ledgerReconciliation']) assert.equal(report[key], null);
