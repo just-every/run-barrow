@@ -63,3 +63,37 @@ test('ORD-014: numbered submitted and accepted confirmations retain exact commer
  const {token}=await h.api('/api/barrow/agent-token',{});
  assert.equal((await h.request(path,{as:'',headers:{authorization:`Bearer ${token}`}})).status,403);
 });
+
+test('ORD-014: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore',async t=>{
+ const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier);
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
+ let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0}});
+ const buyer={as:await h.signIn(account.value.email)},other={as:await h.signIn('other@example.test')};
+ let order=await h.command('order.prepare',{accountId:account.id,reference:'AUTUMN-27',lines:[{sku:'OAT-1',quantity:3}]},buyer);
+ order=await h.command('order.submit',{orderId:order.id},buyer);
+ const path=`/api/barrow/orders/${order.id}/confirmations/1.csv`,standard=await(await h.request(path,buyer)).text();
+ const initial=await h.api('/api/barrow/confirmation-layouts');
+ let settings=await h.command('confirmation-layout.save',{revision:initial.revision,name:'Warehouse pick',columns:['sku','quantity','po','confirmation']});
+ const first=settings.layouts.at(-1).id;
+ settings=await h.command('confirmation-layout.save',{revision:settings.revision,name:'Commercial review',columns:['po','currency','unit_cents','quantity','line_cents','order_total_cents','sku']});
+ const second=settings.layouts.at(-1).id;
+ settings=await h.command('confirmation-layout.default',{revision:settings.revision,id:second});
+ let result=rows(await(await h.request(path,buyer)).text());
+ assert.deepEqual(result,[['po','currency','unit_cents','quantity','line_cents','order_total_cents','sku'],['AUTUMN-27','USD','6500','3','19500','19500','OAT-1']]);
+ const selected=await(await h.request(path+'?layout='+first)).text();
+ assert.deepEqual(rows(selected),[['sku','quantity','po','confirmation'],['OAT-1','3','AUTUMN-27',`${order.id}-C1`]]);
+ assert.equal((await h.request(path+'?layout=missing')).status,404);
+ assert.equal((await h.request(path,other)).status,404);
+ await h.command('confirmation-layout.save',{revision:settings.revision,name:'Buyer edit',columns:['sku']},{...buyer,status:403});
+ await h.command('confirmation-layout.default',{revision:initial.revision,id:first},{status:409});
+ await h.command('confirmation-layout.save',{revision:settings.revision,name:'Bad columns',columns:['sku','sku']},{status:400});
+ await h.command('confirmation-layout.save',{revision:settings.revision,name:'Unrecorded field',columns:['secret']},{status:400});
+ await h.command('confirmation-layout.save',{revision:settings.revision,name:'Unimplemented matrix',columns:['sku'],shape:'matrix'},{status:400});
+ account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,termsDays:7,prices:[{sku:'OAT-1',unitCents:9999,minQty:1}]}});
+ assert.equal(await(await h.request(path+'?layout='+first)).text(),selected);
+ const standardId=initial.defaultId;assert.equal(await(await h.request(path+'?layout='+standardId)).text(),standard);
+ const {token}=await h.api('/api/barrow/agent-token',{});assert.equal((await h.request(path,{as:'',headers:{authorization:`Bearer ${token}`}})).status,403);
+ const target=await installation();t.after(()=>target.close());await restore(target,await archive(h));
+ assert.deepEqual(await target.api('/api/barrow/confirmation-layouts'),{...settings,availableColumns:initial.availableColumns});
+ assert.equal(await(await target.request(path)).text(),await(await h.request(path)).text());
+});

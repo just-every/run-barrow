@@ -1,3 +1,4 @@
+import { confirmationColumns, selectedConfirmationColumns, type ConfirmationColumn } from './confirmation-layouts'
 // ORD-014: immutable commercial snapshots, written with the submission/acceptance transaction.
 import type { Actor, Order } from './model'
 import { fail } from './model'
@@ -32,13 +33,13 @@ export function confirmationPdf(record: Confirmation) {
  const lines = [`Order confirmation ${s.id}-C${record.number}`, `${record.stage.toUpperCase()} | ${record.at}`, `Order revision: ${s.orderRevision}`, `Buyer: ${s.customerName} | Account: ${s.accountId}`, `PO: ${s.reference || 'Not recorded'}`, `Bill to: ${address(s.billTo)}`, `Ship to: ${address(s.shipTo)}`, `Requested delivery: ${s.requestedDate ?? 'Not recorded'} | Cancel after: ${s.cancelAfter ?? 'Not recorded'}`, `Payment terms: ${s.termsDays === 0 ? 'Due on receipt' : `Net ${s.termsDays} days`}`, '', ...s.lines.flatMap(line => [`${line.sku} | ${line.name}`, `${line.quantity} ${line.unit ?? 'units'} at ${amount(line.unitCents,currency)}; line ${amount(line.lineCents ?? line.quantity * line.unitCents,currency)}`, `Base quantity: ${line.baseQuantity ?? line.quantity} ${line.baseUnit ?? 'units'}${line.packContents ? ` | Pack: ${line.packContents}` : ''}`]), '', ...(s.delivery ? [`Delivery: ${s.delivery.name} | ${s.delivery.windowStart} to ${s.delivery.windowEnd}`, `Freight and handling: ${amount(s.delivery.totalCents ?? 0,currency)}`] : ['Delivery method and charge: not recorded']), `Order total: ${amount(s.totalCents,currency)}`, ...(s.instructions ? [`Instructions: ${s.instructions}`] : []), '', absent]
  return textPdf(lines.flatMap(wrap))
 }
-export function confirmationCsv(record: Confirmation) {
+export function confirmationCsv(record: Confirmation, selected: readonly ConfirmationColumn[] = confirmationColumns) {
  const s = record.snapshot
- const columns = ['confirmation','stage','recorded_at','order','order_revision','account','buyer','po','bill_to','ship_to','requested_date','cancel_after','terms_days','currency','sku','description','quantity','unit','base_quantity','base_unit','unit_cents','line_cents','shipping_cents','order_total_cents','limitations']
- return csvText([columns,...s.lines.map(line => [`${s.id}-C${record.number}`,record.stage,record.at,s.id,s.orderRevision,s.accountId,s.customerName,s.reference,address(s.billTo),address(s.shipTo),s.requestedDate,s.cancelAfter,s.termsDays,s.currency ?? 'AUD',line.sku,line.name,line.quantity,line.unit,line.baseQuantity ?? line.quantity,line.baseUnit,line.unitCents,line.lineCents ?? line.quantity * line.unitCents,s.delivery?.totalCents ?? 0,s.totalCents,absent])])
+ const values=s.lines.map(line => [`${s.id}-C${record.number}`,record.stage,record.at,s.id,s.orderRevision,s.accountId,s.customerName,s.reference,address(s.billTo),address(s.shipTo),s.requestedDate,s.cancelAfter,s.termsDays,s.currency ?? 'AUD',line.sku,line.name,line.quantity,line.unit,line.baseQuantity ?? line.quantity,line.baseUnit,line.unitCents,line.lineCents ?? line.quantity * line.unitCents,s.delivery?.totalCents ?? 0,s.totalCents,absent])
+ return csvText([[...selected],...values.map(row=>selected.map(column=>row[confirmationColumns.indexOf(column)]))])
 }
-export async function confirmationResponse(db: D1Database, order: Order, number: number, format: 'csv'|'pdf') {
+export async function confirmationResponse(db: D1Database, order: Order, number: number, format: 'csv'|'pdf', layoutId?:string) {
  const record = (await readConfirmations(db,order.id)).find(record => record.number === number)
  if (!record) fail('NOT_FOUND','Confirmation revision not found.',404)
- return new Response(format === 'pdf' ? confirmationPdf(record) : confirmationCsv(record), {headers:{'content-type':format === 'pdf' ? 'application/pdf' : 'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename="${order.id}-C${record.number}.${format}"`}})
+ return new Response(format === 'pdf' ? confirmationPdf(record) : confirmationCsv(record,await selectedConfirmationColumns(db,layoutId)), {headers:{'content-type':format === 'pdf' ? 'application/pdf' : 'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename="${order.id}-C${record.number}.${format}"`}})
 }

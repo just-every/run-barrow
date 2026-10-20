@@ -1,3 +1,4 @@
+import { readConfirmationLayouts, saveConfirmationLayout } from './confirmation-layouts'
 import { readRetention, retentionCommand } from './retention'
 import { readConfirmations, confirmationResponse } from './confirmations'
 import { substitutionCommand } from './substitutions'
@@ -47,6 +48,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
    return (await createPortabilityHandler({db:env.DB,policy:portabilityPolicy,appOrigin:env.AUTH_ORIGIN,basePath:'/api/barrow/portability',authorize:async()=>actor.id}))(request)
   }
+  if(path==='/api/barrow/confirmation-layouts' && request.method==='GET')return json(await readConfirmationLayouts(env.DB,actor))
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const selected=await accounts(env.DB,actor)
@@ -97,7 +99,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(confirmation && request.method==='GET') {
    if(actor.agent) fail('FORBIDDEN','A person must download order confirmations.',403)
    const order=await readOrder(env.DB,actor,confirmation[1])
-   return confirmation[2] ? await confirmationResponse(env.DB,order,Number(confirmation[2]),confirmation[3] as 'csv'|'pdf') : json({confirmations:await readConfirmations(env.DB,order.id)})
+   if(url.searchParams.has('layout'))requireSupplier(actor)
+   return confirmation[2] ? await confirmationResponse(env.DB,order,Number(confirmation[2]),confirmation[3] as 'csv'|'pdf',url.searchParams.get('layout')??undefined) : json({confirmations:await readConfirmations(env.DB,order.id)})
   }
   const document=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/document$/.exec(path)
   if(document && request.method==='GET') return await documentResponse(env,actor,await readOrder(env.DB,actor,document[1]))
@@ -133,6 +136,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    let result
    if(['retention.settings','retention.request','retention.erase-document'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
+   else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
