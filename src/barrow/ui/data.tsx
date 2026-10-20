@@ -9,6 +9,7 @@ import { FreshnessSetting } from './freshness'
 import { FulfillmentReport } from './fulfillment'
 import { QuoteReport } from './quote-report'
 import { SalesReport } from './sales-report'
+import { FinanceReport } from './finance-report'
 
 export function DataTools({ accounts, freshness, busy, run }: { accounts: Account[]; freshness: number | null; busy: boolean; run: RunCommand }) {
   const [accountId, setAccountId] = useState('')
@@ -28,6 +29,7 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
     <FulfillmentReport accounts={accounts} />
     <QuoteReport />
     <SalesReport />
+    <FinanceReport />
     <DiagnosticsCard />
     <AgentCredential />
     <div className="br-card br-stack"><h2>Erase an unused trade account</h2><p>Erasure removes this Barrow account and its retained import custody, and immediately removes the customer’s portal access. Accounts with orders cannot be erased because their commercial history must be preserved.</p>

@@ -9,6 +9,7 @@ import { cartCommand } from './cart-import'
 import { listCommand, readLists } from './lists'
 import { quoteReport } from './quote-report'
 import { salesCsv, salesReport } from './sales-report'
+import { financeCsv, financeReport } from './finance-report'
 import { locationCommand, readLocations } from './locations'
 import { quoteAttachment, quoteCommand, quoteResponse, readQuotes } from './quotes'
 import { statementResponse } from './statements'
@@ -51,6 +52,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/reports/fulfillment' && request.method==='GET') return json(await fulfillmentReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/reports/finance' && request.method==='GET') return json(await financeReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/reports/finance.csv' && request.method==='GET') return await financeCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/sales' && request.method==='GET') return json(await salesReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/sales.csv' && request.method==='GET') return await salesCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
