@@ -327,6 +327,7 @@ test('AUTO-003: quote emails preserve audiences and links, expiry is once per re
  assert.deepEqual(quoteMail().map(row=>row.message.to[0]).sort(),['owner@example.test','rep@example.test']);
  const ready=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:easternDay(0),lines:[{sku:'RYE-1',quantity:5}]});
  const sent=quoteMail().find(row=>row.message.to.includes('buyer@example.test'));
+ assert.deepEqual(quoteMail().filter(row=>row.message.text.includes('expires after today')).map(row=>row.message.to[0]).sort(),['buyer@example.test','owner@example.test','rep@example.test']);
  assert.ok(sent);assert.match(sent.message.text,new RegExp(`/api/barrow/quotes/${quote.id}`));
  assert.equal((await h.request(`/api/barrow/quotes/${quote.id}`,buyer)).status,200);
  assert.equal((await h.request(`/api/barrow/quotes/${quote.id}`,wren)).status,404);

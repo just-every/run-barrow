@@ -27,7 +27,7 @@ test('OPS-001: owner diagnostics show live Pier health and each interrupted hand
  const buyer = await h.signIn('buyer@example.test');
  const place = async () => { const draft = await h.command('order.prepare', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 3 }] }, { as: buyer }); await h.command('order.submit', { orderId: draft.id }, { as: buyer }); return draft; };
  let seen = await h.api('/api/barrow/diagnostics');
- assert.equal(seen.pier.state, 'ok'); assert.deepEqual(seen.handoffs, []); assert.equal(seen.notifications.recorded, false);
+ assert.equal(seen.pier.state, 'ok'); assert.deepEqual(seen.handoffs, []); assert.equal(seen.notifications.recorded, true); assert.deepEqual(seen.notifications.deliveries, []);
 
  // Interrupt a reservation and a release; both stay visible with their durable IDs and owner.
  const reserving = await place(); drop.add('order.create');
