@@ -31,7 +31,7 @@ export async function installation({pier=false,bindings={}}={}) {
   origin=(await mf.ready).origin; await mf.setOptions(options(Number(new URL(origin).port)));await mf.ready;process.chdir(originalCwd);
   const db=await mf.getD1Database('DB');
   for(const file of (await readdir(join(root,'migrations/core'))).filter(f=>f.endsWith('.sql')).sort()) await db.batch(unstable_splitSqlQuery(await readFile(join(root,'migrations/core',file),'utf8')).map(sql=>db.prepare(sql)));
-  let cookie='';
+  let cookie='',closed=false;
   const request=(path,{method='GET',body,as=cookie,headers={}}={})=>fetch(origin+path,{method,redirect:'manual',headers:{origin,'content-type':'application/json',...(as?{cookie:as}:{}),...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});
   const boot=await request('/auth/bootstrap',{method:'POST',body:{token:setup,displayName:'Supplier'}});assert.equal(boot.status,303);
   cookie=boot.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
@@ -64,7 +64,7 @@ export async function installation({pier=false,bindings={}}={}) {
    }
    throw Error('Invitation did not produce a usable sign-in link');
   };
-  return {mf,db,origin,cookie,request,api,command,signIn,async close(){await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  return {mf,db,origin,cookie,request,api,command,signIn,async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
 }
 export async function stock(pier,quantity='24') {

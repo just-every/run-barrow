@@ -28,7 +28,7 @@ async function quoting(t) {
  const buyer = { as: await h.signIn('buyer@example.test') }, wren = { as: await h.signIn('wren@example.test') };
  const { token } = await h.api('/api/barrow/agent-token', {}), agent = { as: '', headers: { authorization: `Bearer ${token}` } };
  const quoteOf = (id, opts = {}) => h.api(`/api/barrow/quotes/${id}`, undefined, opts);
- return { pier, h, rule, prices, buyer, wren, agent, quoteOf };
+ return { pier, bin, h, rule, prices, buyer, wren, agent, quoteOf };
 }
 
 test('ORD-004: a buyer requests a quote, a discount is approved, double acceptance through the buyer and API doors yields one order at the accepted revision, and stale, revised or expired quotes are refused', async t => {
@@ -243,4 +243,75 @@ test('ORD-005: buyer messages and staff-only internal notes with attachments, re
  const csv = await (await h.request('/api/barrow/export/quotemessages.csv', buyer)).text();
  assert.match(csv, /^"?id"?,"?quoteId"?/); assert.match(csv, /net 60 if we take 14 cases/); assert.equal(csv.includes('Margin'), false);
  assert.ok(JSON.stringify(await archive(h)).includes('Margin 31% at $54.00'));
+});
+
+test('RPT-002: quote response and acceptance, accepted value net of returns, abandoned carts and reorder rates by rep, cohort and product, with every denominator explained', async t => {
+ const { pier, bin, h, buyer, wren, agent } = await quoting(t);
+ const state = await h.api('/api/barrow/state'), cedar = state.accounts.find(account => account.id === 'cedar');
+ await h.command('account.save', { id: 'cedar', revision: cedar.revision, value: { ...cedar.value, assignedRep: 'rep-avery' } });
+ const validUntil = easternDay(10), quoteOf = id => h.api(`/api/barrow/quotes/${id}`);
+
+ // Accepted after a revision: two discounted revisions, each approved; revision 2 converts into one order.
+ const q1 = await h.command('quote.request', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 12 }] }, buyer);
+ let current = await h.command('quote.propose', { quoteId: q1.id, revision: q1.revision, validUntil, lines: [{ sku: 'OAT-1', quantity: 12, unitCents: 5400 }] });
+ current = await h.command('quote.approve', { quoteId: q1.id, revision: current.revision, number: 1, reason: 'First offer' });
+ current = await h.command('quote.propose', { quoteId: q1.id, revision: current.revision, validUntil, lines: [{ sku: 'OAT-1', quantity: 12, unitCents: 5500 }] });
+ await h.command('quote.approve', { quoteId: q1.id, revision: current.revision, number: 2, reason: 'Final offer' });
+ const { order } = await h.command('quote.accept', { quoteId: q1.id, number: 2 }, buyer);
+ // Accepting again is the same order: it counts once.
+ await h.command('quote.accept', { quoteId: q1.id, number: 2 }, buyer);
+ const approved = await h.command('order.approve', { orderId: order.id });
+ const upstream = (await pier.api('/api/pier/state')).orders.find(row => row.id === approved.pierOrderId);
+ const shipment = await pier.command('dispatch.create', { orderId: upstream.id, shipmentReference: 'SHIP-Q1', lines: [{ orderLineId: upstream.lines[0].id, quantity: '12' }] });
+ await pier.command('return.create', { shipmentId: shipment.id, shipmentLineId: shipment.lines[0].id, locationId: bin.id, quantity: '2', reason: 'Crushed cases' });
+
+ // Expired: offered at current prices, then past its inclusive valid-through date. Open: never answered.
+ const q2 = await h.command('quote.request', { accountId: 'cedar', lines: [{ sku: 'RYE-1', quantity: 3 }] }, buyer);
+ await h.command('quote.propose', { quoteId: q2.id, revision: q2.revision, validUntil: easternDay(0), lines: [{ sku: 'RYE-1', quantity: 3 }] });
+ // Test data standing in for the clock: valid through yesterday (Eastern).
+ await h.db.prepare("UPDATE bw_quotes SET value_json=json_set(value_json,'$.revisions[0].validUntil',?) WHERE id=?").bind(easternDay(-1), q2.id).run();
+ await h.command('quote.request', { accountId: 'wren', lines: [{ sku: 'RYE-1', quantity: 2 }] }, wren);
+
+ // Cedar places an order and reorders it (ORD-003); Wren leaves one stale and one fresh draft.
+ const placed = await h.command('order.prepare', { accountId: 'cedar', reference: 'PO-RYE', lines: [{ sku: 'RYE-1', quantity: 4 }] }, buyer);
+ await h.command('order.submit', { orderId: placed.id }, buyer);
+ const selections = [{ sku: 'RYE-1' }], review = await h.command('order.reorder-preview', { orderId: placed.id, selections }, buyer);
+ const again = await h.command('order.reorder', { orderId: placed.id, selections, fingerprint: review.fingerprint, acknowledged: true, reference: 'PO-RYE-2' }, buyer);
+ await h.command('order.submit', { orderId: again.id }, buyer);
+ const stale = await h.command('order.prepare', { accountId: 'wren', reference: 'W-1', lines: [{ sku: 'RYE-1', quantity: 1 }] }, wren);
+ await h.command('order.prepare', { accountId: 'wren', reference: 'W-2', lines: [{ sku: 'RYE-1', quantity: 1 }] }, wren);
+ // Test data standing in for the clock: the stale draft was prepared ten days ago.
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.preparedAt',?) WHERE id=?").bind(new Date(Date.now() - 10 * 86400000).toISOString(), stale.id).run();
+
+ const report = await h.api('/api/barrow/reports/quotes');
+ const { totals } = report;
+ assert.deepEqual(totals.quotes, { requested: 3, responded: 2, offered: 2, accepted: 1, revised: 1, expired: 1, open: 1 });
+ assert.deepEqual(totals.responseRate, { numerator: 2, denominator: 3, bps: 6667 });
+ assert.deepEqual(totals.acceptanceRate, { numerator: 1, denominator: 2, bps: 5000 });
+ // Accepted value is the one converted order; the quote discount and Pier's returned 2 of 12 cases are visible.
+ assert.deepEqual([totals.acceptedOrders, totals.acceptedCents, totals.quoteDiscountCents, totals.returnedCents, totals.netAcceptedCents], [1, 66000, 68400 - 66000, 11000, 55000]);
+ assert.equal((await quoteOf(q1.id)).accepted.orderId, order.id);
+ assert.deepEqual(totals.carts, { drafts: 2, abandoned: 1, placed: 3, abandonmentRate: { numerator: 1, denominator: 4, bps: 2500 } });
+ assert.deepEqual(totals.reorderRate, { numerator: 1, denominator: 3, bps: 3333 });
+ // By rep (ACC-004 label), cohort (month of the first placed order) and product (that SKU's lines only).
+ assert.deepEqual(report.byRep.map(row => [row.name, row.quotes.requested, row.quotes.accepted, row.carts.placed, row.carts.abandoned, row.reorderRate.bps]), [['Unassigned', 1, 0, 0, 1, null], ['rep-avery', 2, 1, 3, 0, 3333]]);
+ assert.deepEqual(report.byCohort.map(row => [row.name, row.quotes.requested]), [[easternDay(0).slice(0, 7), 2], ['No placed order', 1]]);
+ const [oat, rye] = report.byProduct;
+ assert.deepEqual([oat.name, oat.quotes.requested, oat.acceptedCents, oat.returnedCents, oat.carts.placed], ['OAT-1', 1, 66000, 11000, 1]);
+ assert.deepEqual([rye.name, rye.quotes.requested, rye.quotes.expired, rye.acceptedCents, rye.carts.placed, rye.reorderRate.numerator, rye.carts.abandonmentRate.denominator], ['RYE-1', 2, 1, 0, 2, 1, 3]);
+ // Every rate explains its denominator; capabilities that do not exist yet are named, not reported as zero.
+ for (const key of ['period', 'responseRate', 'acceptanceRate', 'acceptedCents', 'returnedCents', 'abandonmentRate', 'reorderRate', 'cohort', 'rep', 'product']) assert.ok(report.definitions[key].length > 20, key);
+ assert.match(report.definitions.acceptanceRate, /never revenue/);
+ assert.deepEqual(report.notRecorded.map(item => item.note.match(/(PRI|CAT)-\d{3}/)[0]), ['PRI-005', 'CAT-003', 'CAT-011']);
+ assert.equal(report.timeZone, 'America/New_York');
+ // Periods are inclusive reporting-zone days; an empty or inverted period is explicit.
+ assert.equal((await h.api('/api/barrow/reports/quotes?from=2000-01-01&to=2000-01-31')).totals.quotes.requested, 0);
+ assert.equal((await h.api('/api/barrow/reports/quotes?from=2026-02-01&to=2026-01-01', undefined, { status: 400 })).error.code, 'INPUT');
+ // Sales-manager figures: buyers and agents are refused.
+ assert.equal((await h.api('/api/barrow/reports/quotes', undefined, { ...buyer, status: 403 })).error.code, 'FORBIDDEN');
+ assert.equal((await h.api('/api/barrow/reports/quotes', undefined, { ...agent, status: 403 })).error.code, 'PERSON_REQUIRED');
+ // With Pier gone, returns are unknown rather than zero.
+ await pier.close();
+ const blind = await h.api('/api/barrow/reports/quotes');
+ assert.deepEqual([blind.returnsSource, blind.totals.returnedCents, blind.totals.netAcceptedCents, blind.totals.acceptedCents], ['unavailable', null, null, 66000]);
 });

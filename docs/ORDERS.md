@@ -58,6 +58,10 @@ New activity shows as **N new** on the quote, for the other side only: the buyer
 
 Commands: `quote.message {quoteId, body, internal?, attachment?: {name, contentBase64}}` and `quote.read {quoteId}`. `GET /api/barrow/quotes/<id>` returns the quote with its `thread` and your unread `notices`; attachments download from `/api/barrow/quotes/<id>/attachments/<entryId>`. Entries appear in the data export as `quotemessages.csv`.
 
+## See how quotes convert
+
+Open **Data → Quote conversion** (owner and admins). Choose a period (inclusive days in your reporting time zone; the last 90 days by default) and compare by rep, cohort or product. It counts quotes requested, answered, acceptable, accepted, revised, expired and open; only the one order an accepted quote became counts as revenue, shown with the quote discount and the value of returns Pier recorded, net. Draft orders untouched for 7 days count as abandoned carts, and orders made with **Reorder** give the reorder rate. **How each figure is counted** lists every numerator and denominator. Promotions, line-sheet views and campaigns read "not recorded" until Barrow has them. API: `GET /api/barrow/reports/quotes?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+
 ## Follow an order
 
 Open **Order timeline** on a submitted order. It lists what Barrow recorded (submitted, accepted, allocated, backordered, cancelled) and what Pier records for the order: each dispatch as a shipment with its reference and units, and each return. Every entry shows where it came from, when, and who. Delivery, holds and closing are shown as not recorded, because no connected source reports them yet; if Pier does not answer, shipments are shown as unknown rather than guessed.
