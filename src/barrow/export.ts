@@ -9,7 +9,7 @@ import { now } from './clock'
 import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 
-export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'audit'] as const
+export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
@@ -26,6 +26,7 @@ const columns: Record<Kind, string[]> = {
  quotemessages: ['id', 'quoteId', 'accountId', 'quoteRevision', 'visibility', 'side', 'authorId', 'authorEmail', 'body', 'createdAt', 'attachmentName', 'attachmentType', 'attachmentBytes', 'attachmentSha256', 'attachmentPath'],
  // ACC-003: one row per bill-to, ship-to or contact record, archived ones included.
  locations: ['id', 'revision', 'accountId', 'kind', 'default', 'archived', 'name', 'line1', 'line2', 'city', 'state', 'zip', 'jurisdiction', 'deliveryInstructions', 'exemptionReference', 'exemptionState', 'email', 'phone', 'role'],
+ followups: ['id', 'revision', 'accountId', 'kind', 'sourceId', 'sourcePath', 'title', 'reason', 'priority', 'createdAt', 'ownerId', 'nextContactDate', 'status', 'resolution', 'contacts'],
  audit: ['id', 'subjectId', 'actorId', 'action', 'createdAt', 'accountId', 'orderId', 'revision'],
 }
 const json = (value: unknown) => value === undefined ? '' : JSON.stringify(value)
@@ -44,6 +45,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const entries = await exportEntries(env.DB, actor, ids)
  const locations = ids.length ? (await env.DB.prepare('SELECT * FROM bw_locations WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid').bind(JSON.stringify(ids)).all<any>()).results : []
  const audit = supplier(actor) ? (await env.DB.prepare("SELECT id,subject_id,actor_id,action,created_at,json_extract(context_json,'$.accountId') AS account_id,json_extract(context_json,'$.orderId') AS order_id,json_extract(context_json,'$.revision') AS revision FROM bw_audit ORDER BY rowid").all<Record<string, string | null>>()).results : undefined
+ const followups = supplier(actor) ? (await env.DB.prepare('SELECT id,revision,value_json FROM bw_followups ORDER BY id').all<{id:string;revision:string;value_json:string}>()).results.map(row => ({...JSON.parse(row.value_json),id:row.id,revision:row.revision})) : undefined
  const records = {
   accounts: selected.map(({ id, revision, value }) => ({ id, revision, name: value.name, email: value.email, pierCustomerId: value.pierCustomerId, termsDays: value.termsDays, minimumCents: value.minimumCents, currency: 'USD', city: value.city ?? '', state: value.state ?? '', lifecycle: value.lifecycle ?? 'active', channel: value.channel ?? '', territory: value.territory ?? '', assignedRep: value.assignedRep ?? '', catalogs: json(value.catalogs), providerReferences: json(value.providerReferences) })),
   prices: selected.flatMap(({ id, revision, value }) => value.prices.map(price => ({ accountId: id, accountRevision: revision, sku: price.sku, currency: 'USD', unitCents: price.unitCents, minQty: price.minQty, casePack: price.casePack ?? '', increment: price.increment ?? '', units: json(price.units), pricing: json(price.pricing) }))),
@@ -56,6 +58,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
   quotelines: quotes.flatMap(quote => quote.revisions.flatMap(revision => revision.lines.map((line, index) => ({ quoteId: quote.id, quoteRevision: revision.number, line: index + 1, sku: line.sku, name: line.name, quantity: line.quantity, unit: line.unit ?? '', currency: quote.currency, basisUnitCents: line.basisUnitCents, basisLineCents: line.basisLineCents, discountBps: line.discountBps ?? '', negotiatedUnitCents: line.negotiatedUnitCents ?? '', unitCents: line.unitCents, lineCents: lineCents(line), pricing: json(line.pricing), proposedBy: revision.proposedBy, proposedAt: revision.proposedAt, discountApprovedBy: supplier(actor) ? revision.approval?.by ?? '' : '', discountApprovedAt: supplier(actor) ? revision.approval?.at ?? '' : '' })))),
   quotemessages: entries.map(row => ({ id: row.id, quoteId: row.quoteId, accountId: row.accountId, quoteRevision: row.quoteRevision, visibility: row.kind === 'internal' ? 'internal' : 'buyer-visible', side: row.side, authorId: row.authorId, authorEmail: row.authorEmail, body: row.body, createdAt: row.at, attachmentName: row.attachment?.name ?? '', attachmentType: row.attachment?.type ?? '', attachmentBytes: row.attachment?.size ?? '', attachmentSha256: row.attachment?.sha256 ?? '', attachmentPath: row.attachment?.path ?? '' })),
   locations: locations.map(row => { const value = JSON.parse(row.value_json); return { id: row.id, revision: row.revision, accountId: row.account_id, kind: row.kind, default: row.is_default ? 'yes' : 'no', archived: row.archived ? 'yes' : 'no', name: value.name, line1: value.line1 ?? '', line2: value.line2 ?? '', city: value.city ?? '', state: value.state ?? '', zip: value.zip ?? '', jurisdiction: row.kind === 'ship-to' ? `US-${value.state}` : '', deliveryInstructions: value.deliveryInstructions ?? '', exemptionReference: value.exemption?.reference ?? '', exemptionState: value.exemption?.state ?? '', email: value.email ?? '', phone: value.phone ?? '', role: value.role ?? '' } }),
+  ...(followups ? { followups: followups.map(row => ({...row, contacts: json(row.contacts)})) } : {}),
   ...(audit ? { audit: audit.map(row => ({ id: row.id, subjectId: row.subject_id, actorId: row.actor_id, action: row.action, createdAt: row.created_at, accountId: row.account_id ?? '', orderId: row.order_id ?? '', revision: row.revision ?? '' })) } : {}),
  }
  const totals = [...new Set([...orders.map(currency), ...quotes.map(quote => quote.currency)])].sort().map(code => {
@@ -71,6 +74,6 @@ export async function exportResponse(env: Bindings, actor: Actor, kind: Kind | '
  const headers = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
  if (kind === 'json') return new Response(JSON.stringify(data, null, 2), { headers: { ...headers, 'content-type': 'application/json; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-export.json"' } })
  const list = (data as unknown as Record<Kind, Record<string, unknown>[] | undefined>)[kind]
- if (!list) fail('FORBIDDEN', 'Audit references are available to the supplier only.', 403)
+ if (!list) fail('FORBIDDEN', 'Staff records are available to the supplier only.', 403)
  return new Response(csvText([columns[kind], ...list.map(row => columns[kind].map(column => row[column]))]), { headers: { ...headers, 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="barrow-${kind}.csv"` } })
 }

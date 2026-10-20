@@ -10,6 +10,7 @@ import { listCommand, readLists } from './lists'
 import { quoteReport } from './quote-report'
 import { salesCsv, salesReport } from './sales-report'
 import { financeCsv, financeReport } from './finance-report'
+import { followupCommand, readFollowups } from './followups'
 import { locationCommand, readLocations } from './locations'
 import { quoteAttachment, quoteCommand, quoteResponse, readQuotes } from './quotes'
 import { statementResponse } from './statements'
@@ -57,6 +58,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/sales' && request.method==='GET') return json(await salesReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/sales.csv' && request.method==='GET') return await salesCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/followups' && request.method==='GET') return json(await readFollowups(env,actor,url.searchParams))
   if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
   if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
@@ -116,6 +118,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['followup.refresh','followup.update'].includes(body.type)) result=await followupCommand(env,actor,body.type,body.payload)
    else if(body.type==='settings.timezone') result=await saveReportZone(env.DB,actor,body.payload)
    else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)
    else if(['cart.preview','cart.form'].includes(body.type)) result=await cartCommand(env,actor,body.type,body.payload)
