@@ -22,7 +22,7 @@ export async function saveShipping(env:Bindings,actor:Actor,p:any) {
 export type ShippingContext={account:Account;lines:Line[];shipTo?:Order['shipTo'];quotes?:FreightQuote[]}
 export async function deliveryOptions(env:Bindings,context:ShippingContext) {
  const settings=await shippingSettings(env.DB),today=supplierDate(await now()),subtotal=context.lines.reduce((sum,line)=>sum+(line.lineCents??line.quantity*line.unitCents),0)
- const basis=await digest(JSON.stringify({accountId:context.account.id,accountRevision:context.account.revision,lines:context.lines,shipTo:context.shipTo??null,settings:settings.revision}))
+ const basis=await digest(JSON.stringify({accountId:context.account.id,accountRevision:context.account.revision,lines:context.lines.map(line=>({sku:line.sku,itemId:line.itemId,quantity:line.quantity,unit:line.unit??null,baseQuantity:line.baseQuantity??String(line.quantity),unitCents:line.unitCents,lineCents:line.lineCents??line.quantity*line.unitCents})),shipTo:context.shipTo??null,settings:settings.revision}))
  const options:DeliveryOption[]=[]
  for(const method of settings.methods) {
   if(!eligible(method,context.account,subtotal,context.shipTo?.state??''))continue
