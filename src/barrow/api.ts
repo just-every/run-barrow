@@ -8,6 +8,7 @@ import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
 import { listCommand, readLists } from './lists'
 import { quoteReport } from './quote-report'
+import { locationCommand, readLocations } from './locations'
 import { quoteAttachment, quoteCommand, quoteResponse, readQuotes } from './quotes'
 import { statementResponse } from './statements'
 import { exportKinds, exportResponse } from './export'
@@ -58,6 +59,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const exported=/^\/api\/barrow\/export\/([a-z]+)\.csv$/.exec(path)
   if(exported && request.method==='GET' && (exportKinds as readonly string[]).includes(exported[1])) return await exportResponse(env,actor,exported[1] as (typeof exportKinds)[number])
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})
+  if(path==='/api/barrow/locations' && request.method==='GET') return json({locations:await readLocations(env.DB,actor,url.searchParams.get('accountId')??'')})
   if(path==='/api/barrow/lists' && request.method==='GET') return json({lists:await readLists(env.DB,actor,url.searchParams.get('accountId')??'')})
   if(path==='/api/barrow/quotes' && request.method==='GET') return json({quotes:await readQuotes(env.DB,actor,url.searchParams.get('accountId'))})
   const quote=/^\/api\/barrow\/quotes\/(Q-\d{1,9})$/.exec(path)
@@ -108,6 +110,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='settings.timezone') result=await saveReportZone(env.DB,actor,body.payload)
    else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)
    else if(['cart.preview','cart.form'].includes(body.type)) result=await cartCommand(env,actor,body.type,body.payload)
+   else if(['location.save','location.archive'].includes(body.type)) result=await locationCommand(env.DB,actor,body.type,body.payload)
    else if(['list.save','list.duplicate','list.delete'].includes(body.type)) result=await listCommand(env.DB,actor,body.type,body.payload)
    else if(['quote.request','quote.propose','quote.approve','quote.accept','quote.message','quote.read'].includes(body.type)) result=await quoteCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)

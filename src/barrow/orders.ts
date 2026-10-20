@@ -11,6 +11,7 @@ import { sellingUnits } from './units'
 import { prepareLines } from './unit-lines'
 import { purchaseDetails, buyerSku, purchaseRelease } from './purchase'
 import { readDocument, documentStatement, carryDocument } from './documents'
+import { locationSnapshot } from './locations'
 import { freshnessLimit, staleStock } from './freshness'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
@@ -81,7 +82,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(type==='order.reorder-preview') return context.review
   if(p.acknowledged!==true || p.fingerprint!==context.review.fingerprint) fail('REORDER_CHANGED','Review the current differences and explicitly acknowledge them before preparing a reorder.')
   if(context.review.blockers.length) fail('REORDER_BLOCKED',context.review.blockers.join(' '))
-  return prepareOrder(env,actor,{accountId:context.selected.id,reference:p.reference,deliveryLocation:context.review.deliveryLocation,lines:context.review.lines.map(line=>({sku:line.sku,unit:line.unit,quantity:line.quantity}))},context)
+  return prepareOrder(env,actor,{accountId:context.selected.id,reference:p.reference,deliveryLocation:context.review.deliveryLocation,shipToId:context.review.shipToId,lines:context.review.lines.map(line=>({sku:line.sku,unit:line.unit,quantity:line.quantity}))},context)
  }
  if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
@@ -169,8 +170,10 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
    if(replaced.accountId!==selected.id) fail('REPLACES','A draft can only be replaced by an order for the same trade account.',400)
    if(replaced.status!=='draft') fail('REPLACES','This draft was already submitted or replaced. Refresh your orders.')
   }
+  // ACC-003: the chosen (or default) bill-to and ship-to are copied whole; later location edits never reach this order.
+  const billTo=await locationSnapshot(env.DB,selected,'bill-to',p.billToId),shipTo=await locationSnapshot(env.DB,selected,'ship-to',p.shipToId)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
-  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
+  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`})]:[]
   await commit(env.DB,actor,[activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])

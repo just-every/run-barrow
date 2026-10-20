@@ -10,6 +10,7 @@ import { DataTools } from './data'
 import { ExportLinks } from './export-links'
 import { StatementCard } from './statement'
 import { Quotes } from './quotes'
+import { Locations } from './locations'
 import { Empty, Notice } from './primitives'
 import type { BarrowState, Order } from './types'
 import { stale } from './types'
@@ -118,9 +119,11 @@ export function BarrowApp() {
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
+          {activeTab === 'Accounts' && supplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
           {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Orders' && <Quotes supplier={supplier} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && <StatementCard accounts={state.accounts} />}
+          {activeTab === 'Orders' && !supplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}

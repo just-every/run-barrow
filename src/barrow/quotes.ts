@@ -14,6 +14,7 @@ import { nextNumber, readOrder } from './orders'
 import { catalogue, pierOrigin } from './pier'
 import { prepareLines } from './unit-lines'
 import { quantityMicro } from './units'
+import { locationSnapshot } from './locations'
 import { attachmentResponse, notice, threadCommand, threadEntries, unreadNotices } from './quote-thread'
 
 export type QuoteLine = Line & { basisUnitCents: number; basisLineCents: number; discountBps?: number; negotiatedUnitCents?: number }
@@ -152,8 +153,10 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
    return { ...priced, itemId: current[index].itemId, quote: { id: quote.id, revision: number, basisUnitCents, basisLineCents, ...(discountBps !== undefined ? { discountBps } : {}), ...(negotiatedUnitCents !== undefined ? { negotiatedUnitCents } : {}) } }
   })
   if (latest.totalCents < selected.value.minimumCents) fail('MINIMUM', 'The quoted total is below this customer’s minimum order value.')
+  // ACC-003: a converted order snapshots the account's default bill-to and ship-to.
+  const billTo = await locationSnapshot(env.DB, selected, 'bill-to', undefined), shipTo = await locationSnapshot(env.DB, selected, 'ship-to', undefined)
   const id = await nextNumber(env.DB), orderRevision = crypto.randomUUID()
-  const order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, totalCents: latest.totalCents, currency: 'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, revision: orderRevision }
+  const order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, totalCents: latest.totalCents, currency: 'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
   const accepted = { ...quote, status: 'accepted' as const, accepted: { revision: number, by: actor.id, at, orderId: id } }
   try {
    const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision), audit(env.DB, actor, id, 'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at)], id)

@@ -32,3 +32,10 @@ Local invitations stay in the private development outbox; see [getting started](
 The customer can enter quantities in Catalog. A supplier can also use **Prepare order** on the account card, or select a trade account from Orders. Both use that account's agreed prices and terms. Continue with [orders and invoices](ORDERS.md).
 
 To add many accounts at once, use [Move in](IMPORT-ACCOUNTS.md). To remove an unused account, follow [account erasure](BACKUP-RESTORE.md).
+
+## Billing and delivery locations
+
+Supplier staff (Accounts) and the account's buyer (Orders) keep **Billing and delivery locations**: bill-to and ship-to addresses and contacts. The first bill-to and ship-to become the defaults; **Make default** changes that. Barrow checks the address format, the state code and that the ZIP belongs to the state; it does not verify the address with USPS or a carrier. A ship-to can carry default delivery instructions and a tax exemption reference for its own state. Barrow records the state as the tax jurisdiction and calculates no tax.
+
+On the order pad, **Ship to** chooses a ship-to (blank uses the default). Each order keeps a copy of its bill-to and ship-to, so later edits, a new default or **Archive** never change an order. Commands: `location.save {accountId, kind, value, id?, revision?, makeDefault?}` and `location.archive {accountId, id, revision}`; read with `GET /api/barrow/locations?accountId=`. `order.prepare` takes `billToId` and `shipToId`. Locations appear in the data export as `locations.csv`.
+

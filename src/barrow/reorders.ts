@@ -8,12 +8,13 @@ import { prepareLines } from './unit-lines'
 import { convertQuantity, sellingUnits } from './units'
 import { digest } from './access'
 import { fail, text, supplierDate, type Actor, type Order } from './model'
+import { activeShipTo } from './locations'
 import { requireActiveAccount } from './account-profile'
 
 export type ReorderSelection = { sku: string; unit?: string; replacementSku?: string; replacementUnit?: string }
 export type ReorderReview = {
  orderId: string; accountId: string; sourceRevision: string; accountRevision: string
- selections: ReorderSelection[]; deliveryLocation: string; currency: 'USD'; originalCurrency: 'USD'|'AUD'
+ selections: ReorderSelection[]; deliveryLocation: string; shipToId?: string; currency: 'USD'; originalCurrency: 'USD'|'AUD'
  termsDays: number; originalTermsDays: number; minimumCents: number; totalCents: number
  lines: { originalSku: string; originalUnit?: string; originalBaseQuantity:string; originalConversion:string; baseUnit?:string; unit?: string; baseQuantity?: string; conversion?: string; sku: string; quantity: number; originalUnitCents: number; originalLineCents:number; lineCents:number|null; unitCents: number|null; originalMinQty: number; minQty: number|null; available: string|null; differences: string[]; pricing?:import('./pricing').PricingSnapshot }[]
  blockers: string[]; blockingCodes:string[]; fingerprint: string
@@ -29,7 +30,7 @@ export async function orderHistory(env: Bindings, actor: Actor, query: URLSearch
  if (from && to && from > to) fail('DATE','The start date must precede the end date.',400)
  return rows.results.map(row => ({...JSON.parse(row.value_json),revision:row.revision} as Order)).filter(order => {
   const day = supplierDate(new Date(order.preparedAt))
-  return order.status !== 'superseded' && order.reference.toLocaleLowerCase('en-US').includes(term('po')) && (!from || day >= from) && (!to || day <= to) && order.lines.some(line => line.sku.toLocaleLowerCase('en-US').includes(term('sku'))) && (order.deliveryLocation ?? '').toLocaleLowerCase('en-US').includes(term('location'))
+  return order.status !== 'superseded' && order.reference.toLocaleLowerCase('en-US').includes(term('po')) && (!from || day >= from) && (!to || day <= to) && order.lines.some(line => line.sku.toLocaleLowerCase('en-US').includes(term('sku'))) && [order.deliveryLocation, order.shipTo?.name, order.shipTo?.line1, order.shipTo?.city, order.shipTo?.state].some(value => (value ?? '').toLocaleLowerCase('en-US').includes(term('location')))
  })
 }
 
@@ -80,6 +81,6 @@ export async function reviewReorder(env: Bindings, actor: Actor, payload: any) {
  const totalCents=lines.reduce((sum,line)=>sum+(line.lineCents??0),0)
  if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
  if(totalCents<selected.value.minimumCents) {blockers.push(`Selected lines do not meet the current order minimum of ${selected.value.minimumCents} USD cents.`);blockingCodes.push('ORDER_MINIMUM')}
- const review = {orderId:original.id,accountId:selected.id,sourceRevision:original.revision,accountRevision:selected.revision,selections,deliveryLocation:original.deliveryLocation ?? '',currency:available.currency,originalCurrency:original.currency ?? 'AUD',termsDays:selected.value.termsDays,originalTermsDays:original.termsDays,minimumCents:selected.value.minimumCents,totalCents,lines,blockers,blockingCodes}
+ const review = {orderId:original.id,accountId:selected.id,sourceRevision:original.revision,accountRevision:selected.revision,selections,deliveryLocation:original.deliveryLocation ?? '',...(await activeShipTo(env.DB,selected.id,original.shipTo?.id)?{shipToId:original.shipTo!.id}:{}),currency:available.currency,originalCurrency:original.currency ?? 'AUD',termsDays:selected.value.termsDays,originalTermsDays:original.termsDays,minimumCents:selected.value.minimumCents,totalCents,lines,blockers,blockingCodes}
  return {review:{...review,fingerprint:await digest(JSON.stringify(review))} as ReorderReview,selected,available}
 }

@@ -12,6 +12,7 @@ import { StyleMatrix, cellProblem, type PriceChange } from './style-matrix'
 import { quantityProblem } from '../quantity-rules'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
 import type { Account, Catalogue, Order, RunCommand } from './types'
+import { useLocations } from './locations'
 import { byAgent, clock, money, orderNumber, terms, town, when } from './types'
 
 interface Props {
@@ -36,6 +37,9 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [reference, setReference] = useState('')
   const [deliveryLocation, setDeliveryLocation] = useState('')
+  // ACC-003: blank uses the account's default ship-to; the order keeps a copy of the address.
+  const [shipToId, setShipToId] = useState('')
+  const shipTos = useLocations(account.id, refresh).filter(location => location.kind === 'ship-to' && !location.archived)
   const [details, setDetails] = useState({ requestedDate: '', cancelAfter: '', instructions: '' })
   const [kept, setKept] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState('')
@@ -88,7 +92,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     event.preventDefault()
     if (blocked || unitOrder || unitDraft) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
-    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
+    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
       if (live.current) { setQuantities({}); setAliases({}); setReference(''); setDeliveryLocation('') }
       onPrepared()
@@ -142,6 +146,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
           <option value="">New order</option>
           {drafts.map(value => <option key={value.id} value={value.id}>{orderNumber(value.id)} · {when(value.preparedAt)} · {money(value.totalCents, value.currency ?? 'AUD')}</option>)}
         </select></label>
+        {shipTos.length > 0 && <label>Ship to<select value={shipToId} onChange={event => setShipToId(event.target.value)} disabled={busy}><option value="">Default ship-to</option>{shipTos.map(location => <option key={location.id} value={location.id}>{location.value.name} · {location.value.city}, {location.value.state}{location.isDefault ? ' (default)' : ''}</option>)}</select></label>}
         <label>Delivery location label<input value={deliveryLocation} maxLength={240} onChange={event => setDeliveryLocation(event.target.value)} disabled={busy} placeholder="Store or delivery location" /></label>
         {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
       </div>
