@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation,stock,accountValue,archive,restore } from './harness.mjs';
 const day=offset=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date(Date.now()+offset*86400000));
-const method=(id,patch={})=>({id,name:id,kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1500,handlingCents:250,freeOverCents:20000,transitMinDays:2,transitMaxDays:5,quoteRequired:false,...patch});
+const method=(id,patch={})=>({id,name:id,kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1500,handlingCents:250,freeOverCents:26000,transitMinDays:2,transitMaxDays:5,quoteRequired:false,...patch});
 async function fixture(t) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const product=await stock(pier,'200');
+ const rye=await pier.command('item.save',{sku:'RYE-1',name:'Rye granola',unit:'case',packSize:'1'});
+ const po=await pier.command('po.draft',{supplierId:product.supplier.id,promiseDate:day(0),reason:'Rye opening stock',lines:[{itemId:rye.id,quantity:'100',price:'20.00'}]});
+ await pier.command('po.approve',{poId:po.id,version:po.version});await pier.command('po.commit',{poId:po.id,version:po.version});await pier.command('receipt.create',{poId:po.id,supplierReference:'Rye delivery',lines:[{poLineId:po.lines[0].id,locationId:product.location.id,quantity:'100',cost:'20.00'}]});
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
- await h.command('account.save',{id:'cedar',value:{...accountValue(product.customer.id),warehouses:['New York']}});
+ await h.command('account.save',{id:'cedar',value:{...accountValue(product.customer.id),prices:[...accountValue(product.customer.id).prices,{sku:'RYE-1',unitCents:4000,minQty:1}],warehouses:['New York']}});
  const party=await pier.command('party.save',{name:'Birch Stores',kind:'customer'});
  await h.command('account.save',{id:'birch',value:{...accountValue(party.id,'birch@example.test'),name:'Birch Stores'}});
  const buyer={as:await h.signIn('buyer@example.test')},other={as:await h.signIn('birch@example.test')};
@@ -63,6 +66,8 @@ test('SHIP-001: pickup, parcel, own-account and approved freight preserve explic
  assert.equal((await h.command('order.submit',{orderId:stale.id,deliveryAcknowledged:true},{...buyer,status:409})).error.code,'SHIPPING_CHANGED');
  assert.deepEqual((await h.api(`/api/barrow/orders/${first.id}`,undefined,buyer)).delivery,approved.delivery);
  assert.equal(await (await h.request(`/api/barrow/invoices/${first.id}.csv`,buyer)).text(),invoice);
+ const multi=await draft(2,{lines:[{sku:'OAT-1',quantity:2},{sku:'RYE-1',quantity:2}]});await select(multi,(await options(multi)).options.find(o=>o.methodId==='ups'));await h.command('order.submit',{orderId:multi.id,deliveryAcknowledged:true},buyer);const multiApproved=await h.command('order.approve',{orderId:multi.id});
+ const multiReport=await h.api('/api/barrow/reports/sales?accountId=cedar'),multiRows=multiReport.rows.filter(row=>row.orderId===multi.id);assert.deepEqual(multiRows.map(row=>row.invoicedFreightCents),[2250,0]);assert.equal(multiRows.reduce((sum,row)=>sum+row.invoicedCents+row.invoicedFreightCents,0),multiApproved.totalCents);
  const newLocation=await h.command('location.save',{accountId:'cedar',id:location.id,revision:location.revision,value:{...location.value,city:'Boston',state:'MA',zip:'02108'}});
  const ma=await draft();assert.equal((await options(ma)).options.some(o=>o.methodId==='ups'),false);
  assert.equal((await h.command('shipping.select',{orderId:ma.id,...staleOption},{...buyer,status:409})).error.code,'SHIPPING_CHANGED');
@@ -80,12 +85,14 @@ test('SHIP-001: pickup, parcel, own-account and approved freight preserve explic
 test('SHIP-001: quote shipping amounts become frozen order charges only after the buyer accepts the final delivery revision',async t=>{
  const {h,buyer,config}=await fixture(t);await config([method('LTL freight',{id:'ltl',kind:'freight',quoteRequired:true,handlingCents:500})]);
  const request=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},buyer);
+ const quoteOptions=await h.api(`/api/barrow/shipping/options?quoteId=${request.id}`,undefined,buyer);assert.equal(quoteOptions.options.length,1);
  const proposal={quoteId:request.id,revision:request.revision,validUntil:day(20),shipping:'LTL dock delivery',shippingMethodId:'ltl',shippingWarehouse:'New York',freightQuote:{methodId:'ltl',warehouse:'New York',cents:4200,windowStart:day(7),windowEnd:day(9),reason:'Binding merchant quote LTL-82'},lines:[{sku:'OAT-1',quantity:2}]};
  const proposed=await h.command('quote.propose',proposal);assert.equal(proposed.revisions[0].delivery.totalCents,4700);
  assert.equal((await h.command('quote.accept',{quoteId:request.id,number:1},{...buyer,status:409})).error.code,'SHIPPING_ACCEPTANCE');
  const accepted=await h.command('quote.accept',{quoteId:request.id,number:1,deliveryAcknowledged:true},buyer);
  assert.equal(accepted.order.totalCents,17700);assert.equal(accepted.order.delivery.totalCents,4700);assert.ok(accepted.order.delivery.acceptedBy);
  assert.equal((await h.command('quote.accept',{quoteId:request.id,number:1,deliveryAcknowledged:true},buyer)).order.id,accepted.order.id);
+ const quoteExport=(await h.api('/api/barrow/export.json',undefined,buyer)).quotes.find(row=>row.id===request.id);assert.equal(quoteExport.shippingCents,4700);assert.equal(quoteExport.deliveredTotalCents,17700);
  const approved=await h.command('order.approve',{orderId:accepted.order.id});assert.equal(approved.status,'approved');
  assert.match(await (await h.request(`/api/barrow/invoices/${approved.id}.csv`,buyer)).text(),/"4700","4700","17700"/);
  // A default-address change invalidates a not-yet-accepted shipping quote rather than silently changing its cost.

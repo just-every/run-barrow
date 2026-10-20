@@ -106,7 +106,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   await assertCurrentPricing(env,selected,order,true)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
-  if(order.delivery && ['owner','admin'].includes(actor.role))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
+  if(order.delivery && actor.email!==selected.value.email)fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
   const delivery=await acceptDelivery(env,actor,{account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
   const release=await purchaseRelease(env.DB,actor,order,p.release,(await now()).toISOString())
   return save(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{})},release.poRelease?'order.submitted-release':'order.submitted',[activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard])
