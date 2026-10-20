@@ -70,6 +70,9 @@ test('SHIP-001: pickup, parcel, own-account and approved freight preserve explic
  const exported=await h.api('/api/barrow/export.json',undefined,buyer),row=exported.orders.find(o=>o.id===first.id);
  assert.equal(row.merchandiseCents+row.shippingCents,row.totalCents);assert.equal(JSON.parse(row.delivery).acceptedBy,submitted.delivery.acceptedBy);
  const audit=(await h.api(`/api/barrow/audit?orderId=${freight.id}`)).events;assert.ok(audit.some(e=>e.action==='shipping.quoted'&&e.reason.includes(quote.reason)));
+ const report=await h.api('/api/barrow/reports/sales?accountId=cedar');
+ const firstRows=report.rows.filter(row=>row.orderId===first.id);assert.equal(firstRows.reduce((sum,row)=>sum+row.freightCents,0),1750);assert.equal(firstRows.reduce((sum,row)=>sum+row.invoicedCents+row.invoicedFreightCents,0),approved.totalCents);
+ const reportCsv=await (await h.request('/api/barrow/reports/sales.csv?accountId=cedar')).text();assert.match(reportCsv,/freightCents/);assert.match(reportCsv,/1750/);
  const destination=await installation();t.after(()=>destination.close());await restore(destination,await archive(h));
  assert.deepEqual((await destination.api(`/api/barrow/orders/${first.id}`)).delivery,approved.delivery);
  assert.equal((await destination.api('/api/barrow/shipping/settings')).methods.length,methods.length);

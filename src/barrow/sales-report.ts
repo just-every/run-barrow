@@ -3,7 +3,7 @@
 // Booked is the line of a submitted order (cancelled orders excluded); shipped is Pier's dispatched base units valued
 // at the line's average base-unit price; invoiced is the line of an invoiced order. Barrow records no payments or credit
 // notes yet, so paid and credited read "not recorded" and outstanding is the invoiced amount, labelled as such
-// (PAY-003 and PAY-010 add them). Amounts exclude tax and freight, which Barrow does not calculate (TAX-001, SHIP-001).
+// (PAY-003 and PAY-010 add them). Merchandise amounts exclude tax; delivery plus handling is shown once on the first product line in separate freight columns.
 import type { Bindings } from '../auth.server'
 import { accounts } from './accounts'
 import { csvText } from './cart-csv'
@@ -18,7 +18,7 @@ const half = (numerator: bigint, denominator: bigint) => Number((numerator + den
 const micro = (value: string | number) => BigInt(Math.round(Number(value) * 1_000_000))
 const day = (value: string | null, name: string) => value === null || /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value ? value : fail('INPUT', `${name} must be a YYYY-MM-DD date.`, 400)
 const shift = (date: string, days: number) => new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10)
-export const salesColumns = ['orderId', 'line', 'accountId', 'account', 'channel', 'territory', 'rep', 'sku', 'name', 'currency', 'bookedDate', 'status', 'quantity', 'unit', 'bookedCents', 'shippedBaseQuantity', 'shippedCents', 'invoiceNumber', 'invoicedCents', 'paidCents', 'creditedCents', 'outstandingCents', 'orderPath', 'invoicePath'] as const
+export const salesColumns = ['orderId', 'line', 'accountId', 'account', 'channel', 'territory', 'rep', 'sku', 'name', 'currency', 'bookedDate', 'status', 'quantity', 'unit', 'bookedCents', 'shippedBaseQuantity', 'shippedCents', 'invoiceNumber', 'invoicedCents', 'paidCents', 'creditedCents', 'outstandingCents', 'freightCents', 'invoicedFreightCents', 'orderPath', 'invoicePath'] as const
 type Row = Record<(typeof salesColumns)[number], string | number | null>
 
 export async function salesReport(env: Bindings, actor: Actor, params: URLSearchParams) {
@@ -48,18 +48,18 @@ export async function salesReport(env: Bindings, actor: Actor, params: URLSearch
    const invoiced = order.invoice ? cents : 0
    rows.push({ orderId: order.id, line: index + 1, accountId: order.accountId, account: order.customerName, channel: profile.channel ?? '', territory: profile.territory ?? '', rep: profile.assignedRep ?? '', sku: line.sku, name: line.name, currency: order.currency ?? 'AUD', bookedDate: calendarDate(new Date(order.preparedAt), zone), status: order.status, quantity: String(line.quantity), unit: line.unit ?? '',
     bookedCents: cents, shippedBaseQuantity: units === null ? null : String(Number(units) / 1_000_000), shippedCents: units === null ? null : half(units * BigInt(cents), micro(line.baseQuantity ?? line.quantity)),
-    invoiceNumber: order.invoice?.number ?? '', invoicedCents: invoiced, paidCents: null, creditedCents: null, outstandingCents: invoiced, orderPath: `/api/barrow/orders/${order.id}`, invoicePath: order.invoice ? `/api/barrow/invoices/${order.id}.csv` : '' })
+    invoiceNumber: order.invoice?.number ?? '', invoicedCents: invoiced, paidCents: null, creditedCents: null, outstandingCents: invoiced, freightCents:index===0?(order.delivery?.totalCents??0):0, invoicedFreightCents:index===0&&order.invoice?(order.delivery?.totalCents??0):0, orderPath: `/api/barrow/orders/${order.id}`, invoicePath: order.invoice ? `/api/barrow/invoices/${order.id}.csv` : '' })
   })
  }
- const sum = (list: Row[], key: 'bookedCents' | 'shippedCents' | 'invoicedCents' | 'outstandingCents') => list.some(row => row[key] === null) ? null : list.reduce((total, row) => total + Number(row[key]), 0)
- const totals = (list: Row[]) => [...new Set(list.map(row => String(row.currency)))].sort().map(currency => { const mine = list.filter(row => row.currency === currency); return { currency, lines: mine.length, orders: new Set(mine.map(row => row.orderId)).size, bookedCents: sum(mine, 'bookedCents'), shippedCents: sum(mine, 'shippedCents'), invoicedCents: sum(mine, 'invoicedCents'), paidCents: null, creditedCents: null, outstandingCents: sum(mine, 'outstandingCents') } })
+ const sum = (list: Row[], key: 'bookedCents' | 'shippedCents' | 'invoicedCents' | 'outstandingCents' | 'freightCents' | 'invoicedFreightCents') => list.some(row => row[key] === null) ? null : list.reduce((total, row) => total + Number(row[key]), 0)
+ const totals = (list: Row[]) => [...new Set(list.map(row => String(row.currency)))].sort().map(currency => { const mine = list.filter(row => row.currency === currency); return { currency, lines: mine.length, orders: new Set(mine.map(row => row.orderId)).size, bookedCents: sum(mine, 'bookedCents'), shippedCents: sum(mine, 'shippedCents'), invoicedCents: sum(mine, 'invoicedCents'), paidCents: null, creditedCents: null, outstandingCents: sum(mine, 'outstandingCents'), freightCents:sum(mine,'freightCents'), invoicedFreightCents:sum(mine,'invoicedFreightCents') } })
  const group = (key: (row: Row) => string) => [...new Set(rows.map(key))].sort().map(name => ({ name, totals: totals(rows.filter(row => key(row) === name)) }))
  return {
   checkedAt: at.toISOString(), from, to, timeZone: zone, filter, shipments, rows, totals: totals(rows),
   byAccount: group(row => String(row.account)), bySku: group(row => String(row.sku)), byChannel: group(row => String(row.channel) || 'No channel'), byTerritory: group(row => String(row.territory) || 'No territory'), byMonth: group(row => String(row.bookedDate).slice(0, 7)),
   notes: {
    period: `Orders count by preparation date, inclusive calendar days ${from} to ${to} in ${zone}. Draft, replaced and cancelled orders are not booked.`,
-   amounts: 'Integer cents in each order’s recorded currency, never added across currencies. Amounts exclude tax and freight: Barrow calculates neither until TAX-001 and SHIP-001.',
+   amounts: 'Integer cents in each order’s recorded currency, never added across currencies. Merchandise columns exclude freight and tax. SHIP-001 freightCents and invoicedFreightCents include delivery plus handling, once on the order’s first product line, so they are never duplicated across SKU lines. A SKU filter includes freight only when it includes that first line. Add invoicedFreightCents to merchandise invoiced/outstanding to reconcile the invoice. Tax is not calculated until TAX-001.',
    shipped: shipments === 'read' ? 'Pier’s dispatched base units, valued at the line’s average base-unit price, rounded half up once per line.' : 'Pier did not answer: shipped amounts are unknown.',
    payments: `${statementNote} Paid and credited are not recorded until PAY-003 and PAY-010; outstanding is the invoiced amount.`,
    season: 'Barrow has no seasons or prebooks yet; CAT-008 and ORD-008 add season and prebook rows to this report.',

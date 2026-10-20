@@ -8,7 +8,7 @@ type Totals = Report['totals']
 
 const amount = (cents: number | null, currency: string) => cents === null ? 'unknown' : money(cents, currency as 'USD' | 'AUD')
 function TotalsLine({ totals }: { totals: Totals }) {
-  return <>{totals.map(row => <p key={row.currency}>{row.currency} · {row.orders} orders, {row.lines} lines · booked {amount(row.bookedCents, row.currency)} · shipped {amount(row.shippedCents, row.currency)} · invoiced {amount(row.invoicedCents, row.currency)} · paid and credited not recorded · outstanding {amount(row.outstandingCents, row.currency)} (invoiced)</p>)}</>
+  return <>{totals.map(row => <p key={row.currency}>{row.currency} · {row.orders} orders, {row.lines} lines · booked {amount(row.bookedCents, row.currency)} · shipped {amount(row.shippedCents, row.currency)} · invoiced {amount(row.invoicedCents, row.currency)} · paid and credited not recorded · outstanding {amount(row.outstandingCents, row.currency)} (merchandise invoiced) · freight booked {amount(row.freightCents,row.currency)}, invoiced {amount(row.invoicedFreightCents,row.currency)}</p>)}</>
 }
 
 // RPT-001: booked, shipped, invoiced and outstanding sales by account, SKU, channel, territory and month.
@@ -31,7 +31,7 @@ export function SalesReport() {
       <p className="br-quiet-text">{report.notes.period} {report.notes.amounts} Read {when(report.checkedAt)}.</p>
       <TotalsLine totals={report.totals} />
       {report[view].map(group => <article className="br-card br-stack" key={group.name}><h3>{group.name}</h3><TotalsLine totals={group.totals} /></article>)}
-      <details><summary>Document lines ({report.rows.length})</summary><ul>{report.rows.map(row => <li key={`${row.orderId}:${row.line}`}>{orderNumber(String(row.orderId))} line {row.line} · {row.account} · {row.sku} · booked {amount(row.bookedCents as number, String(row.currency))}{row.invoiceNumber ? <> · <a href={String(row.invoicePath)} download>invoice {row.invoiceNumber}</a></> : ' · not invoiced'}</li>)}</ul></details>
+      <details><summary>Document lines ({report.rows.length})</summary><ul>{report.rows.map(row => <li key={`${row.orderId}:${row.line}`}>{orderNumber(String(row.orderId))} line {row.line} · {row.account} · {row.sku} · booked {amount(row.bookedCents as number, String(row.currency))} · freight {amount(row.freightCents as number,String(row.currency))}{row.invoiceNumber ? <> · <a href={String(row.invoicePath)} download>invoice {row.invoiceNumber}</a></> : ' · not invoiced'}</li>)}</ul></details>
       <p className="br-quiet-text">{report.notes.shipped} {report.notes.payments} {report.notes.season}</p>
       <div className="br-actions"><a className="br-secondary" href={`/api/barrow/reports/sales.csv?${query}`} download>Download lines (CSV)</a></div>
     </>}

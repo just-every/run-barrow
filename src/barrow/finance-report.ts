@@ -48,7 +48,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
  return { asOf, timeZone, checkedAt: at.toISOString(), filter, rows, totals,
   availableCredit: null, exposure: null, deposits: null, failedPayments: null, disputedBalances: null, refundStatus: null, ledgerReconciliation: null,
   notes: {
-   amounts: `${statementNote} Aging buckets contain integer invoiced cents, never summed across currencies; tax and freight are not calculated.`,
+   amounts: `${statementNote} Aging buckets contain integer invoiced cents, never summed across currencies; amounts include recorded SHIP-001 delivery and handling; tax is not calculated.`,
    dates: `Invoices issued on or before ${asOf}, inclusive. Frozen issue and due dates retain their original calendar-day semantics. Default as-of day uses ${timeZone}. Due today is current; overdue days are whole calendar days.`,
    unrecorded: 'Available credit and exposure (PAY-004), deposits and verified payments (PAY-003), refunds and credits (PAY-010), failed payments and disputed balances (PAY-011), and ledger reconciliation (INT-002/INT-003) are not recorded.',
    access: 'Owner and admins only. Assigned rep is current account metadata, not an access restriction or historical attribution; ACC-005/ACC-006 introduce scoped staff access.',
