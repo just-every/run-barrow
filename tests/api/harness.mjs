@@ -12,11 +12,13 @@ export async function installation({pier=false,bindings={}}={}) {
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const bundled=await build({entryPoints:[join(root,'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
- const messages=[];
+ const messages=[],mail={deliveries:[],reject:false};
  // Fake only the external mail boundary; Pier remains the real pinned Worker.
  const mailEdge=async request=>{
   if(new URL(request.url).hostname==='api.resend.com') {
-   messages.push(await request.json());return Response.json({id:randomUUID()});
+   const message=await request.json();messages.push(message);
+   if(mail.reject)return Response.json({message:'Rejected test edge'}, {status:422});
+   const id=randomUUID();mail.deliveries.push({id,message,key:request.headers.get('idempotency-key')});return Response.json({id});
   }
   // Node fetch supplies its own framing when forwarding the workerd request.
   const headers=Object.fromEntries([...request.headers].filter(([name])=>!['connection','transfer-encoding','content-length','host','expect'].includes(name)));
@@ -64,7 +66,7 @@ export async function installation({pier=false,bindings={}}={}) {
    }
    throw Error('Invitation did not produce a usable sign-in link');
   };
-  return {mf,db,origin,cookie,request,api,command,signIn,async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  return {mf,db,origin,cookie,request,api,command,signIn,mail,async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
 }
 export async function stock(pier,quantity='24') {

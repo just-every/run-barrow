@@ -1,7 +1,7 @@
 import type { AccountValue, Order } from './model'
 import type { Quote } from './quotes'
 
-export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant'
+export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail'
 export type FollowupSource = { id: string; kind: FollowupKind; accountId: string; sourceId: string; sourcePath: string; title: string; reason: string; priority: number }
 const day = 86400000
 export async function followupSources(db: D1Database, at: Date) {

@@ -10,6 +10,7 @@
       "binding": "DB"
     }
   ],
+  "crons": ["0 * * * *"],
   "originVar": "AUTH_ORIGIN",
   "vars": {
     "AUTH_LOCAL": "false",
@@ -17,6 +18,7 @@
     "MAIL_FROM": "auth@example.invalid"
   },
   "secrets": [
+    {"binding":"MAIL_WEBHOOK_SECRET","environment":"MAIL_WEBHOOK_SECRET","optional":true},
     {
       "binding": "OWNER_EMAIL",
       "environment": "OWNER_EMAIL"

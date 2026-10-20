@@ -33,6 +33,7 @@ export async function diagnostics(env: Bindings, actor: Actor) {
   }
  })
  // Barrow records an invitation request, not its delivery; INT-015 brings delivery states.
- const notifications = { recorded: false, note: 'Mail delivery results are not recorded by Barrow yet.' }
+ const deliveries=(await env.DB.prepare('SELECT id,quote_id,status,attempts,updated_at FROM bw_quote_mail ORDER BY rowid').all()).results
+ const notifications = { recorded: true, deliveries, note: 'Quote mail acceptance is not delivery. Pending and failed deliveries are recorded; failures retain owned follow-up tasks until attributed resolution. Invitation delivery remains unrecorded.' }
  return { checkedAt, pier, handoffs, notifications }
 }

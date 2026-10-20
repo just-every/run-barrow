@@ -1,4 +1,6 @@
 import { readConfirmationLayouts, saveConfirmationLayout } from './confirmation-layouts'
+import { quoteMailWebhook } from './quote-mail-events'
+import { quoteMailCommand, dispatchQuoteMail } from './quote-mail'
 import { readRetention, retentionCommand } from './retention'
 import { readConfirmations, confirmationResponse } from './confirmations'
 import { substitutionCommand } from './substitutions'
@@ -41,7 +43,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
  const url=new URL(request.url),path=url.pathname
  if(!path.startsWith('/api/barrow/')) return null
  try {
-  const env=runtimeBindings(original),actor=await current(request,env)
+  const env=runtimeBindings(original)
+  if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
+  const actor=await current(request,env)
   if(!['GET','HEAD'].includes(request.method) && !actor.agent && request.headers.get('origin')!==env.AUTH_ORIGIN) fail('ORIGIN','Use this installation’s own page to change records.',403)
   if(path.startsWith('/api/barrow/portability/')) {
    requireSupplier(actor)
@@ -148,8 +152,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['cart.preview','cart.form'].includes(body.type)) result=await cartCommand(env,actor,body.type,body.payload)
    else if(['location.save','location.archive'].includes(body.type)) result=await locationCommand(env.DB,actor,body.type,body.payload)
    else if(['list.save','list.duplicate','list.delete'].includes(body.type)) result=await listCommand(env.DB,actor,body.type,body.payload)
+   else if(body.type==='quote-mail.dispatch') result=await quoteMailCommand(env,actor,body.type,body.payload)
    else if(['quote.request','quote.propose','quote.approve','quote.accept','quote.message','quote.read'].includes(body.type)) result=await quoteCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
+   if(body.type.startsWith('quote.') && body.type!=='quote.read') await dispatchQuoteMail(env)
    return json({result})
   }
   return json({error:{code:'NOT_FOUND',message:'Unknown endpoint.'}},404)
