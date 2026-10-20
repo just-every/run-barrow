@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { installation, accountValue, archive, restore } from './harness.mjs';
 
-test('DATA-003: owner review, legal holds, seven-year commercial floor, attributed PO erasure receipt and restore fence', async t => {
+test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floor, attributed PO erasure receipt and restore fence', async t => {
  const h=await installation();t.after(()=>h.close());
  const account=await h.command('account.save',{id:'cedar',value:accountValue('historical-pier-customer')});
  const buyer={as:await h.signIn(account.value.email)},admin={as:await h.signIn('admin@example.test','admin')};
@@ -52,6 +52,13 @@ test('DATA-003: owner review, legal holds, seven-year commercial floor, attribut
  assert.equal(receipt.sha256,sha256);assert.equal(receipt.commercialHistory,'preserved');assert.ok(receipt.erasedBy);assert.ok(receipt.erasedAt);
  assert.equal((await h.request('/api/barrow/orders/old/document',buyer)).status,404);
  assert.deepEqual(await h.api('/api/barrow/orders/old'),original);
+ for(const actor of [{},buyer]) {
+  const exported=await h.api('/api/barrow/export.json',undefined,actor);
+  assert.deepEqual(exported.documents.map(row=>row.orderId),['fresh','commercial','expired-commercial']);
+  assert.equal(exported.manifest.counts.documents,3);
+  const csv=await (await h.request('/api/barrow/export/documents.csv',actor)).text();
+  assert.ok(!csv.includes('\"old\"'));assert.ok(csv.includes('expired-commercial'));
+ }
  for(const id of ['fresh','commercial','expired-commercial'])assert.equal((await h.request(`/api/barrow/orders/${id}/document`,buyer)).status,200);
  await h.command('retention.erase-document',payload(old),{status:404});
  review=await h.api('/api/barrow/retention');assert.equal(review.receipts.length,1);assert.equal(review.receipts[0].actor_id,receipt.erasedBy);
