@@ -43,13 +43,14 @@ export function Quotes({ supplier, busy, run, version }: { supplier: boolean; bu
         </table>
         {latest && <p>{money(latest.totalCents)} quoted against {money(latest.basisCents)} at current prices · {latest.termsDays === 0 ? 'Due on receipt' : `Net ${latest.termsDays} days`}{latest.shipping && ` · Shipping: ${latest.shipping}`}</p>}
         {latest?.delivery && <AgreedQuoteDelivery delivery={latest.delivery} />}
+        {latest?.delivery && quote.accepted && <p className="br-quiet-text">Delivery accepted with revision {quote.accepted.revision} {when(quote.accepted.at)}.</p>}
         {latest?.shipping && !latest.delivery && <p className="br-quiet-text">This is a shipping note; no shipping charge was recorded.</p>}
         {latest?.note && <p>{latest.note}</p>}
         {supplier && latest?.approval && <p className="br-quiet-text">Discount approved {when(latest.approval.at)}: {latest.approval.reason}</p>}
         <div className="br-actions">
           {supplier && !quote.accepted && <button type="button" className="br-secondary" disabled={busy} onClick={() => setEditing(editing === quote.id ? '' : quote.id)}>{latest ? 'Revise quote' : 'Propose quote'}</button>}
           {supplier && quote.status === 'awaiting-approval' && latest && <button type="button" disabled={busy} onClick={() => { const reason = window.prompt(`Why approve ${money(latest.basisCents - latest.totalCents)} below current prices?`); if (reason?.trim()) void run('quote.approve', { quoteId: quote.id, revision: quote.revision, number: latest.number, reason: reason.trim() }) }}>Approve discount</button>}
-          {!supplier && latest?.delivery && <label><input type="checkbox" checked={Boolean(deliveryAccepted[latest.delivery.fingerprint])} onChange={event=>setDeliveryAccepted(current=>({...current,[latest.delivery!.fingerprint]:event.target.checked}))}/>I accept this delivery method, cost and window.</label>}
+          {!supplier && quote.status==='proposed' && !quote.expired && latest?.delivery && <label><input type="checkbox" checked={Boolean(deliveryAccepted[latest.delivery.fingerprint])} onChange={event=>setDeliveryAccepted(current=>({...current,[latest.delivery!.fingerprint]:event.target.checked}))}/>I accept this delivery method, cost and window.</label>}
           {!supplier && quote.status === 'proposed' && !quote.expired && latest && <button type="button" disabled={busy} onClick={() => void run('quote.accept', { quoteId: quote.id, number: latest.number,deliveryAcknowledged:latest.delivery?Boolean(deliveryAccepted[latest.delivery.fingerprint]):undefined })}>Accept revision {latest.number} and place order</button>}
           {!supplier && quote.status === 'awaiting-approval' && <p className="br-quiet-text">Your supplier is preparing this quote.</p>}
           {!supplier && quote.expired && <p className="br-quiet-text">This quote expired. Ask your supplier for a revised quote.</p>}
