@@ -11,7 +11,7 @@ export interface Order {
   lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number; pricing?:import('../pricing').PricingSnapshot; buyerSku?:string }[]
   totalCents: number; currency?: 'USD' | 'AUD'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded' | 'releasing' | 'cancelled'
-  replaces?: string; supersededBy?: string; stockException?: { by: string; at: string; reason: string }
+  replaces?: string; supersededBy?: string; stockException?: { by: string; at: string; reason: string }; quote?: { id: string; revision: number; shipping: string; validUntil: string }
   preparedBy: string; submittedBy?: string; approvedBy?: string; approvedAt?: string
   pierOrderId?: string; pierReference?: string; reservation?: { quantity: string; reserved: string }[]; invoice?: { number: string; issuedAt: string; dueAt: string }
   release?: { reason: string; requestedBy: string; requestedAt: string; held: { itemId: string; quantity: string }[]; confirmedAt?: string; lines?: { quantity: string; dispatched: string; cancelled: string }[] }

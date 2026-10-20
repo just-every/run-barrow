@@ -9,6 +9,7 @@ import { CommercialAudit } from './commercial-audit'
 import { DataTools } from './data'
 import { ExportLinks } from './export-links'
 import { StatementCard } from './statement'
+import { Quotes } from './quotes'
 import { Empty, Notice } from './primitives'
 import type { BarrowState, Order } from './types'
 import { stale } from './types'
@@ -68,6 +69,7 @@ export function BarrowApp() {
         'account.erase': 'Account erasure completed.', 'order.prepare': 'Draft prepared. Review it in Orders before submitting.',
         'order.submit': 'Order submitted for supplier review.', 'order.approve': 'Reservation requested. See the order for its current stock status.',
         'order.refresh': 'Order stock status refreshed.', 'order.cancel': 'Order cancelled. Pier confirmed the stock release.', 'order.attach': 'PO document attached to the draft.', 'order.reorder': 'Reorder draft prepared. Review it in Orders before submitting.',
+        'quote.request': 'Quote requested. Your supplier will propose prices and terms in Orders.', 'quote.propose': 'Quote revision saved.', 'quote.approve': 'Discount approved. The buyer can now accept this revision.', 'quote.accept': 'Quote accepted. The order is submitted for supplier review.',
       }
       setNotice(messages[type] ?? 'Action completed.')
       return true
@@ -117,6 +119,7 @@ export function BarrowApp() {
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+          {activeTab === 'Orders' && <Quotes supplier={supplier} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}

@@ -56,10 +56,11 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
  if(type==='account.erase') {
   if(p.confirm!=='ERASE') fail('CONFIRM','Type ERASE to confirm removal of this unused account.',400)
   if(await env.DB.prepare('SELECT id FROM bw_orders WHERE account_id=? LIMIT 1').bind(selected.id).first()) fail('ORDERS_EXIST','This account has orders. Keep the commercial history; erasure is limited to unused accounts.')
+  if(await env.DB.prepare('SELECT id FROM bw_quotes WHERE account_id=? LIMIT 1').bind(selected.id).first()) fail('QUOTES_EXIST','This account has quotes. Keep the commercial history; erasure is limited to unused accounts.')
   const portability=await createPortability({db:env.DB,policy:portabilityPolicy})
   const checkpoint=[...await portability.invalidateTransfersStatements(),...await portability.redactionStatements()].map(toD1Sql)
   const erased=commercialAuditEvent(actor.id,selected.id,'account.erased',{accountId:selected.id,revision:selected.revision,source:'account.erase',reason:'Supplier confirmed erasure of an unused account and retirement of import custody.'})
-  return retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?)',params:[selected.id,selected.revision,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'},{sql:'DELETE FROM bw_lists WHERE account_id=?',params:[selected.id]},erased]})
+  return retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?) AND NOT EXISTS(SELECT 1 FROM bw_quotes WHERE account_id=?)',params:[selected.id,selected.revision,selected.id,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'},{sql:'DELETE FROM bw_lists WHERE account_id=?',params:[selected.id]},erased]})
  }
  fail('NOT_FOUND','Unknown account command.',404)
 }

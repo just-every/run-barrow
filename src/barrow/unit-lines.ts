@@ -6,7 +6,8 @@ import { convertQuantity, quantityMicro, sellingUnits, type UnitDefinition } fro
 import { quantityProblem, quantityMessage } from './quantity-rules'
 
 type Offer = {sku:string;itemId:string;name:string;unit:string;unitCents:number;minQty:number;casePack?:number;increment?:number;available:string;units?:UnitDefinition[];pricing?:Pricing}
-export function prepareLines(input:any[],offers:Offer[],date?:string):Line[] {
+/** stock=false checks prices, units and quantity rules but not promiseable stock: a quote request or proposal promises nothing. */
+export function prepareLines(input:any[],offers:Offer[],date?:string,stock=true):Line[] {
  const seen=new Set<string>(),totals=new Map<string,bigint>()
  const lines:Line[]=input.map(line=>{
   const sku=text(line?.sku,'SKU',100),offer=offers.find(offer=>offer.sku===sku)
@@ -29,7 +30,7 @@ export function prepareLines(input:any[],offers:Offer[],date?:string):Line[] {
   // PRI-003: the explanation names the nearest valid quantities; the buyer must choose one, nothing is corrected here.
   const problem=quantityProblem(format(quantity),offer,offer.unit)
   if(problem) fail(quantity<BigInt(offer.minQty)*1000000n?'MINIMUM':'QUANTITY',quantityMessage(sku,format(quantity),problem,offer.unit))
-  if(quantity>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock across its selected units. Refresh the catalog.`)
+  if(stock && quantity>decimal(offer.available)) fail('STOCK',`${sku} no longer has enough promiseable stock across its selected units. Refresh the catalog.`)
  }
  return lines
 }

@@ -34,7 +34,7 @@ async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1
  return order
 }
 // Orders read as people say them: the next number after the highest one written (JV-10438 → JV-10439); a new book starts at ORD-10001.
-async function nextNumber(db:D1Database) {
+export async function nextNumber(db:D1Database) {
  const rows=await db.prepare('SELECT id FROM bw_orders').all<{id:string}>()
  let prefix='ORD',top=10000
  for(const {id} of rows.results) {
@@ -65,8 +65,9 @@ async function assertCurrentPricing(env:Bindings,selected:Account,order:Order,su
  for(const line of order.lines){
   const offer=offers.items.find(item=>item.sku===line.sku),unit=offer?sellingUnits(offer).find(unit=>unit.code===(line.unit??offer.unit)):undefined
   if(!unit)fail('PRICE_CHANGED','An item or selling unit changed. Prepare a new draft for review.')
-  const current=priceLine(line.quantity,unit.unitCents,unit.pricing,date)
-  if(current.unitCents!==line.unitCents || current.lineCents!==(line.lineCents??line.quantity*line.unitCents) || current.pricing?.reason!==line.pricing?.reason || JSON.stringify(current.pricing?.segments)!==JSON.stringify(line.pricing?.segments) || current.pricing?.discountBps!==line.pricing?.discountBps) fail('PRICE_CHANGED','The effective pricing rule changed. Prepare a new draft for review.')
+  // ORD-004: a quoted line's negotiated price applies to its PRI-002 basis, which must still be the current rule.
+  const current=priceLine(line.quantity,unit.unitCents,unit.pricing,date),basis=line.quote?{unitCents:line.quote.basisUnitCents,lineCents:line.quote.basisLineCents}:line
+  if(current.unitCents!==basis.unitCents || current.lineCents!==(basis.lineCents??line.quantity*line.unitCents) || current.pricing?.reason!==line.pricing?.reason || JSON.stringify(current.pricing?.segments)!==JSON.stringify(line.pricing?.segments) || current.pricing?.discountBps!==line.pricing?.discountBps) fail('PRICE_CHANGED','The effective pricing rule changed. Prepare a new draft for review.')
  }
  if(submission) {
   const lines=prepareLines(order.lines,offers.items,date)

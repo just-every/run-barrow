@@ -94,6 +94,13 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
       onPrepared()
     }
   }
+  // ORD-004: the cart becomes a quote request; the supplier proposes prices and terms, nothing is reserved.
+  async function requestQuote() {
+    if (await run('quote.request', { accountId: account.id, lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })) {
+      if (live.current) { setQuantities({}); setAliases({}) }
+      onPrepared()
+    }
+  }
   function find(event: FormEvent) {
     event.preventDefault()
     const wanted = sku.trim().toUpperCase()
@@ -147,6 +154,7 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
     <div className="br-pad-send">
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setListing(true)}>Saved lists</button>}
+      {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive || !chosen.length || invalid} onClick={() => void requestQuote()}>Request quote</button>}
       {catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>{setUnitLines(undefined);setUnitOrder(true)}}>Order by selling unit</button>}
       <button disabled={busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
       {hint && <p className="br-quiet-text">{hint}</p>}

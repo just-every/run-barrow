@@ -38,6 +38,16 @@ Open **Order history & Pier details** for preparation, submission and approval i
 
 Never create a second order to recover an uncertain reservation response. The retry action reuses the first order's durable Pier command ID. If the Pier session expires, reconnect Pier and recover the same order.
 
+## Negotiate a quote
+
+On the order pad, enter quantities and choose **Request quote** instead of preparing a draft. The quote appears under **Quotes** on the Orders page with today's prices; nothing is reserved.
+
+As the supplier, choose **Propose quote** (later **Revise quote**). For each line, set the quantity and optionally a quoted unit price in dollars and cents; through the API a line can instead take `discountBps` off its current price. Set the payment terms, a shipping note and the inclusive **Valid through** date (Eastern time). Any price below today's price waits for **Approve discount**, which records your reason in the audit. Until supplier roles exist, the owner or an admin proposes and approves.
+
+The buyer chooses **Accept revision N and place order**. Only the latest approved revision is accepted, only by the account's buyer, and only through its valid-through date. Barrow first rechecks today's pricing rule, quantity rules, the account and live Pier stock. If the pricing rule behind the quote changed, ask for a revised quote. Accepting creates one `submitted` order with the quoted prices and terms; accepting again returns that same order. The supplier then approves it like any other order. Barrow does not calculate or bill freight: the shipping note is recorded on the order only.
+
+Commands: `quote.request {accountId, lines, note?}`, `quote.propose {quoteId, revision, lines:[{sku, unit?, quantity, unitCents? | discountBps?}], validUntil, termsDays?, shipping?, note?}`, `quote.approve {quoteId, revision, number, reason}` and `quote.accept {quoteId, number}`. Read with `GET /api/barrow/quotes` and `GET /api/barrow/quotes/<id>`. Agents cannot read or change quotes. Quotes appear in the data export as `quotes.csv` and `quotelines.csv`.
+
 ## Follow an order
 
 Open **Order timeline** on a submitted order. It lists what Barrow recorded (submitted, accepted, allocated, backordered, cancelled) and what Pier records for the order: each dispatch as a shipment with its reference and units, and each return. Every entry shows where it came from, when, and who. Delivery, holds and closing are shown as not recorded, because no connected source reports them yet; if Pier does not answer, shipments are shown as unknown rather than guessed.
