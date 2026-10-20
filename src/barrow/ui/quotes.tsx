@@ -36,7 +36,7 @@ export function Quotes({ supplier, busy, run, version }: { supplier: boolean; bu
     {error && <Notice error>{error}</Notice>}
     {quotes?.map(quote => {
       const latest = quote.revisions.at(-1), lines = latest?.lines ?? quote.request
-      return <article id={`quote-${quote.id}`} key={quote.id} className="br-stack">
+      return <article id={`quote-${quote.id}`} style={{scrollMarginTop: '7rem'}} key={quote.id} className="br-stack">
         <div className="br-order-meta"><span className="br-order-id">{quote.id}</span><span className="br-status">{statusLabel(quote)}</span>{quote.notices.length > 0 && <span className="br-status">{quote.notices.length} new</span>}</div>
         <QuoteNotices quoteId={quote.id} notices={quote.notices} busy={busy} run={run} />
         <h3>{quote.customerName}</h3>
