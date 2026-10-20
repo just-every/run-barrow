@@ -1,3 +1,4 @@
+import { substitutionCommand } from './substitutions'
 import { listCommercialAudit,exportCommercialAudit } from './commercial-audit'
 import { runtimeBindings, type Bindings } from '../auth.server'
 import { createPortabilityHandler, boundedJson } from '@runeditrun/rer/modules/portability/http'
@@ -124,6 +125,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['followup.refresh','followup.update'].includes(body.type)) result=await followupCommand(env,actor,body.type,body.payload)
