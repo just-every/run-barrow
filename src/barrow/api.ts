@@ -7,6 +7,7 @@ import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
 import { listCommand, readLists } from './lists'
+import { deliveryOptions, quoteShippingContext, saveShipping, shippingResponse, shippingSettings } from './shipping'
 import { quoteReport } from './quote-report'
 import { salesCsv, salesReport } from './sales-report'
 import { financeCsv, financeReport } from './finance-report'
@@ -51,6 +52,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const ids=[...new Set(orders.flatMap((order:any)=>[order.preparedBy,order.submittedBy,order.approvedBy]).filter((id:unknown)=>typeof id==='string'&&!id.startsWith('agent:')))]
    const people=ids.length?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<any>()).results.map(row=>[row.id,row.display_name])):{}
    return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
+  }
+  if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
+  if(path==='/api/barrow/shipping/options' && request.method==='GET') {
+   if(url.searchParams.has('quoteId')) {if(actor.agent)fail('PERSON_REQUIRED','A person must review delivery.',403);return json(await deliveryOptions(env,await quoteShippingContext(env,actor,url.searchParams.get('quoteId')!)))}
+   return json(await shippingResponse(env,actor,url.searchParams.get('orderId')??''))
   }
   if(path==='/api/barrow/reports/fulfillment' && request.method==='GET') return json(await fulfillmentReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/finance' && request.method==='GET') return json(await financeReport(env,actor,url.searchParams))
@@ -118,6 +124,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
+   else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['followup.refresh','followup.update'].includes(body.type)) result=await followupCommand(env,actor,body.type,body.payload)
    else if(body.type==='settings.timezone') result=await saveReportZone(env.DB,actor,body.payload)
    else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)

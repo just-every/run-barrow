@@ -3,6 +3,7 @@ import type { Account, Order, RunCommand } from './types'
 import { byAgent, day, money, orderNumber, stale, terms, when } from './types'
 import { Empty } from './primitives'
 import { orderStyles } from './styles'
+import { OrderShipping } from './order-shipping'
 import { Reorder } from './reorder'
 import { CancelOrder } from './cancel-order'
 import { OrderTimeline } from './order-timeline'
@@ -22,6 +23,7 @@ const filters: [string, (order: Order) => boolean][] = [['All', () => true], ['D
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
 export function Orders({ orders: all, accounts, people, viewer, supplier, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
+  const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
   const [filter, setFilter] = useState('All')
   const [reorder,setReorder] = useState<Order|null>(null)
   const [cancel,setCancel] = useState<Order|null>(null)
@@ -71,6 +73,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
           {order.lines.filter(line=>line.buyerSku).map(line=><p key={`alias-${line.sku}-${line.unit ?? ''}`}>{line.sku}: buyer SKU {line.buyerSku}</p>)}
           {order.lines.filter(line=>line.pricing).map(line=><p key={JSON.stringify([line.sku,line.unit])}>{line.sku} · {line.unit}: {line.pricing!.reason} · {money(line.pricing!.lineCents,order.currency??'AUD')}</p>)}
           {moved && <p className="br-change-note"><span className="br-warn" aria-hidden="true">!</span>Prices or terms changed since this draft was written. Open it in the order pad to prepare a new draft at today’s prices.</p>}
+          <OrderShipping order={order} supplier={supplier} busy={busy} run={run} />
           <p className="br-order-explain">{order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' : explanations[order.status]}</p>
         </div>
         <div className="br-order-side">
@@ -79,10 +82,11 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
           <div className="br-actions br-order-actions">
             {['submitted','reserving','shortfall','approved'].includes(order.status) && <button className="br-secondary" disabled={busy} onClick={() => setReorder(order)}>Reorder selected lines</button>}
             {order.status === 'draft' && moved && <button disabled={busy} onClick={() => onOpen(order)}>Open in order pad</button>}
-            {order.status === 'draft' && <button className={moved ? 'br-secondary' : undefined} disabled={busy} onClick={() => void run('order.submit', { orderId: order.id })}>Submit for supplier review</button>}
+            {order.status === 'draft' && order.delivery && !supplier && <label><input type="checkbox" checked={Boolean(deliveryAccepted[order.delivery.fingerprint])} onChange={event=>setDeliveryAccepted(current=>({...current,[order.delivery!.fingerprint]:event.target.checked}))} />I accept {order.delivery.name}, {money(order.delivery.totalCents??0)} delivery and handling, {day(order.delivery.windowStart)}–{day(order.delivery.windowEnd)}.</label>}
+            {order.status === 'draft' && <button className={moved ? 'br-secondary' : undefined} disabled={busy} onClick={() => void run('order.submit', { orderId: order.id, deliveryAcknowledged:order.delivery?Boolean(deliveryAccepted[order.delivery.fingerprint]):undefined })}>Submit for supplier review</button>}
             {order.status === 'draft' && supplier && !order.stockException && <button className="br-secondary" disabled={busy} onClick={() => { const reason = window.prompt('Why accept this draft’s stock observation past the freshness limit?'); if (reason?.trim()) void run('order.stock-exception', { orderId: order.id, reason: reason.trim() }) }}>Accept stale stock observation</button>}
             {order.status === 'draft' && order.stockException && <p className="br-quiet-text">Stale stock accepted by the supplier: {order.stockException.reason}</p>}
-            {order.status === 'draft' && duplicate(order) && <button className="br-secondary" disabled={busy} onClick={() => void run('order.submit', { orderId: order.id, release: true })}>Submit as a new release of PO {order.reference}</button>}
+            {order.status === 'draft' && duplicate(order) && <button className="br-secondary" disabled={busy} onClick={() => void run('order.submit', { orderId: order.id, release: true, deliveryAcknowledged:order.delivery?Boolean(deliveryAccepted[order.delivery.fingerprint]):undefined })}>Submit as a new release of PO {order.reference}</button>}
             {order.status === 'draft' && !moved && <button className="br-secondary" disabled={busy} onClick={() => onOpen(order)}>Open in order pad</button>}
             {supplier && order.status === 'submitted' && <button disabled={busy} onClick={() => void run('order.approve', { orderId: order.id })}>Approve & reserve stock</button>}
             {supplier && order.status === 'reserving' && !order.pierOrderId && <button disabled={busy} onClick={() => void run('order.approve', { orderId: order.id })}>Retry stock reservation</button>}

@@ -14,11 +14,13 @@ import { nextNumber, readOrder } from './orders'
 import { catalogue, pierOrigin } from './pier'
 import { prepareLines } from './unit-lines'
 import { quantityMicro } from './units'
+import { acceptDelivery, deliveryOptions, deliveryTotal, freightQuote, selectDelivery, shippingGuard } from './shipping'
+import type { Delivery, FreightQuote } from './shipping-rules'
 import { locationSnapshot } from './locations'
 import { attachmentResponse, notice, threadCommand, threadEntries, unreadNotices } from './quote-thread'
 
 export type QuoteLine = Line & { basisUnitCents: number; basisLineCents: number; discountBps?: number; negotiatedUnitCents?: number }
-export type QuoteRevision = { number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedBy: string; proposedByEmail?: string; proposedAt: string; changes?: string[]; discounted: boolean; approval?: { by: string; at: string; reason: string } }
+export type QuoteRevision = { delivery?:Delivery; freightQuotes?:FreightQuote[]; number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedBy: string; proposedByEmail?: string; proposedAt: string; changes?: string[]; discounted: boolean; approval?: { by: string; at: string; reason: string } }
 export type Quote = { id: string; accountId: string; customerName: string; currency: 'USD'; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedBy: string; requestedAt: string; note: string; request: Line[]; revisions: QuoteRevision[]; accepted?: { revision: number; by: string; at: string; orderId: string }; revision: string }
 
 function missing(): never { return fail('NOT_FOUND', 'Quote not found.', 404) }
@@ -155,11 +157,12 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   if (latest.totalCents < selected.value.minimumCents) fail('MINIMUM', 'The quoted total is below this customer’s minimum order value.')
   // ACC-003: a converted order snapshots the account's default bill-to and ship-to.
   const billTo = await locationSnapshot(env.DB, selected, 'bill-to', undefined), shipTo = await locationSnapshot(env.DB, selected, 'ship-to', undefined)
+  const delivery=await acceptDelivery(env,actor,{account:selected,lines,shipTo,quotes:latest.freightQuotes},latest.delivery,p.deliveryAcknowledged)
   const id = await nextNumber(env.DB), orderRevision = crypto.randomUUID()
-  const order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, totalCents: latest.totalCents, currency: 'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
+  const order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, delivery, totalCents: deliveryTotal(lines,delivery), currency: 'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
   const accepted = { ...quote, status: 'accepted' as const, accepted: { revision: number, by: actor.id, at, orderId: id } }
   try {
-   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision), audit(env.DB, actor, id, 'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at)], id)
+   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [activeAccountGuard(env.DB, selected), shippingGuard(env.DB,delivery), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision), audit(env.DB, actor, id, 'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at)], id)
    return { quote: view(actor, saved, today), order }
   } catch (error) {
    // A concurrent acceptance of the same revision already converted it: return that one order.
@@ -181,7 +184,16 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   if (!Number.isSafeInteger(basisCents) || !Number.isSafeInteger(totalCents)) fail('MONEY', 'Quote total is outside the supported exact-cent range.', 400)
   const discounted = lines.some(line => line.lineCents! < line.basisLineCents), number = quote.revisions.length + 1
   const revision: QuoteRevision = { number, lines, basisCents, totalCents, termsDays: p.termsDays === undefined ? selected.value.termsDays : integer(p.termsDays, 'Payment terms (days)', 0, 365), shipping: note(p.shipping, 'Shipping', 160), validUntil, note: note(p.note, 'Quote note', 1000), proposedBy: actor.id, proposedByEmail: actor.email, proposedAt: at, discounted }
+  const shipTo=await locationSnapshot(env.DB,selected,'ship-to',undefined),context={account:selected,lines,shipTo}
+  if(p.freightQuote)revision.freightQuotes=[await freightQuote(env,actor,context,p.freightQuote)]
+  const offered=await deliveryOptions(env,{...context,quotes:revision.freightQuotes})
+  if(offered.required){
+   const selectedOption=offered.options.find(o=>o.methodId===p.shippingMethodId&&o.warehouse===(p.shippingWarehouse??''))
+   if(!selectedOption)fail('SHIPPING_REQUIRED','Choose an eligible quoted delivery method for this revision.')
+   revision.delivery=await selectDelivery(env,{...context,quotes:revision.freightQuotes},{...selectedOption,ownCarrierAccount:p.ownCarrierAccount})
+  }
   revision.changes = changesFrom(latest ?? { lines: quote.request }, revision)
+  if(JSON.stringify(latest?.delivery)!==JSON.stringify(revision.delivery))revision.changes.push(`Delivery: ${revision.delivery?`${revision.delivery.name}, ${revision.delivery.totalCents} USD cents, ${revision.delivery.windowStart}–${revision.delivery.windowEnd}`:'no configured delivery'}`)
   // The buyer hears of a revision once it can be accepted; a discount first notifies the staff who approve it.
   const told = discounted ? notice(env.DB, actor, quote, 'supplier', 'revision', `Revision ${number} of ${quote.id} by ${actor.email} waits for discount approval.`, at) : notice(env.DB, actor, quote, 'buyer', 'revision', `Revision ${number} of ${quote.id} from ${actor.email} is ready: ${usd(totalCents)}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time).`, at)
   return save(env.DB, actor, quote, { ...quote, status: discounted ? 'awaiting-approval' : 'proposed', revisions: [...quote.revisions, revision] }, 'quote.proposed', `Proposed revision ${number}: ${totalCents} USD cents against a current price basis of ${basisCents}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time)${discounted ? '; discount awaits approval' : ''}.`, [told])

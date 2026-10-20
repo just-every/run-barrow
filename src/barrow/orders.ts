@@ -12,6 +12,7 @@ import { prepareLines } from './unit-lines'
 import { purchaseDetails, buyerSku, purchaseRelease } from './purchase'
 import { readDocument, documentStatement, carryDocument } from './documents'
 import { locationSnapshot } from './locations'
+import { acceptDelivery, deliveryTotal, freightQuote, selectDelivery, shippingGuard } from './shipping'
 import { freshnessLimit, staleStock } from './freshness'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
@@ -87,6 +88,16 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
+ if(type==='shipping.select' || type==='shipping.quote') {
+  if(order.status!=='draft')fail('SHIPPING_LOCKED','Delivery changes require a new reviewed draft.')
+  const selected=await account(env.DB,actor,order.accountId),context={account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes}
+  if(type==='shipping.quote') {
+   const quoted=await freightQuote(env,actor,context,p)
+   return save(env,actor,{...order,delivery:undefined,totalCents:deliveryTotal(order.lines),freightQuotes:[...(order.freightQuotes??[]),quoted]},'shipping.quoted',[],`Merchant freight quote: ${quoted.cents} USD cents; ${quoted.reason}`)
+  }
+  const delivery=await selectDelivery(env,context,p)
+  return save(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery)},'shipping.selected',[],'Selected delivery for review; buyer acceptance is still required at submission.')
+ }
  if(type==='order.submit') {
   if(order.status!=='draft') return order
   const selected=await account(env.DB,actor,order.accountId)
@@ -95,8 +106,10 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   await assertCurrentPricing(env,selected,order,true)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
+  if(order.delivery && ['owner','admin'].includes(actor.role))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
+  const delivery=await acceptDelivery(env,actor,{account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
   const release=await purchaseRelease(env.DB,actor,order,p.release,(await now()).toISOString())
-  return save(env,actor,{...order,status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{})},release.poRelease?'order.submitted-release':'order.submitted',[activeAccountGuard(env.DB,selected),release.guard])
+  return save(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{})},release.poRelease?'order.submitted-release':'order.submitted',[activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard])
  }
  if(type==='order.attach') {
   if(order.status!=='draft') fail('DOCUMENT_LOCKED','Attach the PO document before the order is submitted.')
