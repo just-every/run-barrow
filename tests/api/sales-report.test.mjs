@@ -23,7 +23,7 @@ test('RPT-001: booked, split-shipped, invoiced and outstanding sales by account,
 
  const report = await h.api('/api/barrow/reports/sales');
  assert.equal(report.shipments, 'read');
- assert.deepEqual(report.totals, [{ currency: 'USD', lines: 2, orders: 2, bookedCents: 91000, shippedCents: 65000 + 6500, invoicedCents: 91000, paidCents: null, creditedCents: null, outstandingCents: 91000 }]);
+ assert.deepEqual(report.totals, [{ currency: 'USD', lines: 2, orders: 2, bookedCents: 91000, shippedCents: 65000 + 6500, invoicedCents: 91000, paidCents: null, creditedCents: null, outstandingCents: 91000, freightCents: 0, invoicedFreightCents: 0 }]);
  const line = report.rows.find(row => row.orderId === cedar.id);
  assert.deepEqual([line.shippedBaseQuantity, line.shippedCents, line.invoiceNumber, line.rep], ['10', 65000, cedar.invoice.number, 'rep-avery']);
  assert.deepEqual(report.byTerritory.map(group => [group.name, group.totals[0].bookedCents]), [['Northeast', 65000], ['West', 26000]]);
