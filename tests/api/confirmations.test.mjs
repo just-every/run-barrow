@@ -83,6 +83,8 @@ test('ORD-014: named per-line export layouts set default and selected column ord
  const selected=await(await h.request(path+'?layout='+first)).text();
  assert.deepEqual(rows(selected),[['sku','quantity','po','confirmation'],['OAT-1','3','AUTUMN-27',`${order.id}-C1`]]);
  assert.equal((await h.request(path+'?layout=missing')).status,404);
+ assert.equal((await h.request(path+'?layout='+first,buyer)).status,403);
+ assert.equal((await h.request('/api/barrow/confirmation-layouts',buyer)).status,403);
  assert.equal((await h.request(path,other)).status,404);
  await h.command('confirmation-layout.save',{revision:settings.revision,name:'Buyer edit',columns:['sku']},{...buyer,status:403});
  await h.command('confirmation-layout.default',{revision:initial.revision,id:first},{status:409});
