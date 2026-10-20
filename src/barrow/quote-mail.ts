@@ -30,6 +30,11 @@ export async function dispatchQuoteMail(env: Bindings) {
  await queueQuoteMail(env)
  const rows=(await env.DB.prepare("SELECT * FROM bw_quote_mail WHERE status IN ('pending','sending') AND lease_until<? ORDER BY rowid LIMIT 50").bind(Date.now()).all<any>()).results
  for (const row of rows) {
+  // Resend retains idempotency for 24 hours. An old interrupted send needs owned reconciliation, not a blind resend.
+  if(row.status==='sending'&&Date.now()-Date.parse(row.updated_at)>23*3600000) {
+   await env.DB.prepare("UPDATE bw_quote_mail SET status='failed',lease_until=0 WHERE id=? AND status='sending'").bind(row.id).run()
+   await recordMailFailure(env,row);continue
+  }
   if(row.notice_id.startsWith('expiry:')) {
    const q=await env.DB.prepare('SELECT value_json FROM bw_quotes WHERE id=?').bind(row.quote_id).first<{value_json:string}>()
    const quote=q?JSON.parse(q.value_json):null,latest=quote?.revisions.at(-1)
