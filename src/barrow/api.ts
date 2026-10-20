@@ -1,3 +1,4 @@
+import { readRetention, retentionCommand } from './retention'
 import { readConfirmations, confirmationResponse } from './confirmations'
 import { substitutionCommand } from './substitutions'
 import { listCommercialAudit,exportCommercialAudit } from './commercial-audit'
@@ -46,6 +47,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
    return (await createPortabilityHandler({db:env.DB,policy:portabilityPolicy,appOrigin:env.AUTH_ORIGIN,basePath:'/api/barrow/portability',authorize:async()=>actor.id}))(request)
   }
+  if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const selected=await accounts(env.DB,actor)
    const rows=await env.DB.prepare('SELECT value_json,revision FROM bw_orders'+(supplier(actor)?'':" WHERE account_id IN (SELECT id FROM bw_accounts WHERE json_extract(value_json,'$.email')=?)")+' ORDER BY rowid DESC').bind(...(supplier(actor)?[]:[actor.email])).all<any>()
@@ -130,7 +132,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
    if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    let result
-   if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
+   if(['retention.settings','retention.request','retention.erase-document'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
+   else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
