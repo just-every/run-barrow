@@ -335,6 +335,10 @@ test('AUTO-003: quote emails preserve audiences and links, expiry is once per re
  await h.command('quote.message',{quoteId:quote.id,body:'Staff-only delivery concern',internal:true});
  assert.equal(quoteMail().length,before+1);assert.deepEqual(quoteMail().at(-1).message.to,['rep@example.test']);
  assert.ok(!(await quoteOf(quote.id,buyer)).thread.some(row=>row.kind==='internal'));
+ assert.ok((await quoteOf(quote.id,admin)).thread.some(row=>row.kind==='internal'&&row.body==='Staff-only delivery concern'));
+ const buyerCount=quoteMail().filter(row=>row.message.to.includes('buyer@example.test')).length;
+ await h.command('quote.message',{quoteId:quote.id,body:'Buyer-visible delivery update'});
+ assert.equal(quoteMail().filter(row=>row.message.to.includes('buyer@example.test')).length,buyerCount+1);
  const count=quoteMail().length;
  await h.command('quote-mail.dispatch',{});await h.command('quote-mail.dispatch',{});
  assert.equal(quoteMail().length,count);
