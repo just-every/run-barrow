@@ -8,6 +8,7 @@ import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
 import { listCommand, readLists } from './lists'
 import { quoteReport } from './quote-report'
+import { salesCsv, salesReport } from './sales-report'
 import { locationCommand, readLocations } from './locations'
 import { quoteAttachment, quoteCommand, quoteResponse, readQuotes } from './quotes'
 import { statementResponse } from './statements'
@@ -50,6 +51,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/reports/fulfillment' && request.method==='GET') return json(await fulfillmentReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/reports/sales' && request.method==='GET') return json(await salesReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/reports/sales.csv' && request.method==='GET') return await salesCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
   if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
@@ -77,6 +80,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   }
   const document=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/document$/.exec(path)
   if(document && request.method==='GET') return await documentResponse(env,actor,await readOrder(env.DB,actor,document[1]))
+  // RPT-001 drill-down: one order as its reader may see it.
+  const one=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
+  if(one && one[1]!=='history' && request.method==='GET') return json(await readOrder(env.DB,actor,one[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
   if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
   if(path.startsWith('/api/barrow/imports')) {

@@ -62,6 +62,10 @@ Commands: `quote.message {quoteId, body, internal?, attachment?: {name, contentB
 
 Open **Data → Quote conversion** (owner and admins). Choose a period (inclusive days in your reporting time zone; the last 90 days by default) and compare by rep, cohort or product. It counts quotes requested, answered, acceptable, accepted, revised, expired and open; only the one order an accepted quote became counts as revenue, shown with the quote discount and the value of returns Pier recorded, net. Draft orders untouched for 7 days count as abandoned carts, and orders made with **Reorder** give the reorder rate. **How each figure is counted** lists every numerator and denominator. Promotions, line-sheet views and campaigns read "not recorded" until Barrow has them. API: `GET /api/barrow/reports/quotes?from=YYYY-MM-DD&to=YYYY-MM-DD`.
 
+## Report sales
+
+Open **Data → Sales by account and product** (owner and admins). Filter by dates (the order's preparation day in your reporting time zone), territory or channel and compare by account, SKU, channel, territory or month. Booked counts submitted orders; shipped is what Pier dispatched, valued at the line's price; invoiced counts invoiced orders. Barrow records no payments or credits yet, so paid and credited read "not recorded" and outstanding is the invoiced amount. Amounts exclude tax and freight. **Download lines (CSV)** gives one row per order line with links to the order and invoice. API: `GET /api/barrow/reports/sales` and `/api/barrow/reports/sales.csv`, and `GET /api/barrow/orders/<id>`.
+
 ## Follow an order
 
 Open **Order timeline** on a submitted order. It lists what Barrow recorded (submitted, accepted, allocated, backordered, cancelled) and what Pier records for the order: each dispatch as a shipment with its reference and units, and each return. Every entry shows where it came from, when, and who. Delivery, holds and closing are shown as not recorded, because no connected source reports them yet; if Pier does not answer, shipments are shown as unknown rather than guessed.
