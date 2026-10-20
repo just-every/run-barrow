@@ -1,7 +1,7 @@
 import { fail, requireSupplier, type Actor } from './model'
 
 export type CommercialAuditEvent = {
-  id: string; subjectId: string; actorId: string; actorKind: 'human' | 'agent'
+  id: string; subjectId: string; actorId: string; actorKind: 'human' | 'agent' | 'system'
   actorName: string | null; actorEmail: string | null; action: string; createdAt: string
   accountId: string | null; orderId: string | null
   accountOrigin: 'recorded' | 'current-relation' | null
@@ -31,7 +31,7 @@ function event(row: AuditRow): CommercialAuditEvent {
   const recordedAccount = stringValue(context?.accountId), recordedOrder = stringValue(context?.orderId)
   return {
     id: row.id, subjectId: row.subject_id, actorId: row.actor_id,
-    actorKind: row.actor_id.startsWith('agent:') ? 'agent' : 'human',
+    actorKind: row.actor_id.startsWith('system:') ? 'system' : row.actor_id.startsWith('agent:') ? 'agent' : 'human',
     actorName: row.actor_name || null, actorEmail: row.actor_email || null,
     action: row.action, createdAt: row.created_at,
     accountId: recordedAccount ?? row.related_account, orderId: recordedOrder ?? row.related_order,

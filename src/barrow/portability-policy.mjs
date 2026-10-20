@@ -3,9 +3,9 @@ export const portabilityPolicy = {
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
   if(table==='bw_quote_notices')return {...row,mail_eligible:0};
-  if(table==='bw_quote_mail')return {...row,status:'archived',lease_until:0};
+  if(table==='bw_quote_mail')return {...row,status:['queued','sending','rate_limited','uncertain'].includes(row.status)?'uncertain':row.status,restored:1,lease_until:0};
   return row;
  },
- excludeTables: ['bw_agent_tokens','bw_guard'],
+ excludeTables: ['bw_agent_tokens','bw_guard','bw_quote_mail_config'],
  requiredConfiguration: ['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
 };

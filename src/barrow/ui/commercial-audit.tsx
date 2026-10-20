@@ -47,7 +47,7 @@ export function CommercialAudit() {
     {page && <>
       {!page.events.length ? <Empty title="No matching events">Change the filters to review other recorded activity.</Empty> : page.events.map(value => <article className="br-card br-stack" key={value.id}>
         <div className="br-heading-row"><h3>{value.action}</h3><time dateTime={value.createdAt}>{when(value.createdAt)}</time></div>
-        <p>{value.actorKind === 'agent' ? 'Agent' : 'Person'}: {value.actorName || 'Name unrecorded'} · {value.actorId}{value.actorEmail ? ` · ${value.actorEmail}` : ''}</p>
+        <p>{value.actorKind === 'system' ? 'System' : value.actorKind === 'agent' ? 'Agent' : 'Person'}: {value.actorName || 'Name unrecorded'} · {value.actorId}{value.actorEmail ? ` · ${value.actorEmail}` : ''}</p>
         <dl className="br-facts br-facts-wrap">
           <div><dt>Subject</dt><dd>{value.subjectId}</dd></div>
           <div><dt>Account</dt><dd>{relation(value.accountId, value.accountOrigin)}</dd></div>

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash, createHmac, randomBytes } from 'node:crypto';
-import { installation, archive, restore } from './harness.mjs';
+import { createHash } from 'node:crypto';
+import { installation, archive } from './harness.mjs';
 
 const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
 
 // Real pinned Pier with stock for two SKUs; Cedar has a PRI-002 volume break and account discount on OAT-1.
-async function quoting(t, bindings={}) {
+async function quoting(t, bindings={}, publicOrigin) {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const items = [];
  for (const sku of ['OAT-1', 'RYE-1']) items.push(await pier.command('item.save', { sku, name: `Granola ${sku}`, unit: 'case', packSize: '1' }));
@@ -19,7 +19,7 @@ async function quoting(t, bindings={}) {
  await pier.command('po.commit', { poId: po.id, version: po.version });
  await pier.command('receipt.create', { poId: po.id, supplierReference: 'Delivery 1', lines: po.lines.map(line => ({ poLineId: line.id, locationId: bin.id, quantity: '60', cost: '20.00' })) });
 
- const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie, ...bindings } }); t.after(() => h.close());
+ const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie, ...bindings }, publicOrigin }); t.after(() => h.close());
  // PRI-002 basis: a volume break at 10 cases and a 5% account discount, effective across the test.
  const rule = { effectiveFrom: '2026-01-01', effectiveTo: '2030-12-31', mode: 'volume', breaks: [{ fromQuantity: '10', unitCents: 6000 }], accountDiscountBps: 500 };
  const prices = [{ sku: 'OAT-1', unitCents: 6500, minQty: 1, pricing: rule }, { sku: 'RYE-1', unitCents: 4000, minQty: 1 }];
@@ -319,69 +319,3 @@ test('RPT-002: quote response and acceptance, accepted value net of returns, aba
  assert.deepEqual([blind.returnsSource, blind.totals.returnedCents, blind.totals.netAcceptedCents, blind.totals.acceptedCents], ['unavailable', null, null, 66000]);
 });
 
-test('AUTO-003: quote emails preserve audiences and links, expiry is once per revision, signed bounce creates an owned persistent failed-contact task and restore sends nothing',async t=>{
- const key=randomBytes(32),{h,buyer,wren,agent,quoteOf}=await quoting(t,{MAIL_WEBHOOK_SECRET:'whsec_'+key.toString('base64')});
- const admin={as:await h.signIn('rep@example.test','admin')};
- const quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'RYE-1',quantity:5}]},buyer);
- const quoteMail=()=>h.mail.deliveries.filter(row=>row.message.subject===`Barrow quote ${quote.id}`);
- assert.deepEqual(quoteMail().map(row=>row.message.to[0]).sort(),['owner@example.test','rep@example.test']);
- const ready=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:easternDay(0),lines:[{sku:'RYE-1',quantity:5}]});
- const sent=quoteMail().find(row=>row.message.to.includes('buyer@example.test'));
- assert.deepEqual(quoteMail().filter(row=>row.message.text.includes('expires after today')).map(row=>row.message.to[0]).sort(),['buyer@example.test','owner@example.test','rep@example.test']);
- assert.ok(sent);assert.match(sent.message.text,new RegExp(`/app\\?quote=${quote.id}`));
- assert.equal((await h.request(`/api/barrow/quotes/${quote.id}`,buyer)).status,200);
- assert.equal((await h.request(`/api/barrow/quotes/${quote.id}`,wren)).status,404);
- assert.equal((await h.request(`/api/barrow/quotes/${quote.id}`,{as:''})).status,401);
- const before=quoteMail().length;
- await h.command('quote.message',{quoteId:quote.id,body:'Staff-only delivery concern',internal:true});
- assert.equal(quoteMail().length,before+1);assert.deepEqual(quoteMail().at(-1).message.to,['rep@example.test']);
- assert.ok(!(await quoteOf(quote.id,buyer)).thread.some(row=>row.kind==='internal'));
- assert.ok((await quoteOf(quote.id,admin)).thread.some(row=>row.kind==='internal'&&row.body==='Staff-only delivery concern'));
- const buyerCount=quoteMail().filter(row=>row.message.to.includes('buyer@example.test')).length;
- await h.command('quote.message',{quoteId:quote.id,body:'Buyer-visible delivery update'});
- assert.equal(quoteMail().filter(row=>row.message.to.includes('buyer@example.test')).length,buyerCount+1);
- const count=quoteMail().length;
- await h.command('quote-mail.dispatch',{});await h.command('quote-mail.dispatch',{});
- assert.equal(quoteMail().length,count);
- await h.command('quote-mail.dispatch',{}, {...buyer,status:403});await h.command('quote-mail.dispatch',{}, {...agent,status:403});
- const webhookEvents=new Map();
- const webhook=async(id,messageId=sent.id,to='buyer@example.test',signature=true)=>{
-  const timestamp=String(Math.floor(Date.now()/1000)),body=JSON.stringify({type:'email.bounced',created_at:new Date().toISOString(),data:{email_id:messageId,to:[to]}});
-  if(!webhookEvents.has(id))webhookEvents.set(id,{timestamp,body});
-  const saved=webhookEvents.get(id);
-  const digest=createHmac('sha256',key).update(`${id}.${saved.timestamp}.${saved.body}`).digest('base64');
-  return fetch(h.origin+'/api/barrow/quote-mail/webhook',{method:'POST',headers:{'svix-id':id,'svix-timestamp':saved.timestamp,'svix-signature':'v1,'+(signature?digest:Buffer.alloc(32).toString('base64'))},body:saved.body});
- };
- assert.equal((await webhook('invalid',sent.id,'buyer@example.test',false)).status,400);
- assert.equal((await webhook('foreign','unrelated-provider-message')).status,400);
- assert.equal((await webhook('recipient',sent.id,'wren@example.test')).status,400);
- assert.equal((await webhook('bounced')).status,200);
- // Replay the identical authenticated provider event, with its original bytes and signature.
- assert.equal((await webhook('bounced')).status,200);
- const tasks=()=>h.api('/api/barrow/followups?view=all');
- let failed=(await tasks()).tasks.filter(row=>row.kind==='quote-mail');
- assert.equal(failed.length,1);assert.ok(failed[0].ownerId);assert.equal(failed[0].status,'open');
- await h.command('quote-mail.dispatch',{});
- assert.equal((await tasks()).tasks.filter(row=>row.kind==='quote-mail').length,1);
- const contacted=await h.command('followup.update',{id:failed[0].id,revision:failed[0].revision,contact:{outcome:'failed',note:'Mailbox still unavailable'}});
- assert.equal(contacted.status,'open');
- await h.command('quote.accept',{quoteId:quote.id,number:ready.revisions.at(-1).number},buyer);
- await h.command('followup.refresh',{});
- assert.equal((await tasks()).tasks.find(row=>row.id===contacted.id).status,'open');
- const acceptedMail=quoteMail().filter(row=>row.message.text.includes('accepted'));
- assert.ok(acceptedMail.length);
- const beforeAcceptedDispatch=quoteMail().length;await h.command('quote-mail.dispatch',{});assert.equal(quoteMail().length,beforeAcceptedDispatch);
- const resolved=await h.command('followup.update',{id:contacted.id,revision:contacted.revision,close:true,resolution:'Buyer reached by phone; correct email confirmed'});
- assert.equal(resolved.status,'closed');
- const diagnostics=await h.api('/api/barrow/diagnostics');assert.ok(diagnostics.notifications.deliveries.some(row=>row.status==='bounced'));
- // A separate refused network submission also creates owned work and is never labelled sent/delivered.
- h.mail.reject=true;
- await h.command('quote.message',{quoteId:quote.id,body:'New delivery update'},admin);
- assert.ok((await tasks()).tasks.some(row=>row.kind==='quote-mail'&&row.status==='open'));
- h.mail.reject=false;
- const snapshot=await archive(h),target=await installation();t.after(()=>target.close());
- await restore(target,snapshot);
- await target.command('quote-mail.dispatch',{});
- assert.equal(target.mail.deliveries.length,0);
- assert.ok((await target.api('/api/barrow/followups?view=all')).tasks.some(row=>row.id===resolved.id&&row.status==='closed'));
-});

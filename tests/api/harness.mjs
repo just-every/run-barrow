@@ -7,18 +7,21 @@ import { tmpdir } from 'node:os';
 import { resolve,join } from 'node:path';
 import assert from 'node:assert/strict';
 import { pierSource } from '../pier-source.mjs';
-export async function installation({pier=false,bindings={}}={}) {
+export async function installation({pier=false,bindings={},publicOrigin}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const bundled=await build({entryPoints:[join(root,'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
- const messages=[],mail={deliveries:[],reject:false};
+ const messages=[],mail={deliveries:[],requests:[],reject:false,failStatus:undefined},idempotency=new Map();
  // Fake only the external mail boundary; Pier remains the real pinned Worker.
  const mailEdge=async request=>{
   if(new URL(request.url).hostname==='api.resend.com') {
-   const message=await request.json();messages.push(message);
+   const message=await request.json();messages.push(message);mail.requests.push({message,key:request.headers.get('idempotency-key')});
+   if(mail.failStatus)return Response.json({message:'Test provider response'}, {status:mail.failStatus});
    if(mail.reject)return Response.json({message:'Rejected test edge'}, {status:422});
-   const id=randomUUID();mail.deliveries.push({id,message,key:request.headers.get('idempotency-key')});return Response.json({id});
+   const deliveryKey=request.headers.get('idempotency-key');
+   if(deliveryKey&&idempotency.has(deliveryKey))return Response.json({id:idempotency.get(deliveryKey)});
+   const id=randomUUID();if(deliveryKey)idempotency.set(deliveryKey,id);mail.deliveries.push({id,message,key:deliveryKey});return Response.json({id});
   }
   // Node fetch supplies its own framing when forwarding the workerd request.
   const headers=Object.fromEntries([...request.headers].filter(([name])=>!['connection','transfer-encoding','content-length','host','expect'].includes(name)));
@@ -30,11 +33,12 @@ export async function installation({pier=false,bindings={}}={}) {
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
-  origin=(await mf.ready).origin; await mf.setOptions(options(Number(new URL(origin).port)));await mf.ready;process.chdir(originalCwd);
+  const localOrigin=(await mf.ready).origin; origin=publicOrigin??localOrigin; await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;process.chdir(originalCwd);
   const db=await mf.getD1Database('DB');
   for(const file of (await readdir(join(root,'migrations/core'))).filter(f=>f.endsWith('.sql')).sort()) await db.batch(unstable_splitSqlQuery(await readFile(join(root,'migrations/core',file),'utf8')).map(sql=>db.prepare(sql)));
   let cookie='',closed=false;
-  const request=(path,{method='GET',body,as=cookie,headers={}}={})=>fetch(origin+path,{method,redirect:'manual',headers:{origin,'content-type':'application/json',...(as?{cookie:as}:{}),...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});
+  const raw=(path,init={})=>publicOrigin?mf.dispatchFetch(origin+path,init):fetch(origin+path,init);
+  const request=(path,{method='GET',body,as=cookie,headers={}}={})=>raw(path,{method,redirect:'manual',headers:{origin,'content-type':'application/json',...(as?{cookie:as}:{}),...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});
   const boot=await request('/auth/bootstrap',{method:'POST',body:{token:setup,displayName:'Supplier'}});assert.equal(boot.status,303);
   cookie=boot.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
   const api=async(path,body,opts={})=>{
@@ -66,7 +70,7 @@ export async function installation({pier=false,bindings={}}={}) {
    }
    throw Error('Invitation did not produce a usable sign-in link');
   };
-  return {mf,db,origin,cookie,request,api,command,signIn,mail,async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  return {mf,db,origin,cookie,request,raw,api,command,signIn,mail,async configure(next){Object.assign(bindings,next);await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
 }
 export async function stock(pier,quantity='24') {

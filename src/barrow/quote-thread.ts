@@ -19,9 +19,11 @@ type QuoteRef = { id: string; accountId: string; revisions: { number: number }[]
 export const side = (actor: Actor): Side => supplier(actor) ? 'supplier' : 'buyer'
 const attachmentPath = (quoteId: string, entryId: string) => `/api/barrow/quotes/${quoteId}/attachments/${entryId}`
 
-/** One unread notice for the other participants of a quote; it joins the batch that records the change. */
-export const notice = (db: D1Database, actor: Actor, quote: { id: string; accountId: string }, audience: Side, kind: NoticeKind, summary: string, at: string) =>
- db.prepare('INSERT INTO bw_quote_notices(id,quote_id,account_id,audience,kind,summary,actor_id,created_at,mail_eligible) VALUES(?,?,?,?,?,?,?,?,1)').bind(crypto.randomUUID(), quote.id, quote.accountId, audience, kind, summary, actor.id, at)
+/** The notice and its trigger-created mail ledger share the action's D1 batch. */
+export const notice = (db: D1Database, actor: Actor, quote: { id: string; accountId: string }, audience: Side, kind: NoticeKind, summary: string, at: string) => {
+ if (kind === 'internal' && audience === 'buyer') fail('FORBIDDEN', 'Internal notes are for supplier staff.', 403)
+ return db.prepare('INSERT INTO bw_quote_notices(id,quote_id,account_id,audience,kind,summary,actor_id,created_at,mail_eligible) VALUES(?,?,?,?,?,?,?,?,1)').bind(crypto.randomUUID(), quote.id, quote.accountId, audience, kind, summary, actor.id, at)
+}
 
 function entry(row: any): Entry {
  return { id: row.id, quoteId: row.quote_id, accountId: row.account_id, kind: row.kind, side: row.side, authorId: row.author_id, authorEmail: row.author_email, body: row.body, quoteRevision: row.quote_revision, at: row.created_at, ...(row.attachment_name ? { attachment: { name: row.attachment_name, type: row.attachment_type, size: row.attachment_size, sha256: row.attachment_sha256, path: attachmentPath(row.quote_id, row.id) } } : {}) }

@@ -18,6 +18,7 @@
     "MAIL_FROM": "auth@example.invalid"
   },
   "secrets": [
+    {"binding":"MAIL_EVENT_TENANT","environment":"MAIL_EVENT_TENANT","optional":true},
     {"binding":"MAIL_WEBHOOK_SECRET","environment":"MAIL_WEBHOOK_SECRET","optional":true},
     {
       "binding": "OWNER_EMAIL",

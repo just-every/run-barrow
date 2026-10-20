@@ -33,7 +33,7 @@ export async function diagnostics(env: Bindings, actor: Actor) {
   }
  })
  // Barrow records an invitation request, not its delivery; INT-015 brings delivery states.
- const deliveries=(await env.DB.prepare('SELECT id,quote_id,recipient,status,attempts,updated_at FROM bw_quote_mail ORDER BY rowid').all()).results
- const notifications = { recorded: true, deliveries, note: 'Quote mail acceptance is not delivery. Pending and failed deliveries are recorded; failures retain owned follow-up tasks until attributed resolution. Invitation delivery remains unrecorded.' }
+ const deliveries=(await env.DB.prepare("SELECT m.id,m.quote_id,m.recipient,m.status,m.provider_message_id,m.reason,m.attempts,m.created_at,m.updated_at,m.task_id,json_extract(f.value_json,'$.ownerId') AS ownerId FROM bw_quote_mail m LEFT JOIN bw_followups f ON f.id=m.task_id WHERE m.status<>'delivered' ORDER BY m.created_at,m.id").all<any>()).results.map(row=>({...row,ageSeconds:Math.max(0,Math.floor((Date.now()-Date.parse(row.created_at))/1000)),label:row.status==='accepted'&&!row.provider_message_id?'accepted (uncorrelated)':row.status,taskPath:row.task_id?'/app?quote='+row.quote_id:null}))
+ const notifications = { recorded: true, deliveries, note: 'Quote mail acceptance is not delivery. Delivered means delivered to the recipient mail server. Open non-success deliveries retain their identity, age and owned contact task; reconnect the configured Resend provider and webhook secret before retrying. Invitation and other notification delivery remain not recorded.' }
  return { checkedAt, pier, handoffs, notifications }
 }
