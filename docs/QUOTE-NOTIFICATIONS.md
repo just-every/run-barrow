@@ -2,7 +2,7 @@
 
 AUTO-003 uses the installation's configured mail sender. In local development mail is suppressed and labelled suppressed. Production Resend returns provider acceptance, which is never labelled mailbox delivery.
 
-Existing ORD-005 notices are durable. The account buyer receives buyer-visible messages and ready revisions; active owner/admin staff act for the rep until ACC-006. Internal notes reach only staff. An actor receives no notice for their own action. Email contains a short activity summary and an authenticated quote HTTP link; the link never grants access.
+Existing ORD-005 notices are durable. The account buyer receives buyer-visible messages and ready revisions; active owner/admin staff act for the rep until ACC-006. Internal notes reach only staff. An actor receives no notice for their own action. Email contains a short activity summary and an authenticated app link that opens Orders at the named quote; the link never grants access.
 
 Quote changes dispatch queued notices. The hourly scheduled handler and the supplier command `quote-mail.dispatch` also dispatch bounded batches. An impending-expiry notice is nominated once for each proposed revision on its inclusive last valid calendar day in America/New_York. Accepted, superseded and expired revisions do not send stale reminders. Recipient identity and current authorization are checked again before a send. A durable delivery ID is reused for a lost response; provider idempotency prevents a second logical submission within its window.
 

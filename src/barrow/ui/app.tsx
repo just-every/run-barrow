@@ -54,7 +54,10 @@ export function BarrowApp() {
     try { await reload() } catch (error) { setError(errorMessage(error)) }
     finally { setLoading(false) }
   }, [reload])
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
+    void load()
+  }, [load])
 
   async function run(type: string, payload: Record<string, unknown>) {
     if (lock.current) return false

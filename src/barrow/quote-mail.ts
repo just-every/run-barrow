@@ -42,7 +42,7 @@ export async function dispatchQuoteMail(env: Bindings) {
   const claimed=await env.DB.prepare("UPDATE bw_quote_mail SET status='sending',lease_until=?,attempts=attempts+1 WHERE id=? AND status IN ('pending','sending') AND lease_until<? RETURNING id").bind(Date.now()+120000,row.id,Date.now()).all()
   if(!claimed.results.length)continue
   let result:any
-  try { result=await operatorMail(env)?.send({deliveryId:row.id,from:env.MAIL_FROM??'',to:[row.recipient],subject:`Barrow quote ${row.quote_id}`,headers:{},html:`<p>Quote activity. <a href="${env.AUTH_ORIGIN}/api/barrow/quotes/${row.quote_id}">Open your quote</a>.</p>`,text:`${row.summary}\n\nOpen the quote using your own Barrow sign-in:\n${env.AUTH_ORIGIN}/api/barrow/quotes/${row.quote_id}`}) } catch { result={status:'failed'} }
+  try { result=await operatorMail(env)?.send({deliveryId:row.id,from:env.MAIL_FROM??'',to:[row.recipient],subject:`Barrow quote ${row.quote_id}`,headers:{},html:`<p>Quote activity. <a href="${env.AUTH_ORIGIN}/app?quote=${row.quote_id}">Open your quote</a>.</p>`,text:`${row.summary}\n\nOpen the quote using your own Barrow sign-in:\n${env.AUTH_ORIGIN}/app?quote=${row.quote_id}`}) } catch { result={status:'failed'} }
   const status=result?.status==='accepted'?'accepted':result?.status==='development'?'suppressed':'failed'
   await env.DB.prepare('UPDATE bw_quote_mail SET status=?,provider_message_id=?,lease_until=0,updated_at=? WHERE id=?').bind(status,result?.providerMessageId??null,new Date().toISOString(),row.id).run()
   if(status==='failed')await recordMailFailure(env,row)
