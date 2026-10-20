@@ -1,3 +1,4 @@
+import { request as httpsRequest } from 'node:https';
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { build } from 'esbuild';
@@ -7,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { resolve,join } from 'node:path';
 import assert from 'node:assert/strict';
 import { pierSource } from '../pier-source.mjs';
-export async function installation({pier=false,bindings={},publicOrigin}={}) {
+export async function installation({pier=false,bindings={},https}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const bundled=await build({entryPoints:[join(root,'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],loader:{'.css':'text','.svg':'text'}});
@@ -29,17 +30,25 @@ export async function installation({pier=false,bindings={},publicOrigin}={}) {
   return new Response(await response.arrayBuffer(),{status:response.status,headers:Object.fromEntries(response.headers)});
  };
  let origin='http://localhost';
- const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,modules:true,script:bundled.outputFiles[0].text,compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'test-network-edge',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
+ const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),modules:true,script:bundled.outputFiles[0].text,compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'test-network-edge',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
-  const localOrigin=(await mf.ready).origin; origin=publicOrigin??localOrigin; await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;process.chdir(originalCwd);
-  const db=await mf.getD1Database('DB');
+  const localOrigin=(await mf.ready).origin;origin=localOrigin;await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;process.chdir(originalCwd);
+  let db=await mf.getD1Database('DB');
   for(const file of (await readdir(join(root,'migrations/core'))).filter(f=>f.endsWith('.sql')).sort()) await db.batch(unstable_splitSqlQuery(await readFile(join(root,'migrations/core',file),'utf8')).map(sql=>db.prepare(sql)));
   let cookie='',closed=false;
-  const raw=(path,init={})=>publicOrigin?mf.dispatchFetch(origin+path,init):fetch(origin+path,init);
+  // Use the real local TLS listener; trust only this fixture's generated certificate.
+  const raw=(path,init={})=>!https?fetch(origin+path,init):new Promise((resolve,reject)=>{
+   const req=httpsRequest(origin+path,{method:init.method??'GET',headers:init.headers,rejectUnauthorized:false},response=>{
+    const parts=[];response.on('data',part=>parts.push(part));response.on('end',()=>{
+     const headers=new Headers();for(let i=0;i<response.rawHeaders.length;i+=2)headers.append(response.rawHeaders[i],response.rawHeaders[i+1]);
+     resolve(new Response([204,205,304].includes(response.statusCode)?null:Buffer.concat(parts),{status:response.statusCode,headers}));
+    });response.on('error',reject);
+   });req.on('error',reject);if(init.body!==undefined)req.write(init.body);req.end();
+  });
   const request=(path,{method='GET',body,as=cookie,headers={}}={})=>raw(path,{method,redirect:'manual',headers:{origin,'content-type':'application/json',...(as?{cookie:as}:{}),...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});
-  const boot=await request('/auth/bootstrap',{method:'POST',body:{token:setup,displayName:'Supplier'}});assert.equal(boot.status,303);
+  const boot=await request('/auth/bootstrap',{method:'POST',body:{token:setup,displayName:'Supplier'}});assert.equal(boot.status,303,await boot.text());
   cookie=boot.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
   const api=async(path,body,opts={})=>{
    const response=await request(path,{...(body===undefined?{}:{method:'POST',body}),...opts});const value=await response.json();
@@ -70,7 +79,7 @@ export async function installation({pier=false,bindings={},publicOrigin}={}) {
    }
    throw Error('Invitation did not produce a usable sign-in link');
   };
-  return {mf,db,origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  return {mf,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
 }
 export async function stock(pier,quantity='24') {

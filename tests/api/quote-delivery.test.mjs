@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { createHmac,randomBytes } from 'node:crypto';
 import { installation,stock,accountValue,archive,restore } from './harness.mjs';
 const easternDay=offset=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date(Date.now()+offset*86400000));
-async function quoting(t,bindings,publicOrigin) {
+async function quoting(t,bindings,https) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier,'80');
- const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,...bindings},publicOrigin});t.after(()=>h.close());
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,...bindings},https});t.after(()=>h.close());
  await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),prices:[{sku:'OAT-1',unitCents:6500,minQty:1}]}});
  const other=await pier.command('party.save',{name:'Wren Market',kind:'customer'});
  await h.command('account.save',{id:'wren',value:{...accountValue(other.id,'wren@example.test'),name:'Wren Market',prices:[{sku:'OAT-1',unitCents:6500,minQty:1}]}});
@@ -14,7 +14,7 @@ async function quoting(t,bindings,publicOrigin) {
  return {h,pier,buyer,wren,agent,quoteOf:(id,opts={})=>h.api(`/api/barrow/quotes/${id}`,undefined,opts)};
 }
 test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 / INT-015: quote emails preserve audiences and links, expiry is once per revision, signed bounce creates an owned persistent failed-contact task and restore sends nothing',async t=>{
- const key=randomBytes(32),{h,buyer,wren,agent,quoteOf}=await quoting(t,{MAIL_WEBHOOK_SECRET:'whsec_'+key.toString('base64'),MAIL_EVENT_TENANT:'barrow-test'},'https://barrow.example.test');
+ const key=randomBytes(32),{h,buyer,wren,agent,quoteOf}=await quoting(t,{MAIL_WEBHOOK_SECRET:'whsec_'+key.toString('base64'),MAIL_EVENT_TENANT:'barrow-test'},true);
  const admin={as:await h.signIn('rep@example.test','admin')};
  const quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:5}]},buyer);
  const quoteMail=()=>h.mail.deliveries.filter(row=>row.message.subject===`Barrow quote ${quote.id}`);
@@ -69,7 +69,7 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
  const beforeAcceptedDispatch=quoteMail().length;await h.command('quote-mail.dispatch',{});assert.equal(quoteMail().length,beforeAcceptedDispatch);
  const resolved=await h.command('followup.update',{id:contacted.id,revision:contacted.revision,close:true,resolution:'Buyer reached by phone; correct email confirmed'});
  assert.equal(resolved.status,'closed');
- const diagnostics=await h.api('/api/barrow/diagnostics');assert.ok(diagnostics.notifications.deliveries.some(row=>row.status==='bounced'));
+ const diagnostics=await h.api('/api/barrow/diagnostics');assert.ok(!diagnostics.notifications.deliveries.some(row=>row.task_id===resolved.id));
  // A separate refused network submission also creates owned work and is never labelled sent/delivered.
  h.mail.reject=true;
  await h.command('quote.message',{quoteId:quote.id,body:'New delivery update'},admin);
@@ -99,7 +99,7 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
 
 
 test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry window and unused-account custody erasure stay explicit through restore',async t=>{
- const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,wren,pier}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},'https://barrow.example.test');
+ const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,wren,pier}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},true);
  const deliveries=async()=> (await h.command('quote-mail.dispatch',{})).deliveries;
  // Queue while unconfigured, then supersede the last-day revision before enabling submission.
  await h.configure({MAIL_WEBHOOK_SECRET:undefined});
