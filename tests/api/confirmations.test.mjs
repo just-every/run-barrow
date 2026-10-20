@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import { installation, stock, accountValue } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore } from './harness.mjs';
 const rows = text => text.trim().split('\r\n').map(line=>line.slice(1,-1).split('","'));
 
 test('ORD-014: numbered submitted and accepted confirmations retain exact commercial snapshots through edits, retry and cancellation', async t => {
@@ -51,6 +51,13 @@ test('ORD-014: numbered submitted and accepted confirmations retain exact commer
  const exported=await h.api('/api/barrow/export.json',undefined,buyer);
  assert.equal(exported.confirmations.length,2);assert.deepEqual(JSON.parse(exported.confirmations[0].snapshot),snapshot);
  const confirmationCsv=await h.request('/api/barrow/export/confirmations.csv',buyer);assert.equal(confirmationCsv.status,200);assert.ok((await confirmationCsv.text()).includes('SPRING-27'));
+ const target=await installation();t.after(()=>target.close());
+ await restore(target,await archive(h));
+ assert.deepEqual((await target.api(path)).confirmations,(await h.api(path)).confirmations);
+ for(const number of [1,2]) {
+  assert.equal(await (await target.request(`${path}/${number}.csv`)).text(),await (await h.request(`${path}/${number}.csv`)).text());
+  assert.deepEqual(Buffer.from(await (await target.request(`${path}/${number}.pdf`)).arrayBuffer()),Buffer.from(await (await h.request(`${path}/${number}.pdf`)).arrayBuffer()));
+ }
  const other=await h.signIn('other@example.test');
  for(const suffix of ['', '/1.csv','/2.pdf'])assert.equal((await h.request(path+suffix,{as:other})).status,404);
  const {token}=await h.api('/api/barrow/agent-token',{});
