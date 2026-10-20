@@ -367,14 +367,14 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `f5f3750` (20 October 2026); ORD-014 is a partial implementation with the remaining points below.
+Judged from the code and named public-door tests (20 October 2026); AUTO-003 conforms to the approved current audiences, while DATA-003 and ORD-014 retain the remaining points below.
 
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 33 | 23 | 77 | 133 |
-| All | 39 | 23 | 77 | 139 |
+| Target and push further | 34 | 23 | 76 | 133 |
+| All | 40 | 23 | 76 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
