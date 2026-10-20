@@ -61,6 +61,11 @@ async function withdraw(env: Bindings, row: QuoteMailRow, reason: string, stamp:
   .bind(reason,stamp,row.id,Date.parse(stamp)).run()
 }
 
+async function withdrawalReason(env:Bindings,row:QuoteMailRow) {
+ if(row.audience==='buyer'&&await env.DB.prepare("SELECT 1 FROM oa_operators p JOIN bw_accounts a ON a.id=? WHERE p.id=? AND p.email<>json_extract(a.value_json,'$.email') COLLATE BINARY").bind(row.account_id,row.recipient_id).first())return 'no authorized buyer recipient'
+ return 'recipient no longer authorized'
+}
+
 function configuredOrigin(env: Bindings): string | null {
  try {
   const url = new URL(env.AUTH_ORIGIN)
@@ -80,7 +85,7 @@ async function suppressed(env: Bindings, recipient: string) {
 async function submit(env: Bindings, row: QuoteMailRow, origin: string, stamp: string, time: number, today: string) {
  const person = await env.DB.prepare(`SELECT (${authorized}) AS email FROM bw_quote_mail m WHERE m.id=?`).bind(row.id).first<{email:string | null}>()
  if (!person?.email || (row.first_attempt_at && person.email!==row.recipient)) {
-  await withdraw(env,row,'recipient no longer authorized',stamp)
+  await withdraw(env,row,await withdrawalReason(env,row),stamp)
   return
  }
  const recipient = person.email
@@ -147,7 +152,7 @@ export async function dispatchQuoteMail(env: Bindings) {
   }
   const person = await env.DB.prepare(`SELECT (${authorized}) AS email FROM bw_quote_mail m WHERE m.id=?`).bind(row.id).first<{email:string | null}>()
   if (!person?.email || (row.first_attempt_at && person.email!==row.recipient)) {
-   await withdraw(env,row,'recipient no longer authorized',stamp)
+   await withdraw(env,row,await withdrawalReason(env,row),stamp)
    continue
   }
   if (row.first_attempt_at && time-Date.parse(row.first_attempt_at)>=retryWindow) continue
@@ -169,7 +174,7 @@ export async function quoteMailCommand(env: Bindings, actor: Actor, type: string
  requirePerson(actor); requireSupplier(actor)
  if (type==='quote-mail.dispatch') {
   await dispatchQuoteMail(env)
-  return { deliveries: (await env.DB.prepare('SELECT id,quote_id,recipient,status,reason,attempts,created_at,updated_at,first_attempt_at,provider_message_id,task_id FROM bw_quote_mail ORDER BY created_at,id').all()).results }
+  return { deliveries: (await env.DB.prepare('SELECT id,quote_id,kind,expiry_revision,recipient_id,recipient,status,reason,attempts,created_at,updated_at,first_attempt_at,provider_message_id,task_id FROM bw_quote_mail ORDER BY created_at,id').all()).results }
  }
  fail('COMMAND','Unknown quote delivery command.',404)
 }

@@ -70,7 +70,7 @@ export async function installation({pier=false,bindings={},publicOrigin}={}) {
    }
    throw Error('Invitation did not produce a usable sign-in link');
   };
-  return {mf,db,origin,cookie,request,raw,api,command,signIn,mail,async configure(next){Object.assign(bindings,next);await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  return {mf,db,origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
 }
 export async function stock(pier,quantity='24') {

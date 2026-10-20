@@ -96,3 +96,53 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
  assert.equal((await target.api('/api/barrow/export.json')).quotedeliveries.length,supplierExport.quotedeliveries.length);
  assert.ok((await target.api('/api/barrow/followups?view=all')).tasks.some(row=>row.id===resolved.id&&row.status==='closed'));
 });
+
+
+test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry window and unused-account custody erasure stay explicit through restore',async t=>{
+ const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,wren}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},'https://barrow.example.test');
+ const deliveries=async()=> (await h.command('quote-mail.dispatch',{})).deliveries;
+ // Queue while unconfigured, then supersede the last-day revision before enabling submission.
+ await h.configure({MAIL_WEBHOOK_SECRET:undefined});
+ let q=await h.command('quote.request',{accountId:'wren',lines:[{sku:'OAT-1',quantity:5}]});
+ q=await h.command('quote.propose',{quoteId:q.id,revision:q.revision,validUntil:easternDay(0),lines:[{sku:'OAT-1',quantity:5}]});
+ const expiry=(await deliveries()).filter(row=>row.quote_id===q.id&&row.kind==='expiry');assert.equal(expiry.length,2);
+ q=await h.command('quote.propose',{quoteId:q.id,revision:q.revision,validUntil:easternDay(2),lines:[{sku:'OAT-1',quantity:5}]});
+ await h.configure({MAIL_WEBHOOK_SECRET:secret});let rows=await deliveries();
+ assert.ok(expiry.every(row=>rows.find(after=>after.id===row.id).status==='withdrawn'));
+ assert.ok(!h.mail.deliveries.some(row=>expiry.some(old=>old.id===row.key)));
+ let discount=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:5}]});
+ discount=await h.command('quote.propose',{quoteId:discount.id,revision:discount.revision,validUntil:easternDay(0),lines:[{sku:'OAT-1',quantity:5,unitCents:5000}]});
+ assert.equal(discount.status,'awaiting-approval');assert.ok(!(await deliveries()).some(row=>row.quote_id===discount.id&&row.kind==='expiry'));
+ // Missing active member is a withdrawn row and an owned task, never an address guess.
+ await h.command('account.save',{id:'unused',value:{...accountValue('historical-unused','unused@example.test'),name:'Unused Market'}});
+ // Historical archive fixture: the quote was removed at source, leaving delivery custody to erase.
+ const at=new Date().toISOString();
+ await h.db.prepare("INSERT INTO bw_quote_mail(id,notice_id,quote_id,account_id,audience,recipient_id,recipient,summary,kind,actor_id,expiry_revision,status,provider_message_id,created_at,updated_at) VALUES('historical',NULL,'Q-legacy','unused','buyer','former-user','unused@example.test','Historical quote','expiry','system',1,'accepted','provider-historical',?,?)").bind(at,at).run();
+ const timestamp=String(Math.floor(Date.now()/1000)),body=JSON.stringify({type:'email.bounced',created_at:at,data:{email_id:'provider-historical',to:['unused@example.test']}}),signature=createHmac('sha256',key).update(`historical.${timestamp}.${body}`).digest('base64');
+ const callback=()=>h.raw('/api/barrow/quote-mail/webhook',{method:'POST',headers:{'svix-id':'historical','svix-timestamp':timestamp,'svix-signature':'v1,'+signature},body});
+ assert.equal((await callback()).status,200);
+ assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(row=>row.accountId==='unused'));
+ const before=await archive(h);await h.command('account.erase',{accountId:'unused',confirm:'ERASE'});
+ assert.ok(!(await deliveries()).some(row=>row.account_id==='unused'));assert.equal((await callback()).status,400);
+ const after=await archive(h),target=await installation();t.after(()=>target.close());
+ await restore(target,before,{status:400,laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal}});
+ // A real rate-limited sender response retries within its window with the same stable provider key.
+ h.mail.failStatus=429;await h.command('quote.message',{quoteId:q.id,body:'Replenishment update'});
+ let limited=(await h.api('/api/barrow/export.json')).quotedeliveries.find(row=>row.status==='rate_limited');assert.ok(limited);
+ h.mail.failStatus=undefined;await deliveries();assert.ok(h.mail.deliveries.some(row=>row.key===limited.id));
+ assert.ok(h.mail.requests.filter(row=>row.key===limited.id).length>=2);
+ h.mail.failStatus=429;await h.command('quote.message',{quoteId:q.id,body:'Later update'});
+ limited=(await h.api('/api/barrow/export.json')).quotedeliveries.find(row=>row.status==='rate_limited');assert.ok(limited);
+ // Historical elapsed-time fixture; the public dispatch must refuse a blind resubmit after the window.
+ await h.db.prepare('UPDATE bw_quote_mail SET first_attempt_at=? WHERE id=?').bind(new Date(Date.now()-25*86400000).toISOString(),limited.id).run();
+ h.mail.failStatus=undefined;const attempts=h.mail.requests.length;await deliveries();assert.equal(h.mail.requests.length,attempts);
+ assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(row=>row.sourceId===q.id&&row.status==='open'));
+ const missing=await h.command('account.save',{id:'missing',value:{...accountValue('missing-pier','missing@example.test'),name:'Missing buyer Market'}});
+ // A request needs live catalogue stock but no invented buyer identity.
+ const requested=await h.command('quote.request',{accountId:missing.id,lines:[{sku:'OAT-1',quantity:5}]});
+ await h.command('quote.propose',{quoteId:requested.id,revision:requested.revision,validUntil:easternDay(2),lines:[{sku:'OAT-1',quantity:5}]});
+ assert.ok((await deliveries()).some(row=>row.quote_id===requested.id&&row.status==='withdrawn'&&row.reason==='no authorized buyer recipient'));
+ assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(row=>row.sourceId===requested.id&&row.ownerId));
+ assert.equal((await h.raw('/api/barrow/quote-mail/webhook',{method:'GET'})).status,405);
+ assert.equal((await h.raw('/api/barrow/quote-mail/webhook',{method:'POST',body:'x'.repeat(1024*1024+1)})).status,413);
+});
