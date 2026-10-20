@@ -54,6 +54,11 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
  assert.equal((await webhook('bounced')).status,200);
  // Replay the identical authenticated provider event, with its original bytes and signature.
  assert.equal((await webhook('bounced')).status,200);
+ const changed={type:'email.complained',created_at:new Date().toISOString(),data:{email_id:sent.id,to:['buyer@example.test']}},changedBody=JSON.stringify(changed),changedAt=String(Math.floor(Date.now()/1000));
+ const changedSignature=createHmac('sha256',key).update(`bounced.${changedAt}.${changedBody}`).digest('base64');
+ assert.equal((await h.raw('/api/barrow/quote-mail/webhook',{method:'POST',headers:{'svix-id':'bounced','svix-timestamp':changedAt,'svix-signature':'v1,'+changedSignature},body:changedBody})).status,400);
+ assert.ok(!quoteMail().some(row=>JSON.stringify(row.message).includes('Staff-only delivery concern')));
+ assert.equal((await h.api('/api/barrow/retention')).quoteDeliveryRetention.kind,'messages');
  const tasks=()=>h.api('/api/barrow/followups?view=all');
  let failed=(await tasks()).tasks.filter(row=>row.kind==='quote-mail');
  assert.equal(failed.length,1);assert.ok(failed[0].ownerId);assert.equal(failed[0].status,'open');
@@ -137,6 +142,15 @@ test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry win
  await h.db.prepare('UPDATE bw_quote_mail SET first_attempt_at=? WHERE id=?').bind(new Date(Date.now()-25*86400000).toISOString(),limited.id).run();
  h.mail.failStatus=undefined;const attempts=h.mail.requests.length;await deliveries();assert.equal(h.mail.requests.length,attempts);
  assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(row=>row.sourceId===q.id&&row.status==='open'));
+ // Current recipient authority is rechecked after queueing, through the native identity door.
+ await h.configure({MAIL_WEBHOOK_SECRET:undefined});
+ await h.command('quote.message',{quoteId:q.id,body:'Queued before access removal'});
+ const queued=(await deliveries()).filter(row=>row.quote_id===q.id&&row.status==='not configured');assert.ok(queued.length);
+ const people=await h.api('/auth/operators'),person=people.find(row=>row.email==='wren@example.test');assert.ok(person);
+ await h.api('/auth/operator/status',{operatorId:person.id,status:'inactive'});
+ await h.configure({MAIL_WEBHOOK_SECRET:secret});rows=await deliveries();
+ assert.ok(queued.every(row=>rows.find(after=>after.id===row.id).status==='withdrawn'));
+ assert.ok(!h.mail.deliveries.some(row=>queued.some(old=>old.id===row.key)));
  const missingParty=await pier.command('party.save',{name:'Missing buyer Market',kind:'customer'});
  const missing=await h.command('account.save',{id:'missing',value:{...accountValue(missingParty.id,'missing@example.test'),name:'Missing buyer Market'}});
  // A request needs live catalogue stock but no invented buyer identity.
