@@ -18,10 +18,10 @@ const validDay = (value: unknown) => {
 const people = async (db: D1Database) => (await db.prepare("SELECT id,display_name AS displayName FROM oa_operators WHERE status='active' AND role IN ('owner','admin') ORDER BY display_name,id").all<{ id: string; displayName: string }>()).results
 const allTasks = async (db: D1Database) => (await db.prepare('SELECT value_json,revision FROM bw_followups ORDER BY id').all<Stored>()).results.map(parse)
 const notes = {
- scope: 'Owner and admins act for reps until ACC-005/ACC-006 supply scoped staff assignments. Tasks are refreshed only by an explicit refresh command.',
- sources: 'Unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days. Missing sources or unknown ages do not prove resolution.',
- contact: 'Contacts are manually recorded; no email or other outreach is sent. Failed contact leaves work open unless a person explicitly records a separate resolution.',
- exceptions: 'Delivery and payment exceptions are not recorded until SHIP-003, PAY-011 and AGT-005 provide verified sources.',
+ scope: 'Owner and admins act for reps until ACC-005/ACC-006 supply scoped staff assignments. Wholesale source tasks are refreshed by an explicit command; recorded quote mail failures create owned tasks automatically.',
+ sources: 'Quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days. Missing sources or unknown ages do not prove resolution.',
+ contact: 'Contact attempts are manually recorded and do not send outreach; quote email delivery is recorded separately. Failed contact leaves work open unless a person explicitly records a separate resolution.',
+ exceptions: 'Carrier delivery and payment exceptions are not recorded until SHIP-003, PAY-011 and AGT-005 provide verified sources.',
 }
 export async function readFollowups(env: Bindings, actor: Actor, params: URLSearchParams) {
  authorize(actor)

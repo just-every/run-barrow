@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { request, errorMessage } from './api'
 import { Notice } from './primitives'
 import type { readFollowups } from '../followups'
@@ -35,8 +35,14 @@ export function Followups() {
   const [board, setBoard] = useState<Board | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const [view, setView] = useState('due'), [on, setOn] = useState('')
   const query = new URLSearchParams({ view, ...(on ? { on } : {}) })
-  const load = () => request<Board>(`/api/barrow/followups?${query}`).then(setBoard)
-  useEffect(() => { let active = true; setBoard(null); setError(''); void request<Board>(`/api/barrow/followups?${query}`).then(value => { if (active) setBoard(value) }).catch(cause => { if (active) setError(errorMessage(cause)) }); return () => { active = false } }, [String(query)])
+  const currentQuery = useRef(String(query)), latestRequest = useRef(0)
+  currentQuery.current = String(query)
+  const load = async () => {
+    const requested = currentQuery.current, id = ++latestRequest.current
+    const value = await request<Board>(`/api/barrow/followups?${requested}`)
+    if (id === latestRequest.current && requested === currentQuery.current) setBoard(value)
+  }
+  useEffect(() => { setBoard(null); setError(''); void load().catch(cause => setError(errorMessage(cause))); return () => { latestRequest.current++ } }, [String(query)])
   async function command(type: string, payload: Record<string, unknown>) {
     setBusy(true); setError('')
     try { await request('/api/barrow/commands', { type, payload }); await load() }
