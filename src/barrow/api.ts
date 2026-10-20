@@ -7,6 +7,7 @@ import { account,accounts,accountCommand } from './accounts'
 import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
 import { listCommand, readLists } from './lists'
+import { statementResponse } from './statements'
 import { exportKinds, exportResponse } from './export'
 import { freshnessLimit, saveFreshness } from './freshness'
 import { documentResponse } from './documents'
@@ -56,6 +57,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})
   if(path==='/api/barrow/lists' && request.method==='GET') return json({lists:await readLists(env.DB,actor,url.searchParams.get('accountId')??'')})
   if(path==='/api/barrow/catalogue' && request.method==='GET') return json(await catalogue(env,await account(env.DB,actor,url.searchParams.get('accountId')??'')))
+  const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
+  if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
   if(invoice && request.method==='GET') {
    if(actor.agent) fail('FORBIDDEN','A person must download invoice exports.',403)
