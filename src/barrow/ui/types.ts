@@ -9,7 +9,7 @@ export interface Order {
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}
 
   delivery?: import('../shipping-rules').Delivery; freightQuotes?: import('../shipping-rules').FreightQuote[]
-  id: string; accountId: string; customerName: string; reference: string; deliveryLocation?: string; reorderedFrom?: string
+  revision: string; id: string; accountId: string; customerName: string; reference: string; deliveryLocation?: string; reorderedFrom?: string
   poRelease?: { number: number; of: string; authorizedBy: string; authorizedAt: string }; requestedDate?: string; cancelAfter?: string; instructions?: string; document?: { name: string; type: string; size: number; sha256: string; uploadedBy: string; uploadedAt: string }
   lines: { sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number; pricing?:import('../pricing').PricingSnapshot; buyerSku?:string }[]
   totalCents: number; currency?: 'USD' | 'AUD'; termsDays: number; accountRevision: string; preparedAt: string

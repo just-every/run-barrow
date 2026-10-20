@@ -89,6 +89,9 @@ test('ORD-004: a buyer requests a quote, a discount is approved, double acceptan
  assert.deepEqual(order.lines.map(line => [line.sku, line.lineCents, line.quote.basisLineCents, line.quote.revision]), [['OAT-1', 64800, 68400, 2], ['RYE-1', 23201, 24000, 2]]);
  assert.match(order.lines[0].pricing.reason, /Volume break at 10 selling units/);
  assert.equal((await quoteOf('Q-10001', buyer)).accepted.orderId, order.id);
+ // ORD-014: quote conversion records the submitted commercial confirmation once.
+ const confirmations=(await h.api(`/api/barrow/orders/${order.id}/confirmations`,undefined,buyer)).confirmations;
+ assert.equal(confirmations.length,1);assert.deepEqual(confirmations[0].snapshot.lines,order.lines);
  assert.equal((await h.command('quote.accept', { quoteId: 'Q-10001', number: 1 }, { ...buyer, status: 409 })).error.code, 'QUOTE_ACCEPTED');
  assert.equal((await h.command('quote.propose', { quoteId: 'Q-10001', revision: (await quoteOf('Q-10001')).revision, validUntil, lines: [{ sku: 'RYE-1', quantity: 5 }] }, { status: 409 })).error.code, 'QUOTE_ACCEPTED');
 

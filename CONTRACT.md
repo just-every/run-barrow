@@ -373,8 +373,8 @@ Judged from the code and tests at commit `68b67cc` (20 October 2026).
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 33 | 22 | 78 | 133 |
-| All | 39 | 22 | 78 | 139 |
+| Target and push further | 33 | 23 | 77 | 133 |
+| All | 39 | 23 | 77 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -423,7 +423,7 @@ Judged from the code and tests at commit `68b67cc` (20 October 2026).
 | `ORD-011` | Order changes and cancellation | target | missing |  | Submitted orders cannot be edited by buyer or staff; revisions, edit handoffs, staff edit rights and re-acceptance are not implemented. |
 | `ORD-012` | Buyer order status and confirmations | target | done | `src/barrow/timeline.ts`; `src/barrow/api.ts`; `src/barrow/ui/order-timeline.tsx`; `src/barrow/ui/orders.tsx`; `tests/api/timeline.test.mjs` |  |
 | `ORD-013` | Multi-location orders and release groups | target | missing |  | Implement multi-location orders and release groups and prove the stated journey. |
-| `ORD-014` | Order confirmation documents | target | missing |  | Only the invoice CSV exists; numbered order confirmation PDF/CSV revisions with images, windows and terms are not implemented. |
+| `ORD-014` | Order confirmation documents | target | partial | `src/barrow/confirmations.ts`; `migrations/core/0025_confirmations.sql`; `src/barrow/ui/order-confirmations.tsx`; `tests/api/confirmations.test.mjs`; `tests/api/quotes.test.mjs`; `tests/api/substitutions.test.mjs` | Numbered immutable submitted/accepted commercial snapshots, scoped PDF/CSV downloads, exports and timeline links ship. Seller legal identity, images, explicit variant attributes, MSRP, sales-terms/signature records, commercial edit revisions, confirmation email delivery, named layouts and bulk production spreadsheets remain missing. |
 | `ORD-015` | Versioned sales terms and buyer acceptance | target | missing |  | Accounts carry payment terms only; versioned sales terms, required acceptance and signature capture are not implemented. |
 | `ORD-016` | Canceled styles across open orders | target | missing |  | No style cancellation, open-order impact preview, bulk drop or per-order revision, release, deposit adjustment and buyer notice exist. |
 | `STK-001` | Live customer-visible availability | target | done | `src/barrow/pier.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs` |  |

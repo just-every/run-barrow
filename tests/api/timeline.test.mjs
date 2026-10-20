@@ -29,7 +29,7 @@ test('ORD-012: the buyer timeline shows recorded Barrow and real Pier events, sp
  await h.command('order.submit', { orderId: draft.id }, { as: buyer });
  const timeline = (as = buyer) => h.api(`/api/barrow/orders/${draft.id}/timeline`, undefined, { as });
  let seen = await timeline();
- assert.deepEqual(seen.entries.map(entry => entry.state), ['Draft prepared', 'Submitted: approval pending']);
+ assert.deepEqual(seen.entries.map(entry => entry.state), ['Draft prepared', 'Order confirmation recorded', 'Submitted: approval pending']);
  assert.ok(seen.entries.every(entry => entry.source === 'Barrow' && entry.owner === 'Trade buyer'));
  const order = await h.command('order.approve', { orderId: draft.id });
  // Two real Pier dispatches split the shipment; one unit comes back from the first.
@@ -39,11 +39,11 @@ test('ORD-012: the buyer timeline shows recorded Barrow and real Pier events, sp
  await pier.command('return.create', { shipmentId: first.id, shipmentLineId: first.lines[0].id, locationId: products.location.id, quantity: '1', reason: 'Crushed case' });
  seen = await timeline();
  assert.deepEqual(seen.entries.map(entry => [entry.state, entry.source]), [
-  ['Draft prepared', 'Barrow'], ['Submitted: approval pending', 'Barrow'], ['Accepted by the supplier', 'Barrow'], ['Allocated: every unit reserved', 'Barrow'],
+  ['Draft prepared', 'Barrow'], ['Order confirmation recorded', 'Barrow'], ['Submitted: approval pending', 'Barrow'], ['Order confirmation recorded', 'Barrow'], ['Accepted by the supplier', 'Barrow'], ['Allocated: every unit reserved', 'Barrow'],
   ['Shipped', 'Pier'], ['Shipped', 'Pier'], ['Return received: in quarantine', 'Pier'],
  ]);
  assert.deepEqual(seen.entries.filter(entry => entry.source === 'Pier').map(entry => entry.detail), ['SHIP-1: 6 OAT-1', 'SHIP-2: 4 OAT-1', '1 OAT-1: Crushed case']);
- assert.equal(seen.entries[2].owner, 'Supplier'); assert.equal(seen.revision, order.revision); assert.equal(seen.pier, 'read');
+ assert.equal(seen.entries[4].owner, 'Supplier'); assert.equal(seen.revision, order.revision); assert.equal(seen.pier, 'read');
  assert.deepEqual(seen.unrecorded.map(item => item.state), ['Delivered', 'Held', 'Closed']);
  assert.ok(!seen.entries.some(entry => /deliver/i.test(entry.state)));
  // The supplier reads the same recorded timeline.

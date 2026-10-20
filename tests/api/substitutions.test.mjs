@@ -133,6 +133,9 @@ test('STK-005: buyer declines then accepts a current-price split substitution; o
  await h.command('shipping.settings', { revision: (await h.api('/api/barrow/shipping/settings')).revision, methods: [parcel(3000)] });
  const executed = await h.command('substitution.execute', { orderId: original.id, number: offer.number });
  assert.equal(executed.id, replacement.id); assert.equal(executed.status, 'approved');
+ // ORD-014: replacement submission and supplier acceptance each keep their own confirmation.
+ const confirmations=(await h.api(`/api/barrow/orders/${replacement.id}/confirmations`,undefined,buyer)).confirmations;
+ assert.deepEqual(confirmations.map(record=>record.stage),['submitted','accepted']);assert.deepEqual(confirmations[0].snapshot.lines,replacement.lines);
  assert.deepEqual(executed.delivery, replacement.delivery); assert.equal(executed.totalCents, replacement.totalCents);
  const source = await read(original.id, buyer);
  assert.equal(source.status, 'cancelled'); assert.ok(source.release.confirmedAt);

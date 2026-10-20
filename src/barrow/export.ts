@@ -9,7 +9,7 @@ import { now } from './clock'
 import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 
-export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'audit'] as const
+export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
@@ -27,6 +27,7 @@ const columns: Record<Kind, string[]> = {
  // ACC-003: one row per bill-to, ship-to or contact record, archived ones included.
  locations: ['id', 'revision', 'accountId', 'kind', 'default', 'archived', 'name', 'line1', 'line2', 'city', 'state', 'zip', 'jurisdiction', 'deliveryInstructions', 'exemptionReference', 'exemptionState', 'email', 'phone', 'role'],
  followups: ['id', 'revision', 'accountId', 'kind', 'sourceId', 'sourcePath', 'title', 'reason', 'priority', 'createdAt', 'ownerId', 'nextContactDate', 'status', 'resolution', 'contacts'],
+ confirmations: ['orderId', 'number', 'stage', 'recordedAt', 'snapshot', 'pdf', 'csv'],
  audit: ['id', 'subjectId', 'actorId', 'action', 'createdAt', 'accountId', 'orderId', 'revision'],
 }
 const json = (value: unknown) => value === undefined ? '' : JSON.stringify(value)
@@ -46,7 +47,9 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const locations = ids.length ? (await env.DB.prepare('SELECT * FROM bw_locations WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid').bind(JSON.stringify(ids)).all<any>()).results : []
  const audit = supplier(actor) ? (await env.DB.prepare("SELECT id,subject_id,actor_id,action,created_at,json_extract(context_json,'$.accountId') AS account_id,json_extract(context_json,'$.orderId') AS order_id,json_extract(context_json,'$.revision') AS revision FROM bw_audit ORDER BY rowid").all<Record<string, string | null>>()).results : undefined
  const followups = supplier(actor) ? (await env.DB.prepare('SELECT id,revision,value_json FROM bw_followups ORDER BY id').all<{id:string;revision:string;value_json:string}>()).results.map(row => ({...JSON.parse(row.value_json),id:row.id,revision:row.revision})) : undefined
+ const confirmations = ids.length ? (await env.DB.prepare('SELECT c.* FROM bw_confirmations c JOIN bw_orders o ON o.id=c.order_id WHERE o.account_id IN (SELECT value FROM json_each(?)) ORDER BY c.order_id,c.number').bind(JSON.stringify(ids)).all<any>()).results : []
  const records = {
+  confirmations: confirmations.map(row => ({orderId:row.order_id,number:row.number,stage:row.stage,recordedAt:row.created_at,snapshot:row.value_json,pdf:`/api/barrow/orders/${row.order_id}/confirmations/${row.number}.pdf`,csv:`/api/barrow/orders/${row.order_id}/confirmations/${row.number}.csv`})),
   accounts: selected.map(({ id, revision, value }) => ({ id, revision, name: value.name, email: value.email, pierCustomerId: value.pierCustomerId, termsDays: value.termsDays, minimumCents: value.minimumCents, currency: 'USD', city: value.city ?? '', state: value.state ?? '', lifecycle: value.lifecycle ?? 'active', channel: value.channel ?? '', territory: value.territory ?? '', assignedRep: value.assignedRep ?? '', catalogs: json(value.catalogs), providerReferences: json(value.providerReferences) })),
   prices: selected.flatMap(({ id, revision, value }) => value.prices.map(price => ({ accountId: id, accountRevision: revision, sku: price.sku, currency: 'USD', unitCents: price.unitCents, minQty: price.minQty, casePack: price.casePack ?? '', increment: price.increment ?? '', units: json(price.units), pricing: json(price.pricing) }))),
   orders: orders.map(order => ({ id: order.id, revision: order.revision, accountId: order.accountId, accountRevision: order.accountRevision, customerName: order.customerName, status: order.status, currency: currency(order), totalCents: order.totalCents, termsDays: order.termsDays, reference: order.reference, poRelease: order.poRelease ? `${order.poRelease.number} of ${order.poRelease.of}` : '', requestedDate: order.requestedDate ?? '', cancelAfter: order.cancelAfter ?? '', deliveryLocation: order.deliveryLocation ?? '', instructions: order.instructions ?? '', preparedBy: order.preparedBy, preparedAt: order.preparedAt, submittedBy: order.submittedBy ?? '', approvedBy: order.approvedBy ?? '', approvedAt: order.approvedAt ?? '', replaces: order.replaces ?? '', supersededBy: order.supersededBy ?? '', reorderedFrom: order.reorderedFrom ?? '', pierOrigin: order.pierOrigin ?? '', pierOrderId: order.pierOrderId ?? '', pierReference: order.pierReference ?? '', invoiceNumber: order.invoice?.number ?? '', document: order.document ? `/api/barrow/orders/${order.id}/document` : '', quote: order.quote ? `${order.quote.id} r${order.quote.revision}` : '', billTo: json(order.billTo), shipTo: json(order.shipTo), delivery:json(order.delivery), merchandiseCents:order.lines.reduce((sum,line)=>sum+lineCents(line),0), shippingCents:order.delivery?.totalCents??0, substitutions:json(order.substitutions), fromSubstitution:json(order.fromSubstitution) })),

@@ -1,3 +1,4 @@
+import { confirmationStatements } from './confirmations'
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
@@ -23,7 +24,8 @@ export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Ord
 }
 async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
- await commit(env.DB,actor,[...guards,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
+ const confirmations = ['order.submitted','order.submitted-release','order.approved'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':'submitted') : []
+ await commit(env.DB,actor,[...guards,...confirmations,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
   'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
   'order.document-attached':'Attached the supporting PO document to the draft.',
   'order.submitted-release':'Submitted as an explicitly authorized numbered release of a PO already on order.',

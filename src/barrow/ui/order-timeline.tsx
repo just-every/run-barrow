@@ -19,7 +19,7 @@ export function OrderTimeline({ order }: { order: Order }) {
     {error && <p role="alert">{error}</p>}
     {!timeline && !error && <p className="br-quiet-text">Loading the recorded events…</p>}
     {timeline && <>
-      <ol className="br-stack">{timeline.entries.map((entry, index) => <li key={index}><strong>{entry.state}</strong> · {when(entry.at)} · {entry.source}{entry.owner !== entry.source ? ` · ${entry.owner}` : ''}{entry.detail ? <><br />{entry.detail}</> : null}</li>)}</ol>
+      <ol className="br-stack">{timeline.entries.map((entry, index) => <li key={index}><strong>{entry.state}</strong> · {when(entry.at)} · {entry.source}{entry.owner !== entry.source ? ` · ${entry.owner}` : ''}{entry.detail ? <><br />{entry.detail}</> : null}{entry.confirmation && <><br /><a href={`/api/barrow/orders/${encodeURIComponent(order.id)}/confirmations/${entry.confirmation}.pdf`} download>Confirmation PDF</a>{' · '}<a href={`/api/barrow/orders/${encodeURIComponent(order.id)}/confirmations/${entry.confirmation}.csv`} download>Confirmation CSV</a></>}</li>)}</ol>
       {timeline.pier === 'unavailable' && <p className="br-quiet-text">Pier did not answer, so shipments and returns are unknown right now.</p>}
       <p className="br-quiet-text">{timeline.unrecorded.map(item => item.state).join(', ')}: not recorded. No connected source reports these states yet.</p>
     </>}

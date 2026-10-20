@@ -1,3 +1,4 @@
+import { readConfirmations, confirmationResponse } from './confirmations'
 import { substitutionCommand } from './substitutions'
 import { listCommercialAudit,exportCommercialAudit } from './commercial-audit'
 import { runtimeBindings, type Bindings } from '../auth.server'
@@ -89,6 +90,12 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent) fail('FORBIDDEN','A person must download invoice exports.',403)
    const order=await readOrder(env.DB,actor,invoice[1])
    return new Response(invoiceCsv(order),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','content-disposition':`attachment; filename="barrow-${order.id}.csv"`}})
+  }
+  const confirmation=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/confirmations(?:\/([1-9]\d*)\.(csv|pdf))?$/.exec(path)
+  if(confirmation && request.method==='GET') {
+   if(actor.agent) fail('FORBIDDEN','A person must download order confirmations.',403)
+   const order=await readOrder(env.DB,actor,confirmation[1])
+   return confirmation[2] ? await confirmationResponse(env.DB,order,Number(confirmation[2]),confirmation[3] as 'csv'|'pdf') : json({confirmations:await readConfirmations(env.DB,order.id)})
   }
   const document=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/document$/.exec(path)
   if(document && request.method==='GET') return await documentResponse(env,actor,await readOrder(env.DB,actor,document[1]))
