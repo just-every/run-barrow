@@ -40,12 +40,12 @@ export async function installation({pier=false,bindings={},https}={}) {
   let cookie='',closed=false;
   // Use the real local TLS listener; trust only this fixture's generated certificate.
   const raw=(path,init={})=>!https?fetch(origin+path,init):new Promise((resolve,reject)=>{
-   const req=httpsRequest(origin+path,{method:init.method??'GET',headers:init.headers,rejectUnauthorized:false},response=>{
+   const req=httpsRequest(origin+path,{method:init.method??'GET',headers:init.headers,rejectUnauthorized:false,agent:false},response=>{
     const parts=[];response.on('data',part=>parts.push(part));response.on('end',()=>{
      const headers=new Headers();for(let i=0;i<response.rawHeaders.length;i+=2)headers.append(response.rawHeaders[i],response.rawHeaders[i+1]);
      resolve(new Response([204,205,304].includes(response.statusCode)?null:Buffer.concat(parts),{status:response.statusCode,headers}));
     });response.on('error',reject);
-   });req.on('error',reject);if(init.body!==undefined)req.write(init.body);req.end();
+   });req.on('error',error=>reject(new Error(`${init.method??'GET'} ${path.split('?')[0]}: ${error.code??'transport failure'}`)));if(init.body!==undefined)req.write(init.body);req.end();
   });
   const request=(path,{method='GET',body,as=cookie,headers={}}={})=>raw(path,{method,redirect:'manual',headers:{origin,'content-type':'application/json',...(as?{cookie:as}:{}),...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});
   const boot=await request('/auth/bootstrap',{method:'POST',body:{token:setup,displayName:'Supplier'}});assert.equal(boot.status,303,await boot.text());
