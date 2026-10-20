@@ -367,7 +367,7 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and named public-door tests (20 October 2026); AUTO-003 conforms to the approved current audiences, while DATA-003 and ORD-014 retain the remaining points below.
+Judged from the code and tests at commit `04ad4cf` (20 October 2026). AUTO-003 conforms to the approved current audiences, while DATA-003 and ORD-014 retain the remaining points below.
 
 
 | Clauses | Done | Partial | Missing | Total |
