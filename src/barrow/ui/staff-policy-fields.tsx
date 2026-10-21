@@ -31,7 +31,7 @@ export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPoli
   const warehouses = [...new Set(accounts.flatMap(account => account.value.warehouses ?? []))].sort()
   return <fieldset className="br-stack"><legend>Functional staff access</legend>
     <p>Choose every scope explicitly. No selection means no access; zero allowances permit no exception. Functional roles do not grant installation settings or authority to grant access.</p>
-    <label>Functional role<select required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'] })}>
+    <label>Functional role<select aria-label="Functional role" required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'] })}>
       <option value="">Choose a functional role</option>{Object.entries(staffRoles).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
     </select></label>
     <fieldset className="br-stack"><legend>Trade accounts</legend>

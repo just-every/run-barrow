@@ -4,7 +4,7 @@ import { Notice } from './primitives'
 import { emptyStaffPolicy, StaffPolicyFields, staffPolicyForm, staffPolicyValue, staffReports, staffRoles, validStaffPolicy, type StaffPolicy } from './staff-policy-fields'
 import { money, type Account, type RunCommand } from './types'
 
-export type StaffMember = StaffPolicy & { userId: string; email: string; name: string; status: string; revision: string; state: string; nativeVersion: number | string }
+export type StaffMember = StaffPolicy & { userId: string; email: string; name: string; status: string; revision: string; state: string; effective:boolean; nativeVersion: number | string }
 const revoked = (member: StaffMember) => ['revoked', 'removed'].includes(member.state)
 
 export function StaffMembers({ accounts, version, run, busy }: { accounts: Account[]; version: unknown; run: RunCommand; busy: boolean }) {
@@ -40,7 +40,7 @@ export function StaffMembers({ accounts, version, run, busy }: { accounts: Accou
       {members && <><h3>Saved staff roster</h3>{!members.length && <p>No staff grants yet.</p>}
         {members.map(member => <article className="br-card br-stack" key={member.userId}>
           <h3>{member.name || member.email}</h3><p>{member.email} · <span className="br-badge">{staffRoles[member.role]}</span></p>
-          <p>Native sign-in: {member.status} · Staff grant: {member.state}</p>
+          <p>Native sign-in: {member.status} · Staff grant: {member.state}</p><p>Effective supplier access: {member.effective?'Yes':'No'}</p>
           <dl><dt>Accounts</dt><dd>{member.accounts === 'all' ? 'All trade accounts' : member.accounts.map(accountName).join(', ') || 'None'}</dd>
             <dt>Warehouses</dt><dd>{member.warehouses === 'all' ? 'All warehouses' : member.warehouses.join(', ') || 'None'}</dd>
             <dt>Reports</dt><dd>{member.reports.map(report => staffReports[report]).join(', ') || 'None'}</dd>
@@ -66,7 +66,7 @@ export function StaffMembers({ accounts, version, run, busy }: { accounts: Accou
         {editing && <><button type="button" className="br-secondary" disabled={busy} onClick={reset}>Cancel edit</button>
           <button type="button" className="br-danger" disabled={busy || !reason.trim()} onClick={() => void run('staff.revoke', { userId: editing.userId, revision: editing.revision, reason: reason.trim() }).then(done => { if (done) { reset(); setRefresh(value => value + 1) } })}>Revoke staff access</button></>}
       </div>
-      <p className="br-quiet-text">The invitation requests native membership with only the functional policy shown here. Delivery status appears in the roster; no installation or grant powers are included.</p>
+      <p className="br-quiet-text">The invitation requests native membership with only the functional policy shown here. Native sign-in and grant status appear in the roster. Invitation delivery is not confirmed here. No installation or grant powers are included.</p>
     </form>}
   </section>
 }

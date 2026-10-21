@@ -13,7 +13,7 @@ const people = [
  { number: 203, role: 'operations', accounts: [assigned], warehouses: ['New York'], reports: ['fulfillment'], discountLimitCents: 0, stockExceptionLimitCents: 0, report: 'fulfillment' },
  { number: 204, role: 'finance', accounts: [assigned], warehouses: [], reports: ['finance'], discountLimitCents: 0, stockExceptionLimitCents: 0, report: 'finance' },
  { number: 205, role: 'analyst', accounts: [assigned], warehouses: [], reports: ['sales', 'quotes'], discountLimitCents: 0, stockExceptionLimitCents: 0, report: 'sales' },
-].map(person => ({ ...person, name: `synthetic-barrow-${person.number}`, email: `synthetic-barrow-${person.number}@example.test` }));
+].map(person => ({ ...person, name: ({201:'Morgan Lee',202:'Avery Sales',203:'Jordan Operations',204:'Casey Finance',205:'Riley Analyst'})[person.number], email: `synthetic-barrow-${person.number}@example.test` }));
 
 async function downloadedText(page, link) {
  const [download] = await Promise.all([page.waitForEvent('download'), link.click()]);
@@ -30,7 +30,7 @@ test('owner invites five native functional staff roles, exact scoped reports and
  const h = await installation({ built: true, https: true, bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } });
  t.after(() => h.close());
  for (const [id, customerId, rep] of [[assigned, products.customer.id, 'synthetic-barrow-202'], [other, otherCustomer.id, 'synthetic-barrow-206']]) {
-  await h.command('account.save', { id, value: { ...accountValue(customerId, `${id}@example.test`), name: id, minimumCents: 0, assignedRep: rep, warehouses: ['New York'] } });
+  await h.command('account.save', { id, value: { ...accountValue(customerId, `${id}@example.test`), name: id===assigned?'Cedar Street Pantry':'Wren Market', minimumCents: 0, assignedRep: rep, warehouses: ['New York'] } });
  }
  const invoices = new Map();
  for (const accountId of [assigned, other]) {
