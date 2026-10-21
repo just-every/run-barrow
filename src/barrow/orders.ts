@@ -1,6 +1,7 @@
 import { readStaffGrant,staffAccountAllowed } from './staff-policy'
 import { companySubmission } from './company-purchase'
 import { companyOrderRead } from './company-access'
+import { routeDecision,decidedEntry } from './company-approval'
 import { activeBuyerExists, companyRightsGuard, requireCompanyRight, requireCompanyApproval } from './company-policy'
 import { commissionSnapshot } from './commission-rules'
 import { confirmationStatements } from './confirmations'
@@ -8,7 +9,7 @@ import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
 import { catalogue,reserveOrder,pierState,pierOrigin,fullyReserved,pierOrder,releaseOrder,released,decimal } from './pier'
-import { fail,text,requirePerson,requireSupplier,actorLabel,supplier,supplierDate,type Actor,type Order,type Account } from './model'
+import { fail,text,Problem,requirePerson,requireSupplier,actorLabel,supplier,supplierDate,type Actor,type Order,type Account } from './model'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
 import { reviewReorder } from './reorders'
@@ -69,6 +70,20 @@ async function recordRelease(env:Bindings,actor:Actor,order:Order,result:any) {
  const lines=result.lines.map((l:any)=>({itemId:l.itemId,quantity:l.quantity,dispatched:l.dispatched,cancelled:l.cancelled,reserved:l.reserved}))
  return save(env,actor,{...order,status:'cancelled',release:{...order.release!,confirmedAt:(await now()).toISOString(),lines}},'order.released')
 }
+/** A waiting request returns to an unsubmitted draft; nothing it was approved on carries over. */
+function backToDraft(order:Order):Order {
+ const {companyPreparedBy,companyRequestedAt,approvalRoute,submittedBy,termsAcceptance,poRelease,...rest}=order
+ return {...rest,status:'draft'}
+}
+async function voidApproval(env:Bindings,actor:Actor,order:Order,reason:string) {
+ await save(env,actor,{...backToDraft(order),approvalVoided:{at:(await now()).toISOString(),reason}},'order.company-approval-voided',[],`A material change voided the approvals on this request: ${reason}`)
+}
+/** The ship-to snapshot must still be the company's current location, unedited and unarchived. */
+async function assertSameAddress(db:D1Database,order:Order) {
+ if(!order.shipTo)return
+ const row=await db.prepare('SELECT revision,archived FROM bw_locations WHERE id=?').bind(order.shipTo.id).first<{revision:string;archived:number}>()
+ if(!row||row.archived||row.revision!==order.shipTo.revision)fail('ADDRESS_CHANGED','The ship-to address changed after this request was prepared. The purchaser must prepare a new draft.')
+}
 async function assertCurrentPricing(env:Bindings,selected:Account,order:Order,submission=false) {
  // PRI-007: read current Pier at every admission. Submission revalidates the whole cart;
  // approval checks current commercial terms, then Pier's reservation is authoritative for stock shortfalls.
@@ -102,13 +117,32 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','This order is not awaiting company approval.')
   if(p.revision!==order.revision)fail('CHANGED','Refresh the exact order before company approval.')
   if(order.preparedBy===actor.id)fail('SELF_APPROVAL','The preparer cannot approve their own order.',403)
+  // ACC-007: the frozen route names this step's approvers, delegates and escalation people, in order and one person per step.
+  const decision=order.approvalRoute?await routeDecision(env.DB,actor,order as Order&{approvalRoute:NonNullable<Order['approvalRoute']>}):null
   const approval=await requireCompanyApproval(env.DB,actor,{...order,preparedBy:order.companyPreparedBy??order.preparedBy})
   const selected=await account(env.DB,actor,order.accountId);requireActiveAccount(selected)
-  if(selected.revision!==order.accountRevision)fail('PRICE_CHANGED','The account changed. The purchaser must prepare a new draft.')
-  await assertCurrentPricing(env,selected,order,true)
+  try {
+   if(selected.revision!==order.accountRevision)fail('PRICE_CHANGED','The account changed. The purchaser must prepare a new draft.')
+   await assertCurrentPricing(env,selected,order,true)
+   await assertSameAddress(env.DB,order)
+  } catch(error) {
+   // A material price or address change voids every approval so far: the request returns to a draft for a fresh review.
+   if(error instanceof Problem&&['PRICE_CHANGED','ADDRESS_CHANGED'].includes(error.code)) await voidApproval(env,actor,order,error.message)
+   throw error
+  }
   const stale=staleStock(order,await freshnessLimit(env.DB),await now());if(stale)fail('STOCK_STALE',stale)
-  const at=(await now()).toISOString(),release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtCompanyRelease(env,actor,selected,order,p.termsAcceptance,at)
-  return save(env,actor,{...order,status:'submitted',...(release.poRelease?{poRelease:release.poRelease}:{}),companyApprovedBy:actor.id,companyApprovedAt:at,...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})},'order.company-approved',[release.guard,approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery),terms.guard,...terms.statements],text(p.reason,'Company approval reason',1000))
+  const at=(await now()).toISOString(),entry=decision?decidedEntry(decision,actor,at):null,route=order.approvalRoute&&entry?{...order.approvalRoute,decided:[...order.approvalRoute.decided,entry]}:undefined
+  const how=decision?`${decision.via==='delegate'?` as delegate for ${decision.delegatedFrom}`:decision.via==='escalation'?' by escalation':''}`:''
+  if(decision&&!decision.last)return save(env,actor,{...order,approvalRoute:{...route!,stepRequestedAt:at}},'order.company-step-approved',[approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery)],`Step ${decision.step} (${decision.label}) approved${how}: ${text(p.reason,'Company approval reason',1000)}`)
+  const release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtCompanyRelease(env,actor,selected,order,p.termsAcceptance,at)
+  return save(env,actor,{...order,status:'submitted',...(route?{approvalRoute:route}:{}),...(release.poRelease?{poRelease:release.poRelease}:{}),companyApprovedBy:actor.id,companyApprovedAt:at,...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})},'order.company-approved',[release.guard,approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery),terms.guard,...terms.statements],`${decision?`Final step ${decision.step} (${decision.label}) approved${how}: `:''}${text(p.reason,'Company approval reason',1000)}`)
+ }
+ if(type==='order.withdraw') {
+  if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','Only a request waiting for company approval can be withdrawn.')
+  if(p.revision!==order.revision)fail('CHANGED','Refresh the exact order before withdrawing it.')
+  const member=await requireCompanyRight(env.DB,actor,order.accountId,'purchasing')
+  if(!member||member.userId!==order.companyPreparedBy&&!member.rights.includes('administrator'))fail('FORBIDDEN','Only the person who submitted this request or a company administrator can withdraw it.',403)
+  return save(env,actor,backToDraft(order),'order.company-withdrawn',[companyRightsGuard(env.DB,member)],`Withdrew the unapproved request; every approval so far is void and a resubmission needs fresh approval: ${text(p.reason,'Withdrawal reason',1000)}`)
  }
  if(type==='shipping.select' || type==='shipping.quote') {
   if(order.status!=='draft')fail('SHIPPING_LOCKED','Delivery changes require a new reviewed draft.')

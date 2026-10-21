@@ -1,5 +1,7 @@
 import { readStaffGrant,readStaffMembers,staffCommand } from './staff-members'
 import { readRepAssignments,repAssignmentCommand } from './rep-assignments'
+import { readCompanyRoutes,companyRouteCommand } from './company-routes'
+import { withApprovalStatus } from './company-approval'
 import { staffRequestGate,staffCommandGate } from './staff-access'
 import { bootstrapLegacyCompanyMembers, companyMembership, companyCommand, readCompanyMembers, readCompanyCollisions, ownCompanyInvitations, requireCompanyRight } from './company-members'
 import { applicationResponse, applicationCommand } from './applications'
@@ -75,6 +77,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/staff/members'&&request.method==='GET')return json({members:await readStaffMembers(env.DB,actor)})
   if(path==='/api/barrow/company/invitations'&&request.method==='GET')return json({invitations:await ownCompanyInvitations(env.DB,actor)})
   if(path==='/api/barrow/company/collisions'&&request.method==='GET')return json({collisions:await readCompanyCollisions(env.DB,actor)})
+  if(path==='/api/barrow/company/routes'&&request.method==='GET')return json(await readCompanyRoutes(env.DB,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/company/members'&&request.method==='GET')return json(await readCompanyMembers(env.DB,actor,url.searchParams.get('accountId')??''))
   if(!['GET','HEAD'].includes(request.method) && !actor.agent && request.headers.get('origin')!==env.AUTH_ORIGIN) fail('ORIGIN','Use this installation’s own page to change records.',403)
   if(path==='/api/barrow/usage-terms'&&request.method==='GET')return json(await readUsageTerms(env,actor))
@@ -162,7 +165,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(document && request.method==='GET') return await documentResponse(env,actor,await readOrder(env.DB,actor,document[1]))
   // RPT-001 drill-down: one order as its reader may see it.
   const one=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
-  if(one && one[1]!=='history' && request.method==='GET') return json(await readOrder(env.DB,actor,one[1]))
+  if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
   if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
   if(path.startsWith('/api/barrow/imports')) {
@@ -195,6 +198,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(['staff.invite','staff.update','staff.revoke'].includes(body.type))return json({result:await staffCommand(request,env,actor,body.type,body.payload)})
    if(['rep.assign','rep.cover','rep.end','rep.transfer'].includes(body.type))return json({result:await repAssignmentCommand(env,actor,body.type,body.payload)})
+   if(['company.route.save','company.delegate','company.undelegate'].includes(body.type))return json({result:await companyRouteCommand(env,actor,body.type,body.payload)})
    if(['company.invite','company.accept','company.update','company.remove','company.erase'].includes(body.type))return json({result:await companyCommand(request,env,actor,body.type,body.payload)})
    if(['usage.publish','usage.accept'].includes(body.type))return json({result:await usageTermsCommand(env,actor,body.type,body.payload)})
    if(['application.approve','application.decline','application.request-information'].includes(body.type))return json({result:await applicationCommand(request,env,actor,body.type,body.payload)})
@@ -206,7 +210,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)

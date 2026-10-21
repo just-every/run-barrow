@@ -8,6 +8,7 @@ import { toD1Sql } from '@runeditrun/rer/modules/erasure/fence'
 import { portabilityPolicy } from './portability-policy.mjs'
 
 export * from './company-policy'
+import { endDelegations, refuseRouteReference } from './company-routes'
 const week = 7 * 86400000
 const missing = () => fail('NOT_FOUND', 'Company user not found.', 404)
 const token = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), value => value.toString(16).padStart(2, '0')).join('')
@@ -140,7 +141,9 @@ export async function companyCommand(request: Request, env: Bindings, actor: Act
  if (p.revision !== member.revision || member.state === 'removed' || member.erasedAt) fail('CHANGED', 'Refresh the current company user before changing rights.')
  if (type === 'company.update') {
   const policy = await validateCompanyPolicy(env.DB, accountId, p.policy ?? p)
+  if (!policy.rights.includes('approver')) await refuseRouteReference(env.DB, accountId, member.userId)
   await commit(env.DB, actor, [companyRightsGuard(env.DB, manager), locationGuard(env.DB, accountId, policy),
+   ...(!policy.rights.includes('approver') ? [endDelegations(env.DB, member.userId, revision)] : []),
    ...(!policy.rights.includes('administrator') ? [preserveLastAdministrator(env.DB, member)] : []),
    env.DB.prepare("UPDATE bw_company_members SET policy_json=?,revision=?,updated_at=? WHERE id=? AND revision=? AND state<>'removed'").bind(JSON.stringify(policy), revision, at, member.id, member.revision), changed(env.DB),
    env.DB.prepare("UPDATE bw_company_invites SET policy_json=?,revision=? WHERE member_id=? AND status='requested'").bind(JSON.stringify(policy), revision, member.id),
@@ -149,7 +152,8 @@ export async function companyCommand(request: Request, env: Bindings, actor: Act
   return parseCompanyMember(await currentMember(env.DB, member.id))
  }
  if (type === 'company.remove') {
-  await commit(env.DB, actor, [companyRightsGuard(env.DB, manager), preserveLastAdministrator(env.DB, member),
+  await refuseRouteReference(env.DB, accountId, member.userId)
+  await commit(env.DB, actor, [companyRightsGuard(env.DB, manager), preserveLastAdministrator(env.DB, member), endDelegations(env.DB, member.userId, revision),
    env.DB.prepare("UPDATE bw_company_members SET state='removed',revision=?,updated_at=? WHERE id=? AND revision=? AND state<>'removed'").bind(revision, at, member.id, member.revision), changed(env.DB),
    env.DB.prepare("UPDATE bw_company_invites SET status='revoked',token_hash=NULL WHERE member_id=? AND status='requested'").bind(member.id),
    withdrawMemberMail(env.DB, member.userId, accountId),
@@ -208,6 +212,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
  const member = parseCompanyMember(row), reason = text(p.reason, 'Erasure reason', 1000)
  if (p.revision !== member.revision) fail('CHANGED', 'Refresh the company user before erasing.')
  if (await env.DB.prepare('SELECT 1 FROM bw_retention_requests WHERE held=1 AND account_id IN (SELECT account_id FROM bw_company_members WHERE user_id=?)').bind(member.userId).first()) fail('LEGAL_HOLD', 'Preserve this company user under a company’s held erasure request.')
+ await refuseRouteReference(env.DB, member.accountId, member.userId)
  const at = new Date().toISOString(), revision = crypto.randomUUID(), former = 'Former company user', email = `former-${member.userId.replace(/[^A-Za-z0-9-]/g, '')}@invalid.invalid`
  const person = await env.DB.prepare('SELECT email,display_name FROM oa_operators WHERE id=?').bind(member.userId).first<any>()
  const originals = [...new Set([member.email, person?.email, member.name, person?.display_name].filter((value): value is string => typeof value === 'string' && value.length > 0))]
@@ -230,6 +235,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   env.DB.prepare("UPDATE bw_company_members SET email=?,email_key=?,display_name=?,state='removed',revision=?,erased_at=?,updated_at=? WHERE user_id=?").bind(email, email, former, revision, at, at, member.userId),
   env.DB.prepare("UPDATE bw_company_invites SET email=?,email_key=?,display_name=?,status='revoked',token_hash=NULL,delivery_status='withdrawn' WHERE email_key=? OR member_id IN (SELECT id FROM bw_company_members WHERE user_id=?)").bind(email, email, former, companyEmail(member.email), member.userId),
   env.DB.prepare('INSERT INTO bw_erasure_receipts VALUES(?,?,?,?,?,?,?)').bind(revision,member.id,member.accountId,'company-user',actor.id,at,reason),
+  endDelegations(env.DB, member.userId, revision),
   env.DB.prepare('DELETE FROM bw_lists WHERE created_by=? AND json_extract(value_json,\'$.shared\')=0').bind(member.userId),
   withdrawMemberMail(env.DB, member.userId, member.accountId),
   env.DB.prepare('DELETE FROM bw_usage_acceptances WHERE user_id=?').bind(member.userId),

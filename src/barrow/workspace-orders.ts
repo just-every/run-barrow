@@ -2,6 +2,7 @@ import { companyOrderScope } from './company-access'
 import type { Bindings } from '../auth.server'
 import { fail, supplier, supplierDate, type Actor, type Order } from './model'
 import { poKey } from './purchase'
+import { withApprovalStatus } from './company-approval'
 
 type Stored = { value_json: string; revision: string; position: number }
 const parse = (row: Stored): Order => ({ ...JSON.parse(row.value_json), revision: row.revision })
@@ -9,7 +10,7 @@ const statuses = ['draft', 'awaiting-company-approval', 'submitted', 'reserving'
 const live = ['submitted', 'reserving', 'shortfall', 'approved', 'releasing']
 const scope = companyOrderScope
 export async function orderPeople(db: D1Database, orders: Order[]) {
- const ids = [...new Set(orders.flatMap(order => [order.preparedBy, order.submittedBy, order.companyPreparedBy, order.companyApprovedBy, order.approvedBy]).filter((id): id is string => typeof id === 'string' && !id.startsWith('agent:')))]
+ const ids = [...new Set(orders.flatMap(order => [order.preparedBy, order.submittedBy, order.companyPreparedBy, order.companyApprovedBy, order.approvedBy,...(order.approvalRoute?.decided.map(entry=>entry.by)??[]),...(order.approvalRoute?.steps.flatMap(step=>[...step.approvers,...step.escalateTo])??[])]).filter((id): id is string => typeof id === 'string' && !id.startsWith('agent:')))]
  return ids.length ? Object.fromEntries((await db.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<{id:string;display_name:string}>()).results.map(row => [row.id, row.display_name])) : {}
 }
 /** Original Unicode/Eastern history semantics, with bounded database batches and browser pages. */
@@ -62,7 +63,7 @@ export async function workspaceOrders(env: Bindings, actor: Actor, query: URLSea
  const completedReplacements = replacementIds.length ? (await env.DB.prepare("SELECT id FROM bw_orders WHERE id IN (SELECT value FROM json_each(?)) AND json_extract(value_json,'$.status') IN ('approved','shortfall')" + visible.sql).bind(JSON.stringify(replacementIds), ...visible.values).all<{id:string}>()).results.map(row => row.id) : []
  const accountIds = [...new Set(orders.map(order=>order.accountId))]
  const accountRevisions = accountIds.length ? Object.fromEntries((await env.DB.prepare('SELECT id,revision FROM bw_accounts WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(accountIds)).all<{id:string;revision:string}>()).results.map(row=>[row.id,row.revision])) : {}
- return { orders, accountRevisions, completedReplacements, people: await orderPeople(env.DB, orders), page, pageSize, hasNext, counts, duplicatePOs }
+ return { orders: await withApprovalStatus(env.DB, actor, orders), accountRevisions, completedReplacements, people: await orderPeople(env.DB, orders), page, pageSize, hasNext, counts, duplicatePOs }
 }
 /** One initial draft, chosen from the complete authorized collection, independent of the first page. */
 export async function waitingDraft(db: D1Database, actor: Actor) {

@@ -4,6 +4,7 @@ import {RepAssignments} from './rep-assignments'
 import {StaffWorkspace} from './staff-workspace'
 import {Followups} from './followups'
 import { CompanyUsers, CompanyInvitation } from './company-members'
+import { CompanyRoutes } from './company-routes'
 import { ApplicationRetention } from './application-retention'
 import { Applications } from './applications'
 import { UsageAcceptance, UsagePublisher } from './usage-terms'
@@ -158,8 +159,10 @@ export function BarrowApp() {
           {activeTab === 'Reports'&&staff&&<StaffWorkspace actor={state.actor} accounts={state.accounts} orders={state.orders} people={state.people} run={run} busy={busy} version={state} onOpen={order=>openPad(order.accountId,order.id)}/>}
           {activeTab === 'Follow-ups'&&staff&&<Followups/>}
           {activeTab === 'Company' && companyAdmin && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier={false}/>}
+          {activeTab === 'Company' && companyAdmin && <CompanyRoutes accounts={state.accounts} version={state} busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier/>}
-          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} canOperate={legacySupplier||Boolean(staff&&['sales-manager','operations'].includes(staff.role)&&staff.warehouses==='all')} stockExceptionLimitCents={staff?.stockExceptionLimitCents} canExcept={legacySupplier||staff?.role==='sales-manager'&&staff.stockExceptionLimitCents>0} canQuote={legacySupplier||staff?.role==='sales-manager'} companyApprover={legacySupplier||rights.includes('approver')} canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+          {activeTab === 'Accounts' && legacySupplier && <CompanyRoutes accounts={state.accounts} version={state} busy={busy} run={run}/>}
+          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} canOperate={legacySupplier||Boolean(staff&&['sales-manager','operations'].includes(staff.role)&&staff.warehouses==='all')} stockExceptionLimitCents={staff?.stockExceptionLimitCents} canExcept={legacySupplier||staff?.role==='sales-manager'&&staff.stockExceptionLimitCents>0} canQuote={legacySupplier||staff?.role==='sales-manager'} companyApprover={legacySupplier||rights.includes('approver')} companyManager={!staff&&rights.includes('administrator')} canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Orders' && (legacySupplier||staffSelling||!staff&&purchasing) && <Quotes canApproveDiscount={legacySupplier||staff?.role==='sales-manager'} discountLimitCents={staff?.discountLimitCents} canQuoteDelivery={legacySupplier||staff?.role==='sales-manager'} canPurchase={legacySupplier||staffSelling||Boolean(state.actor.company?.rights.includes('purchaser'))} supplier={supplier} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
