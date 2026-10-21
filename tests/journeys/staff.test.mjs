@@ -130,7 +130,7 @@ test('owner invites five native functional staff roles, exact scoped reports and
   assert.equal(state.actor.staff.role, person.role);
   assert.equal((await rosterPerson(person.email)).effective, true);
   assert.deepEqual(state.accounts.map(account => account.id).sort(), person.role === 'analyst' ? [] : person.accounts === 'all' ? [assigned, other] : [assigned]);
-  for (const name of ['Team', 'Data', 'Audit', 'Move in']) await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
+  for (const name of ['Team', 'Data', 'Move in']) await expect(page.getByRole('button', { name, exact: true })).toHaveCount(0);
   if (!['sales-manager', 'rep'].includes(person.role)) await expect(page.getByRole('button', { name: 'Order pad', exact: true })).toHaveCount(0);
   if (person.role !== 'sales-manager') await expect(page.getByRole('button', { name: 'Accounts', exact: true })).toHaveCount(0);
   if (['sales-manager', 'rep'].includes(person.role)) await page.getByRole('spinbutton', { name: /quantity for Toasted oat granola/ }).waitFor();
@@ -207,6 +207,13 @@ test('owner invites five native functional staff roles, exact scoped reports and
  }
 
  const rep = active.find(person => person.role === 'rep');
+ await rep.page.getByRole('button',{name:'Audit',exact:true}).click();
+ await rep.page.getByRole('heading',{name:'Commercial audit',exact:true}).waitFor();
+ await captureWidths(rep.page,'staff-own-audit');
+ const managerPage=active.find(person=>person.role==='sales-manager').page;
+ await managerPage.getByRole('button',{name:'Reports',exact:true}).click();
+ await managerPage.getByText('Manage commission rules',{exact:true}).click();
+ await captureWidths(managerPage,'staff-manager-commission-policy');
  await json(rep.page, `/api/barrow/accounts/by-id/${assigned}`);
  await json(rep.page, `/api/barrow/accounts/by-id/${other}`, 404);
  await json(rep.page, `/api/barrow/orders/${invoices.get(other).id}`, 404);
