@@ -25,7 +25,7 @@ export function StatementCard({ accounts }: { accounts: Account[] }) {
   if (!accounts.length) return null
   return <section className="br-card br-stack" aria-label="Account statement"><h2>Account statement</h2>
     <div className="br-actions">
-      {accounts.length > 1 && <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />}
+      {accounts.length > 0 && <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />}
       <label>From (invoice issue date)<input type="date" value={from} onChange={event => setFrom(event.target.value)} /></label>
       <label>To<input type="date" value={to} min={from || undefined} onChange={event => setTo(event.target.value)} /></label>
     </div>

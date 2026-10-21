@@ -31,7 +31,7 @@ export function Locations({ accounts, busy, run, version }: { accounts: Account[
     if (await run('location.save', { accountId, kind, value, makeDefault })) { setForm(blank); setMakeDefault(false) }
   }
   return <div className="br-card br-stack" aria-label="Locations"><h2>Billing and delivery locations</h2>
-    {accounts.length > 1 && <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />}
+    {accounts.length > 0 && <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />}
     {accountId && <>
       {locations.length === 0 && <p>No locations yet. Orders use a delivery label until you add a ship-to.</p>}
       <ul className="br-stack">{locations.filter(location => !location.archived).map(location => <li key={location.id}>

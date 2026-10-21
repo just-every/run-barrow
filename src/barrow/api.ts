@@ -19,7 +19,8 @@ import { runtimeBindings, type Bindings } from '../auth.server'
 import { createPortabilityHandler, boundedJson } from '@runeditrun/rer/modules/portability/http'
 import { portabilityPolicy } from './portability-policy.mjs'
 import { current,digest,commit,audit } from './access'
-import { account,accounts,accountCommand } from './accounts'
+import { account,accountCommand } from './accounts'
+import { accountPage, duplicateAccountPage } from './account-directory'
 import { orderCommand,readOrder } from './orders'
 import { cartCommand } from './cart-import'
 import { listCommand, readLists } from './lists'
@@ -81,10 +82,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const termsSignature=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/terms-signature$/.exec(path)
   if(termsSignature && request.method==='GET') return await termsSignatureResponse(env,actor,await readOrder(env.DB,actor,termsSignature[1]))
   if(path==='/api/barrow/state' && request.method==='GET') {
-   const selected=await accounts(env.DB,actor)
+   const directory=await accountPage(env.DB,actor,new URLSearchParams())
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
    const {orders,people,...orderPage}=page
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:directory.accounts,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
   if(path==='/api/barrow/shipping/options' && request.method==='GET') {
@@ -105,6 +106,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/export.json' && request.method==='GET') return await exportResponse(env,actor,'json')
   const exported=/^\/api\/barrow\/export\/([a-z]+)\.csv$/.exec(path)
   if(exported && request.method==='GET' && (exportKinds as readonly string[]).includes(exported[1])) return await exportResponse(env,actor,exported[1] as (typeof exportKinds)[number])
+  if(path==='/api/barrow/accounts' && request.method==='GET')return json(await accountPage(env.DB,actor,url.searchParams))
+  if(path==='/api/barrow/accounts/duplicates' && request.method==='GET')return json(await duplicateAccountPage(env.DB,actor,url.searchParams))
+  const accountRead=/^\/api\/barrow\/accounts\/by-id\/([^/]+)$/.exec(path)
+  if(accountRead && request.method==='GET')return json(await account(env.DB,actor,decodeURIComponent(accountRead[1])))
   if(path==='/api/barrow/orders/search' && request.method==='GET') return json(await searchOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json(await workspaceOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/locations' && request.method==='GET') return json({locations:await readLocations(env.DB,actor,url.searchParams.get('accountId')??'')})

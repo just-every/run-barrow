@@ -2,7 +2,7 @@ import { OrderConfirmations } from './order-confirmations'
 import { BulkConfirmations } from './bulk-confirmations'
 import { useEffect, useState } from 'react'
 import type { Account, Order, RunCommand } from './types'
-import { byAgent, day, money, orderNumber, stale, terms, when } from './types'
+import { byAgent, day, money, orderNumber, terms, when } from './types'
 import { Empty } from './primitives'
 import { orderStyles } from './styles'
 import { OrderShipping } from './order-shipping'
@@ -24,7 +24,7 @@ const explanations: Record<Order['status'], string> = {
   cancelled: 'Cancelled. Pier confirmed the stock release; this order holds no stock and has no invoice to download.',
 }
 const filters = [['All','all'], ['Drafts','draft'], ['In review','review'], ['Approved','approved'], ['Cancelled','cancelled']] as const
-type HistoryPage = {orders:Order[];people:Record<string,string>;page:number;hasNext:boolean;counts:Record<string,number>;duplicatePOs:string[];completedReplacements:string[]}
+type HistoryPage = {accountRevisions:Record<string,string>;orders:Order[];people:Record<string,string>;page:number;hasNext:boolean;counts:Record<string,number>;duplicatePOs:string[];completedReplacements:string[]}
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
 export function Orders({ orders: all, accounts, people, viewer, supplier, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
@@ -73,7 +73,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
     {history && count('all')===0 && <Empty title="No orders yet">Choose products from a trade account’s catalog to prepare your first order.</Empty>}
     {history && count('all') > 0 && !shown.length && <p className="br-quiet-text">No orders in this view.</p>}
     {shown.map(order => {
-      const moved = stale(order, accounts), units = order.lines.reduce((sum, line) => sum + Number(line.baseQuantity??line.quantity), 0)
+      const moved = order.status==='draft' && history?.accountRevisions[order.accountId] !== order.accountRevision, units = order.lines.reduce((sum, line) => sum + Number(line.baseQuantity??line.quantity), 0)
       return <article key={order.id} className={`br-card br-order${moved ? ' br-order-moved' : ''}`}>
         <div className="br-order-main">
           <div className="br-order-meta"><span className="br-order-id">{orderNumber(order.id)}</span><span className={`br-status br-status-${order.status}`}>{order.status}</span>{byAgent(order) && <span className="br-agent-tag"><span className="br-rivet" aria-hidden="true" />Prepared by your agent</span>}{order.replaces && <span className="br-replaces">Replaces {orderNumber(order.replaces)}</span>}</div>

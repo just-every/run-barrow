@@ -59,7 +59,9 @@ export async function workspaceOrders(env: Bindings, actor: Actor, query: URLSea
  }
  const replacementIds = orders.flatMap(order => order.substitutions?.flatMap(offer => offer.replacementId ? [offer.replacementId] : []) ?? [])
  const completedReplacements = replacementIds.length ? (await env.DB.prepare("SELECT id FROM bw_orders WHERE id IN (SELECT value FROM json_each(?)) AND json_extract(value_json,'$.status') IN ('approved','shortfall')" + visible.sql).bind(JSON.stringify(replacementIds), ...visible.values).all<{id:string}>()).results.map(row => row.id) : []
- return { orders, completedReplacements, people: await orderPeople(env.DB, orders), page, pageSize, hasNext, counts, duplicatePOs }
+ const accountIds = [...new Set(orders.map(order=>order.accountId))]
+ const accountRevisions = accountIds.length ? Object.fromEntries((await env.DB.prepare('SELECT id,revision FROM bw_accounts WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(accountIds)).all<{id:string;revision:string}>()).results.map(row=>[row.id,row.revision])) : {}
+ return { orders, accountRevisions, completedReplacements, people: await orderPeople(env.DB, orders), page, pageSize, hasNext, counts, duplicatePOs }
 }
 /** One initial draft, chosen from the complete authorized collection, independent of the first page. */
 export async function waitingDraft(db: D1Database, actor: Actor) {
