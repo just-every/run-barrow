@@ -113,7 +113,8 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  await h.command('order.stock-exception', { orderId: draft.id, reason: 'Rep cannot accept stale stock.' }, { ...rep, status: 403 });
  const excepted = await h.command('order.stock-exception', { orderId: draft.id, reason: 'Manager counted the shelf at the exact amount limit.' }, manager);
  assert.equal(excepted.totalCents, managerGrant.stockExceptionLimitCents); assert.equal(excepted.stockException.by, managerGrant.userId);
- await h.command('order.submit', { orderId: draft.id }, rep);
+ await h.command('order.submit', { orderId: draft.id }, { ...rep, status: 403 }); // the account has a buyer: REP-001 leaves submission to them
+ await h.command('order.submit', { orderId: draft.id }, buyer);
  await h.command('order.approve', { orderId: draft.id }, { ...operations, status: 403 });
  operationsGrant = await update(operationsGrant, policy('operations', { warehouses: 'all', reports: ['fulfillment'] }));
  const approved = await h.command('order.approve', { orderId: draft.id }, operations);

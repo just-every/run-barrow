@@ -1,14 +1,14 @@
 import { readStaffGrant,staffAccountAllowed } from './staff-policy'
 import { companySubmission } from './company-purchase'
 import { companyOrderRead } from './company-access'
-import { companyRightsGuard, requireCompanyRight, requireCompanyApproval } from './company-policy'
+import { activeBuyerExists, companyRightsGuard, requireCompanyRight, requireCompanyApproval } from './company-policy'
 import { commissionSnapshot } from './commission-rules'
 import { confirmationStatements } from './confirmations'
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
 import { catalogue,reserveOrder,pierState,pierOrigin,fullyReserved,pierOrder,releaseOrder,released,decimal } from './pier'
-import { fail,text,requirePerson,requireSupplier,actorLabel,supplierDate,type Actor,type Order,type Account } from './model'
+import { fail,text,requirePerson,requireSupplier,actorLabel,supplier,supplierDate,type Actor,type Order,type Account } from './model'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
 import { reviewReorder } from './reorders'
@@ -129,6 +129,8 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
   if(order.delivery && (['owner','admin'].includes(actor.role)||actor.staff))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
+  // REP-001: a rep prepares for the buyer's approval. Where the account has a signed-in buyer, that buyer submits, so the company's own limits and approvers apply and a rep cannot stand in for them.
+  if(actor.staff&&await activeBuyerExists(env.DB,order.accountId))fail('BUYER_REQUIRED','This account has a buyer. Your prepared order waits for the buyer to review and submit it under the company’s own approval policy.',403)
   const delivery=await acceptDelivery(env,actor,{currency:order.currency??'AUD',account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
   const at=(await now()).toISOString(),release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtSubmission(env,actor,selected,order.id,p.termsAcceptance,at)
   const submission=await companySubmission(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{}),...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})})
@@ -221,7 +223,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   await requireCompanyRight(env.DB,actor,selected.id,'purchaser',shipTo?.id)
   if(member&&member.locations!=='all'&&!shipTo)fail('FORBIDDEN','Choose one of your permitted ship-to locations.',403)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
-  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
+  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`})]:[]
   await commit(env.DB,actor,[companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])

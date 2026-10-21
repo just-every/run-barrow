@@ -36,6 +36,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
  if(method==='GET'&&relative==='locations')return
  if(method==='GET'&&relative==='sales-terms')return
+ if(selling.includes(role)&&method==='GET'&&/^statements\/[-a-zA-Z0-9._:]+?(?:\.(csv|pdf))?$/.test(relative))return // REP-001: balances of accounts held today; account() scopes the read
  if(method==='GET'&&/^sales-terms\/[^/]+\/[1-9]\d*\/document$/.test(relative))return
  if(method==='GET'&&(/^(invoices|statements)\//.test(relative)||/^export(?:\.json|\/[^/]+\.csv)$/.test(relative))&&(role==='finance'||selling.includes(role)&&relative==='export/followups.csv'))return
  if(selling.includes(role)&&method==='GET'&&(relative==='catalogue'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return

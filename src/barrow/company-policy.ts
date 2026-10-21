@@ -101,6 +101,11 @@ export async function requireCompanyApproval(db: D1Database, actor: Actor, order
  }
  return { member, preparer: null, guard: companyRightsGuard(db, member), preparerGuard: companyRightsGuard(db, null) }
 }
+/** True when the company has at least one active signed-in purchaser or approver (the people whose policies a rep cannot replace). */
+export async function activeBuyerExists(db: D1Database, accountId: string) {
+ return Boolean(await db.prepare(`SELECT 1 FROM bw_company_members cm JOIN oa_operators p ON p.id=cm.user_id WHERE cm.account_id=? AND cm.state='active' AND cm.erased_at IS NULL
+  AND p.status='active' AND p.role='member' AND EXISTS(SELECT 1 FROM json_each(cm.policy_json,'$.rights') r WHERE r.value IN ('purchaser','approver')) LIMIT 1`).bind(accountId).first())
+}
 /** SQL predicate over an oa_operators alias; use at enqueue AND at dispatch claim. */
 export function companyPurchasingRecipientSql(personAlias = 'p', accountExpression = 'm.account_id') {
  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(personAlias) || !/^[A-Za-z_][A-Za-z0-9_.]*$/.test(accountExpression)) throw new Error('Invalid server-authored recipient alias')
