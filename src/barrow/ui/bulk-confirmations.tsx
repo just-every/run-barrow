@@ -27,6 +27,7 @@ export function BulkConfirmations({orderIds}:{orderIds:string[]}) {
   }catch(cause){setError(errorMessage(cause))}finally{setBusy(false)}
  }
  return <details className="br-card br-stack"><summary>Bulk confirmation CSV</summary>
+  <div className="br-stack">
   <p>Load up to 50 orders from the current order view, then choose one recorded confirmation revision per order. The latest recorded revision is preselected when you select an order. Drafts and historical orders without confirmations cannot be exported.</p>
   <button type="button" className="br-secondary" disabled={busy||!orderIds.length} onClick={()=>void load()}>{busy?'Working…':'Load current view'}</button>
   {error&&<p role="alert">{error}</p>}
@@ -34,7 +35,7 @@ export function BulkConfirmations({orderIds}:{orderIds:string[]}) {
    <div className="br-actions"><button type="button" className="br-secondary" disabled={busy} onClick={()=>{setSelected(Object.fromEntries(orders.filter(order=>order.confirmations.length).map(order=>[order.orderId,order.confirmations.at(-1)!.number])));setDownloaded(false)}}>Select all recorded</button><button type="button" className="br-secondary" disabled={busy||!count} onClick={()=>{setSelected({});setDownloaded(false)}}>Clear selection</button></div>
    <fieldset className="br-stack" disabled={busy}><legend>Recorded confirmations</legend>
     {orders.map(order=><div className="br-stack" key={order.orderId}>
-     <label><input type="checkbox" disabled={!order.confirmations.length} checked={selected[order.orderId]!==undefined} onChange={event=>choose(order.orderId,event.target.checked?order.confirmations.at(-1)!.number:undefined)}/>{order.reference||order.orderId} · {order.orderId}</label>
+     <div className="br-actions"><button type="button" className={selected[order.orderId]===undefined?'br-secondary':undefined} disabled={!order.confirmations.length} aria-pressed={selected[order.orderId]!==undefined} onClick={()=>choose(order.orderId,selected[order.orderId]===undefined?order.confirmations.at(-1)!.number:undefined)}>{selected[order.orderId]===undefined?'Include':'Included'} {order.reference||order.orderId} · {order.orderId}</button></div>
      {order.confirmations.length?<label>Revision for {order.reference||order.orderId}<select aria-label={`Revision for ${order.reference||order.orderId}`} disabled={selected[order.orderId]===undefined} value={selected[order.orderId]??order.confirmations.at(-1)!.number} onChange={event=>choose(order.orderId,Number(event.target.value))}>{order.confirmations.map(record=><option key={record.number} value={record.number}>C{record.number} · {record.stage} · {record.orderRevision}</option>)}</select></label>:<p>No recorded confirmation.</p>}
     </div>)}
    </fieldset>
@@ -43,5 +44,6 @@ export function BulkConfirmations({orderIds}:{orderIds:string[]}) {
    <button type="button" disabled={busy||!count} onClick={()=>void download()}>Download {count} selected confirmations CSV</button>
    {downloaded&&<p role="status">The selected confirmation CSV was downloaded.</p>}
   </>}
+  </div>
  </details>
 }
