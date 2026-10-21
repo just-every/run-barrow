@@ -16,12 +16,12 @@ import { useLocations } from './locations'
 import { byAgent, clock, money, terms, town, when } from './types'
 
 interface Props {
-  account: Account; accounts: Account[]; supplier: boolean; draft?: Order; draftCount: number; commandError?: string; run: RunCommand; busy: boolean
+  account: Account; accounts: Account[]; supplier: boolean; canPurchase?:boolean; draft?: Order; draftCount: number; commandError?: string; run: RunCommand; busy: boolean
   onAccount: (id: string) => void; onDraft: (id: string) => void; onPrepared: () => void
 }
 
 // The rep's order pad: one account, a large style card beside the size matrix, and the running total always in view.
-export function OrderPad({ account, accounts, supplier, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
+export function OrderPad({ account, accounts, supplier, canPurchase=true, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
   const [unitOrder,setUnitOrder] = useState(false)
   const [importing,setImporting] = useState(false)
@@ -90,7 +90,7 @@ export function OrderPad({ account, accounts, supplier, draft, draftCount, comma
 
   async function prepare(event: FormEvent) {
     event.preventDefault()
-    if (blocked || unitOrder || unitDraft) return
+    if (!canPurchase || blocked || unitOrder || unitDraft) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
     const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
@@ -155,9 +155,9 @@ export function OrderPad({ account, accounts, supplier, draft, draftCount, comma
     <div className="br-pad-send">
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setListing(true)}>Saved lists</button>}
-      {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive || !chosen.length || invalid} onClick={() => void requestQuote()}>Request quote</button>}
-      {catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>{setUnitLines(undefined);setUnitOrder(true)}}>Order by selling unit</button>}
-      <button disabled={busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
+      {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={!canPurchase || busy || inactive || !chosen.length || invalid} onClick={() => void requestQuote()}>Request quote</button>}
+      {canPurchase&&catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>{setUnitLines(undefined);setUnitOrder(true)}}>Order by selling unit</button>}
+      <button disabled={!canPurchase || busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
       {hint && <p className="br-quiet-text">{hint}</p>}
       {corrections.length > 0 && <div className="br-actions">{corrections.map(({ sku, value }) => <button key={`${sku}-${value}`} type="button" className="br-secondary" disabled={busy} onClick={() => setQuantities(current => ({ ...current, [sku]: value }))}>Use {value} for {sku}</button>)}</div>}
     </div>
@@ -170,7 +170,7 @@ export function OrderPad({ account, accounts, supplier, draft, draftCount, comma
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}
         <StyleMatrix rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
           onQuantity={(key, value) => setQuantities(current => ({ ...current, [key]: value }))} onSelect={setSelected} onKeep={key => setKept(current => new Set(current).add(key))} onRemove={remove} />
-        <p className="br-quiet-text br-matrix-foot">Preparing creates a draft for review. Submit it from Orders when you are ready.<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
+        <p className="br-quiet-text br-matrix-foot">{canPurchase?'Preparing creates a draft for review. Submit it from Orders when you are ready.':'Your approver rights allow company review in Orders; preparing purchases requires purchaser rights.'}<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
       </section>
       <label className="br-pad-ref">Your purchase order / reference<input value={reference} maxLength={100} onChange={event => setReference(event.target.value)} disabled={busy} placeholder="Purchase order or reference" /></label>
       <details className="br-details"><summary>Delivery dates & instructions</summary>

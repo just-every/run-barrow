@@ -392,6 +392,7 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  await h.command('company.remove',{accountId:'cedar',memberId:purchaserMember.id,revision:purchaserMember.revision,reason:'Purchaser no longer represents this company.'},admin);
  await h.api('/api/barrow/catalogue?accountId=cedar',undefined,{...purchaser,status:404});await h.command('order.company-approve',{orderId:quotedOrder.order.id,revision:quotedOrder.order.revision,reason:'Removed preparer cannot retain authority.'},{...approver,status:404});
  for(const row of queued)assert.equal((await h.db.prepare('SELECT status FROM bw_quote_mail WHERE id=?').bind(row.id).first()).status,'withdrawn');
+ await h.configure({MAIL_API_KEY:'synthetic-barrow-1'});
  // A delegate transfer is supplier-owned: the new company's administrator cannot join historical identities.
  roster=await members();const financeMember=roster.members.find(v=>v.email==='finance@example.test');
  await h.command('company.remove',{accountId:'cedar',memberId:financeMember.id,revision:financeMember.revision,reason:'Supplier-reviewed move to the Harbour company.'});
