@@ -367,7 +367,7 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `e9ef793` (21 October 2026). REP-004 conforms to today’s acceptance/shipment/physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 and ORD-014 retain their explicit remaining points below.
+Judged from the code and tests at commit `210b58d` (21 October 2026). REP-004 conforms to today’s acceptance/shipment/physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 and ORD-014 retain their explicit remaining points below.
 
 
 | Clauses | Done | Partial | Missing | Total |
