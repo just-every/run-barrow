@@ -8,7 +8,7 @@ export const portabilityPolicy = {
   if(table==='bw_quote_mail')return {...row,status:['queued','sending','rate_limited','uncertain'].includes(row.status)?'uncertain':row.status,restored:1,lease_until:0};
   return row;
  },
- excludeTables: ['bw_agent_tokens','bw_guard','bw_quote_mail_config'],
+ excludeTables: ['bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
  requiredConfiguration: ['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
 };
 

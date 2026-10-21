@@ -1,0 +1,22 @@
+import { useEffect, useState } from 'react'
+import { request, errorMessage } from './api'
+import { Notice } from './primitives'
+import type { RunCommand } from './types'
+export function Applications({version,busy,run}:{version:unknown;busy:boolean;run:RunCommand}) {
+ const [rows,setRows]=useState<any[]>([]),[error,setError]=useState(''),[selected,setSelected]=useState(''),[reason,setReason]=useState(''),[reviewed,setReviewed]=useState<string[]>([])
+ const [account,setAccount]=useState({pierCustomerId:'',termsDays:30,minimumCents:0,sku:'',unitCents:0,minQty:1})
+ useEffect(()=>{void request<any>('/api/barrow/applications').then(r=>{setRows(r.applications);setReviewed([])}).catch(e=>setError(errorMessage(e)))},[version])
+ const row=rows.find(v=>v.id===selected)
+ async function decide(type:string) {
+  if(!row)return
+  await run(type,{id:row.id,revision:row.revision,reason,duplicateReviews:row.duplicates.map(({id,kind,revision}:any)=>({id,kind,revision})),accountDuplicateReviews:row.duplicates.filter((d:any)=>d.kind==='account').map(({id,revision}:any)=>({id,revision})),account:{pierCustomerId:account.pierCustomerId,termsDays:account.termsDays,minimumCents:account.minimumCents,prices:account.sku?[{sku:account.sku,unitCents:account.unitCents,minQty:account.minQty}]:[]}})
+ }
+ return <section className="br-card br-stack" aria-label="Trade applications"><h2>Trade applications</h2><p>Only email-verified applications appear here. Review duplicates as separate companies; nothing is merged or reassigned.</p><a href="/apply">Public application form</a>{error&&<Notice error>{error}</Notice>}
+  {!rows.length&&<p>No verified applications.</p>}<label>Application<select value={selected} onChange={e=>{setSelected(e.target.value);setReviewed([]);setReason('')}}><option value="">Choose application</option>{rows.map(v=><option key={v.id} value={v.id}>{v.value.name} · {v.state}</option>)}</select></label>
+  {row&&<><h3>{row.value.name} · {row.state}</h3><p>{row.value.contactName} · {row.value.email} · {row.value.phone}</p><p>EIN: {row.value.ein??'No EIN (sole proprietor)'} · not verified with the IRS. Expected annual volume: USD {row.value.annualVolumeUsd}.</p><ul>{row.value.locations.map((v:any,i:number)=><li key={i}>{v.name}: {v.line1}, {v.city}, {v.state} {v.zip}</li>)}</ul><p>{row.addressCheck}</p><p>{row.documentLabels}</p><ul>{row.documents.map((d:any)=><li key={d.id}><a href={d.path}>{d.name}</a></li>)}</ul><ul>{row.history.map((v:any,i:number)=><li key={i}>{v.created_at} · {v.state}: {v.reason}</li>)}</ul>
+  {['submitted','information requested'].includes(row.state)&&<><h3>Duplicate review</h3>{row.duplicates.length?row.duplicates.map((d:any)=><label key={d.id}><input type="checkbox" checked={reviewed.includes(d.id)} onChange={e=>setReviewed(ids=>e.target.checked?[...ids,d.id]:ids.filter(id=>id!==d.id))}/>{d.kind} {d.name} ({d.id}): reviewed as separate company, or decline below</label>):<p>No matching company names, EINs or emails.</p>}
+   <label>Decision reason (shown to applicant)<textarea required maxLength={1000} value={reason} onChange={e=>setReason(e.target.value)}/></label><div className="br-actions"><button disabled={busy||!reason||reviewed.length!==row.duplicates.length} onClick={()=>void decide('application.request-information')}>Request missing certificate</button><button className="br-secondary" disabled={busy||!reason||reviewed.length!==row.duplicates.length} onClick={()=>void decide('application.decline')}>Decline application</button></div>
+   <details><summary>Approve and invite buyer</summary><div className="br-stack"><p>Approve the requested ship-tos and record the agreed native account terms and assortment.</p>{Object.entries(account).map(([key,value])=><label key={key}>{({pierCustomerId:'Exact Pier customer ID',termsDays:'Payment terms days',minimumCents:'Minimum order USD cents',sku:'Approved SKU (optional)',unitCents:'Unit price USD cents',minQty:'Minimum quantity'} as any)[key]}<input type={typeof value==='number'?'number':'text'} value={value} min={key==='minQty'?1:0} onChange={e=>setAccount(v=>({...v,[key]:typeof value==='number'?Number(e.target.value):e.target.value}))}/></label>)}<button disabled={busy||!reason||!account.pierCustomerId||reviewed.length!==row.duplicates.length} onClick={()=>void decide('application.approve')}>Approve application and request invitation</button></div></details>
+  </>}</>}
+ </section>
+}

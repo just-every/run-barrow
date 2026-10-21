@@ -1,3 +1,4 @@
+import { applicationExport } from './application-custody'
 // DATA-001: an open export of every commercial record the signed-in person may see, as one JSON document or one
 // RFC 4180 CSV per kind. Owner/admin export every trade account; a buyer exports only accounts under their email;
 // agents are refused. Audit references are internal decisions (DATA-002) and appear only in supplier exports.
@@ -10,10 +11,12 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['applications', 'applicationdocuments', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
+ applications:['id','accountId','revision','state','name','dba','ein','noEin','contactName','email','phone','annualVolumeUsd','locations','consent','createdAt','updatedAt'],
+ applicationdocuments:['id','applicationId','name','type','bytes','sha256','time','path'],
  accounts: ['id', 'revision', 'name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'currency', 'city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'],
  prices: ['accountId', 'accountRevision', 'sku', 'currency', 'unitCents', 'minQty', 'casePack', 'increment', 'units', 'pricing'],
  orders: ['id', 'revision', 'accountId', 'accountRevision', 'customerName', 'status', 'currency', 'totalCents', 'termsDays', 'reference', 'poRelease', 'requestedDate', 'cancelAfter', 'deliveryLocation', 'instructions', 'preparedBy', 'preparedAt', 'submittedBy', 'approvedBy', 'approvedAt', 'replaces', 'supersededBy', 'reorderedFrom', 'pierOrigin', 'pierOrderId', 'pierReference', 'invoiceNumber', 'document', 'quote', 'billTo', 'shipTo', 'delivery', 'merchandiseCents', 'shippingCents', 'substitutions', 'fromSubstitution'],
@@ -57,7 +60,9 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const documentIds = new Set((await env.DB.prepare('SELECT d.order_id FROM bw_order_documents d JOIN bw_orders o ON o.id=d.order_id WHERE o.account_id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<{order_id:string}>()).results.map(row=>row.order_id))
  const quotedeliveries=supplier(actor)?(await env.DB.prepare('SELECT id,quote_id,account_id,recipient_id,recipient,status,reason,provider_message_id,attempts,created_at,updated_at,task_id FROM bw_quote_mail ORDER BY rowid').all<Record<string,unknown>>()).results:undefined
  const terms = await termsExport(env.DB, actor, ids, orders)
+ const applicationRecords=await applicationExport(env.DB,actor,ids)
  const records = {
+  ...applicationRecords,
   ...terms,
   ...(quotedeliveries?{quotedeliveries}:{}),
   confirmations: confirmations.map(row => ({orderId:row.order_id,number:row.number,stage:row.stage,recordedAt:row.created_at,snapshot:row.value_json,pdf:`/api/barrow/orders/${row.order_id}/confirmations/${row.number}.pdf`,csv:`/api/barrow/orders/${row.order_id}/confirmations/${row.number}.csv`})),

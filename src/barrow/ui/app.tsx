@@ -1,3 +1,6 @@
+import { ApplicationRetention } from './application-retention'
+import { Applications } from './applications'
+import { UsageAcceptance, UsagePublisher } from './usage-terms'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HydrationUnit } from '../../base/hydration/unit'
 import { request, errorMessage } from './api'
@@ -18,6 +21,7 @@ import type { Account, BarrowState, Order } from './types'
 export function BarrowApp() {
   const [state, setState] = useState<BarrowState | null>(null)
   const [error, setError] = useState('')
+  const [usageRequired,setUsageRequired]=useState(false)
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -41,6 +45,9 @@ export function BarrowApp() {
   const reload = useCallback(async () => {
     const first = !loaded.current
     loaded.current = true
+    const usage=await request<any>('/api/barrow/usage-terms')
+    setUsageRequired(usage.required)
+    if(usage.required)return
     const next = await request<BarrowState>('/api/barrow/state', undefined, first)
     setState(next)
     const open = first ? next.waitingDraft : undefined
@@ -111,7 +118,8 @@ export function BarrowApp() {
         {error && <Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice>}
         {notice && <Notice>{notice}</Notice>}
         {!state && loading && <p role="status" className="br-loading">Loading your wholesale workspace…</p>}
-        {state && <>
+        {usageRequired&&<UsageAcceptance onAccepted={()=>void load()}/>}
+        {state&&!usageRequired && <>
           {!state.connection.configured && <Notice>Live stock and reservations need a Pier connection. {supplier ? 'Configure Pier in the installation settings before taking orders.' : 'Contact your supplier to enable ordering.'}</Notice>}
           {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1></div>
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
@@ -124,6 +132,8 @@ export function BarrowApp() {
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Accounts' && <Accounts version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Accounts' && supplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
+          {activeTab === 'Accounts' && supplier && <Applications version={state} busy={busy} run={run}/>}
+          {activeTab === 'Accounts' && supplier && <UsagePublisher busy={busy} run={run}/>}
           {activeTab === 'Accounts' && supplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
           {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Orders' && <Quotes supplier={supplier} busy={busy} run={run} version={state.orders} />}
@@ -132,6 +142,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && !supplier && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
+          {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
         </>}
       </section></HydrationUnit>

@@ -1,3 +1,5 @@
+import { applicationResponse, applicationCommand } from './applications'
+import { readUsageTerms, requireUsageTerms, usageTermsCommand, usageDocument } from './usage-terms'
 import { readReportSchedules, reportScheduleCommand, reportDownload } from './report-schedules'
 import { runSavedReport } from './report-runs'
 import { dispatchReports } from './report-delivery'
@@ -54,6 +56,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
  if(!path.startsWith('/api/barrow/')) return null
  try {
   const env=runtimeBindings(original)
+  const application=await applicationResponse(request,env)
+  if(application)return application
   if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
   if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
   const actor=await current(request,env).catch(error=>{
@@ -61,6 +65,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    throw error
   })
   if(!['GET','HEAD'].includes(request.method) && !actor.agent && request.headers.get('origin')!==env.AUTH_ORIGIN) fail('ORIGIN','Use this installation’s own page to change records.',403)
+  if(path==='/api/barrow/usage-terms'&&request.method==='GET')return json(await readUsageTerms(env,actor))
+  const usagePdf=/^\/api\/barrow\/usage-terms\/([1-9]\d*)\/document$/.exec(path)
+  if(usagePdf&&request.method==='GET')return await usageDocument(env,actor,Number(usagePdf[1]))
+  if(path!=='/api/barrow/commands')await requireUsageTerms(env,actor,url.searchParams.get('accountId')??undefined)
   if(path.startsWith('/api/barrow/portability/')) {
    requireSupplier(actor)
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
@@ -167,12 +175,15 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const body=await boundedJson(request,1500000) as any
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
    if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
+   if(!['usage.publish','usage.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    let result
+   if(['usage.publish','usage.accept'].includes(body.type))return json({result:await usageTermsCommand(env,actor,body.type,body.payload)})
+   if(['application.approve','application.decline','application.request-information'].includes(body.type))return json({result:await applicationCommand(request,env,actor,body.type,body.payload)})
    if(['report.save','report.remove-recipient'].includes(body.type))result=await reportScheduleCommand(env,actor,body.type,body.payload)
    else if(body.type==='report.run'){ result=await runSavedReport(env,actor,body.payload);await dispatchReports(env) }
    else if(body.type==='report.dispatch'){requireSupplier(actor);await dispatchReports(env);result={dispatched:true}}
    else if(body.type==='commission.settings')result=await saveCommissionRules(env.DB,actor,body.payload)
-   else if(['retention.settings','retention.request','retention.erase-document'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
+   else if(['retention.settings','retention.request','retention.erase-document','retention.erase-application'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)

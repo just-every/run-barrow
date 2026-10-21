@@ -18,7 +18,7 @@ test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floo
  await h.command('retention.request',{accountId:unused.id,revision:unusedHold.revision,held:false,reason:'Owner released unused account hold'});
  await h.command('account.erase',{accountId:unused.id,confirm:'ERASE'});
  assert.equal((await h.api('/api/barrow/retention')).requests.length,0);
- const days={poDocuments:30,media:null,messages:90,commercialHistory:1};
+ const days={poDocuments:30,media:null,messages:90,commercialHistory:1,applicationRecords:null};
  let policy=await h.command('retention.settings',{revision:null,days,reason:'Owner reviewed retention periods'});
  assert.deepEqual(policy.days,days);
  await h.command('retention.settings',{revision:null,days,reason:'Stale policy'}, {status:409});

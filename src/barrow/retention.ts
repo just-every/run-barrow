@@ -1,3 +1,4 @@
+import { applicationRetention, eraseApplication } from './application-custody'
 // DATA-003: expiry only nominates records; a current owner explicitly reviews erasure.
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
@@ -5,7 +6,7 @@ import { fail, integer, text, type Actor, type Order } from './model'
 import { createPortability } from '@runeditrun/rer/modules/portability'
 import { toD1Sql } from '@runeditrun/rer/modules/erasure/fence'
 import { portabilityPolicy } from './portability-policy.mjs'
-const kinds = ['poDocuments','media','messages','commercialHistory'] as const
+const kinds = ['poDocuments','media','messages','commercialHistory','applicationRecords'] as const
 function owner(actor:Actor) {
  if(actor.agent || actor.role!=='owner') fail('FORBIDDEN','Only the signed-in owner may review retention and erasure.',403)
 }
@@ -36,7 +37,7 @@ async function review(env:Bindings) {
   const eligible=expiry!==null&&now>expiry&&!held&&(floor===null||now>=floor)
   return {orderId:order.id,accountId:order.accountId,revision:row.revision,sha256:row.sha256,expiresAt:expiry===null?null:new Date(expiry).toISOString(),commercialMinimumUntil:floor===null?null:new Date(floor).toISOString(),held,eligible,reason:held?'Legal hold':floor!==null&&now<floor?'Commercial evidence: seven-year minimum':expiry===null?'No recorded retention age':now<=expiry?'Within retention':'Owner review required'}
  })
- return {policy,documents,requests,receipts,quoteDeliveryRetention:{kind:'messages',days:policy.days.messages,scope:'Saved quote delivery addresses and ledger rows; owner review, holds and unused-account erasure only. No automatic deletion.'},custody:{barrow:'Only explicitly reviewed local PO bytes are erased. Commercial snapshots and audit remain.',identity:'Base sign-in identities and credentials are separate; not erased by this door.',inventory:'Pier retains its own inventory and order history; no erasure sent.',accounting:'External accounting copies are not erased by Barrow.',mail:'Delivered messages and provider copies are not recalled.',backups:'A later erasure journal is required when restoring an older archive.'},unsupportedKinds:['media','messages','commercialHistory']}
+ return {policy,documents,requests,receipts,applications:await applicationRetention(env,policy.days.applicationRecords??null),quoteDeliveryRetention:{kind:'messages',days:policy.days.messages,scope:'Saved quote delivery addresses and ledger rows; owner review, holds and unused-account erasure only. No automatic deletion.'},custody:{barrow:'Only explicitly reviewed local PO bytes are erased. Commercial snapshots and audit remain.',identity:'Base sign-in identities and credentials are separate; not erased by this door.',inventory:'Pier retains its own inventory and order history; no erasure sent.',accounting:'External accounting copies are not erased by Barrow.',mail:'Delivered messages and provider copies are not recalled.',backups:'A later erasure journal is required when restoring an older archive.'},unsupportedKinds:['media','messages','commercialHistory']}
 }
 export async function readRetention(env:Bindings,actor:Actor) { owner(actor);return review(env) }
 export async function retentionCommand(env:Bindings,actor:Actor,type:string,p:any) {
@@ -46,10 +47,11 @@ export async function retentionCommand(env:Bindings,actor:Actor,type:string,p:an
   const prior=await settings(env.DB)
   if(p.revision!==prior.revision) fail('CHANGED','Refresh the retention policy before saving.')
   if(!p.days||typeof p.days!=='object'||Object.keys(p.days).some(key=>!kinds.includes(key as any))) fail('INPUT','Use the declared retention record kinds.',400)
-  const days=Object.fromEntries(kinds.map(kind=>[kind,p.days[kind]===null?null:integer(p.days[kind],kind+' retention days',1,36500)]))
+  const days=Object.fromEntries(kinds.map(kind=>[kind,p.days[kind]===null||p.days[kind]===undefined?null:integer(p.days[kind],kind+' retention days',1,36500)]))
   await commit(env.DB,actor,[guard(env.DB,prior.revision),env.DB.prepare("INSERT INTO bw_settings VALUES('retention',?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision").bind(JSON.stringify(days),revision),audit(env.DB,actor,'retention','retention.settings',{revision,source:type,reason})])
   return {days,revision}
  }
+ if(type==='retention.erase-application')return eraseApplication(env,actor,p,await settings(env.DB))
  if(type==='retention.request') {
   const account=await env.DB.prepare('SELECT id FROM bw_accounts WHERE id=?').bind(text(p.accountId,'Account ID')).first()
   if(!account) fail('NOT_FOUND','Trade account not found.',404)
