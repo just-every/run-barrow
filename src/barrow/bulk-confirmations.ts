@@ -1,4 +1,4 @@
-import { companyAccountPredicate } from './company-access'
+import { companyOrderScope } from './company-access'
 // ORD-014: combine explicitly selected immutable revisions, never the current order lines.
 import { fail, integer, requirePerson, requireSupplier, supplier, text, type Actor } from './model'
 import { confirmationCsvRows, type Confirmation } from './confirmations'
@@ -15,13 +15,14 @@ function orderIds(value:unknown):string[] {
 }
 async function authorizedRecords(db:D1Database,actor:Actor,ids:string[]) {
  requirePerson(actor)
- // The same current account-email authority as readOrder/account, in one read for the whole selection.
+ // Apply the same current company and order-view rights in one bounded read.
+ const scope=companyOrderScope(actor,'a.id','o.value_json')
  // LEFT JOIN keeps authorized historical/draft orders visible even without a confirmation.
  const rows=(await db.prepare(`SELECT o.id AS order_id,c.number,c.stage,c.created_at,c.value_json
   FROM bw_orders o JOIN bw_accounts a ON a.id=json_extract(o.value_json,'$.accountId')
   LEFT JOIN bw_confirmations c ON c.order_id=o.id
-  WHERE o.id IN (SELECT value FROM json_each(?)) AND (?=1 OR ${companyAccountPredicate('a.id')})
-  ORDER BY o.id,c.number`).bind(JSON.stringify(ids),supplier(actor)?1:0,actor.id).all<{order_id:string;number:number|null;stage:Confirmation['stage']|null;created_at:string|null;value_json:string|null}>()).results
+  WHERE o.id IN (SELECT value FROM json_each(?)) ${scope.sql}
+  ORDER BY o.id,c.number`).bind(JSON.stringify(ids),...scope.values).all<{order_id:string;number:number|null;stage:Confirmation['stage']|null;created_at:string|null;value_json:string|null}>()).results
  const visible=new Set(rows.map(row=>row.order_id))
  if(ids.some(id=>!visible.has(id)))fail('NOT_FOUND','A selected order was not found.',404)
  const records=new Map<string,Confirmation[]>(ids.map(id=>[id,[]]))
