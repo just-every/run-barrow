@@ -61,7 +61,7 @@ async function withdraw(env: Bindings, row: QuoteMailRow, reason: string, stamp:
 }
 
 async function withdrawalReason(env:Bindings,row:QuoteMailRow) {
- if(row.audience==='buyer'&&!await env.DB.prepare(`SELECT 1 FROM oa_operators p WHERE p.id=? AND ${companyPurchasingRecipientSql('p','m.account_id').replaceAll('m.account_id','?')}`).bind(row.recipient_id,row.account_id).first())return 'no authorized buyer recipient'
+ if(row.audience==='buyer'&&!await env.DB.prepare(`SELECT 1 FROM oa_operators p JOIN bw_quote_mail m ON m.id=? WHERE p.id=m.recipient_id AND ${companyPurchasingRecipientSql('p','m.account_id')}`).bind(row.id).first())return 'no authorized buyer recipient'
  return 'recipient no longer authorized'
 }
 
