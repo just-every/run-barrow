@@ -189,6 +189,17 @@ test('company administrator invites four native users, limited purchaser waits f
  assert.match(await downloadText(statement.getByRole('link', { name: 'Statement (PDF)', exact: true })), /^%PDF-/);
  await h.command('order.prepare', { accountId: 'cedar', shipToId: downtown.id, lines: [{ sku: 'OAT-1', quantity: 2 }] }, { as: finance.cookie, status: 403 });
 
+ // Quote acceptance is another purchase door: current sales terms and the same
+ // company limit apply before any supplier submission.
+ const terms=await h.command('terms.publish',{series:'company-sales',title:'Trade sales terms',body:'Company purchases retain their accepted sales terms and quoted commercial basis.'});
+ await h.command('terms.assign',{accountId:'cedar',series:'company-sales',requireAcceptance:true});
+ const quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},{as:purchaser.cookie});
+ await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:'2099-12-31',lines:[{sku:'OAT-1',quantity:2}]});
+ await buy.reload();await buy.getByRole('button',{name:'Orders',exact:true}).click();
+ const quoted=buy.locator(`#quote-${quote.id}`);await quoted.getByRole('checkbox',{name:'I accept Trade sales terms, version 1.',exact:true}).waitFor();
+ await expect(quoted.getByRole('button',{name:'Accept revision 1 and place order',exact:true})).toBeDisabled();await captureWidths(buy,'company-quote-sales-terms');
+ await quoted.getByRole('checkbox',{name:'I accept Trade sales terms, version 1.',exact:true}).check();await quoted.getByRole('button',{name:'Accept revision 1 and place order',exact:true}).click();await quoted.getByText(/Accepted · order/).waitFor();await captureWidths(buy,'company-quote-waits-for-company');
+ const acceptedQuote=await h.api(`/api/barrow/quotes/${quote.id}`,undefined,{as:purchaser.cookie});const converted=await h.api(`/api/barrow/orders/${acceptedQuote.accepted.orderId}`,undefined,{as:purchaser.cookie});assert.equal(converted.status,'awaiting-company-approval');assert.equal(converted.termsAcceptance.version,terms.version);assert.equal(converted.companyPreparedBy,purchaser.actor.id);
  const peer = colleague.page;
  await peer.getByRole('button', { name: 'Catalog', exact: true }).click();
  await peer.getByRole('button', { name: 'Saved lists', exact: true }).click();
