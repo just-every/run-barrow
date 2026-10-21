@@ -39,3 +39,7 @@ Supplier staff (Accounts) and the account's buyer (Orders) keep **Billing and de
 
 On the order pad, **Ship to** chooses a ship-to (blank uses the default). Each order keeps a copy of its bill-to and ship-to, so later edits, a new default or **Archive** never change an order. Commands: `location.save {accountId, kind, value, id?, revision?, makeDefault?}` and `location.archive {accountId, id, revision}`; read with `GET /api/barrow/locations?accountId=`. `order.prepare` takes `billToId` and `shipToId`. Locations appear in the data export as `locations.csv`.
 
+
+## Rep territories and coverage
+
+Owners, admins and all-account sales managers open **Accounts → Rep territories and coverage**. A rep holds an account only through a dated assignment (an exact account, or every account whose territory equals a named territory) or temporary coverage (an account, a territory or another rep’s whole book, with an end date). Reps read their own assignments under **Reports → Your accounts**; buyers see their current rep’s name. Transfers and endings act immediately and never rewrite earlier orders, quotes, commission snapshots or audit events; new orders freeze the fixed commission label of the single primary rep. Commands: `rep.assign`, `rep.cover`, `rep.end`, `rep.transfer`; read `GET /api/barrow/rep-assignments`.

@@ -75,5 +75,5 @@ HTTP doors:
 RPT-006 stays partial. Account-list pagination uses bounded current-authority pages. Tracking source/search and
 its performance proof and broader scheduled report types remain missing. ACC-005
 adds exact functional report/account coverage and grant-revision revocation;
-ACC-006 must preserve this for territories and delegated coverage. INT-015 retains bounce
+ACC-006 preserves this for territories and delegated coverage: a rep recipient must hold the one saved account when the report freezes, sends and is opened, and ending an assignment cancels their queued sends. INT-015 retains bounce
 and suppression custody, and DATA-002 records every step.

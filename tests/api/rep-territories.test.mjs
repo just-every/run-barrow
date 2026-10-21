@@ -112,6 +112,21 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  await h.command('followup.update', { id: failed.id, revision: failed.revision, ownerId: repB.id }, { status: 400 });
  await h.command('followup.update', { id: failed.id, revision: failed.revision, ownerId: repB.id }, { ...repB.who, status: 404 });
 
+ // AUTO-005: the next-action queue, its source links and its export carry only accounts held today; assignees are current holders.
+ const birchQuote = await h.command('quote.request', { accountId: 'birch', lines: [{ sku: 'OAT-1', quantity: 2 }] });
+ await h.command('followup.refresh', {});
+ const queue = async who => (await h.api('/api/barrow/followups?view=all', undefined, who));
+ const accountsIn = async who => [...new Set((await queue(who)).tasks.map(row => row.accountId))].sort();
+ assert.deepEqual(await accountsIn(repA.who), ['cedar']);
+ assert.deepEqual(await accountsIn(repB.who), ['birch']);
+ const assignees = (await queue(repA.who)).people.map(row => row.id);
+ assert.ok(assignees.includes(repA.id) && !assignees.includes(repB.id), 'only a current holder can own the task');
+ const quoteTask = (await queue(repA.who)).tasks.find(row => row.kind === 'quote');
+ assert.equal((await h.request(quoteTask.sourcePath, repA.who)).status, 200);
+ assert.equal((await h.request(quoteTask.sourcePath, repB.who)).status, 404);
+ const exportA = await (await h.request('/api/barrow/export/followups.csv', repA.who)).text();
+ assert.ok(exportA.includes(quote.id) && !exportA.includes(birchQuote.id));
+
  // Reports: a held account or a completely held territory; another territory or account is refused through page and CSV.
  for (const suffix of ['', '.csv']) {
   for (const kind of ['sales', 'finance']) {
@@ -131,6 +146,7 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  const statement = who => h.api('/api/barrow/reports/commissions', undefined, who);
  assert.deepEqual((await statement({})).rows.map(row => [row.orderId, row.assignedRep, row.rep]), [[first.id, 'rep-a', 'rep-a']]);
  assert.deepEqual((await statement(repA.who)).rows.map(row => row.orderId), [first.id]);
+ assert.ok((await (await h.request('/api/barrow/reports/commissions.csv', repA.who)).text()).includes(first.id));
  await h.api('/api/barrow/reports/commissions?rep=rep-b', undefined, { ...repA.who, status: 403 });
  assert.deepEqual((await statement(repB.who)).rows, [], 'a rep label alone grants no other rep’s statement');
 
@@ -146,6 +162,7 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  assert.ok(during.id); assert.deepEqual(quoteMail(quote.id).slice(-2).sort(), ['rep-a@example.test', 'rep-b@example.test']);
  assert.equal((await h.request('/api/barrow/reports/sales?territory=Northeast', repB.who)).status, 200, 'covering a rep’s whole book covers every account of their territory');
  assert.equal((await h.request('/api/barrow/reports/sales?accountId=cedar', repB.who)).status, 200);
+ assert.deepEqual(await accountsIn(repB.who), ['birch', 'cedar'], 'coverage extends the queue while its dates run');
  // The failed-contact task can now be reassigned to the covering rep, and only while they cover it.
  await h.command('followup.update', { id: failed.id, revision: failed.revision, ownerId: repB.id });
  await h.db.prepare('UPDATE bw_rep_assignments SET starts_on=?,ends_on=? WHERE id=?').bind('2026-01-01', '2026-01-02', vacation.id).run(); // the window passes (stand-in for the clock)
@@ -165,6 +182,7 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  assert.equal((await queued()).status, 'not configured');
  const transferred = await h.command('rep.transfer', { id: territory.id, revision: territory.revision, toUserId: repB.id, reason: 'Territory moves to rep-b.' }, manager.who);
  assert.deepEqual(await queued(), { status: 'cancelled', reason: 'rep assignment changed' });
+ assert.ok((await h.api('/api/barrow/audit?limit=200')).events.some(event => event.action === 'report.recipient-revoked' && event.actorId === 'system:reports' && /assignment or coverage changed/.test(event.reason)));
  await h.api(download, undefined, { ...repA.who, status: 403 });
  assert.deepEqual(await accountIds(repA.who), []);
  await readQuote(repA.who, 404);

@@ -11,6 +11,7 @@ import { fail, requirePerson, requireSupplier, supplierDate, type Actor, type Li
 import { pierOrigin, pierState } from './pier'
 import { expired, type Quote } from './quotes'
 import { calendarDate, reportZone } from './report-zone'
+import { currentReps, supplierToday } from './rep-scope'
 
 /** A draft untouched for this many whole days is an abandoned cart. */
 export const abandonedAfterDays = 7
@@ -83,7 +84,9 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  }
  const group = (key: (accountId: string) => string) => [...new Set([...periodQuotes.map(row => key(row.accountId)), ...periodOrders.map(row => key(row.accountId))])].sort()
   .map(name => ({ name, ...run(periodQuotes.filter(row => key(row.accountId) === name), periodOrders.filter(row => key(row.accountId) === name)) }))
- const rep = (accountId: string) => byId.get(accountId)?.value.assignedRep?.trim() || 'Unassigned'
+ // ACC-006 replaces the label with assignments: the account's primary rep today; only an account with no assignment keeps its ACC-004 text.
+ const holders = await currentReps(env.DB, [...byId.keys()], await supplierToday())
+ const rep = (accountId: string) => holders.get(accountId)?.filter(row => !row.coverage).map(row => row.name).join(', ') || byId.get(accountId)?.value.assignedRep?.trim() || 'Unassigned'
  // A cohort is the reporting-zone month of the account's first placed order, ever.
  const firsts = new Map<string, string>()
  for (const order of records.filter(row => placedStatuses.includes(row.status))) { const month = calendarDate(new Date(order.preparedAt), zone).slice(0, 7); if (!firsts.has(order.accountId) || month < firsts.get(order.accountId)!) firsts.set(order.accountId, month) }
@@ -102,7 +105,7 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
    abandonmentRate: `Drafts prepared at least ${abandonedAfterDays} days before ${reportDay} and never submitted ÷ (those drafts + placed orders). Replaced drafts are not carts.`,
    reorderRate: 'Placed orders created by reordering a previous order (ORD-003) ÷ placed orders. Placed means submitted at least once, including later cancellation.',
    cohort: 'The month, in the reporting time zone, of the account’s first placed order.',
-   rep: 'The account’s assigned rep label (ACC-004) until ACC-006 assigns reps.',
+   rep: 'The account’s primary assigned rep today (ACC-006 assignment); an account with no assignment keeps its ACC-004 assigned-rep text, else Unassigned. Temporary coverage does not change the row.',
    product: 'A product row counts quotes whose latest lines (or request) and orders whose lines include the SKU, with cents from that SKU’s lines only.',
   },
   notRecorded: [

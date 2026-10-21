@@ -139,6 +139,7 @@ export function BarrowApp() {
           {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1>{!supplier&&<CurrentRep reps={state.accounts.find(row=>row.id===accountId)?.currentReps}/>}</div>
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>}
+          {activeTab === pad && !supplier && <CurrentRep reps={state.accounts.find(row=>row.id===accountId)?.currentReps}/>}
           {activeTab === pad && (selected
             ? <DraftWorkspace canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
                 onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />
