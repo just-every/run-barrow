@@ -30,10 +30,11 @@ export function BarrowApp() {
   const pad = supplier ? 'Order pad' : 'Catalog'
   const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit'] : [pad, 'Orders']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
-  const [selected,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
+  const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
+  const selected=selectedAccount?.id===accountId?selectedAccount:null
   useEffect(()=>{
-    let current=true;setSelected(null);setAccountLoading(Boolean(accountId))
-    if(accountId)void request<Account>(`/api/barrow/accounts/by-id/${encodeURIComponent(accountId)}`).then(value=>{if(current)setSelected(value)}).catch(cause=>{if(current)setError(errorMessage(cause))}).finally(()=>{if(current)setAccountLoading(false)})
+    let current=true;setAccountLoading(Boolean(accountId))
+    if(accountId)void request<Account>(`/api/barrow/accounts/by-id/${encodeURIComponent(accountId)}`).then(value=>{if(current)setSelected(value)}).catch(cause=>{if(current){setSelected(null);setError(errorMessage(cause))}}).finally(()=>{if(current)setAccountLoading(false)})
     return ()=>{current=false}
   },[accountId,state])
   const reload = useCallback(async () => {
@@ -62,6 +63,7 @@ export function BarrowApp() {
     lock.current = true; setBusy(true); setError(''); setNotice('')
     try {
       await request('/api/barrow/commands', { type, payload })
+      if(type==='account.erase'&&payload.accountId===accountId)setAccountId('')
       try { await reload() } catch (error) {
         setError(`The action completed, but the latest records could not be loaded. Refresh before taking another action. ${errorMessage(error)}`)
         return true
