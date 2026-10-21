@@ -318,7 +318,7 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
   return {invitationId:link.searchParams.get('companyInvitation'),token:link.searchParams.get('companyToken')};
  };
  const purchaserRequest=await request('purchaser@example.test','Limited Purchaser',['purchaser'],{locations:[place.id],perOrderLimitCents:50000,approvalLimitCents:0});
- const pending=companyToken('purchaser@example.test'),purchaser={as:await h.signIn('purchaser@example.test')};
+ const pending=companyToken('purchaser@example.test'),purchaser={as:await h.signIn('purchaser@example.test','existing')};
  assert.equal((await h.api('/api/barrow/state',undefined,purchaser)).accounts.length,0);
  await h.command('company.accept',pending,{...foreign,status:404});
  await h.db.prepare('UPDATE bw_company_invites SET expires_at=? WHERE id=?').bind(Date.now()-1,pending.invitationId).run();
@@ -327,12 +327,12 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  await h.command('company.accept',pending,{...purchaser,status:409});
  await h.command('company.accept',companyToken('purchaser@example.test'),purchaser);
  await h.command('company.accept',companyToken('purchaser@example.test'),{...purchaser,status:409});
- await request('approver@example.test','Purchase Approver',['approver'],{approvalLimitCents:100000,perOrderLimitCents:0});const approver={as:await h.signIn('approver@example.test')};await h.command('company.accept',companyToken('approver@example.test'),approver);
- await request('finance@example.test','Company Finance',['finance']);const finance={as:await h.signIn('finance@example.test')};await h.command('company.accept',companyToken('finance@example.test'),finance);
+ await request('approver@example.test','Purchase Approver',['approver'],{approvalLimitCents:100000,perOrderLimitCents:0});const approver={as:await h.signIn('approver@example.test','existing')};await h.command('company.accept',companyToken('approver@example.test'),approver);
+ await request('finance@example.test','Company Finance',['finance']);const finance={as:await h.signIn('finance@example.test','existing')};await h.command('company.accept',companyToken('finance@example.test'),finance);
  const collision=await request('other@example.test','Another company',['purchaser']);assert.deepEqual(collision,purchaserRequest);
  const supplierCollision=await request('owner@example.test','Supplier identity',['purchaser']);assert.deepEqual(supplierCollision,purchaserRequest);
  const collisions=(await h.api('/api/barrow/company/collisions')).collisions;assert.ok(collisions.some(row=>row.email==='other@example.test'));assert.ok(collisions.some(row=>row.email==='owner@example.test'));
- assert.ok((await h.api('/api/barrow/company/invitations',undefined,foreign)).invitations.some(row=>row.message.includes('another trade account')));
+ assert.ok((await h.api('/api/barrow/company/invitations',undefined,foreign)).invitations.some(row=>row.status.includes('another trade account')));
  await h.api('/api/barrow/company/collisions',undefined,{...admin,status:403});
  await h.api('/api/barrow/company/members?accountId=other',undefined,{...admin,status:404});
  await h.command('account.save',{id:'cedar',value:cedar.value,revision:cedar.revision},{...admin,status:403});await h.api('/api/barrow/agent-token',{}, {...admin,status:403});

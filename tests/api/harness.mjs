@@ -59,7 +59,8 @@ export async function installation({pier=false,bindings={},https,built=false}={}
    const value=await api(pier?'/api/pier/commands':'/api/barrow/commands',{type,payload,...(pier?{commandId:opts.commandId??randomUUID()}:{})},opts);return opts.status&&opts.status>=400?value:value.result;
   };
   const signIn=async(email,role='member')=>{
-   await api('/auth/invite',{email,displayName:role==='member'?'Trade buyer':'Supplier staff',role,returnTo:'/app'},{status:202});
+   if(role==='existing')await api('/auth/magic-link',{email,returnTo:'/app'},{as:'',status:202});
+   else await api('/auth/invite',{email,displayName:role==='member'?'Trade buyer':'Supplier staff',role,returnTo:'/app'},{status:202});
    if(!pier) {
     const message=messages.findLast(message=>JSON.stringify(message.to).includes(email));
     const link=new URL(message?.text?.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)?.[0] ?? message?.html?.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]?.replaceAll('&amp;','&'));
