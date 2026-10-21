@@ -71,9 +71,10 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
  if(accountId&&!staffAccountAllowed(grant,accountId))fail('NOT_FOUND','Trade resource not found.',404)
  if(type==='account.save'&&!accountId&&grant.accounts!=='all')return denied(env,actor,type)
  if(type==='report.remove-recipient'&&p.operatorId!==undefined&&p.operatorId!==actor.id)return denied(env,actor,type)
+ if(type==='quote.propose'&&p.freightQuote&&grant.role!=='sales-manager')return denied(env,actor,type)
  if(type==='order.stock-exception'){
   const row=await env.DB.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(p.orderId??'').first<{value_json:string}>(),order=row?JSON.parse(row.value_json):null
-  if(order&&(order.currency!=='USD'||order.totalCents>grant.stockExceptionLimitCents))return denied(env,actor,type)
+  if(grant.stockExceptionLimitCents===0||order&&(order.currency!=='USD'||order.totalCents>grant.stockExceptionLimitCents))return denied(env,actor,type)
  }
 }
 

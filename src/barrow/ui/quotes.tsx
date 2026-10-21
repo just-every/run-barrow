@@ -17,7 +17,7 @@ const cents = (value: string) => /^\d{1,7}(\.\d{1,2})?$/.test(value.trim()) ? Nu
 
 // ORD-004: quotes on the Orders page. The supplier proposes revisions and approves discounts; the buyer accepts the
 // latest approved revision before its valid-through date, which converts it into one order for supplier review.
-export function Quotes({ supplier, busy, run, version, canPurchase=true }: { supplier: boolean; busy: boolean; run: RunCommand; version: unknown; canPurchase?:boolean }) {
+export function Quotes({ supplier, busy, run, version, canPurchase=true,canApproveDiscount=supplier,discountLimitCents,canQuoteDelivery=supplier }: {canApproveDiscount?:boolean;discountLimitCents?:number;canQuoteDelivery?:boolean; supplier: boolean; busy: boolean; run: RunCommand; version: unknown; canPurchase?:boolean }) {
   const [terms,setTerms]=useState<Record<string,TermsChoice>>({})
   const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
   const [quotes, setQuotes] = useState<Quote[] | null>(null)
@@ -55,7 +55,7 @@ export function Quotes({ supplier, busy, run, version, canPurchase=true }: { sup
         {supplier && latest?.approval && <p className="br-quiet-text">Discount approved {when(latest.approval.at)}: {latest.approval.reason}</p>}
         <div className="br-actions">
           {supplier && !quote.accepted && <button type="button" className="br-secondary" disabled={busy} onClick={() => setEditing(editing === quote.id ? '' : quote.id)}>{latest ? 'Revise quote' : 'Propose quote'}</button>}
-          {supplier && quote.status === 'awaiting-approval' && latest && <button type="button" disabled={busy} onClick={() => { const reason = window.prompt(`Why approve ${money(latest.basisCents - latest.totalCents)} below current prices?`); if (reason?.trim()) void run('quote.approve', { quoteId: quote.id, revision: quote.revision, number: latest.number, reason: reason.trim() }) }}>Approve discount</button>}
+          {supplier && canApproveDiscount && quote.status === 'awaiting-approval' && latest && (discountLimitCents===undefined||Number.isSafeInteger(latest.lines.reduce((n,line)=>n+Math.max(0,(line.basisLineCents??NaN)-(line.lineCents??NaN)),0))&&latest.lines.reduce((n,line)=>n+Math.max(0,(line.basisLineCents??NaN)-(line.lineCents??NaN)),0)<=discountLimitCents) && <button type="button" disabled={busy} onClick={() => { const reason = window.prompt(`Why approve ${money(latest.basisCents - latest.totalCents)} below current prices?`); if (reason?.trim()) void run('quote.approve', { quoteId: quote.id, revision: quote.revision, number: latest.number, reason: reason.trim() }) }}>Approve discount</button>}
           {!supplier && quote.status==='proposed' && !quote.expired && latest?.delivery && <label><input type="checkbox" checked={Boolean(deliveryAccepted[quote.id+':'+latest.delivery.fingerprint])} onChange={event=>setDeliveryAccepted(current=>({...current,[quote.id+':'+latest.delivery!.fingerprint]:event.target.checked}))}/>I accept this delivery method, cost and window.</label>}
           {!supplier && canPurchase && quote.status === 'proposed' && !quote.expired && <OrderTerms accountId={quote.accountId} supplier={false} onChange={choice=>setTerms(current=>({...current,[quote.id]:choice}))} />}
           {!supplier && canPurchase && quote.status === 'proposed' && !quote.expired && latest && <button type="button" disabled={busy||Boolean(terms[quote.id]?.required&&!terms[quote.id]?.payload)} onClick={() => void run('quote.accept', { quoteId: quote.id, number: latest.number,termsAcceptance:terms[quote.id]?.payload,deliveryAcknowledged:latest.delivery?Boolean(deliveryAccepted[quote.id+':'+latest.delivery.fingerprint]):undefined })}>Accept revision {latest.number} and place order</button>}
@@ -64,13 +64,13 @@ export function Quotes({ supplier, busy, run, version, canPurchase=true }: { sup
         </div>
         <RevisionHistoryList revisions={quote.revisions} />
         <QuoteConversation quoteId={quote.id} thread={quote.thread} supplier={supplier} busy={busy} run={run} />
-        {editing === quote.id && <Proposal quote={quote} lines={lines} busy={busy} run={run} onDone={() => setEditing('')} />}
+        {editing === quote.id && <Proposal canQuoteDelivery={canQuoteDelivery} quote={quote} lines={lines} busy={busy} run={run} onDone={() => setEditing('')} />}
       </article>
     })}
   </section>
 }
 
-function Proposal({ quote, lines, busy, run, onDone }: { quote: Quote; lines: QuoteLine[]; busy: boolean; run: RunCommand; onDone: () => void }) {
+function Proposal({ quote, lines, busy, run, onDone,canQuoteDelivery }: {canQuoteDelivery:boolean; quote: Quote; lines: QuoteLine[]; busy: boolean; run: RunCommand; onDone: () => void }) {
   const latest = quote.revisions.at(-1)
   const [rows, setRows] = useState(lines.map(line => ({ sku: line.sku, unit: line.unit, quantity: String(line.quantity), price: line.negotiatedUnitCents !== undefined ? (line.negotiatedUnitCents / 100).toFixed(2) : '' })))
   const [validUntil, setValidUntil] = useState(latest?.validUntil ?? '')
@@ -92,7 +92,7 @@ function Proposal({ quote, lines, busy, run, onDone }: { quote: Quote; lines: Qu
     <label>Valid through (Eastern time, inclusive)<input type="date" required value={validUntil} disabled={busy} onChange={event => setValidUntil(event.target.value)} /></label>
     <label>Payment terms (days, blank for the account’s terms)<input inputMode="numeric" value={termsDays} disabled={busy} onChange={event => setTermsDays(event.target.value)} /></label>
     <label>Shipping note<input maxLength={160} value={shipping} disabled={busy} onChange={event => setShipping(event.target.value)} placeholder="Freight prepaid over $5,000" /></label>
-    <QuoteShippingFields quoteId={quote.id} onChange={setDeliveryFields} />
+    <QuoteShippingFields canQuote={canQuoteDelivery} quoteId={quote.id} onChange={setDeliveryFields} />
     {invalid && <p role="alert">Enter quoted prices as dollars and cents, for example 58.50.</p>}
     <p className="br-quiet-text">A price below today’s price needs a recorded discount approval before the buyer can accept.</p>
     <div className="br-actions"><button disabled={busy || invalid || !validUntil}>Send revision {(latest?.number ?? 0) + 1}</button><button type="button" className="br-secondary" disabled={busy} onClick={onDone}>Close</button></div>
