@@ -143,7 +143,8 @@ test('ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with
   const denied=await h.request(exportPath,{...actor,method:'POST',body});assert.equal(denied.status,404);assert.ok(!(await denied.text()).includes('SPRING-'));
  }
  // One foreign order rejects the whole selection, including otherwise authorized rows.
- const foreign=await h.command('account.save',{id:'foreign',value:{...accountValue(inventory.customer.id,'foreign@example.test'),name:'Separate buyer',minimumCents:0}});
+ const foreignCustomer=await pier.command('party.save',{name:'Separate buyer',kind:'customer'});
+ const foreign=await h.command('account.save',{id:'foreign',value:{...accountValue(foreignCustomer.id,'foreign@example.test'),name:'Separate buyer',minimumCents:0}});
  let foreignOrder=await h.command('order.prepare',{accountId:foreign.id,reference:'PRIVATE-OTHER',lines:[{sku:'OAT-1',quantity:2}]});foreignOrder=await h.command('order.submit',{orderId:foreignOrder.id});
  await h.api(exportPath,{confirmations:[first,{orderId:foreignOrder.id,number:1}]},{...buyer,status:404});
  await h.api(exportPath,{...body,layout},{...buyer,status:403});
