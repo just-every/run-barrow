@@ -47,6 +47,7 @@ export function BarrowApp() {
   }, [reload])
   useEffect(() => {
     if ((new URLSearchParams(window.location.search).get('task') ?? '').startsWith('quote-mail:')) setTab('Data')
+    if (new URLSearchParams(window.location.search).has('reportRun')) setTab('Data')
     if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
     void load()
   }, [load])

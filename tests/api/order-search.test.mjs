@@ -80,3 +80,90 @@ test('RPT-006: original workspace, history and account drafts page the full auth
  // Page readers do not mutate commercial records or attributed decisions.
  const before=await h.api('/api/barrow/export.json');await history({page:'2'},buyer);const after=await h.api('/api/barrow/export.json');assert.deepEqual(after.orders,before.orders);assert.deepEqual(after.audit,before.audit);
 });
+
+test('RPT-006 / ACC-005 / ACC-006 / INT-015 / DATA-002: saved monthly reports freeze whole source-linked snapshots, email exact staff once, and revoke private downloads on recipient or authority changes',async t=>{
+ const {createHmac,randomBytes}=await import('node:crypto');
+ const key=randomBytes(32),secret='whsec_'+key.toString('base64');
+ const h=await installation({https:true,bindings:{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'report-test'}});t.after(()=>h.close());
+ const admin={as:await h.signIn('finance@example.test','admin')},buyer={as:await h.signIn('buyer@example.test')},outside={as:await h.signIn('other-staff@example.test','admin')};
+ const people=await h.api('/auth/operators'),owner=people.find(p=>p.role==='owner'),finance=people.find(p=>p.email==='finance@example.test'),member=people.find(p=>p.email==='buyer@example.test');
+ const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
+ await h.command('account.save',{id:'cedar',value:accountValue('source-cedar')});await h.command('account.save',{id:'wren',value:{...accountValue('source-wren','wren@example.test'),name:'Wren Market'}});
+ const monthEnd=new Date(Date.UTC(new Date().getUTCFullYear(),new Date().getUTCMonth(),0)),from=new Date(Date.UTC(monthEnd.getUTCFullYear(),monthEnd.getUTCMonth(),1)).toISOString().slice(0,10),to=monthEnd.toISOString().slice(0,10);
+ const account=(await h.api('/api/barrow/state')).accounts.find(a=>a.id==='cedar');
+ const order={id:'REPORT-SOURCE',accountId:'cedar',accountRevision:account.revision,customerName:account.value.name,reference:'PRIVATE-PO-7821',preparedAt:from+'T16:00:00.000Z',status:'approved',currency:'USD',termsDays:30,totalCents:13000,preparedBy:owner.id,pierCustomerId:'source-cedar',pierOrigin:'https://inventory.example.test',invoice:{number:'PRIVATE-INVOICE',issuedAt:from,dueAt:to},lines:[{sku:'OAT-1',name:'Toasted oats',quantity:2,unitCents:6500,lineCents:13000,minQty:1,itemId:'item-oat'}]};
+ await h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(order.id,'cedar',JSON.stringify(order),'source-revision').run();
+ const save=(extra={},opts={})=>h.command('report.save',{name:'Monthly sales',reportType:'sales',filters:{accountId:'cedar',sku:'OAT-1'},recipientIds:[owner.id,finance.id],...extra},opts);
+ for(const recipients of [['typed@example.test'],[member.id],[finance.id,finance.id],[]])await save({recipientIds:recipients},{status:400});
+ await save({filters:{unknown:'ignored?'}},{status:400});await save({}, {...buyer,status:403});await save({}, {...agent,status:403});
+ await h.api('/api/barrow/report-schedules',undefined,{...buyer,status:403});await h.api('/api/barrow/report-schedules',undefined,{...agent,status:403});
+ const schedule=await save();
+ let settings=await h.api('/api/barrow/report-schedules');const saved=settings.schedules.find(s=>s.id===schedule.id);
+ assert.deepEqual(saved.filters,{accountId:'cedar',sku:'OAT-1'});assert.deepEqual(saved.recipients.map(r=>r.operator_id).sort(),[owner.id,finance.id].sort());assert.ok(saved.recipients.every(r=>typeof r.operator_version==='number'));
+ const run=await h.command('report.run',{scheduleId:schedule.id}),path=`/api/barrow/report-runs/${run.id}.json`;
+ const emails=()=>h.mail.deliveries.filter(d=>d.message.subject==='Barrow report: Monthly sales');
+ assert.equal(emails().length,2);assert.deepEqual(emails().map(d=>d.message.to[0]).sort(),['owner@example.test','finance@example.test'].sort());
+ const mail=emails().find(d=>d.message.to[0]==='finance@example.test');
+ for(const forbidden of ['PRIVATE-PO-7821','PRIVATE-INVOICE','Cedar Street Pantry','13000','6500','token=','attachments'])assert.ok(!JSON.stringify(mail.message).includes(forbidden),forbidden);
+ const link=new URL(mail.message.text.match(/https:\/\/\S+\/app\?reportRun=\S+/)[0]);assert.equal(link.searchParams.get('reportRun'),run.id);assert.deepEqual([...link.searchParams.keys()],['reportRun']);
+ assert.ok(mail.message.text.includes(from)&&mail.message.text.includes(to));assert.match(mail.message.text,/09:00 UTC/);assert.match(mail.message.text,/As of:/);
+ const frozen=await h.api(path,undefined,admin);assert.equal(frozen.period,from.slice(0,7));assert.equal(frozen.report.rows.length,1);assert.equal(frozen.report.rows[0].bookedCents,13000);
+ const source=await h.api(frozen.report.rows[0].orderPath,undefined,admin);assert.equal(source.id,order.id);assert.equal(source.lines[0].lineCents,frozen.report.rows[0].bookedCents);
+ assert.equal((await h.request(path,admin)).headers.get('cache-control'),'no-store');
+ await h.api(path,undefined,{...outside,status:403});await h.api(path,undefined,{...buyer,status:403});await h.api(path,undefined,{...agent,status:403});await h.api(path,undefined,{as:'',status:403});
+ order.totalCents=99999;order.lines[0].lineCents=99999;await h.db.prepare('UPDATE bw_orders SET value_json=? WHERE id=?').bind(JSON.stringify(order),order.id).run();
+ assert.deepEqual(await h.api(path,undefined,admin),frozen);
+ await Promise.all([h.command('report.run',{scheduleId:schedule.id}),h.command('report.dispatch',{})]);await h.configure({});await h.command('report.dispatch',{});assert.equal(emails().length,2);
+ assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM bw_report_runs WHERE schedule_id=?').bind(schedule.id).first()).n,1);
+ // Monthly cron door: due definition, real dispatch, previous complete month, same durable run on restart.
+ const scheduled=await save({name:'Due monthly finance',reportType:'finance',filters:{accountId:'cedar'},recipientIds:[owner.id]});
+ await h.db.prepare('UPDATE bw_report_schedules SET next_at=? WHERE id=?').bind('2000-01-01T09:00:00.000Z',scheduled.id).run();
+ await h.command('report.dispatch',{});const monthly=(await h.api('/api/barrow/report-schedules')).runs.find(r=>r.schedule_id===scheduled.id);assert.ok(monthly);assert.equal(monthly.period,from.slice(0,7));
+ assert.equal((await h.api(`/api/barrow/report-runs/${monthly.id}.json`)).report.asOf,to);
+ // Signed suppression refuses an existing download, survives a later delivered status and blocks later sends.
+ const timestamp=String(Math.floor(Date.now()/1000)),body=JSON.stringify({type:'email.bounced',created_at:new Date().toISOString(),data:{email_id:mail.id,to:['finance@example.test']}}),signature=createHmac('sha256',key).update(`report-bounce.${timestamp}.${body}`).digest('base64');
+ const callback=()=>h.raw('/api/barrow/report-mail/webhook',{method:'POST',headers:{'svix-id':'report-bounce','svix-timestamp':timestamp,'svix-signature':'v1,'+signature},body});
+ assert.equal((await h.raw('/api/barrow/report-mail/webhook',{method:'POST',headers:{'svix-id':'forged','svix-timestamp':timestamp,'svix-signature':'v1,invalid'},body})).status,400);
+ assert.equal((await callback()).status,200);assert.equal((await callback()).status,200);
+ await h.api(path,undefined,{...admin,status:403});
+ const suppressed=await save({name:'Suppressed report',recipientIds:[finance.id,owner.id]});await h.command('report.run',{scheduleId:suppressed.id});
+ assert.ok(!(h.mail.deliveries.filter(d=>d.message.subject==='Barrow report: Suppressed report')).some(d=>d.message.to[0]==='finance@example.test'));
+ assert.ok((await h.db.prepare('SELECT reason FROM bw_report_deliveries WHERE run_id LIKE ? AND operator_id=?').bind(suppressed.id+'%',finance.id).first()).reason.includes('suppression'));
+ // Self-removal revokes accepted downloads as well as queued notifications.
+ await h.command('report.remove-recipient',{scheduleId:schedule.id});await h.api(path,undefined,{status:403});
+ await h.configure({MAIL_WEBHOOK_SECRET:undefined});
+ const queued=await save({name:'Queued report',recipientIds:[owner.id]});const queuedRun=await h.command('report.run',{scheduleId:queued.id});
+ assert.equal((await h.db.prepare('SELECT status FROM bw_report_deliveries WHERE run_id=?').bind(queuedRun.id).first()).status,'not configured');
+ await h.command('report.remove-recipient',{scheduleId:queued.id});await h.configure({MAIL_WEBHOOK_SECRET:secret});await h.command('report.dispatch',{});
+ assert.equal((await h.db.prepare('SELECT status FROM bw_report_deliveries WHERE run_id=?').bind(queuedRun.id).first()).status,'cancelled');assert.ok(!h.mail.deliveries.some(d=>d.message.subject==='Barrow report: Queued report'));
+ // Role change cancels queued delivery at the native identity transaction; no narrowed report is substituted.
+ const revokee={as:await h.signIn('revokee@example.test','admin')},revokedPerson=(await h.api('/auth/operators')).find(p=>p.email==='revokee@example.test');
+ const roleSchedule=await save({name:'Role revocation',recipientIds:[owner.id,revokedPerson.id]});await h.configure({MAIL_WEBHOOK_SECRET:undefined});const roleRun=await h.command('report.run',{scheduleId:roleSchedule.id});
+ await h.api('/auth/operator/role',{operatorId:revokedPerson.id,role:'member'});
+ assert.equal((await h.db.prepare('SELECT status FROM bw_report_deliveries WHERE run_id=? AND operator_id=?').bind(roleRun.id,revokedPerson.id).first()).status,'cancelled');
+ await h.api('/auth/magic-link',{email:'revokee@example.test',returnTo:'/app'},{as:'',status:202});
+ const signInMessage=h.mail.deliveries.findLast(d=>d.message.to.includes('revokee@example.test')).message;
+ const signInLink=new URL(signInMessage.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)[0]);
+ const confirmed=await h.request('/auth/confirm',{method:'POST',as:'',body:{token:signInLink.searchParams.get('token')}});assert.equal(confirmed.status,303);
+ const narrowed={as:confirmed.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ')};await h.api(`/api/barrow/report-runs/${roleRun.id}.json`,undefined,{...narrowed,status:403});
+ // Exact operator-version changes, inactive users and expiry each fail closed with an audit reason.
+ const expired=await save({name:'Expired report',recipientIds:[owner.id]});await h.configure({MAIL_WEBHOOK_SECRET:secret});const expiredRun=await h.command('report.run',{scheduleId:expired.id});
+ await h.db.prepare('UPDATE bw_report_runs SET expires_at=? WHERE id=?').bind(new Date(Date.now()-1).toISOString(),expiredRun.id).run();await h.api(`/api/barrow/report-runs/${expiredRun.id}.json`,undefined,{status:403});
+ // Deactivation cancels a queued delivery immediately; reactivation cannot resurrect its old version.
+ const inactiveCookie=await h.signIn('inactive@example.test','admin'),inactive=(await h.api('/auth/operators')).find(p=>p.email==='inactive@example.test');
+ await h.configure({MAIL_WEBHOOK_SECRET:undefined});const inactiveSchedule=await save({name:'Inactive recipient',recipientIds:[owner.id,inactive.id]}),inactiveRun=await h.command('report.run',{scheduleId:inactiveSchedule.id});
+ await h.api('/auth/operator/status',{operatorId:inactive.id,status:'inactive'});
+ assert.equal((await h.db.prepare('SELECT status FROM bw_report_deliveries WHERE run_id=? AND operator_id=?').bind(inactiveRun.id,inactive.id).first()).status,'cancelled');
+ await h.api(`/api/barrow/report-runs/${inactiveRun.id}.json`,undefined,{as:inactiveCookie,status:403});
+ await h.api('/auth/operator/status',{operatorId:inactive.id,status:'active'});await h.configure({MAIL_WEBHOOK_SECRET:secret});await h.command('report.dispatch',{});
+ assert.ok(!h.mail.deliveries.some(d=>d.message.subject==='Barrow report: Inactive recipient'&&d.message.to[0]==='inactive@example.test'));
+ // A refused/uncertain provider submission keeps one durable attempt across restart; no blind resends.
+ h.mail.failStatus=429;const uncertain=await save({name:'Uncertain submission',recipientIds:[owner.id]}),uncertainRun=await h.command('report.run',{scheduleId:uncertain.id});h.mail.failStatus=undefined;
+ const attempts=h.mail.requests.filter(r=>r.message.subject==='Barrow report: Uncertain submission').length;assert.equal(attempts,1);
+ await h.configure({});await h.command('report.dispatch',{});assert.equal(h.mail.requests.filter(r=>r.message.subject==='Barrow report: Uncertain submission').length,attempts);
+ assert.equal((await h.db.prepare('SELECT status FROM bw_report_deliveries WHERE run_id=?').bind(uncertainRun.id).first()).status,'rate_limited');
+ const audit=JSON.stringify(await h.api('/api/barrow/audit?search=report.'));
+ for(const action of ['report.saved','report.frozen','report.queued','report.submission','report.submission-result','report.downloaded','report.recipient-removed','report.recipient-revoked','report.delivery-event','report.refused'])assert.ok(audit.includes(action),action);
+ assert.ok(!audit.includes(secret));
+ for(const sourceValue of ['PRIVATE-PO-7821','PRIVATE-INVOICE'])assert.ok(!audit.includes(sourceValue));
+});

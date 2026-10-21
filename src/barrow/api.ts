@@ -1,3 +1,7 @@
+import { readReportSchedules, reportScheduleCommand, reportDownload } from './report-schedules'
+import { runSavedReport } from './report-runs'
+import { dispatchReports } from './report-delivery'
+import { reportMailWebhook } from './report-mail-events'
 import { workspaceOrders, waitingDraft } from './workspace-orders'
 import { searchOrders } from './order-search'
 import { readCommissionRules, saveCommissionRules } from './commission-rules'
@@ -48,14 +52,21 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
  if(!path.startsWith('/api/barrow/')) return null
  try {
   const env=runtimeBindings(original)
+  if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
   if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
-  const actor=await current(request,env)
+  const actor=await current(request,env).catch(error=>{
+   if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
+   throw error
+  })
   if(!['GET','HEAD'].includes(request.method) && !actor.agent && request.headers.get('origin')!==env.AUTH_ORIGIN) fail('ORIGIN','Use this installation’s own page to change records.',403)
   if(path.startsWith('/api/barrow/portability/')) {
    requireSupplier(actor)
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
    return (await createPortabilityHandler({db:env.DB,policy:portabilityPolicy,appOrigin:env.AUTH_ORIGIN,basePath:'/api/barrow/portability',authorize:async()=>actor.id}))(request)
   }
+  if(path==='/api/barrow/report-schedules' && request.method==='GET')return json(await readReportSchedules(env,actor))
+  const reportRun=/^\/api\/barrow\/report-runs\/([a-zA-Z0-9_-]+)\.json$/.exec(path)
+  if(reportRun && request.method==='GET')return await reportDownload(env,actor,reportRun[1])
   if(path==='/api/barrow/commissions' && request.method==='GET')return json(await readCommissionRules(env.DB,actor))
   if(path==='/api/barrow/reports/commissions' && request.method==='GET')return json(await commissionReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/commissions.csv' && request.method==='GET')return await commissionCsv(env,actor,url.searchParams)
@@ -146,7 +157,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
    if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    let result
-   if(body.type==='commission.settings')result=await saveCommissionRules(env.DB,actor,body.payload)
+   if(['report.save','report.remove-recipient'].includes(body.type))result=await reportScheduleCommand(env,actor,body.type,body.payload)
+   else if(body.type==='report.run'){ result=await runSavedReport(env,actor,body.payload);await dispatchReports(env) }
+   else if(body.type==='report.dispatch'){requireSupplier(actor);await dispatchReports(env);result={dispatched:true}}
+   else if(body.type==='commission.settings')result=await saveCommissionRules(env.DB,actor,body.payload)
    else if(['retention.settings','retention.request','retention.erase-document'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)

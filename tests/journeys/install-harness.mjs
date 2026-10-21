@@ -82,9 +82,9 @@ export async function api(context, app, path, body) {
  assert.ok(response.ok(), `${path}: HTTP ${response.status()}`);
  return response.json();
 }
-export async function capture(page, name) {
+export async function capture(page, name, fullPage = true) {
  const directory = process.env.BARROW_JOURNEY_EVIDENCE;
  if (!directory) return;
  await mkdir(directory, { recursive: true });
- await page.screenshot({ path: join(directory, name + '.png'), fullPage: true });
+ await page.screenshot({ path: join(directory, name + '.png'), fullPage });
 }

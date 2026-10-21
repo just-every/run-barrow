@@ -1,3 +1,4 @@
+import { ScheduledReports } from './scheduled-reports'
 import { Commissions } from './commissions'
 import { useState } from 'react'
 import type { Account, RunCommand } from './types'
@@ -31,6 +32,7 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
     <FreshnessSetting minutes={freshness} busy={busy} run={run} />
     <FulfillmentReport accounts={accounts} />
     <QuoteReport />
+    <ScheduledReports />
     <SalesReport />
     <FinanceReport />
     <Commissions />

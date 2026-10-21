@@ -62,8 +62,10 @@ filtering may scan batches and has no additional latency claim. Concurrent
 writes may move current-data pages. Bulk confirmation selection uses the current
 history page. The account collection remains unpaginated.
 
+Saved monthly sales and invoice-aging definitions, exact-staff delivery, frozen
+source-linked downloads and revocation now ship in **Data → Saved monthly reports**.
+See [Scheduled reports](SCHEDULED-REPORTS.md) for the recipient checks and schedule.
+
 RPT-006 remains partial. Carrier tracking search and its performance point,
-saved report filters, scheduled scoped report delivery, revoked-recipient
-proof and account-list pagination are missing. There is no connected carrier
-tracking source. No scheduled report, finance-role permission, recipient consent
-or delivery claim is made.
+account-list pagination, broader report types and functional finance/rep recipient
+acceptance remain missing. There is no connected carrier tracking source.
