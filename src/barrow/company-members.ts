@@ -242,6 +242,10 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
    if (value !== record.value_json) statements.push(env.DB.prepare(`UPDATE ${table} SET value_json=?,revision=? WHERE id=? AND revision=?`).bind(value, crypto.randomUUID(), record.id, record.revision), changed(env.DB))
   }
  }
+ // Confirmations retain amounts and their immutable order identities, but not
+ // the erased person's printed-name attribution copied at submission.
+ const confirmations=(await env.DB.prepare('SELECT order_id,number,value_json FROM bw_confirmations').all<any>()).results
+ for(const record of confirmations){const value=JSON.stringify(redact(JSON.parse(record.value_json)));if(value!==record.value_json)statements.push(env.DB.prepare('UPDATE bw_confirmations SET value_json=? WHERE order_id=? AND number=? AND value_json=?').bind(value,record.order_id,record.number,record.value_json),changed(env.DB))}
  for(const table of ['bw_quote_notices','bw_quote_mail','bw_audit']) {
   const rows=(await env.DB.prepare(`SELECT id,${table==='bw_audit'?'context_json':'summary'} AS content FROM ${table}`).all<any>()).results
   for(const row of rows){if(!row.content)continue;const value=originals.reduce((v,original)=>v.replaceAll(original,original.includes('@')?email:former),row.content);if(value!==row.content)statements.push(env.DB.prepare(`UPDATE ${table} SET ${table==='bw_audit'?'context_json':'summary'}=? WHERE id=? AND ${table==='bw_audit'?'context_json':'summary'}=?`).bind(value,row.id,row.content),changed(env.DB))}

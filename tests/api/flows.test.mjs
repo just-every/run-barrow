@@ -342,7 +342,8 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  await h.command('company.remove',{accountId:'cedar',memberId:administrator.id,revision:administrator.revision,reason:'Must preserve the last administrator.'},{...admin,status:409});
  await h.command('company.update',{accountId:'cedar',memberId:administrator.id,revision:administrator.revision,policy:policy(['finance']),reason:'Must preserve the last administrator.'},{...admin,status:409});
  await h.command('company.invite',{accountId:'cedar',email:'invalid-right@example.test',name:'Invalid supplier grant',policy:policy(['owner']),reason:'Supplier powers must be refused.'},{...admin,status:400});
- const small=await h.command('order.prepare',{accountId:'cedar',shipToId:place.id,lines:[{sku:'OAT-1',quantity:1}]},purchaser);assert.equal((await h.command('order.submit',{orderId:small.id},purchaser)).status,'submitted');
+ const erasureTerms=await h.command('terms.publish',{series:'company',title:'Company terms',body:'Preserve exact accepted commercial terms.'});await h.command('terms.assign',{accountId:'cedar',series:'company',requireAcceptance:false});
+ const small=await h.command('order.prepare',{accountId:'cedar',shipToId:place.id,lines:[{sku:'OAT-1',quantity:1}]},purchaser);assert.equal((await h.command('order.submit',{orderId:small.id,termsAcceptance:{version:erasureTerms.version,accepted:true,printedName:'Limited Purchaser'}},purchaser)).status,'submitted');
  await h.command('order.prepare',{accountId:'cedar',shipToId:north.id,lines:[{sku:'OAT-1',quantity:2}]},{...purchaser,status:403});
  await h.command('location.save',{accountId:'cedar',kind:'contact',value:{name:'Unauthorized'}},{...purchaser,status:403});
  let draft=await h.command('order.prepare',{accountId:'cedar',shipToId:place.id,reference:'Company purchase',lines:[{sku:'OAT-1',quantity:2}]},purchaser);assert.equal(draft.totalCents,80000);
@@ -394,7 +395,7 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  const erased=await h.command('company.erase',{memberId:purchaserMember.id,revision:purchaserMember.revision,confirm:'ERASE',reason:'Owner reviewed single-user identity erasure.'});assert.equal(erased.userId,purchaserId);
  assert.equal((await h.request('/api/barrow/state',purchaser)).status,401);assert.equal(await h.db.prepare('SELECT id FROM bw_lists WHERE id=?').bind(privateList.id).first(),null);
  const retained=(await h.api('/api/barrow/lists?accountId=cedar',undefined,admin)).lists.find(v=>v.id===shared.id);assert.equal(retained.createdBy,purchaserId);assert.equal(retained.creatorName,'Former company user');assert.equal((await h.api(`/api/barrow/orders/${approved.id}`)).totalCents,90000);
- const after=await archive(h);assert.ok(!JSON.stringify(after).includes('purchaser@example.test'));
+ const after=await archive(h);assert.ok(!JSON.stringify(after).includes('purchaser@example.test'));assert.ok(!JSON.stringify(after).includes('Limited Purchaser'));assert.equal((await h.api(`/api/barrow/orders/${small.id}/confirmations`,undefined,approver)).confirmations[0].snapshot.termsAcceptance.printedName,'Former company user');
  const target=await installation();t.after(()=>target.close());await restore(target,before,{status:400,laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal}});
  assert.ok(JSON.stringify(await h.api('/api/barrow/audit?search=company')).includes('company.user-erased'));
 });
