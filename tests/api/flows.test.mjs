@@ -310,6 +310,7 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  const identity=await h.api('/api/barrow/state',undefined,admin);assert.equal(identity.actor.company.accountId,'cedar');assert.ok(identity.actor.company.rights.includes('administrator'));assert.equal(identity.actor.company.perOrderLimitCents,null);
  const place=await h.command('location.save',{accountId:'cedar',kind:'ship-to',value:{name:'Downtown',line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'}},admin);
  const north=await h.command('location.save',{accountId:'cedar',kind:'ship-to',value:{name:'North store',line1:'202 Main Street',city:'Columbia',state:'SC',zip:'29201'}},admin);
+ const {token:agentToken}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${agentToken}`}};
  const policy=(rights,extra={})=>({rights,locations:'all',perOrderLimitCents:null,approvalLimitCents:null,...extra});
  const request=async(email,name,rights,extra={})=>h.command('company.invite',{accountId:'cedar',email,name,policy:policy(rights,extra),reason:'Administrator assigned explicit company purchasing rights.'},admin);
  const companyToken=email=>{
@@ -317,13 +318,13 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
   const link=new URL(message.text.match(/https?:\/\/[^\s<>]+\/app\?[^\s<>]+/)[0]);
   return {invitationId:link.searchParams.get('companyInvitation'),token:link.searchParams.get('companyToken')};
  };
- const purchaserRequest=await request('purchaser@example.test','Limited Purchaser',['purchaser'],{locations:[place.id],perOrderLimitCents:50000,approvalLimitCents:0});
+ const purchaserRequest=await request('purchaser@example.test','Limited Purchaser',['purchaser'],{locations:[place.id],perOrderLimitCents:60000,approvalLimitCents:0,locationLimits:{[place.id]:{perOrderLimitCents:50000}}});
  const pending=companyToken('purchaser@example.test'),purchaser={as:await h.signIn('purchaser@example.test','existing')};
  assert.equal((await h.api('/api/barrow/state',undefined,purchaser)).accounts.length,0);
  await h.command('company.accept',pending,{...foreign,status:404});
  await h.db.prepare('UPDATE bw_company_invites SET expires_at=? WHERE id=?').bind(Date.now()-1,pending.invitationId).run();
  await h.command('company.accept',pending,{...purchaser,status:409});
- await request('purchaser@example.test','Limited Purchaser',['purchaser'],{locations:[place.id],perOrderLimitCents:50000,approvalLimitCents:0});
+ await request('purchaser@example.test','Limited Purchaser',['purchaser'],{locations:[place.id],perOrderLimitCents:60000,approvalLimitCents:0,locationLimits:{[place.id]:{perOrderLimitCents:50000}}});
  await h.command('company.accept',pending,{...purchaser,status:409});
  await h.command('company.accept',companyToken('purchaser@example.test'),purchaser);
  await h.command('company.accept',companyToken('purchaser@example.test'),{...purchaser,status:409});
@@ -340,6 +341,8 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  let roster=await members(),administrator=roster.members.find(m=>m.userId===identity.actor.id);
  await h.command('company.remove',{accountId:'cedar',memberId:administrator.id,revision:administrator.revision,reason:'Must preserve the last administrator.'},{...admin,status:409});
  await h.command('company.update',{accountId:'cedar',memberId:administrator.id,revision:administrator.revision,policy:policy(['finance']),reason:'Must preserve the last administrator.'},{...admin,status:409});
+ await h.command('company.invite',{accountId:'cedar',email:'invalid-right@example.test',name:'Invalid supplier grant',policy:policy(['owner']),reason:'Supplier powers must be refused.'},{...admin,status:400});
+ const small=await h.command('order.prepare',{accountId:'cedar',shipToId:place.id,lines:[{sku:'OAT-1',quantity:1}]},purchaser);assert.equal((await h.command('order.submit',{orderId:small.id},purchaser)).status,'submitted');
  await h.command('order.prepare',{accountId:'cedar',shipToId:north.id,lines:[{sku:'OAT-1',quantity:2}]},{...purchaser,status:403});
  await h.command('location.save',{accountId:'cedar',kind:'contact',value:{name:'Unauthorized'}},{...purchaser,status:403});
  let draft=await h.command('order.prepare',{accountId:'cedar',shipToId:place.id,reference:'Company purchase',lines:[{sku:'OAT-1',quantity:2}]},purchaser);assert.equal(draft.totalCents,80000);
@@ -347,7 +350,7 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'Cannot self-approve.'},{...purchaser,status:403});
  await h.command('order.prepare',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},{...finance,status:403});
  await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'Finance cannot approve.'},{...finance,status:403});
- await h.command('order.approve',{orderId:waiting.id},{status:409});
+ await h.command('order.approve',{orderId:waiting.id},{status:409});await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'An agent cannot approve.'},{...agent,status:403});
  cedar=await h.command('account.save',{id:'cedar',revision:cedar.revision,value:{...cedar.value,prices:[{sku:'OAT-1',unitCents:45000,minQty:1}]}});
  await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'Must recheck changed prices.'},{...approver,status:409});
  draft=await h.command('order.prepare',{accountId:'cedar',replaces:waiting.id,shipToId:place.id,reference:'Company purchase',lines:[{sku:'OAT-1',quantity:2}]},purchaser);
@@ -368,13 +371,15 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  const cart=await h.command('cart.preview',{listId:shared.id,mode:'replace'},approver);assert.equal(cart.totalCents,90000);
  await h.command('list.save',{listId:shared.id,revision:shared.revision,name:'Downtown replenishment reviewed',lines:shared.lines},approver);
  await h.command('cart.preview',{listId:privateList.id,mode:'replace'},{...approver,status:404});await h.api('/api/barrow/lists?accountId=cedar',undefined,{...foreign,status:404});
+ const exportData=await h.api('/api/barrow/export.json',undefined,finance);assert.deepEqual(exportData.manifest.accountIds,['cedar']);
  const quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},purchaser);
- let revision=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:'2099-12-31',lines:[{sku:'OAT-1',quantity:2}]});
+ let revision=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date()),lines:[{sku:'OAT-1',quantity:2}]});
  await h.command('quote.message',{quoteId:quote.id,body:'Private margin discussion',internal:true});
  await h.command('quote.message',{quoteId:quote.id,body:'Buyer-visible revision is ready.'});
  for(const who of [admin,purchaser,approver]){const view=await h.api(`/api/barrow/quotes/${quote.id}`,undefined,who);assert.ok(view.thread.some(v=>v.body==='Buyer-visible revision is ready.'));assert.ok(!JSON.stringify(view).includes('Private margin discussion'))}
  await h.api(`/api/barrow/quotes/${quote.id}`,undefined,{...finance,status:404});
  const mailed=h.mail.requests.filter(v=>v.message.subject===`Barrow quote ${quote.id}`).flatMap(v=>v.message.to);for(const address of ['buyer@example.test','purchaser@example.test','approver@example.test'])assert.ok(mailed.includes(address),`Missing purchasing recipient ${address}`);assert.ok(!mailed.includes('finance@example.test'));
+ const expiry=()=>h.mail.requests.filter(v=>v.message.subject===`Barrow quote ${quote.id}`&&v.message.text.includes('expires after today'));assert.deepEqual(expiry().flatMap(v=>v.message.to).sort(),['approver@example.test','buyer@example.test','owner@example.test','purchaser@example.test']);const expiryCount=expiry().length;await h.command('quote-mail.dispatch',{});assert.equal(expiry().length,expiryCount);
  const quotedOrder=await h.command('quote.accept',{quoteId:quote.id,number:1},purchaser);assert.equal(quotedOrder.order.status,'awaiting-company-approval');
  await h.configure({MAIL_API_KEY:''});await h.command('quote.message',{quoteId:quote.id,body:'Queued recipient revocation proof.'});
  const queued=(await h.db.prepare("SELECT id,status FROM bw_quote_mail WHERE quote_id=? AND recipient_id=? AND status='not configured'").bind(quote.id,purchaserId).all()).results;assert.ok(queued.length);
