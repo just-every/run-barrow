@@ -1,3 +1,4 @@
+import { staffAccountAllowed } from './staff-policy'
 import { companyAccountIds, companyMembership } from './company-policy'
 import { applicationAccountErasure } from './application-custody'
 import { quoteMailErasureStatements } from './quote-mail-custody'
@@ -17,7 +18,7 @@ export async function accounts(db:D1Database,actor:Actor):Promise<Account[]> {
 }
 export async function account(db:D1Database,actor:Actor,id:string):Promise<Account> {
  const row=await db.prepare('SELECT * FROM bw_accounts WHERE id=?').bind(id).first<any>()
- if(!row || (!supplier(actor) && !await companyMembership(db,actor,id))) fail('NOT_FOUND','Trade account not found.',404)
+ if(!row || (actor.staff&&!staffAccountAllowed(actor.staff,id)) || (!supplier(actor) && !await companyMembership(db,actor,id))) fail('NOT_FOUND','Trade account not found.',404)
  return {id:row.id,value:JSON.parse(row.value_json),revision:row.revision}
 }
 // A new account without a chosen ID takes one from its name ("Palmetto & Pine" → palmetto-pine, then palmetto-pine-2).

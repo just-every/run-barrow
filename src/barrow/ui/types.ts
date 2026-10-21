@@ -21,7 +21,7 @@ export interface Order {
   release?: { reason: string; requestedBy: string; requestedAt: string; held: { itemId: string; quantity: string }[]; confirmedAt?: string; lines?: { quantity: string; dispatched: string; cancelled: string }[] }
 }
 export interface BarrowState {
-  actor: { id: string; email: string; role: 'owner' | 'admin' | 'member'; agent: false; company?: import('../company-policy').CompanyMembership|null }
+  actor: { id: string; email: string; role: 'owner' | 'admin' | 'member'; agent: false; staff?: import('../staff-policy').StaffGrant|null; company?: import('../company-policy').CompanyMembership|null }
   accountPage: {page:number;pageSize:number;hasNext:boolean}; waitingDraft: Order | null; orderPage: {page:number;pageSize:number;hasNext:boolean;counts:Record<string,number>}; accounts: Account[]; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }; settings: { stockFreshnessMinutes: number | null }
 }
 export interface CatalogueItem {

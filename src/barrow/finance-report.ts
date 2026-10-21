@@ -1,3 +1,4 @@
+import { requireStaffReport } from './staff-policy'
 // RPT-004: calendar-day aging of recorded invoices, not a claim about verified unpaid receivables.
 import type { Bindings } from '../auth.server'
 import { accounts } from './accounts'
@@ -23,12 +24,12 @@ const date = (value: string) => {
 const bucketFor = (days: number): FinanceBucket => days === 0 ? 'current' : days <= 30 ? '1-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '91+'
 
 export async function financeReport(env: Bindings, actor: Actor, params: URLSearchParams) {
- requirePerson(actor); requireSupplier(actor)
+ requirePerson(actor); requireStaffReport(actor, 'finance', params); requireSupplier(actor)
  const at = await now(), timeZone = await reportZone(env.DB)
  const asOf = date(params.get('asOf') ?? calendarDate(at, timeZone))
  const filter = { accountId: params.get('accountId') ?? '', assignedRep: params.get('assignedRep') ?? '' }
  const profiles = new Map((await accounts(env.DB, actor)).map(account => [account.id, account.value]))
- const records = await env.DB.prepare("SELECT value_json FROM bw_orders WHERE json_extract(value_json,'$.status')='approved' AND json_extract(value_json,'$.invoice') IS NOT NULL").all<{ value_json: string }>()
+ const records = await env.DB.prepare("SELECT value_json FROM bw_orders WHERE json_extract(value_json,'$.status')='approved' AND json_extract(value_json,'$.invoice') IS NOT NULL AND (?='' OR json_extract(value_json,'$.accountId')=?)").bind(filter.accountId,filter.accountId).all<{ value_json: string }>()
  const rows: FinanceRow[] = []
  for (const record of records.results) {
   const order = JSON.parse(record.value_json) as Order, invoice = order.invoice!, profile = profiles.get(order.accountId)

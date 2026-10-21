@@ -2,7 +2,7 @@ export class Problem extends Error {
  constructor(public code: string, message: string, public status = 409) { super(message) }
 }
 export function fail(code: string, message: string, status = 409): never { throw new Problem(code, message, status) }
-export type Actor = { id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string; company?: import('./company-policy').CompanyMembership|null }
+export type Actor = { id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string; staff?: import('./staff-policy').StaffGrant|null; company?: import('./company-policy').CompanyMembership|null }
 export type Price = { sku: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('./units').UnitDefinition[]; pricing?: import('./pricing').Pricing }
 export type { AccountValue } from './imports/validation'
 import type { AccountValue } from './imports/validation'
@@ -15,7 +15,7 @@ export type Order = { termsAcceptance?: import('./sales-terms').TermsAcceptance;
 export type Release = { reason: string; requestedBy: string; requestedAt: string; held: {itemId: string; quantity: string}[]; confirmedAt?: string; lines?: {itemId: string; quantity: string; dispatched: string; cancelled: string; reserved: string}[] }
 export const text = (v: unknown, name: string, limit = 160): string => typeof v === 'string' && v.trim() && v.length <= limit ? v.trim() : fail('INPUT', `${name} is required (at most ${limit} characters).`, 400)
 export const integer = (v: unknown, name: string, min = 0, max = 1000000000): number => typeof v === 'number' && Number.isSafeInteger(v) && v >= min && v <= max ? v : fail('INPUT', `${name} must be a whole number between ${min} and ${max}.`, 400)
-export const supplier = (actor: Actor) => ['owner','admin'].includes(actor.role)
+export const supplier = (actor: Actor) => (['owner','admin'].includes(actor.role)||Boolean(actor.staff))
 export const requireSupplier = (actor: Actor) => { if (actor.agent || !supplier(actor)) fail('FORBIDDEN','A signed-in supplier must approve this action.',403) }
 export const requirePerson = (actor: Actor) => { if(actor.agent) fail('PERSON_REQUIRED','An agent can prepare a draft; a person must review and submit it.',403) }
 export const actorLabel = (actor: Actor) => actor.agent ? `agent:${actor.grantId}` : actor.id

@@ -1,3 +1,7 @@
+import {CommissionSettings} from './commission-settings'
+import {StaffMembers} from './staff-members'
+import {StaffWorkspace} from './staff-workspace'
+import {Followups} from './followups'
 import { CompanyUsers, CompanyInvitation } from './company-members'
 import { ApplicationRetention } from './application-retention'
 import { Applications } from './applications'
@@ -34,19 +38,20 @@ export function BarrowApp() {
   const [tab, setTab] = useState('')
   const [accountId, setAccountId] = useState('')
   const [draftId, setDraftId] = useState('')
-  const supplier = state?.actor.role === 'owner' || state?.actor.role === 'admin'
+  const legacySupplier=state?.actor.role==='owner'||state?.actor.role==='admin',staff=state?.actor.staff,staffSelling=staff?.role==='sales-manager'||staff?.role==='rep'
+  const supplier = legacySupplier||Boolean(staff)
   const rights=state?.actor.company?.rights??[]
-  const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=supplier||rights.includes('finance'),companyAdmin=supplier||rights.includes('administrator')
+  const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=legacySupplier||staff?.role==='finance'||rights.includes('finance'),companyAdmin=legacySupplier||!staff&&rights.includes('administrator')
   const pad = supplier ? 'Order pad' : 'Catalog'
-  const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit'] : [...(purchasing?[pad]:[]),'Orders',...(companyAdmin?['Company']:[])]
+  const tabs = staff?[...(staffSelling?[pad]:[]),...(staff.role==='sales-manager'?['Accounts']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit']:legacySupplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[])] : [...(purchasing?[pad]:[]),'Orders',...(companyAdmin?['Company']:[])]
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
   const selected=selectedAccount?.id===accountId?selectedAccount:null
   useEffect(()=>{
     let current=true;setAccountLoading(Boolean(accountId))
-    if(accountId)void request<Account>(`/api/barrow/accounts/by-id/${encodeURIComponent(accountId)}`).then(value=>{if(current)setSelected(value)}).catch(cause=>{if(current){setSelected(null);setError(errorMessage(cause))}}).finally(()=>{if(current)setAccountLoading(false)})
+    if(accountId&&(!staff||staffSelling))void request<Account>(`/api/barrow/accounts/by-id/${encodeURIComponent(accountId)}`).then(value=>{if(current)setSelected(value)}).catch(cause=>{if(current){setSelected(null);setError(errorMessage(cause))}}).finally(()=>{if(current)setAccountLoading(false)})
     return ()=>{current=false}
-  },[accountId,state])
+  },[accountId,state,staff,staffSelling])
   const reload = useCallback(async () => {
     const first = !loaded.current
     loaded.current = true
@@ -133,20 +138,24 @@ export function BarrowApp() {
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>}
           {activeTab === pad && (selected
-            ? <DraftWorkspace canPurchase={supplier||rights.includes('purchaser')} key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
+            ? <DraftWorkspace canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
                 onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />
-            : accountId ? <p role="status">{accountLoading?'Loading selected trade account…':'The selected trade account could not be loaded. Refresh records to try again.'}</p> : <div className="br-page-empty">{supplier
+            : accountId ? <p role="status">{accountLoading?'Loading selected trade account…':'The selected trade account could not be loaded. Refresh records to try again.'}</p> : <div className="br-page-empty">{staff?<Empty title="No assigned trade accounts">The owner must explicitly assign accounts before you can sell.</Empty>:legacySupplier
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
-          {activeTab === 'Accounts' && <Accounts version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
-          {activeTab === 'Accounts' && supplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
-          {activeTab === 'Accounts' && supplier && <Applications version={state} busy={busy} run={run}/>}
-          {activeTab === 'Accounts' && supplier && <UsagePublisher busy={busy} run={run}/>}
-          {activeTab === 'Accounts' && supplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
+          {activeTab === 'Accounts' && <Accounts canCreate={!staff||staff.accounts==='all'} canInvite={legacySupplier} version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
+          {activeTab === 'Accounts' && legacySupplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
+          {activeTab === 'Accounts' && legacySupplier && <Applications version={state} busy={busy} run={run}/>}
+          {activeTab === 'Accounts' && legacySupplier && <UsagePublisher busy={busy} run={run}/>}
+          {activeTab === 'Accounts' && legacySupplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
+          {activeTab === 'Team'&&state.actor.role==='owner'&&<StaffMembers accounts={state.accounts} version={state} run={run} busy={busy}/>}
+          {activeTab === 'Reports'&&staff?.role==='sales-manager'&&staff.accounts==='all'&&<CommissionSettings onSaved={()=>void reload()}/>}
+          {activeTab === 'Reports'&&staff&&<StaffWorkspace actor={state.actor} accounts={state.accounts} orders={state.orders} people={state.people} run={run} busy={busy} version={state} onOpen={order=>openPad(order.accountId,order.id)}/>}
+          {activeTab === 'Follow-ups'&&staff&&<Followups/>}
           {activeTab === 'Company' && companyAdmin && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier={false}/>}
-          {activeTab === 'Accounts' && supplier && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier/>}
-          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} companyApprover={supplier||rights.includes('approver')} canPurchase={supplier||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
-          {activeTab === 'Orders' && purchasing && <Quotes canPurchase={supplier||Boolean(state.actor.company?.rights.includes('purchaser'))} supplier={supplier} busy={busy} run={run} version={state.orders} />}
+          {activeTab === 'Accounts' && legacySupplier && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier/>}
+          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} canOperate={legacySupplier||Boolean(staff&&['sales-manager','operations'].includes(staff.role)&&staff.warehouses==='all')} canExcept={legacySupplier||staff?.role==='sales-manager'} canQuote={legacySupplier||staff?.role==='sales-manager'} companyApprover={legacySupplier||rights.includes('approver')} canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+          {activeTab === 'Orders' && (legacySupplier||staffSelling||!staff&&purchasing) && <Quotes canPurchase={legacySupplier||staffSelling||Boolean(state.actor.company?.rights.includes('purchaser'))} supplier={supplier} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}

@@ -1,3 +1,4 @@
+import { staffScope,staffCanReadOrder } from './staff-access'
 import type { Actor } from './model'
 import { fail, supplier } from './model'
 import { requireCompanyRight } from './company-policy'
@@ -7,11 +8,13 @@ export function companyAccountPredicate(column:string) {
  return `${column} IN (SELECT cm.account_id FROM bw_company_members cm JOIN oa_operators cp ON cp.id=cm.user_id WHERE cm.user_id=? AND cm.state='active' AND cm.erased_at IS NULL AND cp.role='member' AND cp.status='active')`
 }
 export function companyOrderScope(actor:Actor,column='account_id',valueColumn='value_json') {
+ if(actor.staff){const scoped=staffScope(actor,column);return {...scoped,sql:scoped.sql+(actor.staff.role==='analyst'?' AND 0':actor.staff.role==='finance'?` AND json_extract(${valueColumn},'$.invoice') IS NOT NULL`:'')}}
  if(supplier(actor))return {sql:'',values:[] as string[]}
  const rights=actor.company?.rights??[],purchasing=rights.some(r=>r==='purchaser'||r==='approver')
  return {sql:` AND ${companyAccountPredicate(column)}${purchasing?'':rights.includes('finance')?` AND json_extract(${valueColumn},'$.invoice') IS NOT NULL`:' AND 0'}`,values:[actor.id]}
 }
 export async function companyOrderRead(db:D1Database,actor:Actor,order:{accountId:string;invoice?:unknown}) {
+ if(actor.staff){if(!staffCanReadOrder(actor.staff,order))fail('NOT_FOUND','Order not found.',404);return}
  if(supplier(actor))return
  const member=actor.company
  if(!member||member.accountId!==order.accountId)fail('NOT_FOUND','Order not found.',404)

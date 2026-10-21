@@ -1,3 +1,4 @@
+import { requireStaffReport } from './staff-policy'
 // RPT-002: quote conversion, carts and reorders by rep, cohort and product, over today's records. Quotes count in the
 // period of their request date and orders in the period of their preparation date, both as calendar days in the
 // installation reporting time zone. Every rate states its numerator and denominator. Only an accepted quote's one
@@ -52,14 +53,14 @@ function measure(quotes: Quote[], orders: Order[], all: Map<string, Order>, retu
 }
 
 export async function quoteReport(env: Bindings, actor: Actor, params: URLSearchParams) {
- // Until ACC-005 supplies sales managers, the owner and admins read this report; agents and buyers do not.
- requirePerson(actor); requireSupplier(actor)
+ requirePerson(actor); requireStaffReport(actor, 'quotes', params); requireSupplier(actor)
  const at = await now(), checkedAt = at.toISOString(), zone = await reportZone(env.DB), reportDay = calendarDate(at, zone)
  const to = day(params.get('to'), 'To') ?? reportDay, from = day(params.get('from'), 'From') ?? shift(to, -89)
  if (from > to) fail('INPUT', 'From must not be after To.', 400)
  const list = await accounts(env.DB, actor), byId = new Map(list.map(row => [row.id, row]))
- const quotes = (await env.DB.prepare('SELECT value_json,revision FROM bw_quotes ORDER BY rowid').all<any>()).results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Quote)
- const records = (await env.DB.prepare('SELECT value_json FROM bw_orders ORDER BY rowid').all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
+ const accountId = params.get('accountId') ?? ''
+ const quotes = (await env.DB.prepare("SELECT value_json,revision FROM bw_quotes WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid").bind(accountId,accountId).all<any>()).results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Quote)
+ const records = (await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid").bind(accountId,accountId).all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
  const all = new Map(records.map(order => [order.id, order]))
  const inPeriod = (iso: string) => { const date = calendarDate(new Date(iso), zone); return date >= from && date <= to }
  const periodQuotes = quotes.filter(quote => inPeriod(quote.requestedAt)), periodOrders = records.filter(order => order.status !== 'superseded' && inPeriod(order.preparedAt))

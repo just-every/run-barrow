@@ -81,7 +81,7 @@ function Proposal({ quote, lines, busy, run, onDone }: { quote: Quote; lines: Qu
   async function propose(event: FormEvent) {
     event.preventDefault()
     if (invalid) return
-    const done = await run('quote.propose', { quoteId: quote.id, revision: quote.revision, validUntil, shipping, ...deliveryFields, ...(termsDays.trim() ? { termsDays: Number(termsDays) } : {}), lines: rows.map(row => ({ sku: row.sku, ...(row.unit ? { unit: row.unit } : {}), quantity: Number(row.quantity), ...(row.price.trim() ? { unitCents: cents(row.price) } : {}) })) })
+    const done = await run('quote.propose', { quoteId: quote.id, revision: quote.revision, validUntil, shipping, ...deliveryFields, ...(termsDays.trim() ? { termsDays: Number(termsDays) } : {}),...(rows.some(row=>row.price.trim())?{reason:window.prompt('Record the reason for this negotiated price.')??''}:{}), lines: rows.map(row => ({ sku: row.sku, ...(row.unit ? { unit: row.unit } : {}), quantity: Number(row.quantity), ...(row.price.trim() ? { unitCents: cents(row.price) } : {}) })) })
     if (done) onDone()
   }
   return <form className="br-stack" aria-label={`Propose revision for ${quote.id}`} onSubmit={event => void propose(event)}>

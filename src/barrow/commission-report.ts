@@ -1,3 +1,4 @@
+import { requireStaffReport } from './staff-policy'
 import type { Bindings } from '../auth.server'
 import { csvText } from './cart-csv'
 import { now } from './clock'
@@ -61,12 +62,13 @@ function totals(rows: CommissionRow[]) {
  }).sort((a, b) => lexical(a.currency, b.currency) || lexical(a.rep, b.rep))
 }
 export async function commissionReport(env: Bindings, actor: Actor, params: URLSearchParams) {
- requirePerson(actor); requireSupplier(actor)
+ requirePerson(actor); requireStaffReport(actor, 'commissions', params); requireSupplier(actor)
  const checkedAt = (await now()).toISOString(), filter = { rep: params.get('rep') ?? '', accountId: params.get('accountId') ?? '' }
+ const restrictRep = actor.role==='member' && Boolean(filter.rep)
  // Commissions are private supplier attribution, deliberately separate from buyer-visible orders.
- const records = await env.DB.prepare('SELECT o.value_json,c.value_json AS commission_json FROM bw_orders o LEFT JOIN bw_order_commissions c ON c.order_id=o.id ORDER BY o.id').all<{ value_json: string; commission_json: string | null }>()
- const orders = records.results.map(record => ({ order: JSON.parse(record.value_json) as Order, commission: record.commission_json ? JSON.parse(record.commission_json) as CommissionSnapshot : null })).filter(row => !filter.accountId || row.order.accountId === filter.accountId)
- const historicalUnrecorded = orders.filter(row => row.order.approvedAt && !row.commission).length
+ const records = await env.DB.prepare(`SELECT o.value_json,c.value_json AS commission_json FROM bw_orders o LEFT JOIN bw_order_commissions c ON c.order_id=o.id WHERE (?='' OR json_extract(o.value_json,'$.accountId')=?) ORDER BY o.id`).bind(filter.accountId,filter.accountId).all<{ value_json: string; commission_json: string | null }>()
+ const orders = records.results.map(record => ({ order: JSON.parse(record.value_json) as Order, commission: record.commission_json ? JSON.parse(record.commission_json) as CommissionSnapshot : null })).filter(row => !restrictRep || Boolean(row.commission?.lines.some(entry => entry.rule ? entry.rule.splits.some(split => split.rep === filter.rep) : row.commission!.assignedRep === filter.rep)))
+ const historicalUnrecorded = restrictRep ? null : orders.filter(row => row.order.approvedAt && !row.commission).length
  let state: any, origin: string | undefined, source: 'read' | 'unavailable' = 'read'
  try { [state, origin] = await Promise.all([pierState(env), pierOrigin(env)]) } catch { source = 'unavailable' }
  const rows: CommissionRow[] = [], exceptions: { orderId: string; reason: string }[] = []
@@ -79,6 +81,7 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
    catch { exceptions.push({ orderId: order.id, reason: 'Recorded Pier origin, customer, order, shipment/return links or quantities are unavailable or do not reconcile.' }) }
   }
   for (const entry of commission.lines) {
+   if (restrictRep && !(entry.rule ? entry.rule.splits.some(split => split.rep === filter.rep) : commission.assignedRep === filter.rep)) continue
    const line = order.lines[entry.line - 1]
    if (!line) fail('COMMISSION_SNAPSHOT', 'Commission snapshot references a missing order line.', 409)
    const rule = entry.rule, confirmed = quantities?.get(line.itemId)
@@ -107,5 +110,5 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
 export const commissionColumns = ['rep', 'assignedRep', 'orderId', 'line', 'accountId', 'account', 'sku', 'currency', 'ruleId', 'ruleRevision', 'basis', 'rateBps', 'shareBps', 'acceptedAt', 'sourceOrderId', 'sourceLineId', 'shipmentIds', 'returnIds', 'basisCents', 'cancelledBasisCents', 'returnedBasisCents', 'grossCents', 'reversedCents', 'netCents', 'source', 'reason', 'path'] as const
 export async function commissionCsv(env: Bindings, actor: Actor, params: URLSearchParams) {
  const report = await commissionReport(env, actor, params)
- return new Response(csvText([[...commissionColumns], ...report.rows.map(row => commissionColumns.map(column => Array.isArray(row[column]) ? (row[column] as string[]).join(';') : row[column] ?? 'not recorded')), [], ['historicalUnrecorded', report.historicalUnrecorded], ...Object.entries(report.notes).map(([key, value]) => [key, value])]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-commissions.csv"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+ return new Response(csvText([[...commissionColumns], ...report.rows.map(row => commissionColumns.map(column => Array.isArray(row[column]) ? (row[column] as string[]).join(';') : row[column] ?? 'not recorded')), [], ['historicalUnrecorded', report.historicalUnrecorded ?? 'not attributable to this rep'], ...Object.entries(report.notes).map(([key, value]) => [key, value])]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-commissions.csv"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
 }

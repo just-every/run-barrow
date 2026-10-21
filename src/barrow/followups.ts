@@ -1,3 +1,5 @@
+import { staffTaskAllowed } from './staff-access'
+import { readStaffGrant,staffGuard } from './staff-policy'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { now } from './clock'
@@ -16,9 +18,13 @@ const validDay = (value: unknown) => {
  return value
 }
 const people = async (db: D1Database) => (await db.prepare("SELECT id,display_name AS displayName FROM oa_operators WHERE status='active' AND role IN ('owner','admin') ORDER BY display_name,id").all<{ id: string; displayName: string }>()).results
+async function taskPeople(db:D1Database,task:{accountId:string;kind:string}) {
+ const native=(await db.prepare("SELECT id,email,role,version,display_name AS displayName FROM oa_operators WHERE status='active'").all<any>()).results
+ const allowed=[];for(const p of native){if(['owner','admin'].includes(p.role)){allowed.push(p);continue}const grant=await readStaffGrant(db,{...p,agent:false});if(grant&&staffTaskAllowed({...p,agent:false,staff:grant},task))allowed.push({...p,grant})}return allowed
+}
 const allTasks = async (db: D1Database) => (await db.prepare('SELECT value_json,revision FROM bw_followups ORDER BY id').all<Stored>()).results.map(parse)
 const notes = {
- scope: 'Owner and admins act for reps until ACC-005/ACC-006 supply scoped staff assignments. Wholesale source tasks are refreshed by an explicit command; recorded quote mail failures create owned tasks automatically.',
+ scope: 'ACC-005 functional staff see and act only on tasks their role and current account grant cover. ACC-006 adds territories and delegated coverage. Wholesale source tasks are refreshed by an explicit command; recorded quote mail failures create owned tasks automatically.',
  sources: 'Quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days. Missing sources or unknown ages do not prove resolution.',
  contact: 'Contact attempts are manually recorded and do not send outreach; quote email delivery is recorded separately. Failed contact leaves work open unless a person explicitly records a separate resolution.',
  exceptions: 'Carrier delivery and payment exceptions are not recorded until SHIP-003, PAY-011 and AGT-005 provide verified sources.',
@@ -26,7 +32,7 @@ const notes = {
 export async function readFollowups(env: Bindings, actor: Actor, params: URLSearchParams) {
  authorize(actor)
  const timeZone = await reportZone(env.DB), today = calendarDate(await now(), timeZone), on = params.has('on') ? validDay(params.get('on')) : today
- const [tasks, staff] = await Promise.all([allTasks(env.DB), people(env.DB)])
+ const tasks=(await allTasks(env.DB)).filter(task=>staffTaskAllowed(actor,task));const staff=actor.staff?Array.from(new Map((await Promise.all(tasks.map(task=>taskPeople(env.DB,task)))).flat().map(p=>[p.id,{id:p.id,displayName:p.displayName}])).values()):await people(env.DB)
  return { tasks: tasks.filter(task => params.get('view') === 'all' || task.status === 'open' && task.nextContactDate <= on).sort((a, b) => a.priority - b.priority || a.nextContactDate.localeCompare(b.nextContactDate) || a.id.localeCompare(b.id)), people: staff, today, timeZone, on, notes }
 }
 function updateStatement(db: D1Database, before: FollowupTask, after: FollowupValue, revision: string) {
@@ -40,6 +46,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
   const today = calendarDate(new Date(at), await reportZone(env.DB)), known = new Map(existing.map(task => [task.id, task]))
   const statements: D1PreparedStatement[] = [], created: string[] = [], closed: string[] = [], updated: string[] = []
   for (const source of sources.candidates) {
+   if(!staffTaskAllowed(actor,source))continue
    const existingTask = known.get(source.id)
    if (existingTask) {
     if (existingTask.status === 'open' && (Object.keys(source) as (keyof FollowupSource)[]).some(key => existingTask[key] !== source[key])) {
@@ -56,6 +63,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
    created.push(value.id)
   }
   for (const task of existing) {
+   if(!staffTaskAllowed(actor,task))continue
    const resolution = sources.resolved.get(task.id)
    if (task.status === 'closed' || !resolution) continue
    const { revision: previous, ...value } = task, revision = crypto.randomUUID()
@@ -65,21 +73,22 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
   const revision = crypto.randomUUID()
   statements.push(audit(env.DB, actor, 'followups', 'followup.refreshed', { revision, source: type, reason: `Explicit source reconciliation at ${at}: created ${created.length}, updated ${updated.length}, resolved ${closed.length}. Missing sources remain assigned; human-closed tasks stay closed.` }))
   await commit(env.DB, actor, statements)
-  return { created, updated, closed, unknownAge: sources.unknownAge, ...(await readFollowups(env, actor, new URLSearchParams('view=all'))) }
+  return { created, updated, closed, unknownAge: actor.staff?['Unknown-age source records remain unresolved; owner review can inspect all source diagnostics.']:sources.unknownAge, ...(await readFollowups(env, actor, new URLSearchParams('view=all'))) }
  }
  if (type !== 'followup.update') fail('COMMAND', 'Unknown follow-up command.', 400)
  const id = text(p.id, 'Task ID', 240), expected = text(p.revision, 'Task revision', 100)
  const row = await env.DB.prepare('SELECT value_json,revision FROM bw_followups WHERE id=?').bind(id).first<Stored>()
  if (!row) fail('NOT_FOUND', 'Follow-up task not found.', 404)
  const before = parse(row)
+ if(!staffTaskAllowed(actor,before))fail('NOT_FOUND','Follow-up task not found.',404)
  if (before.revision !== expected) fail('REVISION', 'The task changed. Refresh before updating it.')
  if (before.status === 'closed') fail('CLOSED', 'Resolved follow-up tasks remain closed.')
  const { revision: previous, ...value } = before
  const statements: D1PreparedStatement[] = []
  if (p.ownerId !== undefined) {
   value.ownerId = text(p.ownerId, 'Owner', 160)
-  if (!(await people(env.DB)).some(person => person.id === value.ownerId)) fail('OWNER', 'Assign an active owner or admin.', 400)
-  statements.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')) THEN 1 ELSE 0 END").bind(value.ownerId))
+  const recipient=(await taskPeople(env.DB,before)).find(person=>person.id===value.ownerId);if(!recipient)fail('OWNER','Assign a current person with authority for this complete task.',400)
+  statements.push(recipient.grant?staffGuard(env.DB,recipient.grant):env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status='active' AND role IN ('owner','admin')) THEN 1 ELSE 0 END").bind(recipient.id,recipient.version))
  }
  if (p.nextContactDate !== undefined) value.nextContactDate = validDay(p.nextContactDate)
  if (p.contact !== undefined) {

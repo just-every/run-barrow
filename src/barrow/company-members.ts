@@ -19,7 +19,7 @@ const hasAdministrator = `EXISTS(SELECT 1 FROM json_each(policy_json,'$.rights')
 export async function bootstrapLegacyCompanyMembers(db: D1Database) {
  const [accounts, people] = await Promise.all([
   db.prepare('SELECT id,value_json,revision FROM bw_accounts WHERE id NOT IN (SELECT account_id FROM bw_company_legacy_accounts)').all<any>(),
-  db.prepare("SELECT id,email,display_name FROM oa_operators WHERE role='member' AND status='active'").all<any>(),
+  db.prepare("SELECT id,email,display_name FROM oa_operators WHERE role='member' AND status='active' AND id NOT IN (SELECT user_id FROM bw_staff_members)").all<any>(),
  ])
  for (const account of accounts.results) {
   const email = companyEmail(JSON.parse(account.value_json).email)
@@ -55,7 +55,8 @@ async function collision(db: D1Database, accountId: string, email: string) {
   db.prepare('SELECT id,email,role,status FROM oa_operators').all<any>(),
  ])
  const person = people.results.find(row => companyEmail(row.email) === email)
- const reason = person && person.role !== 'member' ? 'supplier identity'
+ const staff=person&&await db.prepare('SELECT 1 FROM bw_staff_members WHERE user_id=?').bind(person.id).first()
+ const reason = person && (person.role !== 'member'||staff) ? 'supplier identity'
   : accounts.results.some(row => companyEmail(JSON.parse(row.value_json).email) === email) || members.results.some(row => row.email_key === email) ? 'another trade account'
   : person && person.status !== 'active' ? 'existing identity requires supplier review' : null
  return { reason, person }

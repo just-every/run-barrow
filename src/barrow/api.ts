@@ -1,3 +1,5 @@
+import { readStaffGrant,readStaffMembers,staffCommand } from './staff-members'
+import { staffRequestGate,staffCommandGate } from './staff-access'
 import { bootstrapLegacyCompanyMembers, companyMembership, companyCommand, readCompanyMembers, readCompanyCollisions, ownCompanyInvitations, requireCompanyRight } from './company-members'
 import { applicationResponse, applicationCommand } from './applications'
 import { readUsageTerms, requireUsageTerms, usageTermsCommand, usageDocument } from './usage-terms'
@@ -65,8 +67,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
   })
+  actor.staff=await readStaffGrant(env.DB,actor)
+  await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
+  if(path==='/api/barrow/staff/members'&&request.method==='GET')return json({members:await readStaffMembers(env.DB,actor)})
   if(path==='/api/barrow/company/invitations'&&request.method==='GET')return json({invitations:await ownCompanyInvitations(env.DB,actor)})
   if(path==='/api/barrow/company/collisions'&&request.method==='GET')return json({collisions:await readCompanyCollisions(env.DB,actor)})
   if(path==='/api/barrow/company/members'&&request.method==='GET')return json(await readCompanyMembers(env.DB,actor,url.searchParams.get('accountId')??''))
@@ -99,7 +104,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const directory=await accountPage(env.DB,actor,new URLSearchParams())
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
    const {orders,people,...orderPage}=page
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company},accounts:directory.accounts,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
+   if(actor.staff&&actor.staff.role==='analyst'){orders.splice(0);directory.accounts.splice(0)}
+   else if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))directory.accounts=directory.accounts.map(a=>({...a,value:{...a.value,prices:[]}}))
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
   if(path==='/api/barrow/shipping/options' && request.method==='GET') {
@@ -120,10 +127,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/export.json' && request.method==='GET') return await exportResponse(env,actor,'json')
   const exported=/^\/api\/barrow\/export\/([a-z]+)\.csv$/.exec(path)
   if(exported && request.method==='GET' && (exportKinds as readonly string[]).includes(exported[1])) return await exportResponse(env,actor,exported[1] as (typeof exportKinds)[number])
-  if(path==='/api/barrow/accounts' && request.method==='GET')return json(await accountPage(env.DB,actor,url.searchParams))
+  if(path==='/api/barrow/accounts' && request.method==='GET'){const page=await accountPage(env.DB,actor,url.searchParams);if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))page.accounts=page.accounts.map(a=>({...a,value:{...a.value,prices:[]}}));return json(page)}
   if(path==='/api/barrow/accounts/duplicates' && request.method==='GET')return json(await duplicateAccountPage(env.DB,actor,url.searchParams))
   const accountRead=/^\/api\/barrow\/accounts\/by-id\/([^/]+)$/.exec(path)
-  if(accountRead && request.method==='GET')return json(await account(env.DB,actor,decodeURIComponent(accountRead[1])))
+  if(accountRead && request.method==='GET'){const value=await account(env.DB,actor,decodeURIComponent(accountRead[1]));return json(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role)?{...value,value:{...value.value,prices:[]}}:value)}
   if(path==='/api/barrow/orders/search' && request.method==='GET') return json(await searchOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json(await workspaceOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/locations' && request.method==='GET') return json({locations:await readLocations(env.DB,actor,url.searchParams.get('accountId')??'')})
@@ -182,7 +189,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
    if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
+   await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['staff.invite','staff.update','staff.revoke'].includes(body.type))return json({result:await staffCommand(request,env,actor,body.type,body.payload)})
    if(['company.invite','company.accept','company.update','company.remove','company.erase'].includes(body.type))return json({result:await companyCommand(request,env,actor,body.type,body.payload)})
    if(['usage.publish','usage.accept'].includes(body.type))return json({result:await usageTermsCommand(env,actor,body.type,body.payload)})
    if(['application.approve','application.decline','application.request-information'].includes(body.type))return json({result:await applicationCommand(request,env,actor,body.type,body.payload)})

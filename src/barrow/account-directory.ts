@@ -1,3 +1,4 @@
+import { staffScope } from './staff-access'
 import { companyAccountPredicate } from './company-access'
 import { account } from './accounts'
 import { duplicateCompany, companyIdentityChanged } from './account-profile'
@@ -20,7 +21,7 @@ export async function accountPage(db: D1Database, actor: Actor, query: URLSearch
  const page = pageNumber(query), search = term(query, 'q'), sort = query.get('sort') ?? 'id'
  const sorts: Record<string,string> = { id: 'id ASC', 'name-asc': "lower(json_extract(value_json,'$.name')) ASC,id ASC", 'name-desc': "lower(json_extract(value_json,'$.name')) DESC,id ASC" }
  if (!Object.hasOwn(sorts, sort)) fail('SEARCH', 'Choose a listed account sort.', 400)
- const clauses = ['1=1'], values: (string|number)[] = []
+ const scope=staffScope(actor,'id'),clauses = ['1=1'+scope.sql], values: (string|number)[] = [...scope.values]
  if (!supplier(actor)) { clauses.push(companyAccountPredicate('id')); values.push(actor.id) }
  if (search) {
   clauses.push("(instr(lower(id),lower(?))>0 OR instr(lower(json_extract(value_json,'$.name')),lower(?))>0 OR instr(lower(json_extract(value_json,'$.email')),lower(?))>0 OR instr(lower(json_extract(value_json,'$.pierCustomerId')),lower(?))>0)")
@@ -38,6 +39,8 @@ export async function duplicateAccountPage(db: D1Database, actor: Actor, query: 
  const proposed = { name, pierCustomerId } as Account['value']
  const rows: {id:string;revision:string;name:string}[] = []
  if (!companyIdentityChanged(before?.value,proposed)) return { candidates: rows,page,pageSize,hasNext:false }
+ if(actor.staff&&actor.staff.accounts!=='all')fail('FORBIDDEN','Directory-wide duplicate review requires all-account manager authority.',403)
+
  let position = '', matched = 0
  while (rows.length<=pageSize) {
   const batch = await db.prepare('SELECT * FROM bw_accounts WHERE id>? ORDER BY id LIMIT 100').bind(position).all<any>()

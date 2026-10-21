@@ -1,3 +1,4 @@
+import { requireStaffReport } from './staff-policy'
 // RPT-001: account and product sales over today's records, one row per order line so every figure drills to its
 // document. Amounts are integer cents in each order's recorded currency and are never summed across currencies.
 // Booked is the line of a submitted order (cancelled orders excluded); shipped is Pier's dispatched base units valued
@@ -22,14 +23,13 @@ export const salesColumns = ['orderId', 'line', 'accountId', 'account', 'channel
 type Row = Record<(typeof salesColumns)[number], string | number | null>
 
 export async function salesReport(env: Bindings, actor: Actor, params: URLSearchParams) {
- // Until ACC-005 and ACC-006 supply managers and reps, the owner and admins read every account; buyers and agents do not.
- requirePerson(actor); requireSupplier(actor)
+ requirePerson(actor); requireStaffReport(actor, 'sales', params); requireSupplier(actor)
  const at = await now(), zone = await reportZone(env.DB), today = calendarDate(at, zone)
  const to = day(params.get('to'), 'To') ?? today, from = day(params.get('from'), 'From') ?? shift(to, -89)
  if (from > to) fail('INPUT', 'From must not be after To.', 400)
  const filter = { accountId: params.get('accountId') ?? '', channel: params.get('channel') ?? '', territory: params.get('territory') ?? '', sku: (params.get('sku') ?? '').toUpperCase() }
  const list = await accounts(env.DB, actor), byId = new Map(list.map(row => [row.id, row.value]))
- const orders = (await env.DB.prepare('SELECT value_json FROM bw_orders ORDER BY rowid').all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
+ const orders = (await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid").bind(filter.accountId,filter.accountId).all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
   .filter(order => booked.includes(order.status)).filter(order => { const date = calendarDate(new Date(order.preparedAt), zone); return date >= from && date <= to })
  // Shipped quantities are Pier's; when Pier does not answer they are unknown, never zero.
  let state: any, shipments: 'read' | 'unavailable' = 'read'

@@ -1,3 +1,4 @@
+import { readStaffGrant,staffAccountAllowed } from './staff-policy'
 import { companySubmission } from './company-purchase'
 import { companyOrderRead } from './company-access'
 import { companyRightsGuard, requireCompanyRight, requireCompanyApproval } from './company-policy'
@@ -127,7 +128,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   await assertCurrentPricing(env,selected,order,true)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
-  if(order.delivery && ['owner','admin'].includes(actor.role))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
+  if(order.delivery && (['owner','admin'].includes(actor.role)||actor.staff))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
   const delivery=await acceptDelivery(env,actor,{currency:order.currency??'AUD',account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
   const at=(await now()).toISOString(),release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtSubmission(env,actor,selected,order.id,p.termsAcceptance,at)
   const submission=await companySubmission(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{}),...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})})
@@ -162,7 +163,11 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   }
   if(order.status!=='reserving') fail('APPROVAL','The customer must review and submit this draft first.')
   // Current approver authority must still hold before an external stock effect.
-  const approver=await env.DB.prepare("SELECT id FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')").bind(order.approvedBy!).first()
+  const approver=await env.DB.prepare("SELECT id,email,role,version FROM oa_operators WHERE id=? AND status='active'").bind(order.approvedBy!).first<any>()
+  if(approver&&!['owner','admin'].includes(approver.role)){
+   const grant=await readStaffGrant(env.DB,{...approver,agent:false})
+   if(!grant||!['sales-manager','operations'].includes(grant.role)||grant.warehouses!=='all'||!staffAccountAllowed(grant,order.accountId))fail('APPROVAL_REVOKED','The recorded approver no longer has authority.')
+  }
   if(!approver) fail('APPROVAL_REVOKED','The recorded approver no longer has authority.')
   const result=await reserveOrder(env,order.id,order.pierCustomerId,order.lines,order.requestedDate)
   return recordReservation(env,actor,order,result)

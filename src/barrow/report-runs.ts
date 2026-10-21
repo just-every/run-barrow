@@ -3,7 +3,7 @@ import { now } from './clock'
 import { financeReport } from './finance-report'
 import { salesReport } from './sales-report'
 import { fail, requirePerson, requireSupplier, type Actor } from './model'
-import { reportAudit, reportEntitlement } from './report-access'
+import { reportAudit, reportCoverageSql, reportEntitlement, reportRecipientGuard } from './report-access'
 import { nextReportMonth } from './report-schedules'
 
 export function reportPeriod(at: Date) {
@@ -14,13 +14,13 @@ export async function freezeReport(env: Bindings, schedule: any, actorId: string
  const at=await now(), {period,from,to}=reportPeriod(at), id=`${schedule.id}_${period}`
  const existing=await env.DB.prepare('SELECT id FROM bw_report_runs WHERE id=?').bind(id).first()
  if (!existing) {
-  // Both supported reports require all-account supplier access; find an exact current recipient.
+  // An eligible exact recipient reads the entire immutable filter; scope is never trimmed.
   const recipients=(await env.DB.prepare('SELECT operator_id FROM bw_report_recipients WHERE schedule_id=? ORDER BY operator_id').bind(schedule.id).all<{operator_id:string}>()).results
   let reader: Actor | undefined
   for(const r of recipients) {
-   if ((await reportEntitlement(env,schedule.id,r.operator_id)).reason) continue
-   const row=await env.DB.prepare('SELECT id,email,role,version FROM oa_operators WHERE id=?').bind(r.operator_id).first<any>()
-   reader={...row,agent:false};break
+   const entitlement=await reportEntitlement(env,schedule.id,r.operator_id)
+   if (entitlement.reason || !entitlement.reader) continue
+   reader=entitlement.reader;break
   }
   if (!reader) {
    await env.DB.batch([reportAudit(env,actorId,schedule.id,'run-refused','No recipient currently covers the whole saved filter; no trimmed snapshot generated.')])
@@ -30,11 +30,17 @@ export async function freezeReport(env: Bindings, schedule: any, actorId: string
   const report=schedule.report_type==='sales' ? await salesReport(env,reader,params) : await financeReport(env,reader,params)
   const snapshot={name:schedule.name,reportType:schedule.report_type,schedule:'Monthly, first day at 09:00 UTC',period,from,to,asOf:at.toISOString(),filters,report}
   await env.DB.batch([
+   reportRecipientGuard(env,schedule.id,reader.id),
    env.DB.prepare('INSERT OR IGNORE INTO bw_report_runs VALUES(?,?,?,?,?,?,?,?)').bind(id,schedule.id,period,from,to,at.toISOString(),new Date(at.getTime()+90*86400000).toISOString(),JSON.stringify(snapshot)),
    reportAudit(env,actorId,id,'frozen','Froze one whole source-linked report for this saved schedule and period; 90-day exact-recipient download.',true),
-   env.DB.prepare(`INSERT OR IGNORE INTO bw_report_deliveries(id,run_id,operator_id,updated_at)
-    SELECT lower(hex(randomblob(16))),?,operator_id,? FROM bw_report_recipients WHERE schedule_id=? AND removed_at IS NULL`).bind(id,at.toISOString(),schedule.id),
+   env.DB.prepare(`INSERT OR IGNORE INTO bw_report_deliveries(id,run_id,operator_id,status,reason,updated_at)
+    SELECT lower(hex(randomblob(16))),?,r.operator_id,
+     CASE WHEN p.status='active' AND p.version=r.operator_version AND p.role=r.role AND ${reportCoverageSql()} THEN 'queued' ELSE 'cancelled' END,
+     CASE WHEN p.status='active' AND p.version=r.operator_version AND p.role=r.role AND ${reportCoverageSql()} THEN NULL ELSE 'Recipient no longer covers whole saved filter' END,?
+    FROM bw_report_recipients r JOIN bw_report_schedules s ON s.id=r.schedule_id LEFT JOIN oa_operators p ON p.id=r.operator_id
+    WHERE r.schedule_id=? AND r.removed_at IS NULL AND s.restored=0`).bind(id,at.toISOString(),schedule.id),
    reportAudit(env,actorId,id,'queued','Created at most one delivery per selected recipient and run; no email delivery inferred.',true),
+   env.DB.prepare('DELETE FROM bw_guard'),
   ])
  }
  await env.DB.prepare('UPDATE bw_report_schedules SET next_at=? WHERE id=?').bind(nextReportMonth(at),schedule.id).run()
@@ -42,6 +48,7 @@ export async function freezeReport(env: Bindings, schedule: any, actorId: string
 }
 export async function runSavedReport(env: Bindings, actor: Actor, p: any) {
  requirePerson(actor);requireSupplier(actor)
+ if (!['owner','admin'].includes(actor.role)) fail('FORBIDDEN','Only an owner or admin may run saved report schedules.',403)
  if (typeof p.scheduleId!=='string') fail('INPUT','Choose a saved schedule.',400)
  const schedule=await env.DB.prepare('SELECT * FROM bw_report_schedules WHERE id=? AND restored=0').bind(p.scheduleId).first<any>()
  if (!schedule) fail('NOT_FOUND','Native report schedule not found.',404)

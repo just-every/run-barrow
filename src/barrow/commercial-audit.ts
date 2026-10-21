@@ -1,4 +1,5 @@
 import { fail, requireSupplier, type Actor } from './model'
+import { readStaffGrant } from './staff-policy'
 
 export type CommercialAuditEvent = {
   id: string; subjectId: string; actorId: string; actorKind: 'human' | 'agent' | 'system'
@@ -43,10 +44,30 @@ function event(row: AuditRow): CommercialAuditEvent {
 
 export async function listCommercialAudit(db: D1Database, actor: Actor, params: URLSearchParams): Promise<CommercialAuditPage> {
   requireSupplier(actor)
-  const current = await db.prepare("SELECT id FROM oa_operators WHERE id=? AND version=? AND role=? AND role IN ('owner','admin') AND status='active'").bind(actor.id, actor.version, actor.role).first<{ id: string }>()
-  if (!current) fail('FORBIDDEN', 'Current supplier access is required to read the audit.', 403)
-  const limit = Math.min(numberParam(params.get('limit'), 'page size', 50), 200)
   const predicates: string[] = [], values: (string | number)[] = []
+  if (actor.staff) {
+    const grant = await readStaffGrant(db, actor)
+    if (!grant || actor.staff.userId !== actor.id || actor.staff.state !== 'active'
+      || actor.staff.nativeVersion !== actor.version || grant.revision !== actor.staff.revision) fail('FORBIDDEN', 'Current staff access is required to read the audit.', 403)
+    // Scope in SQL before pagination/export, using the current grant in the same read.
+    // Accountless supplier decisions stay private; only one's own refusal is global.
+    predicates.push(`e.actor_id=? AND EXISTS (
+      SELECT 1 FROM bw_staff_members g JOIN oa_operators current_actor ON current_actor.id=g.user_id
+      WHERE g.user_id=? AND g.revision=? AND g.state='active' AND g.native_version=?
+        AND current_actor.role='member' AND current_actor.status='active' AND current_actor.version=g.native_version
+        AND NOT EXISTS(SELECT 1 FROM bw_company_members m WHERE m.user_id=current_actor.id OR m.email_key=lower(trim(current_actor.email)))
+        AND NOT EXISTS(SELECT 1 FROM bw_company_invites i WHERE i.email_key=lower(trim(current_actor.email)) OR i.accepted_by=current_actor.id)
+        AND NOT EXISTS(SELECT 1 FROM bw_accounts buyer WHERE lower(trim(json_extract(buyer.value_json,'$.email')))=lower(trim(current_actor.email)))
+        AND ((${account} IS NOT NULL AND (json_extract(g.policy_json,'$.accounts')='all'
+          OR ${account} IN (SELECT value FROM json_each(g.policy_json,'$.accounts'))))
+          OR (${account} IS NULL AND e.action='staff.permission-refused' AND e.subject_id=?))
+    )`)
+    values.push(actor.id, actor.id, grant.revision, actor.version, actor.id)
+  } else {
+    const current = await db.prepare("SELECT id FROM oa_operators WHERE id=? AND version=? AND role=? AND role IN ('owner','admin') AND status='active'").bind(actor.id, actor.version, actor.role).first<{ id: string }>()
+    if (!current) fail('FORBIDDEN', 'Current supplier access is required to read the audit.', 403)
+  }
+  const limit = Math.min(numberParam(params.get('limit'), 'page size', 50), 200)
   for (const [key, expression] of [['accountId', account], ['orderId', order]]) {
     const value = params.get(key)?.trim()
     if (value) { predicates.push(`${expression}=?`); values.push(value) }

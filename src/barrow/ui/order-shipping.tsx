@@ -8,7 +8,7 @@ type Options = { required: boolean; options: DeliveryOption[]; selected?: Delive
 const optionKey = (option: { methodId: string; warehouse: string }) => JSON.stringify([option.methodId, option.warehouse])
 const kindNames = { pickup: 'Pickup', parcel: 'Parcel', freight: 'Freight', 'own-carrier': 'Buyer’s own carrier' }
 
-export function OrderShipping({ order, supplier, busy, run }: { order: Order & { delivery?: Delivery }; supplier: boolean; busy: boolean; run: RunCommand }) {
+export function OrderShipping({ order, supplier, canSelect=true, busy, run }: { order: Order & { delivery?: Delivery }; supplier: boolean; canSelect?:boolean; busy: boolean; run: RunCommand }) {
   const [result, setResult] = useState<Options | null>(null)
   const [choice, setChoice] = useState(''), [quoteChoice, setQuoteChoice] = useState('')
   const [error, setError] = useState(''), [reload, setReload] = useState(0)
@@ -16,7 +16,7 @@ export function OrderShipping({ order, supplier, busy, run }: { order: Order & {
   const radioName = useId()
   const [ownCarrierAccount,setOwnCarrierAccount]=useState('')
   useEffect(() => {
-    if (order.status !== 'draft') return
+    if (order.status !== 'draft'||!canSelect) return
     let current = true
     setResult(null); setError('')
     void request<Options>(`/api/barrow/shipping/options?${new URLSearchParams({ orderId: order.id })}`).then(value => {
@@ -29,7 +29,7 @@ export function OrderShipping({ order, supplier, busy, run }: { order: Order & {
       setQuote({ cents: '', windowStart: target?.windowStart ?? '', windowEnd: target?.windowEnd ?? '', reason: '' })
     }).catch(error => { if (current) setError(errorMessage(error)) })
     return () => { current = false }
-  }, [order, reload])
+  }, [order, reload,canSelect])
   const selected = result?.selected ?? order.delivery
   const chosen = result?.options.find(option => optionKey(option) === choice)
   const quotable = result?.options.filter(option => option.approvalRequired || option.shippingCents === null) ?? []
@@ -46,7 +46,7 @@ export function OrderShipping({ order, supplier, busy, run }: { order: Order & {
       cents: Number(quote.cents), windowStart: quote.windowStart, windowEnd: quote.windowEnd, reason: quote.reason.trim() })) setReload(value => value + 1)
   }
   if (order.status !== 'draft' && !order.delivery) return null
-  if (order.status !== 'draft') return <section className="br-stack" aria-label="Agreed delivery"><h4>Agreed delivery</h4>
+  if (order.status !== 'draft'||!canSelect) return <section className="br-stack" aria-label="Agreed delivery"><h4>Agreed delivery</h4>
     {order.delivery ? <>
       <p><strong>{order.delivery.name}</strong> · {kindNames[order.delivery.kind]}{order.delivery.warehouse && ` · ${order.delivery.warehouse}`}</p>
       <p>{order.delivery.shippingCents === null ? 'Delivery charge not recorded' : `${money(order.delivery.shippingCents)} delivery`} + {money(order.delivery.handlingCents)} handling · total {order.delivery.totalCents === null ? 'not recorded' : money(order.delivery.totalCents)}</p>

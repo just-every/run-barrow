@@ -1,3 +1,4 @@
+import { staffAccountAllowed } from './staff-policy'
 // ACC-002 keeps company authority in the seed; Base's member role never changes.
 import { fail, supplier, type Actor } from './model'
 
@@ -39,13 +40,14 @@ export function parseCompanyMember(row: any): CompanyMembership {
  return { ...JSON.parse(row.policy_json), id: row.id, accountId: row.account_id, userId: row.user_id, email: row.email, name: row.display_name, state: row.state, revision: row.revision, ...(row.erased_at ? { erasedAt: row.erased_at } : {}) }
 }
 export async function companyMembership(db: D1Database, actor: Actor, accountId?: string): Promise<CompanyMembership | null> {
- if (actor.agent || actor.role !== 'member') return null
+ if (actor.agent || actor.staff || actor.role !== 'member') return null
  const row = await db.prepare(`SELECT m.* FROM bw_company_members m JOIN oa_operators p ON p.id=m.user_id
   WHERE m.user_id=? AND m.state='active' AND m.erased_at IS NULL AND p.status='active' AND p.role='member'${accountId === undefined ? '' : ' AND m.account_id=?'}`).bind(actor.id, ...(accountId === undefined ? [] : [accountId])).first<any>()
  return row ? parseCompanyMember(row) : null
 }
 /** null means supplier-wide scope; [] means no company access. */
 export async function companyAccountIds(db: D1Database, actor: Actor): Promise<string[] | null> {
+ if(actor.staff)return actor.staff.accounts==='all'?null:actor.staff.accounts
  if (supplier(actor)) return null
  const member = await companyMembership(db, actor)
  return member ? [member.accountId] : []
@@ -54,6 +56,7 @@ export function companyLocationAllowed(member: CompanyMembership, locationId?: s
  return member.locations === 'all' || typeof locationId === 'string' && member.locations.includes(locationId)
 }
 export async function requireCompanyRight(db: D1Database, actor: Actor, accountId: string, right: CompanyRight | 'purchasing', locationId?: string): Promise<CompanyMembership | null> {
+ if(actor.staff&&!staffAccountAllowed(actor.staff,accountId))fail('NOT_FOUND','Trade account not found.',404)
  if (supplier(actor)) return null
  const member = await companyMembership(db, actor, accountId)
  if (!member) fail('NOT_FOUND', 'Trade account not found.', 404)

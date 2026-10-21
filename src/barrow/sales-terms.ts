@@ -23,6 +23,7 @@ export async function readSalesTerms(env: Bindings, actor: Actor, accountId: str
  requirePerson(actor)
  if (accountId === null) {
   requireSupplier(actor)
+  if(actor.staff&&actor.staff.accounts!=='all')fail('FORBIDDEN','Choose one authorized account to read its sales terms.',403)
   const rows = await versions(env.DB), names = [...new Set(rows.map(row => row.series))]
   const assignments = (await env.DB.prepare('SELECT * FROM bw_terms_assignments ORDER BY account_id').all<AssignmentRow>()).results
   return { series: names.map(name => ({ series: name, versions: rows.filter(row => row.series === name).map(meta), current: full(rows.find(row => row.series === name)!) })), assignments: assignments.map(row => ({ accountId: row.account_id, series: row.series, requireAcceptance: row.require_acceptance === 1, assignedBy: row.assigned_by, assignedAt: row.assigned_at })) }
@@ -120,6 +121,7 @@ export async function termsSignatureResponse(env: Bindings, actor: Actor, order:
 
 export async function termsDocumentResponse(env: Bindings, actor: Actor, series: string, version: number) {
  requirePerson(actor)
+ if(actor.staff){const ids=(await import('./accounts')).accounts;const allowed=await ids(env.DB,actor);if(!await env.DB.prepare('SELECT 1 FROM bw_terms_assignments WHERE series=? AND account_id IN (SELECT value FROM json_each(?))').bind(series,JSON.stringify(allowed.map(a=>a.id))).first())fail('NOT_FOUND','Sales terms not found.',404)}
  if (!supplier(actor)) {
   const mine = (await env.DB.prepare(`SELECT 1 FROM bw_terms_assignments t JOIN bw_accounts a ON a.id=t.account_id WHERE t.series=? AND ${companyAccountPredicate('a.id')}`).bind(series, actor.id).first())
   if (!mine) fail('NOT_FOUND', 'Sales terms not found.', 404)
@@ -131,7 +133,7 @@ export async function termsDocumentResponse(env: Bindings, actor: Actor, series:
 
 /** DATA-001 rows: published versions (a buyer sees series assigned to their accounts) and the acceptance on each order. */
 export async function termsExport(db: D1Database, actor: Actor, accountIds: string[], orders: Order[]) {
- const rows = supplier(actor) ? await versions(db) : (await db.prepare('SELECT s.series,s.version,s.title,s.body,s.content_sha256,s.pdf_name,s.pdf_size,s.pdf_sha256,s.created_by,s.created_at FROM bw_sales_terms s WHERE s.series IN (SELECT series FROM bw_terms_assignments WHERE account_id IN (SELECT value FROM json_each(?))) ORDER BY s.series,s.version').bind(JSON.stringify(accountIds)).all<VersionRow>()).results
+ const rows = supplier(actor)&&!actor.staff ? await versions(db) : (await db.prepare('SELECT s.series,s.version,s.title,s.body,s.content_sha256,s.pdf_name,s.pdf_size,s.pdf_sha256,s.created_by,s.created_at FROM bw_sales_terms s WHERE s.series IN (SELECT series FROM bw_terms_assignments WHERE account_id IN (SELECT value FROM json_each(?))) ORDER BY s.series,s.version').bind(JSON.stringify(accountIds)).all<VersionRow>()).results
  const salesterms = [...rows].sort((a, b) => a.series.localeCompare(b.series) || a.version - b.version).map(row => ({ series: row.series, version: row.version, title: row.title, contentSha256: row.content_sha256, createdBy: row.created_by, createdAt: row.created_at, body: row.body, pdfName: row.pdf_name ?? '', pdfBytes: row.pdf_size ?? '', pdfSha256: row.pdf_sha256 ?? '', pdfPath: row.pdf_sha256 ? `/api/barrow/sales-terms/${encodeURIComponent(row.series)}/${row.version}/document` : '' }))
  const termsacceptances = orders.filter(order => order.termsAcceptance).map(order => { const a = order.termsAcceptance!; return { orderId: order.id, accountId: order.accountId, series: a.series, version: a.version, contentSha256: a.contentSha256, how: a.how, acceptedBy: a.acceptedBy, acceptedAt: a.acceptedAt, printedName: a.printedName ?? '', signatureSha256: a.signatureSha256 ?? '', signaturePath: a.signatureSha256 ? `/api/barrow/orders/${order.id}/terms-signature` : '' } })
  return { salesterms, termsacceptances }

@@ -1,3 +1,4 @@
+import { companyOrderScope } from './company-access'
 import { companyAccountPredicate } from './company-access'
 import type { Bindings } from '../auth.server'
 import { fail, requirePerson, supplier, type Actor } from './model'
@@ -16,8 +17,7 @@ export async function searchOrders(env: Bindings, actor: Actor, query: URLSearch
  const sort = query.get('sort') ?? 'newest', rawPage = query.get('page') ?? '1'
  if (!Object.hasOwn(sorts, sort) || !/^[1-9]\d{0,5}$/.test(rawPage)) fail('SEARCH', 'Choose a listed sort and a positive page number up to 999999.', 400)
  const page = Number(rawPage), clauses = ["json_extract(o.value_json,'$.status') <> 'superseded'"], values: (string|number)[] = []
- if(!supplier(actor)&&!actor.company?.rights.some(r=>r==='purchaser'||r==='approver'))clauses.push(actor.company?.rights.includes('finance')?"json_extract(o.value_json,'$.invoice') IS NOT NULL":'0')
- if (!supplier(actor)) { clauses.push(companyAccountPredicate('a.id')); values.push(actor.id) }
+ const visible=companyOrderScope(actor,'a.id','o.value_json');if(visible.sql)clauses.push(visible.sql.replace(/^ AND /,''));values.push(...visible.values)
  const expressions: Record<string, string[]> = {
   company: ["json_extract(o.value_json,'$.customerName')", "json_extract(a.value_json,'$.name')"],
   po: ["json_extract(o.value_json,'$.reference')"],

@@ -1,7 +1,7 @@
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
 import { now } from './clock'
-import { cancelReportRecipient, reportAudit, reportEntitlement } from './report-access'
+import { cancelReportRecipient, reportAudit, reportCoverageSql, reportEntitlement } from './report-access'
 import { freezeReport } from './report-runs'
 
 const escape = (v:string) => v.replace(/[&<>"']/g,c=>`&#${c.charCodeAt(0)};`)
@@ -32,7 +32,7 @@ export async function dispatchReports(env: Bindings) {
   const claimed=await env.DB.batch([
    env.DB.prepare(`UPDATE bw_report_deliveries SET status='uncertain',reason='Submission claimed; outcome pending',recipient=?,updated_at=? WHERE id=? AND status IN ('queued','not configured')
     AND EXISTS(SELECT 1 FROM bw_report_recipients r JOIN oa_operators p ON p.id=r.operator_id JOIN bw_report_schedules s ON s.id=r.schedule_id
-     WHERE r.schedule_id=? AND r.operator_id=? AND r.removed_at IS NULL AND s.restored=0 AND p.status='active' AND p.version=r.operator_version AND p.role=r.role AND p.role IN ('owner','admin') AND p.email=?)
+     WHERE r.schedule_id=? AND r.operator_id=? AND r.removed_at IS NULL AND s.restored=0 AND p.status='active' AND p.version=r.operator_version AND p.role=r.role AND ${reportCoverageSql()} AND p.email=?)
     AND NOT EXISTS(SELECT 1 FROM rer_mail_event_receipts e,json_each(e.event_json,'$.recipients') r WHERE e.provider='resend' AND json_extract(e.event_json,'$.status') IN ('bounced','complained','rejected') AND r.value=?)
     AND NOT EXISTS(SELECT 1 FROM bw_report_deliveries x WHERE x.recipient=? AND x.status IN ('bounced','complained','rejected'))
     AND NOT EXISTS(SELECT 1 FROM bw_quote_mail x WHERE x.recipient=? AND x.status IN ('bounced','complained','rejected'))`).bind(access.email!,stamp,delivery.id,delivery.schedule_id,delivery.operator_id,access.email!,access.email!,access.email!,access.email!),
