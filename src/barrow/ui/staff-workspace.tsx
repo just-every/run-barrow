@@ -19,40 +19,40 @@ const label = (key: string) => key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/
 const object = (value: unknown): value is RecordValue => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 const safeSource = (value: unknown) => typeof value === 'string' && value.startsWith('/api/barrow/') && !/[\r\n\\]/.test(value)
 
-function Fact({ value, name = '', currency }: { value: unknown; name?: string; currency?: unknown }): ReactNode {
+function Fact({ value, name = '', currency, sourceLinks=true }: { value: unknown; name?: string; currency?: unknown;sourceLinks?:boolean }): ReactNode {
   if (value === null || value === undefined) return <>Unknown / not recorded</>
   if (typeof value === 'boolean') return <>{value ? 'Yes' : 'No'}</>
   if (typeof value === 'number' && name.endsWith('Cents')) return <>{currency === 'USD' || currency === 'AUD' ? money(value, currency) : `${value} cents`}</>
   if (typeof value === 'number' && /Bps$|^bps$|BasisPoints$/.test(name)) return <>{(value / 100).toFixed(2)}%</>
-  if (Array.isArray(value)) return value.length ? <ul>{value.map((item, index) => <li key={index}><Fact value={item} currency={currency} /></li>)}</ul> : <>None recorded</>
-  if (object(value)) return <dl>{Object.entries(value).map(([key, item]) => <div key={key}><dt>{label(key)}</dt><dd><Fact name={key} value={item} currency={value.currency ?? currency} /></dd></div>)}</dl>
-  if (safeSource(value)) return <a href={String(value)}>Open source record</a>
+  if (Array.isArray(value)) return value.length ? <ul>{value.map((item, index) => <li key={index}><Fact value={item} currency={currency} sourceLinks={sourceLinks} /></li>)}</ul> : <>None recorded</>
+  if (object(value)) return <dl>{Object.entries(value).map(([key, item]) => <div key={key}><dt>{label(key)}</dt><dd><Fact name={key} value={item} currency={value.currency ?? currency} sourceLinks={sourceLinks} /></dd></div>)}</dl>
+  if (sourceLinks&&safeSource(value)) return <a href={String(value)}>Open source record</a>
   return <>{String(value) || 'Not recorded'}</>
 }
 
-function ReportResult({ report, type }: { report: RecordValue; type: ReportName }) {
+function ReportResult({ report, type,canOpenSource }: { report: RecordValue; type: ReportName;canOpenSource:boolean }) {
   const [group, setGroup] = useState('byRep')
   const rowsValue = type === 'quotes' ? report[group] : report[type === 'fulfillment' ? 'lines' : 'rows']
   const rows = Array.isArray(rowsValue) ? rowsValue.filter(object) : []
   return <div className="br-stack">
     <p className="br-quiet-text">{typeof report.checkedAt === 'string' && `Read ${when(report.checkedAt)}. `}{typeof report.timeZone === 'string' && `Reporting zone: ${report.timeZone}. `}{typeof report.currency === 'string' && `Currency: ${report.currency}.`}</p>
     {(report.status === 'unavailable' || report.source === 'unavailable' || report.returnsSource === 'unavailable') && <Notice>Source information is unavailable. Unconfirmed measures remain unknown.</Notice>}
-    {report.totals !== undefined && <section aria-label="Report totals"><h3>Report totals</h3><Fact value={report.totals} currency={report.currency} /></section>}
+    {report.totals !== undefined && <section aria-label="Report totals"><h3>Report totals</h3><Fact sourceLinks={canOpenSource} value={report.totals} currency={report.currency} /></section>}
     {type === 'quotes' && <label>Compare quote results by<select aria-label="Compare quote results by" value={group} onChange={event => setGroup(event.target.value)}><option value="byRep">Rep</option><option value="byCohort">Cohort</option><option value="byProduct">Product</option></select></label>}
     <div className="br-table-wrap" role="region" aria-label={`${staffReports[type]} report rows`} tabIndex={0}>
       <table><caption>{staffReports[type]} · {rows.length} report rows</caption><thead><tr>{columns[type].map(key => <th scope="col" key={key}>{label(key)}</th>)}<th scope="col">Source and details</th></tr></thead>
         <tbody>{rows.map((row, index) => <tr key={`${row.orderId ?? row.name ?? 'row'}:${row.line ?? index}:${row.rep ?? ''}`}>
-          {columns[type].map(key => <td key={key}><Fact name={key} value={row[key]} currency={row.currency ?? report.currency} /></td>)}
-          <td>{typeof row.orderId === 'string' && <a href={`/api/barrow/orders/${encodeURIComponent(row.orderId)}`}>Order {row.orderId}</a>}
-            <details className="br-details"><summary>Recorded details</summary><Fact value={row} currency={report.currency} /></details>
+          {columns[type].map(key => <td key={key}><Fact sourceLinks={canOpenSource} name={key} value={row[key]} currency={row.currency ?? report.currency} /></td>)}
+          <td>{canOpenSource&&typeof row.orderId === 'string' && <a href={`/api/barrow/orders/${encodeURIComponent(row.orderId)}`}>Order {row.orderId}</a>}
+            <details className="br-details"><summary>Recorded details</summary><Fact sourceLinks={canOpenSource} value={row} currency={report.currency} /></details>
           </td>
         </tr>)}</tbody>
       </table>
     </div>
     {!rows.length && <p>No source rows match these filters.</p>}
-    {Array.isArray(report.exceptions) && report.exceptions.length > 0 && <Notice error><h3>Source exceptions</h3><Fact value={report.exceptions} /></Notice>}
+    {Array.isArray(report.exceptions) && report.exceptions.length > 0 && <Notice error><h3>Source exceptions</h3><Fact sourceLinks={canOpenSource} value={report.exceptions} /></Notice>}
     <details className="br-details"><summary>Source notes and definitions</summary>
-      <Fact value={Object.fromEntries(Object.entries(report).filter(([key]) => !['totals', 'rows', 'lines', 'lateLines', 'byAccount', 'bySku', 'byChannel', 'byTerritory', 'byMonth', 'byRep', 'byCohort', 'byProduct', 'exceptions'].includes(key)))} />
+      <Fact sourceLinks={canOpenSource} value={Object.fromEntries(Object.entries(report).filter(([key]) => !['totals', 'rows', 'lines', 'lateLines', 'byAccount', 'bySku', 'byChannel', 'byTerritory', 'byMonth', 'byRep', 'byCohort', 'byProduct', 'exceptions'].includes(key)))} />
     </details>
   </div>
 }
@@ -105,7 +105,7 @@ export function StaffWorkspace({ actor, accounts, run, busy, version }: Props) {
       </form>}
       {error && <Notice error>{error}</Notice>}
       {loading && <p role="status">Reading current source facts…</p>}
-      {visible && selected && <><ReportResult key={query} type={selected} report={visible} /><div className="br-actions">
+      {visible && selected && <><ReportResult key={query} type={selected} report={visible} canOpenSource={grant?.role!=='analyst'} /><div className="br-actions">
         <a className="br-secondary" href={query} download>Download scoped report (JSON)</a>
         {['sales', 'finance', 'commissions'].includes(selected) && <a className="br-secondary" href={query.replace('?', '.csv?')} download>Download scoped report (CSV)</a>}
       </div></>}
@@ -140,7 +140,7 @@ function OwnScheduledReports({ actorId, version, busy, run }: { actorId: string;
       <h3>Your frozen report history</h3>{!runs.length && <p>No snapshots have been recorded for you yet.</p>}
       {runs.map(snapshot => <article className="br-card br-stack" key={snapshot.id}><h4>{state.schedules.find(schedule => schedule.id === snapshot.schedule_id)?.name ?? 'Saved report'} · {snapshot.period}</h4>
         <p>As of {snapshot.as_of} · Expires {when(snapshot.expires_at)}</p><p>Notification: {snapshot.status}{snapshot.reason ? ` · ${snapshot.reason}` : ''}</p>
-        <a href={`/api/barrow/report-runs/${encodeURIComponent(snapshot.id)}.json`} download>Download this frozen snapshot</a>
+        {own.some(schedule=>schedule.id===snapshot.schedule_id)?<a href={`/api/barrow/report-runs/${encodeURIComponent(snapshot.id)}.json`} download>Download this frozen snapshot</a>:<p>Access ended for this subscription.</p>}
       </article>)}
     </>}
   </section>

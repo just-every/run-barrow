@@ -42,6 +42,9 @@ test('owner invites five native functional staff roles, exact scoped reports and
  }
  assert.equal((await pier.api('/api/pier/state')).orders.length, 2, 'Both report sources have real Pier reservations');
 
+ const assignedQuote=await h.command('quote.request',{accountId:assigned,lines:[{sku:'OAT-1',quantity:2}]});
+ const otherQuote=await h.command('quote.request',{accountId:other,lines:[{sku:'OAT-1',quantity:2}]});
+ await h.command('followup.refresh',{});
  const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] });
  t.after(() => browser.close());
  const ownerContext = await signedContext(browser, h); t.after(() => ownerContext.close());
@@ -153,6 +156,9 @@ test('owner invites five native functional staff roles, exact scoped reports and
  await expect(team.getByRole('article').filter({ hasText: 'Native sign-in: active' })).toHaveCount(people.length);
  await captureWidths(owner, 'staff-owner-active-roster');
 
+ const financePerson=active.find(person=>person.role==='finance');
+ const financeSchedule=await h.command('report.save',{name:'Outside accountant monthly aging',reportType:'finance',filters:{accountId:assigned},recipientIds:[financePerson.actor.id]});
+ const financeRun=await h.command('report.run',{scheduleId:financeSchedule.id});
  for (const person of active) {
   const { page } = person;
   await page.getByRole('button', { name: 'Reports', exact: true }).click();
@@ -185,6 +191,7 @@ test('owner invites five native functional staff roles, exact scoped reports and
    assert.ok(csv.includes(invoices.get(assigned).id)); assert.equal(csv.includes(invoices.get(other).id), false);
   }
   person.reportPath = await download.getAttribute('href');
+  if(person.role==='analyst')await expect(reports.getByRole('link',{name:/^Order /})).toHaveCount(0);
   await captureWidths(page, `staff-report-result-${person.role}`);
   if (person.accounts === 'all') {
    await accounts.selectOption('__all__');
@@ -206,7 +213,26 @@ test('owner invites five native functional staff roles, exact scoped reports and
   await json(page, `/api/barrow/reports/${unentitled}?accountId=${assigned}`, 403);
  }
 
+ await financePerson.page.getByRole('button',{name:'Reports',exact:true}).click();
+ const snapshots=financePerson.page.getByRole('region',{name:'Your scheduled snapshots',exact:true});
+ const frozen=snapshots.getByRole('link',{name:'Download this frozen snapshot',exact:true});
+ await frozen.waitFor();assert.equal(JSON.parse(await downloadedText(financePerson.page,frozen)).filters.accountId,assigned);
+ await captureWidths(financePerson.page,'staff-finance-frozen-snapshot');
+ await snapshots.getByRole('button',{name:'Remove me from Outside accountant monthly aging',exact:true}).click();
+ await expect(snapshots.getByText('No active report subscriptions for this sign-in.',{exact:true})).toBeVisible();
+ await expect(snapshots.getByRole('link',{name:'Download this frozen snapshot',exact:true})).toHaveCount(0);
+ await json(financePerson.page,`/api/barrow/report-runs/${financeRun.id}.json`,403);
+ await captureWidths(financePerson.page,'staff-finance-removed-snapshot');
  const rep = active.find(person => person.role === 'rep');
+ await rep.page.getByRole('button',{name:'Follow-ups',exact:true}).click();
+ await rep.page.getByRole('heading',{name:`Unanswered quote ${assignedQuote.id}`,exact:true}).waitFor();
+ await expect(rep.page.getByRole('heading',{name:`Unanswered quote ${otherQuote.id}`,exact:true})).toHaveCount(0);
+ const task=rep.page.getByRole('article').filter({has:rep.page.getByRole('heading',{name:`Unanswered quote ${assignedQuote.id}`,exact:true})});
+ await task.getByText('Record a contact attempt',{exact:true}).click();
+ await task.getByLabel('Contact note',{exact:true}).fill('Called the store manager; no answer. Follow up tomorrow.');
+ await task.getByRole('button',{name:'Record contact',exact:true}).click();
+ await task.getByText('Recorded contacts (1)',{exact:true}).waitFor();
+ await captureWidths(rep.page,'staff-rep-assigned-followup');
  await rep.page.getByRole('button',{name:'Audit',exact:true}).click();
  await rep.page.getByRole('heading',{name:'Commercial audit',exact:true}).waitFor();
  await captureWidths(rep.page,'staff-own-audit');
