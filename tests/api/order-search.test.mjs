@@ -15,6 +15,33 @@ test('RPT-006: scoped SQL search and ship-window pages stay under two-second p95
   return h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,a.id,JSON.stringify(order),`revision-${i}`);
  }));
  const buyer={as:await h.signIn('buyer-0@example.test')},foreign={as:await h.signIn('unlinked@example.test')};
+ // Account pages use the same 400-company fixture; no full directory reaches state or pickers.
+ const directory=(query={},actor={})=>h.api('/api/barrow/accounts?'+new URLSearchParams(query),undefined,actor);
+ const seen=[];
+ for(let page=1;page<=16;page++){
+  const result=await directory({page:String(page)});assert.equal(result.accounts.length,25);assert.equal(result.hasNext,page<16);
+  seen.push(...result.accounts.map(row=>row.id));
+ }
+ assert.deepEqual(seen,accounts.map(row=>row.id).sort());assert.equal(new Set(seen).size,400);
+ const state=await h.api('/api/barrow/state');assert.equal(state.accounts.length,25);assert.equal(state.accountPage.hasNext,true);
+ assert.deepEqual(state.accounts,(await directory()).accounts);
+ for(const sort of ['name-asc','name-desc']){
+  const result=await directory({sort});
+  const expected=[...accounts].sort((a,b)=>{const n=a.value.name<b.value.name?-1:a.value.name>b.value.name?1:0;return (sort==='name-desc'?-n:n)||a.id.localeCompare(b.id)}).slice(0,25);
+  assert.deepEqual(result.accounts.map(row=>row.id),expected.map(row=>row.id));
+ }
+ for(const [q,ids] of [['BUYER-399@EXAMPLE.TEST',['company-399']],['company-399',['company-399']],['pier-customer-399',['company-399']],['Wholesale company 399',['company-399']],['%',[]],['_',[]],["' OR 1=1 --",[]]])assert.deepEqual((await directory({q})).accounts.map(row=>row.id),ids);
+ assert.deepEqual((await directory({q:'company-399'},buyer)).accounts,[]);
+ assert.deepEqual((await directory({},buyer)).accounts.map(row=>row.id),['company-0']);
+ assert.deepEqual((await directory({},foreign)).accounts,[]);
+ const later=await h.api('/api/barrow/accounts/by-id/company-399');assert.equal(later.value.email,'buyer-399@example.test');assert.equal(later.revision,'account-revision-company-399');
+ await h.api('/api/barrow/accounts/by-id/company-399',undefined,{...buyer,status:404});
+ await h.api('/api/barrow/accounts/by-id/not-present',undefined,{status:404});
+ for(const query of [{page:'0'},{page:'1.5'},{page:'1000000'},{q:'x'.repeat(161)},{sort:'name;DROP TABLE bw_accounts'}])await directory(query,{status:400});
+ assert.deepEqual((await directory({page:'999999'})).accounts,[]);
+ assert.equal((await h.request('/api/barrow/accounts')).headers.get('cache-control'),'no-store');
+ await directory({},{as:'',status:401});
+
  const search=(query={},actor={})=>h.api('/api/barrow/orders/search?'+new URLSearchParams(query),undefined,actor);
  assert.equal((await search({po:'PO-19999'})).rows[0].id,'order_19999');
  assert.deepEqual((await search({externalId:'EXT-19999'})).rows.map(r=>r.id),['order_19999']);
@@ -36,6 +63,8 @@ test('RPT-006: scoped SQL search and ship-window pages stay under two-second p95
  assert.deepEqual((await search({page:'999999'})).rows,[]);
  for(const query of [{page:'0'},{page:'1.5'},{sort:'ship;DROP TABLE bw_orders'},{po:'a'.repeat(161)}]) await h.api('/api/barrow/orders/search?'+new URLSearchParams(query),undefined,{status:400});
  const {token}=await h.api('/api/barrow/agent-token',{});await search({}, {as:'',headers:{authorization:`Bearer ${token}`},status:403});
+ const agentDirectory=await directory({}, {as:'',headers:{authorization:`Bearer ${token}`}});assert.equal(agentDirectory.accounts.length,25);
+ assert.equal((await h.api('/api/barrow/accounts/by-id/company-399',undefined,{as:'',headers:{authorization:`Bearer ${token}`}})).id,'company-399');
  await search({},{as:'',status:401});
  // No carrier source exists: do not invent tracking or claim its required performance point.
  assert.match(first.tracking,/not recorded/);
@@ -44,6 +73,13 @@ test('RPT-006: scoped SQL search and ship-window pages stay under two-second p95
   const before=performance.now(),page=await search(query);timings[kind].push(performance.now()-before);assert.ok(page.rows.length>0&&page.rows.length<=25);
  }
  for(const [kind,times]of Object.entries(timings)){times.sort((a,b)=>a-b);const p95=times[Math.ceil(times.length*.95)-1];t.diagnostic(`${kind} first-page p95 ${p95.toFixed(1)} ms (20 requests, 20000 orders)`);assert.ok(p95<2000,`${kind} p95 ${p95} ms`)}
+ const historical=await h.api('/api/barrow/orders/order_19999');
+ const stale={...historical,id:'stale-off-page-account',accountRevision:'old-account-revision',status:'draft'};
+ await h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(stale.id,stale.accountId,JSON.stringify(stale),'stale-draft-revision').run();
+ const withDraft=await h.api('/api/barrow/state');assert.equal(withDraft.accounts.length,25);assert.equal(withDraft.accounts.some(row=>row.id==='company-399'),false);assert.equal(withDraft.waitingDraft.id,stale.id);
+ const draftHistory=await h.api('/api/barrow/orders/history?status=draft');assert.equal(draftHistory.accountRevisions['company-399'],'account-revision-company-399');
+ assert.notEqual(draftHistory.accountRevisions['company-399'],draftHistory.orders[0].accountRevision);
+
 });
 
 test('RPT-006: original workspace, history and account drafts page the full authorized collection without losing stale drafts, duplicate POs or source actors', async t => {
@@ -166,4 +202,40 @@ test('RPT-006 / ACC-005 / ACC-006 / INT-015 / DATA-002: saved monthly reports fr
  for(const action of ['report.saved','report.frozen','report.queued','report.submission','report.submission-result','report.downloaded','report.recipient-removed','report.recipient-revoked','report.delivery-event','report.refused'])assert.ok(audit.includes(action),action);
  assert.ok(!audit.includes(secret));
  for(const sourceValue of ['PRIVATE-PO-7821','PRIVATE-INVOICE'])assert.ok(!audit.includes(sourceValue));
+});
+
+
+test('RPT-006 / ACC-004: duplicate company review spans pages and server rechecks every exact revision, including matches beyond the account workspace',async t=>{
+ const h=await installation();t.after(()=>h.close());
+ for(let i=0;i<30;i++){
+  const id='duplicate-'+String(i).padStart(2,'0'),value={...accountValue('shared-source',`duplicate-${i}@example.test`),name:i===29?'ＣＥＤＡＲ   STREET pantry':`Separate company ${i}`};
+  await h.db.prepare('INSERT INTO bw_accounts VALUES(?,?,?)').bind(id,JSON.stringify(value),'revision-'+i).run();
+ }
+ const buyer={as:await h.signIn('duplicate-29@example.test')};
+ const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
+ const query=new URLSearchParams({name:'Cedar Street Pantry',pierCustomerId:'shared-source'});
+ const duplicates=(page=1,opts={})=>h.api('/api/barrow/accounts/duplicates?'+query+'&page='+page,undefined,opts);
+ const first=await duplicates(),second=await duplicates(2);
+ assert.equal(first.candidates.length,25);assert.equal(first.hasNext,true);assert.equal(second.candidates.length,5);assert.equal(second.hasNext,false);
+ assert.deepEqual([...first.candidates,...second.candidates].map(row=>row.id),Array.from({length:30},(_,i)=>'duplicate-'+String(i).padStart(2,'0')));
+ // Duplicate review returns identity metadata only, never all agreed prices.
+ assert.ok(first.candidates.every(row=>!('value' in row)&&!('prices' in row)));
+ await duplicates(1,{...buyer,status:403});await duplicates(1,{...agent,status:403});
+ const value={...accountValue('shared-source','new-company@example.test'),name:'Cedar Street Pantry'};
+ const save=reviews=>h.command('account.save',{id:'new-company',value,duplicateReviews:reviews});
+ const reviews=[...first.candidates,...second.candidates].map(({id,revision})=>({id,revision}));
+ await h.command('account.save',{id:'new-company',value,duplicateReviews:reviews.slice(0,25)},{status:409});
+ assert.equal((await h.request('/api/barrow/accounts/by-id/new-company')).status,404);
+ await h.db.prepare('UPDATE bw_accounts SET revision=? WHERE id=?').bind('current-revision','duplicate-29').run();
+ await h.command('account.save',{id:'new-company',value,duplicateReviews:reviews},{status:409});
+ const current=await duplicates(2);reviews.splice(25,5,...current.candidates.map(({id,revision})=>({id,revision})));
+ const saved=await save(reviews);assert.equal(saved.value.email,'new-company@example.test');
+ assert.equal((await h.api('/api/barrow/accounts/by-id/duplicate-29',undefined,buyer)).value.email,'duplicate-29@example.test');
+ // Unicode-equivalent names match even with a different source ID; an unchanged identity needs no new review.
+ const names=await h.api('/api/barrow/accounts/duplicates?'+new URLSearchParams({name:'cedar street pantry',pierCustomerId:'another-source'}));
+ assert.deepEqual(names.candidates.map(row=>row.id),['duplicate-29','new-company']);
+ const unchanged=await h.api('/api/barrow/accounts/duplicates?'+new URLSearchParams({name:saved.value.name,pierCustomerId:saved.value.pierCustomerId,exclude:saved.id}));
+ assert.deepEqual(unchanged.candidates,[]);
+ await h.api('/api/barrow/accounts/duplicates?page=0',undefined,{status:400});
+ const audit=await h.api('/api/barrow/audit?kind=account');assert.ok(JSON.stringify(audit).includes('new-company'));
 });

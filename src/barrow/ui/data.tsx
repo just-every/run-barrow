@@ -1,8 +1,9 @@
 import { ScheduledReports } from './scheduled-reports'
 import { Commissions } from './commissions'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Account, RunCommand } from './types'
 import { AccountPicker, Notice } from './primitives'
+import { request, errorMessage } from './api'
 import { Dialog } from './dialog'
 import { AgentCredential } from './agent-credential'
 import { DiagnosticsCard } from './diagnostics'
@@ -19,7 +20,12 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
   const [accountId, setAccountId] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [confirmation, setConfirmation] = useState('')
-  const account = accounts.find(value => value.id === accountId)
+  const [account,setAccount]=useState<Account|null>(null),[accountError,setAccountError]=useState('')
+  useEffect(()=>{
+    let current=true;setAccount(null);setAccountError('');setConfirming(false)
+    if(accountId)void request<Account>(`/api/barrow/accounts/by-id/${encodeURIComponent(accountId)}`).then(value=>{if(current)setAccount(value)}).catch(cause=>{if(current)setAccountError(errorMessage(cause))})
+    return ()=>{current=false}
+  },[accountId,accounts])
   async function erase() {
     if (confirmation !== 'ERASE' || !account) return
     const erased = await run('account.erase', { accountId: account.id, confirm: confirmation })
@@ -42,6 +48,7 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
     <AgentCredential />
     <div className="br-card br-stack"><h2>Erase an unused trade account</h2><p>Erasure removes this Barrow account and its retained import custody, and immediately removes the customer’s portal access. Accounts with orders cannot be erased because their commercial history must be preserved.</p>
       <Notice>Sign-in identity, records held in Pier, and previously exported files or backups remain. Handle these separately if they also need erasure.</Notice>
+      {accountError&&<Notice error>{accountError}</Notice>}
       <div className="br-erasure-controls"><AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
       <div className="br-actions"><button className="br-danger" disabled={busy || !account} onClick={() => { setConfirmation(''); setConfirming(true) }}>Review account erasure</button></div></div>
     </div>

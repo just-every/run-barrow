@@ -105,3 +105,55 @@ test('BASE-001 / RPT-006: fresh native setup, Lobby and app work without Pier; C
  const restoredManifest = JSON.parse((await readFile(reexport, 'utf8')).split('\n')[0]);
  assert.deepEqual(restoredManifest.migrations, manifest.migrations);
 });
+
+test('RPT-006: native account directory and selectors keep later-page accounts reachable without full-directory browser loads', async t => {
+ const directory=await workspace();let running,browser;
+ t.after(async()=>{try{if(running)await running.stop()}finally{try{await browser?.close()}finally{await removeWorkspace(directory)}}});
+ const root=await freshCheckout(directory,'accounts');running=await start(root);
+ browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});
+ const {context,page}=await signIn(browser,running);
+ for(let i=0;i<55;i++)await api(context,running,'/api/barrow/commands',{type:'account.save',payload:{id:`sample-${String(i).padStart(2,'0')}`,value:{name:`Sample company ${String(i).padStart(2,'0')}`,email:`sample-${i}@example.test`,pierCustomerId:`source-${i}`,termsDays:30,minimumCents:10000,prices:[{sku:'OAT-1',unitCents:6500,minQty:2}]}}});
+ const state=await api(context,running,'/api/barrow/state');assert.equal(state.accounts.length,25);assert.equal(state.accountPage.hasNext,true);
+ for(const width of [1440,390]){
+  await page.setViewportSize({width,height:1000});await page.goto(running.origin+'/app');
+  const shot=async(name,target)=>{if(target)await target.scrollIntoViewIfNeeded();await capture(page,`rpt006-accounts-${name}-${width}`,false);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false)};
+  await page.getByRole('button',{name:'Accounts',exact:true}).click();
+  const cards=page.getByRole('region',{name:'Trade account directory'});
+  await cards.getByText('Account page 1 · 25 shown',{exact:true}).waitFor();assert.equal(await cards.locator('article').count(),25);await shot('first',cards);
+  await cards.getByRole('button',{name:'Next accounts',exact:true}).click();await cards.getByText('Account page 2 · 25 shown',{exact:true}).waitFor();await shot('second',cards);
+  await cards.getByRole('button',{name:'Next accounts',exact:true}).click();await cards.getByText('Account page 3 · 5 shown',{exact:true}).waitFor();assert.equal(await cards.getByRole('button',{name:'Next accounts',exact:true}).isDisabled(),true);await shot('last',cards);
+  await cards.getByLabel('Sort trade accounts').selectOption('name-desc');await cards.getByText('Account page 1 · 25 shown',{exact:true}).waitFor();assert.equal(await cards.locator('article h2').first().textContent(),'Sample company 54');await shot('sorted',cards);
+  await cards.getByLabel('Find trade accounts').fill('no matching company');await cards.getByText('No matching trade accounts on this page.').waitFor();await shot('empty',cards);
+  await page.route('**/api/barrow/accounts?*',route=>route.abort());
+  await cards.getByLabel('Find trade accounts').fill('sample-54');await cards.getByRole('alert').waitFor();await shot('error',cards);
+  await page.unroute('**/api/barrow/accounts?*');await cards.getByRole('button',{name:'Retry accounts',exact:true}).click();
+  await cards.getByText('Account page 1 · 1 shown',{exact:true}).waitFor();await shot('recovered',cards);
+  await cards.getByRole('button',{name:'Prepare order',exact:true}).click();await page.getByRole('heading',{name:'Sample company 54',exact:true,level:1}).waitFor();
+  const padPicker=page.getByRole('group',{name:'Trade account selection'});
+  await padPicker.getByLabel('Find trade accounts').fill('sample-53');await padPicker.getByText('Account page 1 · 1 shown',{exact:true}).waitFor();
+  // Paging/searching never changes the chosen account until an explicit selection.
+  assert.equal(await padPicker.getByLabel('Trade account',{exact:true}).inputValue(),'sample-54');await shot('pad-selected',padPicker);
+  await padPicker.getByLabel('Trade account',{exact:true}).selectOption('sample-53');await page.getByRole('heading',{name:'Sample company 53',exact:true,level:1}).waitFor();
+  await page.getByRole('button',{name:'Accounts',exact:true}).click();await cards.getByText('Account page 1 · 25 shown',{exact:true}).waitFor();
+  await cards.getByLabel('Find trade accounts').fill(width===1440?'sample-00':'sample-01');await cards.getByText('Account page 1 · 1 shown',{exact:true}).waitFor();
+  await cards.getByRole('button',{name:'Edit account',exact:true}).click();const form=cards.locator('form');
+  await form.getByLabel('Business name',{exact:true}).fill('Sample company 54');await form.getByText('sample-54',{exact:false}).waitFor();
+  assert.equal(await form.getByRole('button',{name:'Save account',exact:true}).isDisabled(),true);
+  await form.getByRole('button',{name:'Confirm separate companies',exact:true}).click();await shot('duplicate-review',form.getByText('Keep their accounts, sign-in emails and history separate.'));
+  await form.getByRole('button',{name:'Save account',exact:true}).click();await form.waitFor({state:'detached'});
+  const edited=await api(context,running,`/api/barrow/accounts/by-id/sample-${width===1440?'00':'01'}`);assert.equal(edited.value.email,`sample-${width===1440?'0':'1'}@example.test`);assert.equal(edited.value.name,'Sample company 54');
+  // Every other existing selector uses the same paged source, including accounts not in workspace page one.
+  const locations=page.getByLabel('Locations',{exact:true});
+  await locations.getByLabel('Find trade accounts').fill('sample-54');await locations.getByText('Account page 1 · 1 shown',{exact:true}).waitFor();
+  await locations.getByLabel('Trade account',{exact:true}).selectOption('sample-54');await locations.getByRole('form',{name:'Add a location'}).waitFor();await shot('locations',locations);
+  await page.getByRole('button',{name:'Orders',exact:true}).click();const statement=page.getByRole('region',{name:'Account statement'});
+  await statement.getByLabel('Find trade accounts').fill('sample-54');await statement.getByText('Account page 1 · 1 shown',{exact:true}).waitFor();await statement.getByLabel('Trade account',{exact:true}).selectOption('sample-54');await statement.getByText('No invoices in this period.',{exact:true}).waitFor();await shot('statement',statement);
+  await page.getByRole('button',{name:'Data',exact:true}).click();
+  const fulfillment=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).first();
+  await fulfillment.getByLabel('Find trade accounts').fill('sample-54');await fulfillment.getByText('Account page 1 · 1 shown',{exact:true}).waitFor();await fulfillment.getByLabel('Trade account',{exact:true}).selectOption('sample-54');await shot('fulfillment',fulfillment);
+  const erasure=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Erase an unused trade account',exact:true})}).first();
+  await erasure.getByLabel('Find trade accounts').fill('sample-54');await erasure.getByText('Account page 1 · 1 shown',{exact:true}).waitFor();await erasure.getByLabel('Trade account',{exact:true}).selectOption('sample-54');
+  await erasure.getByRole('button',{name:'Review account erasure',exact:true}).click();await page.getByRole('dialog').getByRole('heading',{name:'Erase Sample company 54?',exact:true}).waitFor();await shot('erasure',page.getByRole('dialog'));await page.getByRole('dialog').getByRole('button',{name:'Cancel',exact:true}).click();
+ }
+ await context.close();await running.stop();running=null;
+});

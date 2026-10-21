@@ -3,7 +3,8 @@ import type { Account, RunCommand } from './types'
 import { validatePriceUnits, type AccountValue } from '../imports/validation'
 import { applyPricing, PricingSettings } from './pricing-settings'
 import { Notice } from './primitives'
-import { duplicateCompanies, profileFields } from './account-profile'
+import { profileFields } from './account-profile'
+import { request, errorMessage } from './api'
 
 function parsePrices(text: string, unitText: string): AccountValue['prices'] {
   const prices: AccountValue['prices'] = text.split(/\r?\n/).filter(line => line.trim()).map((line, index) => {
@@ -38,14 +39,20 @@ function configuredUnits(prices: AccountValue['prices']): string {
   return entries.length ? JSON.stringify(entries, null, 2) : ''
 }
 
-export function AccountForm({ account, accounts, run, busy, onClose }: { account?: Account; accounts: Account[]; run: RunCommand; busy: boolean; onClose: () => void }) {
+export function AccountForm({ account, run, busy, onClose }: { account?: Account; run: RunCommand; busy: boolean; onClose: () => void }) {
   const [error, setError] = useState('')
   const [name, setName] = useState(account?.value.name ?? '')
   const [pierId, setPierId] = useState(account?.value.pierCustomerId ?? '')
-  const [reviewed, setReviewed] = useState(false)
-  const duplicates = duplicateCompanies(accounts, account, name, pierId)
-  const reviewVersion = duplicates.map(candidate => `${candidate.id}:${candidate.revision}`).join(',')
-  useEffect(() => setReviewed(false), [name, pierId, reviewVersion])
+  type Candidate={id:string;revision:string;name:string}
+  const [duplicates,setDuplicates]=useState<Candidate[]>([]),[reviews,setReviews]=useState<Candidate[]>([])
+  const [duplicatePage,setDuplicatePage]=useState(1),[hasNext,setHasNext]=useState(false),[checking,setChecking]=useState(true),[checkError,setCheckError]=useState(''),[retry,setRetry]=useState(0)
+  const reviewed=duplicates.every(row=>reviews.some(review=>review.id===row.id&&review.revision===row.revision))
+  useEffect(()=>{setReviews([]);setDuplicatePage(1)},[name,pierId])
+  useEffect(()=>{
+    let current=true;setChecking(true);setCheckError('');setDuplicates([]);setHasNext(false)
+    const timer=setTimeout(()=>void request<{candidates:Candidate[];hasNext:boolean}>(`/api/barrow/accounts/duplicates?${new URLSearchParams({name,pierCustomerId:pierId,exclude:account?.id??'',page:String(duplicatePage)})}`).then(value=>{if(current){setDuplicates(value.candidates);setHasNext(value.hasNext)}}).catch(cause=>{if(current)setCheckError(errorMessage(cause))}).finally(()=>{if(current)setChecking(false)}),200)
+    return ()=>{current=false;clearTimeout(timer)}
+  },[name,pierId,account?.id,duplicatePage,retry])
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError('')
     const data = new FormData(event.currentTarget)
@@ -58,8 +65,8 @@ export function AccountForm({ account, accounts, run, busy, onClose }: { account
         minimumCents: Number(data.get('minimumCents')), prices: applyPricing(parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),String(data.get('pricing')??'')),
         ...Object.fromEntries(['city', 'state'].map(key => [key, String(data.get(key)).trim()]).filter(([, value]) => value)),
       }
-      if (duplicates.length && !reviewed) throw new Error('Review the possible duplicate companies before saving.')
-      if (await run('account.save', { ...(String(data.get('reason')??'').trim()?{reason:String(data.get('reason')).trim()}:{}), duplicateReviews: duplicates.map(({ id, revision }) => ({ id, revision })), ...(id ? { id } : {}), ...(account ? { revision: account.revision } : {}), value })) onClose()
+      if (checking || checkError || hasNext || !reviewed) throw new Error('Review the possible duplicate companies before saving.')
+      if (await run('account.save', { ...(String(data.get('reason')??'').trim()?{reason:String(data.get('reason')).trim()}:{}), duplicateReviews: reviews.map(({ id, revision }) => ({ id, revision })), ...(id ? { id } : {}), ...(account ? { revision: account.revision } : {}), value })) onClose()
     } catch (error) { setError(error instanceof Error ? error.message : 'Check the account fields.') }
   }
   return <form onSubmit={event => void save(event)} className="br-stack">
@@ -86,7 +93,9 @@ export function AccountForm({ account, accounts, run, busy, onClose }: { account
       <label className="br-full">Reason for change (optional)<input name="reason" maxLength={240} /><small>Recorded in the supplier audit with this revision. An override retains its approved reason when this field is empty.</small></label>
       <PricingSettings prices={account?.value.prices??[]} />
     </fieldset>
-    {duplicates.length > 0 && <Notice><strong>Review possible duplicate companies</strong><ul>{duplicates.map(candidate => <li key={candidate.id}>{candidate.value.name} · {candidate.id}</li>)}</ul><p>Keep their accounts, sign-in emails and history separate.</p><button type="button" className="br-secondary" disabled={busy} aria-pressed={reviewed} onClick={() => setReviewed(current => !current)}>{reviewed ? 'Separate companies confirmed' : 'Confirm separate companies'}</button></Notice>}
-    <div className="br-actions"><button disabled={busy || (duplicates.length > 0 && !reviewed)}>{busy ? 'Saving…' : 'Save account'}</button></div>
+    {checking && <p role="status">Checking possible duplicate companies…</p>}
+    {checkError && <Notice error>{checkError}<button type="button" className="br-secondary" onClick={()=>setRetry(value=>value+1)}>Retry duplicate review</button></Notice>}
+    {duplicates.length > 0 && <Notice><strong>Review possible duplicate companies · page {duplicatePage}</strong><ul>{duplicates.map(candidate => <li key={candidate.id}>{candidate.name} · {candidate.id}</li>)}</ul><p>Keep their accounts, sign-in emails and history separate.</p><button type="button" className="br-secondary" disabled={busy||checking||reviewed} aria-pressed={reviewed} onClick={() => setReviews(current=>[...current.filter(row=>!duplicates.some(candidate=>candidate.id===row.id)),...duplicates])}>{reviewed ? 'Separate companies confirmed' : 'Confirm separate companies'}</button>{hasNext&&<button type="button" className="br-secondary" disabled={busy||checking||!reviewed} onClick={()=>setDuplicatePage(value=>value+1)}>Review next duplicate companies</button>}</Notice>}
+    <div className="br-actions"><button disabled={busy || checking || !!checkError || hasNext || !reviewed}>{busy ? 'Saving…' : 'Save account'}</button></div>
   </form>
 }

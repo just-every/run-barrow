@@ -60,12 +60,40 @@ opening one loads its exact current record. History reads stored bodies in
 batches of at most 100, retaining only one browser page; its Unicode/date
 filtering may scan batches and has no additional latency claim. Concurrent
 writes may move current-data pages. Bulk confirmation selection uses the current
-history page. The account collection remains unpaginated.
+history page. History also returns a page-scoped `accountRevisions` map for stale-draft warnings independent of account pages.
 
 Saved monthly sales and invoice-aging definitions, exact-staff delivery, frozen
 source-linked downloads and revocation now ship in **Data → Saved monthly reports**.
 See [Scheduled reports](SCHEDULED-REPORTS.md) for the recipient checks and schedule.
 
 RPT-006 remains partial. Carrier tracking search and its performance point,
-account-list pagination, broader report types and functional finance/rep recipient
+broader report types and functional finance/rep recipient
 acceptance remain missing. There is no connected carrier tracking source.
+
+
+Account cards and selectors also page the directory. `GET /api/barrow/accounts`
+returns `accounts` (at most 25 full records), `page`, `pageSize` and `hasNext`.
+`q` matches a literal substring of company name, account ID, email or Pier customer
+ID with ASCII case folding; `%`, `_` and quotes have no special meaning. Queries
+accept at most 160 characters. `sort` is `id` (default), `name-asc` or `name-desc`;
+name sorts use ASCII case folding and exact ascending ID ties. Page is 1–999999.
+Current-data pages can move during concurrent edits. Existing supplier, exact
+account-buyer and agent-grant read access is unchanged; this adds no authority.
+
+The initial workspace transfers only the first 25 accounts and `accountPage`
+metadata. Account cards and pickers retain their search while paging; a search or
+sort change starts at page one. Choose a later-page account for orders, locations,
+statements, fulfillment or unused-account erasure. The selected account stays
+selected across directory pages and loads through
+`GET /api/barrow/accounts/by-id/<id>`, which rechecks ordinary account access.
+Loading, no matches and failures are explicit; Retry accounts repeats the request.
+
+Account editing keeps full-directory duplicate review. The supplier-only
+`GET /api/barrow/accounts/duplicates` takes `name`, `pierCustomerId`, `exclude`
+(the current account ID) and `page`. It retains ACC-004's Unicode NFKC normalized
+company-name / exact Pier-ID matching, scanning at most 100 bodies per database
+batch and returning at most 25 candidate IDs, names and revisions. Confirm each
+page before moving to the next, then save. The existing save transaction rechecks
+every matching revision across the complete directory; incomplete or stale review
+refuses, without merging or reassigning identities. This is review of possible
+duplicates, not a new rule for account ownership.

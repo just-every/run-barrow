@@ -12,7 +12,7 @@ import { StatementCard } from './statement'
 import { Quotes } from './quotes'
 import { Locations } from './locations'
 import { Empty, Notice } from './primitives'
-import type { BarrowState, Order } from './types'
+import type { Account, BarrowState, Order } from './types'
 
 export function BarrowApp() {
   const [state, setState] = useState<BarrowState | null>(null)
@@ -30,14 +30,19 @@ export function BarrowApp() {
   const pad = supplier ? 'Order pad' : 'Catalog'
   const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit'] : [pad, 'Orders']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
-  const selected = state?.accounts.find(account => account.id === accountId)
+  const [selected,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
+  useEffect(()=>{
+    let current=true;setSelected(null);setAccountLoading(Boolean(accountId))
+    if(accountId)void request<Account>(`/api/barrow/accounts/by-id/${encodeURIComponent(accountId)}`).then(value=>{if(current)setSelected(value)}).catch(cause=>{if(current)setError(errorMessage(cause))}).finally(()=>{if(current)setAccountLoading(false)})
+    return ()=>{current=false}
+  },[accountId,state])
   const reload = useCallback(async () => {
     const first = !loaded.current
     loaded.current = true
     const next = await request<BarrowState>('/api/barrow/state', undefined, first)
     setState(next)
     const open = first ? next.waitingDraft : undefined
-    setAccountId(current => next.accounts.some(account => account.id === current) ? current : open?.accountId ?? next.accounts[0]?.id ?? '')
+    setAccountId(current => current || open?.accountId || next.accounts[0]?.id || '')
     setDraftId(current => open?.id ?? current)
   }, [])
   const load = useCallback(async () => {
@@ -111,10 +116,10 @@ export function BarrowApp() {
           {activeTab === pad && (selected
             ? <DraftWorkspace key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
                 onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />
-            : <div className="br-page-empty">{supplier
+            : accountId ? <p role="status">{accountLoading?'Loading selected trade account…':'The selected trade account could not be loaded. Refresh records to try again.'}</p> : <div className="br-page-empty">{supplier
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
-          {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
+          {activeTab === 'Accounts' && <Accounts version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Accounts' && supplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
           {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Orders' && <Quotes supplier={supplier} busy={busy} run={run} version={state.orders} />}

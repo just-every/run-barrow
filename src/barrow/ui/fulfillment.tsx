@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { request, errorMessage } from './api'
-import { Notice } from './primitives'
+import { AccountPicker, Notice } from './primitives'
 import { orderNumber, when, type Account } from './types'
 import type { fulfillmentReport } from '../fulfillment'
 type Report = Awaited<ReturnType<typeof fulfillmentReport>>
@@ -24,7 +24,7 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
   finally { setSaving(false) }
  }
  return <div className="br-card br-stack"><h2>Fulfillment & backorders</h2>
-  <div className="br-form-grid"><label>Trade account<select value={accountId} onChange={event => setAccount(event.target.value)}><option value="">All trade accounts</option>{accounts.map(account => <option key={account.id} value={account.id}>{account.value.name}</option>)}</select></label>
+  <div className="br-form-grid"><AccountPicker accounts={accounts} value={accountId} onChange={setAccount} empty="All trade accounts"/>
    <label>Warehouse evidence<select value={warehouse} onChange={event => setWarehouse(event.target.value)}><option value="">All warehouses</option>{warehouses.map(value => <option key={value}>{value}</option>)}<option>Unassigned backorder</option></select></label></div>
   <div className="br-actions"><button className="br-secondary" onClick={() => setRefresh(value => value + 1)}>Refresh fulfillment</button><button className="br-secondary" aria-pressed={late} onClick={() => setLate(value => !value)}>{late ? 'Show all lines' : 'Open late-line queue'}</button></div>
   <details><summary>Reporting time zone</summary><label>Installation reporting time zone<input placeholder="America/New_York" value={zone} onChange={event => setZone(event.target.value)} /></label><button className="br-secondary" disabled={saving || !zone} onClick={() => void saveZone()}>Save reporting time zone</button><p>Existing order date snapshots keep their original semantics.</p></details>
