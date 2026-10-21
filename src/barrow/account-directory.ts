@@ -31,7 +31,8 @@ export async function accountPage(db: D1Database, actor: Actor, query: URLSearch
  const rows = await db.prepare(`SELECT * FROM bw_accounts WHERE ${clauses.join(' AND ')} ORDER BY ${sorts[sort]} LIMIT ? OFFSET ?`).bind(...values,pageSize+1,(page-1)*pageSize).all<any>()
  const accounts = rows.results.slice(0,pageSize).map(parse), reps = await currentReps(db, accounts.map(row => row.id), await supplierToday())
  // ACC-006: every reader sees who currently holds the account; names only, never identities or contact details.
- return { accounts: accounts.map(row => ({ ...row, currentReps: (reps.get(row.id) ?? []).map(({ name, coverage, through }) => ({ name, coverage, ...(through ? { through } : {}) })) })), page, pageSize, hasNext: rows.results.length>pageSize }
+ const currentRepsByAccount = Object.fromEntries(accounts.map(row => [row.id, (reps.get(row.id) ?? []).map(({ name, coverage, through }) => ({ name, coverage, ...(through ? { through } : {}) }))]))
+ return { accounts, currentReps: currentRepsByAccount, page, pageSize, hasNext: rows.results.length>pageSize }
 }
 /** Duplicate review keeps the existing Unicode normalization and exact Pier identity semantics.
  * Scan bounded batches, return one page, and let account.save fence the complete directory. */

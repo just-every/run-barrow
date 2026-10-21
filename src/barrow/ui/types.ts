@@ -5,7 +5,7 @@ export interface AccountValue {
   lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; warehouses?: string[]; providerReferences?: Record<string, string>
 }
 export interface CurrentRep { name: string; coverage: boolean; through?: string }
-export interface Account { id: string; value: AccountValue; revision: string; currentReps?: CurrentRep[] }
+export interface Account { id: string; value: AccountValue; revision: string }
 export interface Order {
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}
 
@@ -23,7 +23,7 @@ export interface Order {
 }
 export interface BarrowState {
   actor: { id: string; email: string; role: 'owner' | 'admin' | 'member'; agent: false; staff?: import('../staff-policy').StaffGrant|null; company?: import('../company-policy').CompanyMembership|null }
-  accountPage: {page:number;pageSize:number;hasNext:boolean}; waitingDraft: Order | null; orderPage: {page:number;pageSize:number;hasNext:boolean;counts:Record<string,number>}; accounts: Account[]; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }; settings: { stockFreshnessMinutes: number | null }
+  accountPage: {page:number;pageSize:number;hasNext:boolean}; waitingDraft: Order | null; orderPage: {page:number;pageSize:number;hasNext:boolean;counts:Record<string,number>}; accounts: Account[]; currentReps?: Record<string, CurrentRep[]>; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }; settings: { stockFreshnessMinutes: number | null }
 }
 export interface CatalogueItem {
   sku: string; itemId: string; name: string; unit: string; barcode?: string; available: string; warehouses?: { warehouse: string; available: string; promised: boolean }[]; incoming?: { date: string | null; quantity: string }[]; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing

@@ -106,3 +106,16 @@ export async function restore(h,lines,{status=200,laterJournal}={}) {
  for(const part of lines.filter(x=>x.kind==='part')) await h.api(`/api/barrow/portability/imports/${id}/parts/${part.index}`,part,{method:'PUT'});
  return h.api(`/api/barrow/portability/imports/${id}/finalize`,{contentHash:lines.at(-1).contentHash,archiveHash:lines.at(-1).archiveHash,...(laterJournal?{laterJournal}:{})},{status});
 }
+// Consume the Native invitation staff.invite actually sent, so the version-bound activation path stays under test.
+export async function confirmInvitation(h,email) {
+ const message=h.mail.requests.findLast(row=>row.message.to.includes(email))?.message;
+ assert.ok(message,'Native invitation reached the external mail edge');
+ const href=message.text?.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)?.[0]??message.html?.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]?.replaceAll('&amp;','&');
+ const response=await h.request('/auth/confirm',{method:'POST',as:'',body:{token:new URL(href).searchParams.get('token')}});
+ assert.equal(response.status,303);
+ return {as:response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')};
+}
+export async function activateStaff(h,email,policy) {
+ const grant=await h.command('staff.invite',{email,name:email.split('@')[0],policy,reason:'Owner reviewed this exact functional role and scope.'});
+ return {grant,who:await confirmInvitation(h,email),id:grant.userId};
+}

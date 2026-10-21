@@ -108,7 +108,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const {orders,people,...orderPage}=page
    if(actor.staff&&actor.staff.role==='analyst'){orders.splice(0);directory.accounts.splice(0)}
    else if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))directory.accounts=directory.accounts.map(a=>({...a,value:{...a.value,prices:[]}}))
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
   if(path==='/api/barrow/shipping/options' && request.method==='GET') {

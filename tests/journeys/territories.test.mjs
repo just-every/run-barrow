@@ -2,18 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
-import { installation, stock, accountValue } from '../api/harness.mjs';
+import { installation, stock, accountValue, activateStaff } from '../api/harness.mjs';
 import { captureWidths, signedContext } from './browser-helpers.mjs';
 
-const reason = 'Owner reviewed this exact functional role and scope.';
-async function activate(h, email, policy) {
- const grant = await h.command('staff.invite', { email, name: email.split('@')[0], policy, reason });
- const message = h.mail.requests.findLast(row => row.message.to.includes(email)).message;
- const href = message.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)[0];
- const response = await h.request('/auth/confirm', { method: 'POST', as: '', body: { token: new URL(href).searchParams.get('token') } });
- assert.equal(response.status, 303);
- return { id: grant.userId, cookie: response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ') };
-}
+const activate = async (h, email, policy) => { const staff = await activateStaff(h, email, policy); return { id: staff.id, cookie: staff.who.as } };
 
 test('manager assigns, covers and transfers rep territories; the rep, the buyer and the manager each see only the current assignment at desktop and phone', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());

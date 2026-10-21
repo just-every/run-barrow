@@ -136,10 +136,10 @@ export function BarrowApp() {
         {usageRequired&&!invitation&&<UsageAcceptance onAccepted={()=>void load()}/>}
         {state&&!usageRequired&&!invitation && <>
           {!state.connection.configured && <Notice>Live stock and reservations need a Pier connection. {supplier ? 'Configure Pier in the installation settings before taking orders.' : 'Contact your supplier to enable ordering.'}</Notice>}
-          {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1>{!supplier&&<CurrentRep reps={state.accounts.find(row=>row.id===accountId)?.currentReps}/>}</div>
+          {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1>{!supplier&&<CurrentRep reps={state.currentReps?.[accountId]}/>}</div>
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>}
-          {activeTab === pad && !supplier && <CurrentRep reps={state.accounts.find(row=>row.id===accountId)?.currentReps}/>}
+          {activeTab === pad && !supplier && <CurrentRep reps={state.currentReps?.[accountId]}/>}
           {activeTab === pad && (selected
             ? <DraftWorkspace canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
                 onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />

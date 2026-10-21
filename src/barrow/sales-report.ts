@@ -63,7 +63,7 @@ export async function salesReport(env: Bindings, actor: Actor, params: URLSearch
    shipped: shipments === 'read' ? 'Pier’s dispatched base units, valued at the line’s average base-unit price, rounded half up once per line.' : 'Pier did not answer: shipped amounts are unknown.',
    payments: `${statementNote} Paid and credited are not recorded until PAY-003 and PAY-010; outstanding is the invoiced amount.`,
    season: 'Barrow has no seasons or prebooks yet; CAT-008 and ORD-008 add season and prebook rows to this report.',
-   access: 'Owner, admins and all-account managers read every account. A rep reads only one account they hold today (assignment or temporary coverage) or a territory they hold completely; any other account or territory is refused, never trimmed.',
+   access: 'Owner, admins and all-account managers read every account. ACC-006: a rep reads only one account they hold today (assignment or temporary coverage) or a territory they hold completely; any other account or territory is refused, never trimmed.',
   },
  }
 }

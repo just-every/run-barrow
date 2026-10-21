@@ -1,20 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac, randomBytes } from 'node:crypto';
-import { installation, stock, accountValue } from './harness.mjs';
+import { installation, stock, accountValue, activateStaff } from './harness.mjs';
 
 const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
 const policy = (role, extra = {}) => ({ role, accounts: [], warehouses: [], reports: [], discountLimitCents: 0, stockExceptionLimitCents: 0, ...extra });
-const reason = 'Owner reviewed this exact functional role and scope.';
-
-async function confirmInvitation(h, email) {
- const message = h.mail.requests.findLast(row => row.message.to.includes(email))?.message;
- assert.ok(message, 'Native invitation reached the external mail edge');
- const href = message.text?.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)?.[0] ?? message.html?.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]?.replaceAll('&amp;', '&');
- const response = await h.request('/auth/confirm', { method: 'POST', as: '', body: { token: new URL(href).searchParams.get('token') } });
- assert.equal(response.status, 303);
- return { as: response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ') };
-}
 
 test('ACC-006: managers assign reps to territories and accounts with dated coverage; access, quote routing, reports, tasks, commissions and sends follow the current assignment and no history is rewritten', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
@@ -30,11 +20,7 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  const buyer = { as: await h.signIn('buyer@example.test') }, wrenBuyer = { as: await h.signIn('wren@example.test') };
  const admin = { as: await h.signIn('admin@example.test', 'admin') };
  const { token } = await h.api('/api/barrow/agent-token', {}), agent = { as: '', headers: { authorization: `Bearer ${token}` } };
- const activate = async (email, grantPolicy) => {
-  const grant = await h.command('staff.invite', { email, name: email.split('@')[0], policy: grantPolicy, reason });
-  const who = await confirmInvitation(h, email);
-  return { grant, who, id: grant.userId };
- };
+ const activate = (email, grantPolicy) => activateStaff(h, email, grantPolicy);
  const reports = ['sales', 'finance', 'commissions', 'quotes'];
  const repA = await activate('rep-a@example.test', policy('rep', { reports, commissionRep: 'rep-a' }));
  const repB = await activate('rep-b@example.test', policy('rep', { reports, commissionRep: 'rep-b' }));
@@ -66,8 +52,8 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  assert.equal((await assignments(repA.who)).assignments.length, 1, 'a rep reads only their own assignments');
  assert.equal((await assignments()).assignments.filter(row => row.effective).length, 2);
  // Buyers see their current rep by name, never identity or contact.
- const seen = (await h.api('/api/barrow/state', undefined, buyer)).accounts[0];
- assert.deepEqual(seen.currentReps, [{ name: 'rep-a', coverage: false }]);
+ const seen = (await h.api('/api/barrow/state', undefined, buyer));
+ assert.deepEqual(seen.currentReps.cedar, [{ name: 'rep-a', coverage: false }]);
  assert.ok(!JSON.stringify(seen).includes(repA.id) && !JSON.stringify(seen).includes('rep-a@example.test'));
 
  // ORD-005 notices and AUTO-003 mail reach the assigned rep instead of every owner/admin; the thread is the rep's alone.
@@ -141,7 +127,7 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  // Orders: approve one before and one after a transfer; attribution is frozen per order at first approval.
  const first = await h.command('order.prepare', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 2 }] }, repA.who);
  assert.equal(first.preparedBy, repA.id);
- await h.command('order.submit', { orderId: first.id }, repA.who);
+ await h.command('order.submit', { orderId: first.id }, buyer);
  await h.command('order.approve', { orderId: first.id });
  const statement = who => h.api('/api/barrow/reports/commissions', undefined, who);
  assert.deepEqual((await statement({})).rows.map(row => [row.orderId, row.assignedRep, row.rep]), [[first.id, 'rep-a', 'rep-a']]);
@@ -157,7 +143,7 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  const vacation = await h.command('rep.cover', { userId: repB.id, kind: 'rep', target: repA.id, endsOn: easternDay(7), reason: 'Vacation week.' }, manager.who);
  assert.deepEqual(await accountIds(repB.who), ['birch', 'cedar', 'wren']);
  assert.equal((await readQuote(repB.who)).id, quote.id);
- assert.deepEqual((await h.api('/api/barrow/state', undefined, buyer)).accounts[0].currentReps.map(row => [row.name, row.coverage, row.through]), [['rep-a', false, undefined], ['rep-b', true, easternDay(7)]]);
+ assert.deepEqual((await h.api('/api/barrow/state', undefined, buyer)).currentReps.cedar.map(row => [row.name, row.coverage, row.through]), [['rep-a', false, undefined], ['rep-b', true, easternDay(7)]]);
  const during = await h.command('quote.message', { quoteId: quote.id, body: 'While rep-a is away' }, buyer);
  assert.ok(during.id); assert.deepEqual(quoteMail(quote.id).slice(-2).sort(), ['rep-a@example.test', 'rep-b@example.test']);
  assert.equal((await h.request('/api/barrow/reports/sales?territory=Northeast', repB.who)).status, 200, 'covering a rep’s whole book covers every account of their territory');
@@ -188,11 +174,11 @@ test('ACC-006: managers assign reps to territories and accounts with dated cover
  await readQuote(repA.who, 404);
  await h.api('/api/barrow/reports/sales?accountId=cedar', undefined, { ...repA.who, status: 403 });
  assert.deepEqual(await accountIds(repB.who), ['birch', 'cedar', 'wren']);
- assert.deepEqual((await h.api('/api/barrow/state', undefined, buyer)).accounts[0].currentReps, [{ name: 'rep-b', coverage: false }]);
+ assert.deepEqual((await h.api('/api/barrow/state', undefined, buyer)).currentReps.cedar, [{ name: 'rep-b', coverage: false }]);
 
  // Future attribution follows the transfer; the earlier order, snapshot and audit keep rep-a.
  const second = await h.command('order.prepare', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 2 }] }, repB.who);
- await h.command('order.submit', { orderId: second.id }, repB.who);
+ await h.command('order.submit', { orderId: second.id }, buyer);
  await h.command('order.approve', { orderId: second.id });
  assert.deepEqual((await statement({})).rows.map(row => [row.orderId, row.assignedRep, row.rep]).sort(), [[first.id, 'rep-a', 'rep-a'], [second.id, 'rep-b', 'rep-b']].sort());
  assert.deepEqual((await statement(repA.who)).rows, [], 'a transferred account leaves the old rep’s statement while its frozen attribution stays');
