@@ -31,7 +31,7 @@ export async function applicationView(db:D1Database,row:ApplicationRow,staff=fal
 }
 export async function applicationDuplicates(db:D1Database,row:ApplicationRow) {
  const value=JSON.parse(row.value_json),name=normalizedCompanyName(value.name)
- const accounts=(await db.prepare('SELECT a.id,json_set(a.value_json,'$.ein',(SELECT json_extract(p.value_json,'$.ein') FROM bw_applications p WHERE p.account_id=a.id AND p.state='approved' LIMIT 1)) AS value_json,a.revision FROM bw_accounts a ORDER BY a.id').all<any>()).results
+ const accounts=(await db.prepare("SELECT a.id,json_set(a.value_json,'$.ein',(SELECT json_extract(p.value_json,'$.ein') FROM bw_applications p WHERE p.account_id=a.id AND p.state='approved' LIMIT 1)) AS value_json,a.revision FROM bw_accounts a ORDER BY a.id").all<any>()).results
  const apps=(await db.prepare("SELECT * FROM bw_applications WHERE id<>? AND state IN ('submitted','information requested') ORDER BY id").bind(row.id).all<ApplicationRow>()).results
  return [...accounts.map(r=>({...r,kind:'account'})),...apps.map(r=>({...r,kind:'application'}))].filter(r=>{
   const v=JSON.parse(r.value_json)
