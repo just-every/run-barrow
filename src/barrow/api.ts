@@ -8,6 +8,7 @@ import { readCommissionRules, saveCommissionRules } from './commission-rules'
 import { commissionReport, commissionCsv } from './commission-report'
 import { readConfirmationLayouts, saveConfirmationLayout } from './confirmation-layouts'
 import { confirmationChoices, bulkConfirmationResponse } from './bulk-confirmations'
+import { readSalesTerms, salesTermsCommand, termsDocumentResponse, termsSignatureResponse } from './sales-terms'
 import { quoteMailWebhook } from './quote-mail-events'
 import { quoteMailCommand, dispatchQuoteMail } from './quote-mail'
 import { readRetention, retentionCommand } from './retention'
@@ -74,6 +75,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/confirmations/selection' && request.method==='POST')return json(await confirmationChoices(env.DB,actor,await boundedJson(request,20000)))
   if(path==='/api/barrow/confirmations/export.csv' && request.method==='POST')return await bulkConfirmationResponse(env.DB,actor,await boundedJson(request,20000))
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
+  if(path==='/api/barrow/sales-terms' && request.method==='GET') return json(await readSalesTerms(env,actor,url.searchParams.get('accountId')))
+  const termsDocument=/^\/api\/barrow\/sales-terms\/([^/]+)\/([1-9]\d{0,8})\/document$/.exec(path)
+  if(termsDocument && request.method==='GET') return await termsDocumentResponse(env,actor,decodeURIComponent(termsDocument[1]),Number(termsDocument[2]))
+  const termsSignature=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/terms-signature$/.exec(path)
+  if(termsSignature && request.method==='GET') return await termsSignatureResponse(env,actor,await readOrder(env.DB,actor,termsSignature[1]))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const selected=await accounts(env.DB,actor)
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
@@ -163,6 +169,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='commission.settings')result=await saveCommissionRules(env.DB,actor,body.payload)
    else if(['retention.settings','retention.request','retention.erase-document'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
+   else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)

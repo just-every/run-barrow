@@ -8,9 +8,9 @@ The same signed-in people who can read an order can list and download its confir
 - `GET /api/barrow/orders/<orderId>/confirmations/<number>.pdf`
 - `GET /api/barrow/orders/<orderId>/confirmations/<number>.csv`
 
-Numbers increase per order. The snapshot keeps the exact order revision, buyer/account, PO, bill-to and ship-to, requested and cancel dates, payment terms, selling-unit lines and conversions, agreed currency and integer cents, delivery method/charge/window where recorded, and total. Later account, price, address, reservation or cancellation changes never rewrite it. Confirmation revisions link from the order timeline. Commercial JSON and `confirmations.csv` exports retain the snapshots and download paths; owner archives retain the same records.
+Numbers increase per order. The snapshot keeps the exact order revision, buyer/account, PO, bill-to and ship-to, requested and cancel dates, payment terms, selling-unit lines and conversions, agreed currency and integer cents, delivery method/charge/window where recorded, and total. Later account, price, address, reservation or cancellation changes never rewrite it. Where the account's ORD-015 sales terms were accepted at submission, the snapshot also copies the accepted terms text and the acceptance record (version, how, who, when, printed name and signature digest), so a later terms version never changes it. Confirmation revisions link from the order timeline. Commercial JSON and `confirmations.csv` exports retain the snapshots and download paths; owner archives retain the same records.
 
-Seller legal identity, product images, explicit style/color/size attributes, MSRP, sales-terms versions/signatures, commercial edit revisions, confirmation email delivery, matrix export layouts and grouped style/color/size production spreadsheets remain required by ORD-014. The clause stays partial. Downloads label absent facts; they do not infer them.
+Seller legal identity, product images, explicit style/color/size attributes, MSRP, commercial edit revisions, confirmation email delivery, matrix export layouts and grouped style/color/size production spreadsheets remain required by ORD-014. The clause stays partial. Downloads label absent facts; they do not infer them.
 
 ## Bulk per-line CSV
 

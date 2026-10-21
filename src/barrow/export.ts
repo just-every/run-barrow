@@ -8,8 +8,9 @@ import { csvText } from './cart-csv'
 import { now } from './clock'
 import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
+import { termsExport } from './sales-terms'
 
-export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'audit'] as const
+export const exportKinds = ['accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
@@ -28,6 +29,9 @@ const columns: Record<Kind, string[]> = {
  locations: ['id', 'revision', 'accountId', 'kind', 'default', 'archived', 'name', 'line1', 'line2', 'city', 'state', 'zip', 'jurisdiction', 'deliveryInstructions', 'exemptionReference', 'exemptionState', 'email', 'phone', 'role'],
  followups: ['id', 'revision', 'accountId', 'kind', 'sourceId', 'sourcePath', 'title', 'reason', 'priority', 'createdAt', 'ownerId', 'nextContactDate', 'status', 'resolution', 'contacts'],
  confirmations: ['orderId', 'number', 'stage', 'recordedAt', 'snapshot', 'pdf', 'csv'],
+ // ORD-015: published sales-terms versions and the acceptance recorded on each order; the signature image is at signaturePath.
+ salesterms: ['series', 'version', 'title', 'contentSha256', 'createdBy', 'createdAt', 'body', 'pdfName', 'pdfBytes', 'pdfSha256', 'pdfPath'],
+ termsacceptances: ['orderId', 'accountId', 'series', 'version', 'contentSha256', 'how', 'acceptedBy', 'acceptedAt', 'printedName', 'signatureSha256', 'signaturePath'],
  quotedeliveries: ['id','quote_id','account_id','recipient_id','recipient','status','reason','provider_message_id','attempts','created_at','updated_at','task_id'],
  audit: ['id', 'subjectId', 'actorId', 'action', 'createdAt', 'accountId', 'orderId', 'revision'],
 }
@@ -52,7 +56,9 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  // Historical order metadata survives DATA-003 erasure; only extant bytes belong in the download manifest.
  const documentIds = new Set((await env.DB.prepare('SELECT d.order_id FROM bw_order_documents d JOIN bw_orders o ON o.id=d.order_id WHERE o.account_id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<{order_id:string}>()).results.map(row=>row.order_id))
  const quotedeliveries=supplier(actor)?(await env.DB.prepare('SELECT id,quote_id,account_id,recipient_id,recipient,status,reason,provider_message_id,attempts,created_at,updated_at,task_id FROM bw_quote_mail ORDER BY rowid').all<Record<string,unknown>>()).results:undefined
+ const terms = await termsExport(env.DB, actor, ids, orders)
  const records = {
+  ...terms,
   ...(quotedeliveries?{quotedeliveries}:{}),
   confirmations: confirmations.map(row => ({orderId:row.order_id,number:row.number,stage:row.stage,recordedAt:row.created_at,snapshot:row.value_json,pdf:`/api/barrow/orders/${row.order_id}/confirmations/${row.number}.pdf`,csv:`/api/barrow/orders/${row.order_id}/confirmations/${row.number}.csv`})),
   accounts: selected.map(({ id, revision, value }) => ({ id, revision, name: value.name, email: value.email, pierCustomerId: value.pierCustomerId, termsDays: value.termsDays, minimumCents: value.minimumCents, currency: 'USD', city: value.city ?? '', state: value.state ?? '', lifecycle: value.lifecycle ?? 'active', channel: value.channel ?? '', territory: value.territory ?? '', assignedRep: value.assignedRep ?? '', catalogs: json(value.catalogs), providerReferences: json(value.providerReferences) })),

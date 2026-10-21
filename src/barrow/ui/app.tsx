@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { HydrationUnit } from '../../base/hydration/unit'
 import { request, errorMessage } from './api'
 import { Accounts } from './accounts'
+import { SalesTerms } from './sales-terms'
 import { DraftWorkspace } from './draft-workspace'
 import { Orders } from './orders'
 import { MoveIn } from './move-in'
@@ -64,7 +65,7 @@ export function BarrowApp() {
       const messages: Record<string, string> = {
         'account.save': 'Trade account saved.', 'account.invite': 'Invitation requested. Check the account email for the sign-in message.',
         'account.erase': 'Account erasure completed.', 'order.prepare': 'Draft prepared. Review it in Orders before submitting.',
-        'order.submit': 'Order submitted for supplier review.', 'order.approve': 'Reservation requested. See the order for its current stock status.',
+        'order.submit': 'Order submitted for supplier review.', 'terms.publish': 'Sales terms version published.', 'terms.assign': 'Sales terms assignment saved.', 'order.approve': 'Reservation requested. See the order for its current stock status.',
         'order.refresh': 'Order stock status refreshed.', 'order.cancel': 'Order cancelled. Pier confirmed the stock release.', 'order.attach': 'PO document attached to the draft.', 'order.reorder': 'Reorder draft prepared. Review it in Orders before submitting.',
         'quote.request': 'Quote requested. Your supplier will propose prices and terms in Orders.', 'quote.propose': 'Quote revision saved.', 'quote.approve': 'Discount approved. The buyer can now accept this revision.', 'quote.accept': 'Quote accepted. The order is submitted for supplier review.',
       }
@@ -116,6 +117,7 @@ export function BarrowApp() {
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Accounts' && <Accounts accounts={state.accounts} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Accounts' && supplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
+          {activeTab === 'Accounts' && supplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
           {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Orders' && <Quotes supplier={supplier} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && <StatementCard accounts={state.accounts} />}
