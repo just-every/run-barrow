@@ -294,5 +294,5 @@ test('trade applicant verification, duplicate-reviewed decisions, private certif
  const after=await archive(h);assert.ok(!JSON.stringify(after).includes('declined@example.test'));
  const target=await installation();t.after(()=>target.close());await restore(target,before,{status:400,laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal}});
  assert.ok(JSON.stringify(await h.api('/api/barrow/audit?search=application')).includes('application.approved'));
- await h.configure({MAIL_PROVIDER:undefined});await h.api('/api/barrow/applications',{...input,formToken:form.formToken},{as:'',status:503});
+ await h.configure({MAIL_API_KEY:''});await h.api('/api/barrow/applications',{...input,formToken:form.formToken},{as:'',status:503});
 });
