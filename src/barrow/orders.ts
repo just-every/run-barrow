@@ -1,3 +1,4 @@
+import { commissionSnapshot } from './commission-rules'
 import { confirmationStatements } from './confirmations'
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
@@ -137,7 +138,8 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    requireActiveAccount(selected)
    if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The account changed. Prepare and submit a new draft before approval.')
    await assertCurrentPricing(env,selected,order)
-   order=await save(env,actor,{...order,status:'reserving',approvedBy:actor.id,approvedAt:(await now()).toISOString()},'order.approved',[activeAccountGuard(env.DB,selected)])
+   const approvedAt=(await now()).toISOString(), commissions=await commissionSnapshot(env.DB,selected,order,approvedAt)
+   order=await save(env,actor,{...order,status:'reserving',approvedBy:actor.id,approvedAt},'order.approved',[activeAccountGuard(env.DB,selected),commissions.guard,env.DB.prepare('INSERT INTO bw_order_commissions(order_id,value_json) VALUES(?,?)').bind(order.id,JSON.stringify(commissions.snapshot))])
   }
   if(order.status!=='reserving') fail('APPROVAL','The customer must review and submit this draft first.')
   // Current approver authority must still hold before an external stock effect.

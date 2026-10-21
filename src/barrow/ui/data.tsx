@@ -1,3 +1,4 @@
+import { Commissions } from './commissions'
 import { useState } from 'react'
 import type { Account, RunCommand } from './types'
 import { AccountPicker, Notice } from './primitives'
@@ -32,6 +33,7 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
     <QuoteReport />
     <SalesReport />
     <FinanceReport />
+    <Commissions />
     <Followups />
     <ShippingSettings />
     <DiagnosticsCard />

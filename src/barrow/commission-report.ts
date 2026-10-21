@@ -1,0 +1,111 @@
+import type { Bindings } from '../auth.server'
+import { csvText } from './cart-csv'
+import { now } from './clock'
+import { commissionPrecedence, type CommissionRule, type CommissionSnapshot } from './commission-rules'
+import { commissionSources, type CommissionSource } from './commission-source'
+import { fail, requirePerson, requireSupplier, supplierZone, type Actor, type Order } from './model'
+import { pierOrigin, pierState } from './pier'
+
+type Amount = number | null
+export type CommissionRow = {
+ rep: string; assignedRep: string; orderId: string; line: number; accountId: string; account: string; sku: string; currency: string
+ ruleId: string | null; ruleRevision: string | null; basis: CommissionRule['basis'] | null; rateBps: number | null; shareBps: number | null
+ acceptedAt: string; sourceOrderId: string | null; sourceLineId: string | null; shipmentIds: string[]; returnIds: string[]
+ basisCents: Amount; cancelledBasisCents: Amount; returnedBasisCents: Amount; grossCents: Amount; reversedCents: Amount; netCents: Amount
+ source: 'read' | 'unavailable'; reason: string | null; path: string
+}
+const lexical = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
+const safe = (amount: bigint) => {
+ if (amount < 0n || amount > BigInt(Number.MAX_SAFE_INTEGER)) fail('COMMISSION_AMOUNT', 'Commission amount exceeds safe integer cents.', 409)
+ return Number(amount)
+}
+const half = (numerator: bigint, denominator: bigint) => safe((numerator + denominator / 2n) / denominator)
+const cents = (value: unknown): number => {
+ if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) fail('COMMISSION_AMOUNT', 'The recorded merchandise line needs valid integer cents.', 409)
+ return value
+}
+/** Hamilton allocation: exact total cents, largest remainder first, rep label breaks ties. */
+function allocate(total: number, splits: CommissionRule['splits'], denominator = 10000) {
+ const rows = splits.map(split => {
+  const numerator = BigInt(total) * BigInt(split.shareBps)
+  return { rep: split.rep, amount: denominator ? Number(numerator / BigInt(denominator)) : 0, remainder: denominator ? numerator % BigInt(denominator) : 0n }
+ })
+ const ranked = [...rows].sort((a, b) => a.remainder === b.remainder ? lexical(a.rep, b.rep) : a.remainder > b.remainder ? -1 : 1)
+ const extra = total - rows.reduce((sum, row) => sum + row.amount, 0)
+ for (let index = 0; index < extra; index++) ranked[index].amount++
+ return new Map(rows.map(row => [row.rep, row.amount]))
+}
+function measured(order: Order, line: number, rule: CommissionRule, source: CommissionSource | undefined) {
+ if (rule.basis === 'payment' || !source) return null
+ const merchandise = cents(order.lines[line - 1].lineCents)
+ // All selling-unit lines for an item receive the same fraction of confirmed source units.
+ // The stored line's own discounted price remains intact; no current pricing enters this ratio.
+ const eligible = rule.basis === 'acceptance' ? source.base : source.dispatched
+ const basisCents = half(BigInt(merchandise) * eligible, source.base)
+ const cancelledBasisCents = rule.basis === 'acceptance' ? half(BigInt(merchandise) * source.cancelled, source.base) : 0
+ const returnedBasisCents = Math.min(basisCents - cancelledBasisCents, half(BigInt(merchandise) * source.returned, source.base))
+ const gross = half(BigInt(basisCents) * BigInt(rule.rateBps), 10000n)
+ const remaining = half(BigInt(basisCents - cancelledBasisCents - returnedBasisCents) * BigInt(rule.rateBps), 10000n)
+ const grossShares = allocate(gross, rule.splits)
+ // Preserve each rep's original earned cents as the remaining allocation weights.
+ // This conserves all remaining cents and prevents rounding from reversing a negative cent.
+ const remainingShares = allocate(remaining, rule.splits.map(split => ({ rep: split.rep, shareBps: grossShares.get(split.rep)! })), gross)
+ return { basisCents, cancelledBasisCents, returnedBasisCents, gross: grossShares, remaining: remainingShares }
+}
+function totals(rows: CommissionRow[]) {
+ const groups = new Map<string, CommissionRow[]>()
+ for (const row of rows) { const key = JSON.stringify([row.currency, row.rep]); groups.set(key, [...(groups.get(key) ?? []), row]) }
+ return [...groups.values()].map(mine => {
+  const sum = (key: 'grossCents' | 'reversedCents' | 'netCents') => mine.some(row => row[key] === null) ? null : safe(mine.reduce((total, row) => total + BigInt(row[key]!), 0n))
+  return { currency: mine[0].currency, rep: mine[0].rep, grossCents: sum('grossCents'), reversedCents: sum('reversedCents'), netCents: sum('netCents') }
+ }).sort((a, b) => lexical(a.currency, b.currency) || lexical(a.rep, b.rep))
+}
+export async function commissionReport(env: Bindings, actor: Actor, params: URLSearchParams) {
+ requirePerson(actor); requireSupplier(actor)
+ const checkedAt = (await now()).toISOString(), filter = { rep: params.get('rep') ?? '', accountId: params.get('accountId') ?? '' }
+ // Commissions are private supplier attribution, deliberately separate from buyer-visible orders.
+ const records = await env.DB.prepare('SELECT o.value_json,c.value_json AS commission_json FROM bw_orders o LEFT JOIN bw_order_commissions c ON c.order_id=o.id ORDER BY o.id').all<{ value_json: string; commission_json: string | null }>()
+ const orders = records.results.map(record => ({ order: JSON.parse(record.value_json) as Order, commission: record.commission_json ? JSON.parse(record.commission_json) as CommissionSnapshot : null })).filter(row => !filter.accountId || row.order.accountId === filter.accountId)
+ const historicalUnrecorded = orders.filter(row => row.order.approvedAt && !row.commission).length
+ let state: any, origin: string | undefined, source: 'read' | 'unavailable' = 'read'
+ try { [state, origin] = await Promise.all([pierState(env), pierOrigin(env)]) } catch { source = 'unavailable' }
+ const rows: CommissionRow[] = [], exceptions: { orderId: string; reason: string }[] = []
+ let unmatchedLines = 0
+ for (const { order, commission } of orders) {
+  if (!commission) continue
+  let quantities: Map<string, CommissionSource> | undefined
+  if (source === 'read') {
+   try { quantities = commissionSources(order, state, origin) }
+   catch { exceptions.push({ orderId: order.id, reason: 'Recorded Pier origin, customer, order, shipment/return links or quantities are unavailable or do not reconcile.' }) }
+  }
+  for (const entry of commission.lines) {
+   const line = order.lines[entry.line - 1]
+   if (!line) fail('COMMISSION_SNAPSHOT', 'Commission snapshot references a missing order line.', 409)
+   const rule = entry.rule, confirmed = quantities?.get(line.itemId)
+   const measuredLine = rule ? measured(order, entry.line, rule, confirmed) : null
+   if (!rule) unmatchedLines++
+   const base = { assignedRep: commission.assignedRep, orderId: order.id, line: entry.line, accountId: order.accountId, account: order.customerName, sku: line.sku, currency: order.currency ?? 'AUD', ruleId: rule?.id ?? null, ruleRevision: commission.policyRevision, basis: rule?.basis ?? null, rateBps: rule?.rateBps ?? null, acceptedAt: commission.at, sourceOrderId: confirmed?.sourceOrderId ?? order.pierOrderId ?? null, sourceLineId: confirmed?.sourceLineId ?? null, shipmentIds: confirmed?.shipmentIds ?? [], returnIds: confirmed?.returnIds ?? [], basisCents: measuredLine?.basisCents ?? null, cancelledBasisCents: measuredLine?.cancelledBasisCents ?? null, returnedBasisCents: measuredLine?.returnedBasisCents ?? null, source: confirmed ? 'read' as const : 'unavailable' as const, reason: !rule ? 'No matching rule at first approval; no commission recorded.' : rule.basis === 'payment' ? 'Verified payment allocations are not recorded (PAY-003); payment-basis commission is unknown.' : !confirmed ? 'Pier source unavailable or unreconciled; commission and reversals are unknown.' : null, path: `/api/barrow/orders/${order.id}/timeline` }
+   const splits = rule?.splits ?? [{ rep: commission.assignedRep, shareBps: null }]
+   for (const split of splits) {
+    if (filter.rep && split.rep !== filter.rep) continue
+    const grossCents = measuredLine?.gross.get(split.rep) ?? null, netCents = measuredLine?.remaining.get(split.rep) ?? null
+    rows.push({ ...base, rep: split.rep, shareBps: split.shareBps, grossCents, reversedCents: grossCents === null || netCents === null ? null : grossCents - netCents, netCents })
+   }
+  }
+ }
+ return { checkedAt, timeZone: supplierZone, filter, source, rows, totals: totals(rows), historicalUnrecorded, unmatchedLines, exceptions, notes: {
+  attribution: 'Assigned rep and full matched rule are frozen at first supplier approval. Account transfers and later policy edits do not rewrite historical attribution. Orders without a recorded snapshot remain unrecorded.',
+  precedence: commissionPrecedence,
+  amounts: 'Merchandise only at original discounted line cents; excludes delivery, handling and tax. Acceptance records original merchandise commission and reverses confirmed cancelled units; shipment earns only confirmed dispatched units. Duplicate item selling units share source quantities proportionally to base units. Basis amounts repeat across split rows; sum commission cents only. Currencies remain separate.',
+  rounding: 'BigInt ratios round half up once per line. Commission rounds half up before splits; largest remainders allocate earned cents with lexical rep ties. Remaining commission uses original earned split cents as proportional weights, again by largest remainder. Reversals are original earned less remaining split cents, never negative; a full return or cancellation reverses every original cent.',
+  returns: 'Only actual Pier return receipts linked to the original shipment reverse merchandise commission, capped by the earned merchandise basis. Missing or unreconciled sources leave amounts unknown, never zero.',
+  payments: 'Payments and allocations are not recorded (PAY-003). Payment-basis commission is unknown; PAY-003 must add verified allocated payment evidence before it can earn or reverse.',
+  credits: 'Credit notes and refunds are not recorded (PAY-010). Inventory returns are not credit notes; PAY-010 must add source-linked credit/refund effects without double counting returns.',
+  access: 'Owner and admins act for sales managers until ACC-005. Rep labels are attribution metadata; no new staff roles or scoped rep access are introduced.',
+ } }
+}
+export const commissionColumns = ['rep', 'assignedRep', 'orderId', 'line', 'accountId', 'account', 'sku', 'currency', 'ruleId', 'ruleRevision', 'basis', 'rateBps', 'shareBps', 'acceptedAt', 'sourceOrderId', 'sourceLineId', 'shipmentIds', 'returnIds', 'basisCents', 'cancelledBasisCents', 'returnedBasisCents', 'grossCents', 'reversedCents', 'netCents', 'source', 'reason', 'path'] as const
+export async function commissionCsv(env: Bindings, actor: Actor, params: URLSearchParams) {
+ const report = await commissionReport(env, actor, params)
+ return new Response(csvText([[...commissionColumns], ...report.rows.map(row => commissionColumns.map(column => Array.isArray(row[column]) ? (row[column] as string[]).join(';') : row[column] ?? 'not recorded')), [], ['historicalUnrecorded', report.historicalUnrecorded], ...Object.entries(report.notes).map(([key, value]) => [key, value])]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-commissions.csv"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+}

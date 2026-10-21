@@ -1,3 +1,5 @@
+import { readCommissionRules, saveCommissionRules } from './commission-rules'
+import { commissionReport, commissionCsv } from './commission-report'
 import { readConfirmationLayouts, saveConfirmationLayout } from './confirmation-layouts'
 import { quoteMailWebhook } from './quote-mail-events'
 import { quoteMailCommand, dispatchQuoteMail } from './quote-mail'
@@ -52,6 +54,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
    return (await createPortabilityHandler({db:env.DB,policy:portabilityPolicy,appOrigin:env.AUTH_ORIGIN,basePath:'/api/barrow/portability',authorize:async()=>actor.id}))(request)
   }
+  if(path==='/api/barrow/commissions' && request.method==='GET')return json(await readCommissionRules(env.DB,actor))
+  if(path==='/api/barrow/reports/commissions' && request.method==='GET')return json(await commissionReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/reports/commissions.csv' && request.method==='GET')return await commissionCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/confirmation-layouts' && request.method==='GET')return json(await readConfirmationLayouts(env.DB,actor))
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
   if(path==='/api/barrow/state' && request.method==='GET') {
@@ -139,7 +144,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
    if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    let result
-   if(['retention.settings','retention.request','retention.erase-document'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
+   if(body.type==='commission.settings')result=await saveCommissionRules(env.DB,actor,body.payload)
+   else if(['retention.settings','retention.request','retention.erase-document'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
