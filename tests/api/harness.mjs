@@ -11,7 +11,7 @@ import { pierSource } from '../pier-source.mjs';
 export async function installation({pier=false,bindings={},https,built=false}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
- const bundled=built?null:await build({entryPoints:[join(root,'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],loader:{'.css':'text','.svg':'text'}});
+ const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
  const messages=[],mail={deliveries:[],requests:[],reject:false,failStatus:undefined},idempotency=new Map();
  // Fake only the external mail boundary; Pier remains the real pinned Worker.
@@ -30,7 +30,7 @@ export async function installation({pier=false,bindings={},https,built=false}={}
   return new Response(await response.arrayBuffer(),{status:response.status,headers:Object.fromEntries(response.headers)});
  };
  let origin='http://localhost';
- const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),modules:true,...(built?{scriptPath:join(root,'dist/server/index.js'),modulesRules:[{type:'ESModule',include:['**/*.js']}],assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true}}:{script:bundled.outputFiles[0].text}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
+ const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),modules:true,script:bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
