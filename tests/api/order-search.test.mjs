@@ -45,3 +45,38 @@ test('RPT-006: scoped SQL search and ship-window pages stay under two-second p95
  }
  for(const [kind,times]of Object.entries(timings)){times.sort((a,b)=>a-b);const p95=times[Math.ceil(times.length*.95)-1];t.diagnostic(`${kind} first-page p95 ${p95.toFixed(1)} ms (20 requests, 20000 orders)`);assert.ok(p95<2000,`${kind} p95 ${p95} ms`)}
 });
+
+test('RPT-006: original workspace, history and account drafts page the full authorized collection without losing stale drafts, duplicate POs or source actors', async t => {
+ const h=await installation();t.after(()=>h.close());
+ const owner=(await h.api('/api/barrow/state')).actor.id;
+ for(const id of ['cedar','wren'])await h.command('account.save',{id,value:{...accountValue('source-'+id,id+'@example.test'),name:id,minimumCents:0}});
+ const accounts=(await h.api('/api/barrow/state')).accounts;
+ const oldDate='2026-03-08T04:59:59.000Z',newDate='2026-03-08T05:00:00.000Z'; // Eastern midnight across the DST weekend.
+ const fixtures=Array.from({length:63},(_,i)=>{
+  const a=accounts.find(a=>a.id===(i===0?'wren':'cedar'));
+  return {id:`page_${i}`,accountId:a.id,accountRevision:i===1?'old-revision':a.revision,customerName:a.value.name,reference:i===1?'  DÉJÀ   VU  ':i===60?'déjà vu':`ARCHIVE-${i}`,preparedAt:i===1?oldDate:newDate,status:i===60?'submitted':'draft',currency:i===1?'AUD':'USD',termsDays:30,totalCents:13000,preparedBy:owner,pierCustomerId:a.value.pierCustomerId,pierOrigin:'https://inventory.example.test',deliveryLocation:i===1?'Montréal depot':'Queens',shipTo:i===2?{city:'Brooklyn'}:undefined,lines:[{sku:i===1?'CAFÉ-1':'OAT-1',name:'Wholesale product',quantity:2,unitCents:6500,lineCents:13000,minQty:1,itemId:'source-item'}],revision:`revision-${i}`};
+ });
+ for(let i=0;i<fixtures.length;i+=50)await h.db.batch(fixtures.slice(i,i+50).map(o=>h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(o.id,o.accountId,JSON.stringify(o),o.revision)));
+ const buyer={as:await h.signIn('cedar@example.test')},other={as:await h.signIn('wren@example.test')};
+ const state=await h.api('/api/barrow/state');assert.equal(state.orders.length,25);assert.equal(state.orderPage.hasNext,true);assert.equal(state.waitingDraft.id,'page_1');assert.equal(state.orderPage.counts.draft,62);assert.equal(state.people[owner],'Supplier');
+ const history=async(params={},as={})=>h.api('/api/barrow/orders/history?'+new URLSearchParams(params),undefined,as);
+ const first=await history(),second=await history({page:'2'}),last=await history({page:'3'});
+ assert.deepEqual([first.orders.length,second.orders.length,last.orders.length],[25,25,13]);assert.equal(last.hasNext,false);
+ assert.deepEqual([...first.orders,...second.orders,...last.orders].map(o=>o.id),fixtures.map(o=>o.id).reverse());
+ assert.ok(last.duplicatePOs.includes('page_1'),'Duplicate live PO is detected outside the draft page.');
+ assert.equal(last.people[owner],'Supplier');assert.equal(last.orders.find(o=>o.id==='page_1').currency,'AUD');
+ assert.deepEqual((await history({po:'déjà',sku:'café',location:'montréal',from:'2026-03-07',to:'2026-03-07'},buyer)).orders.map(o=>o.id),['page_1']);
+ assert.equal((await history({from:'2026-03-08',to:'2026-03-08'},buyer)).orders.length,25);
+ assert.deepEqual((await history({location:'brooklyn'},buyer)).orders.map(o=>o.id),['page_2']);
+ const drafts=[];for(const page of ['1','2','3'])drafts.push(...(await history({accountId:'cedar',status:'draft',page},buyer)).orders);
+ assert.equal(drafts.length,61);assert.equal(new Set(drafts.map(o=>o.id)).size,61);assert.ok(drafts.every(o=>o.accountId==='cedar'&&o.status==='draft'));
+ assert.deepEqual((await history({status:'review'},buyer)).orders.map(o=>o.id),['page_60']);
+ assert.deepEqual((await history({},other)).orders.map(o=>o.id),['page_0']);
+ assert.deepEqual((await history({accountId:'cedar'},other)).orders,[]);
+ assert.equal((await h.api('/api/barrow/state',undefined,other)).waitingDraft.id,'page_0');
+ assert.deepEqual((await history({po:'missing'},buyer)).orders,[]);
+ assert.equal((await h.request('/api/barrow/orders/history')).headers.get('cache-control'),'no-store');
+ for(const params of [{page:'0'},{page:'1.5'},{status:'not-a-status'},{po:'x'.repeat(161)},{from:'2026-02-30'},{from:'2026-10-01',to:'2026-01-01'}])await history(params,{status:400});
+ // Page readers do not mutate commercial records or attributed decisions.
+ const before=await h.api('/api/barrow/export.json');await history({page:'2'},buyer);const after=await h.api('/api/barrow/export.json');assert.deepEqual(after.orders,before.orders);assert.deepEqual(after.audit,before.audit);
+});

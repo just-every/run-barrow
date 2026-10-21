@@ -22,49 +22,54 @@ const explanations: Record<Order['status'], string> = {
   releasing: 'Cancelled. Pier has not confirmed the stock release yet, so these units stay unavailable to other buyers. Retry the release.',
   cancelled: 'Cancelled. Pier confirmed the stock release; this order holds no stock and has no invoice to download.',
 }
-const filters: [string, (order: Order) => boolean][] = [['All', () => true], ['Drafts', order => order.status === 'draft'], ['In review', order => ['submitted', 'reserving', 'shortfall', 'releasing'].includes(order.status)], ['Approved', order => order.status === 'approved'], ['Cancelled', order => order.status === 'cancelled']]
+const filters = [['All','all'], ['Drafts','draft'], ['In review','review'], ['Approved','approved'], ['Cancelled','cancelled']] as const
+type HistoryPage = {orders:Order[];people:Record<string,string>;page:number;hasNext:boolean;counts:Record<string,number>;duplicatePOs:string[];completedReplacements:string[]}
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
 export function Orders({ orders: all, accounts, people, viewer, supplier, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
   const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
-  const [filter, setFilter] = useState('All')
+  const [filter, setFilter] = useState('all')
+  const [page,setPage] = useState(1)
+  const [history,setHistory] = useState<HistoryPage|null>(null)
+  const [loading,setLoading] = useState(false)
   const [reorder,setReorder] = useState<Order|null>(null)
   const [cancel,setCancel] = useState<Order|null>(null)
   const [query,setQuery] = useState({po:'',from:'',to:'',sku:'',location:''})
-  const [matched,setMatched] = useState<string[]|null>(null)
   const [searchError,setSearchError] = useState('')
   useEffect(() => {
     let current=true
-    if (!Object.values(query).some(Boolean)) {setMatched(null);setSearchError('');return}
-    setMatched([])
-    void request<{orders:Order[]}>(`/api/barrow/orders/history?${new URLSearchParams(query)}`).then(value => {if(current){setMatched(value.orders.map(order => order.id));setSearchError('')}}).catch(error => {if(current)setSearchError(errorMessage(error))})
+    setLoading(true);setHistory(null);setSearchError('')
+    void request<HistoryPage>(`/api/barrow/orders/history?${new URLSearchParams({...query,status:filter,page:String(page)})}`).then(value => {if(current)setHistory(value)}).catch(error => {if(current)setSearchError(errorMessage(error))}).finally(()=>{if(current)setLoading(false)})
     return () => {current=false}
-  },[query,all])
-  const orders = all.filter(order => order.status !== 'superseded')
-  // ORD-007: the same PO on a live order of this account needs an explicit numbered release.
-  const duplicate = (order: Order) => Boolean(order.reference.trim()) && all.some(other => other.id !== order.id && other.accountId === order.accountId && ['submitted', 'reserving', 'shortfall', 'approved', 'releasing'].includes(other.status) && other.reference.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US') === order.reference.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US'))
+  },[query,filter,page,all])
+  const orders = history?.orders ?? []
+  const duplicate = (order: Order) => history?.duplicatePOs.includes(order.id) ?? false
+  const counts=history?.counts ?? {}
+  const count=(status:string)=>status==='all'?Object.values(counts).reduce((a,b)=>a+b,0):status==='review'?['submitted','reserving','shortfall','releasing'].reduce((n,s)=>n+(counts[s]??0),0):counts[status]??0
   async function attach(order: Order, file: File) {
     const bytes = new Uint8Array(await file.arrayBuffer())
     let binary = ''
     for (let index = 0; index < bytes.length; index += 0x8000) binary += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
     await run('order.attach', { orderId: order.id, name: file.name, contentBase64: btoa(binary) })
   }
-  const person = (id: string) => id.startsWith('agent:') ? 'Your agent' : id === viewer ? 'You' : people[id] ?? 'A former user'
-  const shown = orders.filter((filters.find(([name]) => name === filter) ?? filters[0])[1]).filter(order => matched === null || matched.includes(order.id))
+  const person = (id: string) => id.startsWith('agent:') ? 'Your agent' : id === viewer ? 'You' : history?.people[id] ?? people[id] ?? 'A former user'
+  const shown = orders
   return <div className="br-stack br-orders">
     <div className="br-heading-row"><h2>{supplier ? 'All orders' : 'Your orders'}</h2>
-      <div className="br-segments" role="group" aria-label="Show orders">{filters.map(([name, test]) => <button key={name} type="button" aria-pressed={filter === name} onClick={() => setFilter(name)}>{name} <span>{orders.filter(test).length}</span></button>)}</div>
+      <div className="br-segments" role="group" aria-label="Show orders">{filters.map(([name, status]) => <button key={name} type="button" aria-pressed={filter === status} disabled={loading} onClick={() => {setPage(1);setFilter(status)}}>{name} <span>{count(status)}</span></button>)}</div>
     </div>
     <OrderSearch />
     <div className="br-card br-stack" role="search" aria-label="Order history search">
       <h3>Find a previous order</h3>
-      {([['po','Purchase order / reference','text'],['from','From date (Eastern time)','date'],['to','Through date (Eastern time)','date'],['sku','Ordered SKU','text'],['location','Delivery location','text']] as const).map(([key,label,type]) => <label key={key}>{label}<input type={type} value={query[key]} onChange={event => setQuery(current => ({...current,[key]:event.target.value}))} /></label>)}
-      <button type="button" className="br-secondary" onClick={() => setQuery({po:'',from:'',to:'',sku:'',location:''})}>Clear search</button>
+      {([['po','Purchase order / reference','text'],['from','From date (Eastern time)','date'],['to','Through date (Eastern time)','date'],['sku','Ordered SKU','text'],['location','Delivery location','text']] as const).map(([key,label,type]) => <label key={key}>{label}<input type={type} value={query[key]} onChange={event => {setPage(1);setQuery(current => ({...current,[key]:event.target.value}))}} /></label>)}
+      <button type="button" className="br-secondary" onClick={() => {setPage(1);setQuery({po:'',from:'',to:'',sku:'',location:''})}}>Clear search</button>
       {searchError && <p role="alert">{searchError}</p>}
     </div>
     {supplier && <BulkConfirmations key={shown.map(order=>order.id).join(',')} orderIds={shown.map(order=>order.id)}/>}
-    {!orders.length && <Empty title="No orders yet">Choose products from a trade account’s catalog to prepare your first order.</Empty>}
-    {orders.length > 0 && !shown.length && <p className="br-quiet-text">No orders in this view.</p>}
+    {loading && <p role="status">Loading order history…</p>}
+    {history && <p role="status">History page {history.page} · {shown.length} orders shown</p>}
+    {history && count('all')===0 && <Empty title="No orders yet">Choose products from a trade account’s catalog to prepare your first order.</Empty>}
+    {history && count('all') > 0 && !shown.length && <p className="br-quiet-text">No orders in this view.</p>}
     {shown.map(order => {
       const moved = stale(order, accounts), units = order.lines.reduce((sum, line) => sum + Number(line.baseQuantity??line.quantity), 0)
       return <article key={order.id} className={`br-card br-order${moved ? ' br-order-moved' : ''}`}>
@@ -79,7 +84,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
           {order.lines.filter(line=>line.pricing).map(line=><p key={JSON.stringify([line.sku,line.unit])}>{line.sku} · {line.unit}: {line.pricing!.reason} · {money(line.pricing!.lineCents,order.currency??'AUD')}</p>)}
           {moved && <p className="br-change-note"><span className="br-warn" aria-hidden="true">!</span>Prices or terms changed since this draft was written. Open it in the order pad to prepare a new draft at today’s prices.</p>}
           {order.fromSubstitution && <p>Replacement for {order.fromSubstitution.orderId}, buyer-accepted substitution {order.fromSubstitution.number}. Original and replacement lines remain linked in the commercial export.</p>}
-          {order.substitutions?.map(offer=><details className="br-details" key={offer.number}><summary>Substitution {offer.number}: {offer.status}{offer.replacementId?` · replacement ${offer.replacementId}`:''}</summary><p>{offer.reason}</p><ul>{offer.lines.map((line,index)=><li key={index}>{line.fromSku}{line.fromUnit?` (${line.fromUnit})`:''} → {line.sku}: {line.quantity} {line.unit}, {money(line.unitCents)} per unit; {money(line.lineCents??line.quantity*line.unitCents)} total</li>)}</ul><p>Replacement total: {money(offer.totalCents)}. Original total: {money(order.totalCents,order.currency??'AUD')}.</p><p>{offer.delivery?`${offer.delivery.name}: ${money(offer.delivery.totalCents??0)}, ${day(offer.delivery.windowStart)}–${day(offer.delivery.windowEnd)}`:'No delivery method or delivery charge recorded.'}</p><p>{offer.taxNote}</p>{offer.declineReason&&<p>Declined: {offer.declineReason}</p>}{offer.number===order.substitutions!.at(-1)!.number && offer.status==='offered' && !supplier && <div className="br-actions"><button disabled={busy} onClick={()=>{if(window.confirm('Accept this exact substitution, including its quantities, units, USD prices, delivery and unverified tax difference?'))void run('substitution.accept',{orderId:order.id,number:offer.number,acknowledged:true})}}>Accept exact substitution</button><button className="br-secondary" disabled={busy} onClick={()=>{const reason=window.prompt('Why decline this substitution?');if(reason?.trim())void run('substitution.decline',{orderId:order.id,number:offer.number,reason:reason.trim()})}}>Decline substitution</button></div>}{supplier && offer.status==='accepted' && !all.some(replacement=>replacement.id===offer.replacementId&&['approved','shortfall'].includes(replacement.status)) && <button disabled={busy} onClick={()=>void run('substitution.execute',{orderId:order.id,number:offer.number})}>{order.status==='releasing'?'Retry accepted substitution':'Execute accepted substitution'}</button>}</details>)}
+          {order.substitutions?.map(offer=><details className="br-details" key={offer.number}><summary>Substitution {offer.number}: {offer.status}{offer.replacementId?` · replacement ${offer.replacementId}`:''}</summary><p>{offer.reason}</p><ul>{offer.lines.map((line,index)=><li key={index}>{line.fromSku}{line.fromUnit?` (${line.fromUnit})`:''} → {line.sku}: {line.quantity} {line.unit}, {money(line.unitCents)} per unit; {money(line.lineCents??line.quantity*line.unitCents)} total</li>)}</ul><p>Replacement total: {money(offer.totalCents)}. Original total: {money(order.totalCents,order.currency??'AUD')}.</p><p>{offer.delivery?`${offer.delivery.name}: ${money(offer.delivery.totalCents??0)}, ${day(offer.delivery.windowStart)}–${day(offer.delivery.windowEnd)}`:'No delivery method or delivery charge recorded.'}</p><p>{offer.taxNote}</p>{offer.declineReason&&<p>Declined: {offer.declineReason}</p>}{offer.number===order.substitutions!.at(-1)!.number && offer.status==='offered' && !supplier && <div className="br-actions"><button disabled={busy} onClick={()=>{if(window.confirm('Accept this exact substitution, including its quantities, units, USD prices, delivery and unverified tax difference?'))void run('substitution.accept',{orderId:order.id,number:offer.number,acknowledged:true})}}>Accept exact substitution</button><button className="br-secondary" disabled={busy} onClick={()=>{const reason=window.prompt('Why decline this substitution?');if(reason?.trim())void run('substitution.decline',{orderId:order.id,number:offer.number,reason:reason.trim()})}}>Decline substitution</button></div>}{supplier && offer.status==='accepted' && !history?.completedReplacements.includes(offer.replacementId??'') && <button disabled={busy} onClick={()=>void run('substitution.execute',{orderId:order.id,number:offer.number})}>{order.status==='releasing'?'Retry accepted substitution':'Execute accepted substitution'}</button>}</details>)}
           <OrderShipping order={order} supplier={supplier} busy={busy} run={run} />
           <p className="br-order-explain">{order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' : explanations[order.status]}</p>
         </div>
@@ -109,6 +114,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
         </div>
       </article>
     })}
+    <div className="br-actions" aria-label="Order history pages"><button type="button" className="br-secondary" disabled={loading || page<=1} onClick={()=>setPage(current=>current-1)}>Previous history page</button><button type="button" className="br-secondary" disabled={loading || !history?.hasNext} onClick={()=>setPage(current=>current+1)}>Next history page</button></div>
     {reorder && <Reorder order={reorder} run={run} busy={busy} onClose={() => setReorder(null)} />}
     {cancel && <CancelOrder order={cancel} run={run} busy={busy} onClose={() => setCancel(null)} />}
   </div>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { HydrationUnit } from '../../base/hydration/unit'
 import { request, errorMessage } from './api'
 import { Accounts } from './accounts'
-import { OrderPad } from './order-pad'
+import { DraftWorkspace } from './draft-workspace'
 import { Orders } from './orders'
 import { MoveIn } from './move-in'
 import { CommercialAudit } from './commercial-audit'
@@ -13,14 +13,6 @@ import { Quotes } from './quotes'
 import { Locations } from './locations'
 import { Empty, Notice } from './primitives'
 import type { BarrowState, Order } from './types'
-import { stale } from './types'
-
-const newestFirst = (orders: Order[]) => [...orders].sort((a, b) => b.preparedAt.localeCompare(a.preparedAt))
-// The pad opens where work waits: the newest draft whose prices moved, else the newest draft, else the first account.
-function waiting(state: BarrowState) {
-  const drafts = newestFirst(state.orders.filter(order => order.status === 'draft'))
-  return drafts.find(order => stale(order, state.accounts)) ?? drafts[0]
-}
 
 export function BarrowApp() {
   const [state, setState] = useState<BarrowState | null>(null)
@@ -39,15 +31,14 @@ export function BarrowApp() {
   const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit'] : [pad, 'Orders']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const selected = state?.accounts.find(account => account.id === accountId)
-  const drafts = newestFirst(state?.orders.filter(order => order.status === 'draft' && order.accountId === accountId) ?? [])
   const reload = useCallback(async () => {
     const first = !loaded.current
     loaded.current = true
     const next = await request<BarrowState>('/api/barrow/state', undefined, first)
     setState(next)
-    const open = first ? waiting(next) : undefined
+    const open = first ? next.waitingDraft : undefined
     setAccountId(current => next.accounts.some(account => account.id === current) ? current : open?.accountId ?? next.accounts[0]?.id ?? '')
-    setDraftId(current => open?.id ?? (next.orders.some(order => order.id === current && order.status === 'draft') ? current : ''))
+    setDraftId(current => open?.id ?? current)
   }, [])
   const load = useCallback(async () => {
     setLoading(true); setError('')
@@ -117,7 +108,7 @@ export function BarrowApp() {
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>}
           {activeTab === pad && (selected
-            ? <OrderPad key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} drafts={drafts} draft={drafts.find(order => order.id === draftId)} draftCount={state.orders.filter(order => order.status === 'draft').length} run={run} busy={busy} commandError={error}
+            ? <DraftWorkspace key={selected.id} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
                 onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />
             : <div className="br-page-empty">{supplier
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>

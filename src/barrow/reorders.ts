@@ -1,7 +1,7 @@
 import type { Bindings } from '../auth.server'
 import { priceLine } from './pricing'
 import { now } from './clock'
-import { account, accounts } from './accounts'
+import { account } from './accounts'
 import { readOrder } from './orders'
 import { catalogue } from './pier'
 import { prepareLines } from './unit-lines'
@@ -18,20 +18,6 @@ export type ReorderReview = {
  termsDays: number; originalTermsDays: number; minimumCents: number; totalCents: number
  lines: { originalSku: string; originalUnit?: string; originalBaseQuantity:string; originalConversion:string; baseUnit?:string; unit?: string; baseQuantity?: string; conversion?: string; sku: string; quantity: number; originalUnitCents: number; originalLineCents:number; lineCents:number|null; unitCents: number|null; originalMinQty: number; minQty: number|null; available: string|null; differences: string[]; pricing?:import('./pricing').PricingSnapshot }[]
  blockers: string[]; blockingCodes:string[]; fingerprint: string
-}
-
-/** Search only the caller's visible history; date bounds are inclusive supplier calendar days. */
-export async function orderHistory(env: Bindings, actor: Actor, query: URLSearchParams) {
- const visible = await accounts(env.DB, actor)
- const rows = await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid DESC').bind(JSON.stringify(visible.map(a => a.id))).all<{value_json:string;revision:string}>()
- const term = (key: string) => (query.get(key) ?? '').trim().toLocaleLowerCase('en-US')
- const from = query.get('from') || '', to = query.get('to') || ''
- for (const date of [from, to]) if (date && (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date+'T12:00:00Z')) || new Date(date+'T12:00:00Z').toISOString().slice(0,10) !== date)) fail('DATE','Use a valid YYYY-MM-DD history date.',400)
- if (from && to && from > to) fail('DATE','The start date must precede the end date.',400)
- return rows.results.map(row => ({...JSON.parse(row.value_json),revision:row.revision} as Order)).filter(order => {
-  const day = supplierDate(new Date(order.preparedAt))
-  return order.status !== 'superseded' && order.reference.toLocaleLowerCase('en-US').includes(term('po')) && (!from || day >= from) && (!to || day <= to) && order.lines.some(line => line.sku.toLocaleLowerCase('en-US').includes(term('sku'))) && [order.deliveryLocation, order.shipTo?.name, order.shipTo?.line1, order.shipTo?.city, order.shipTo?.state].some(value => (value ?? '').toLocaleLowerCase('en-US').includes(term('location')))
- })
 }
 
 /** Build the comparison from current authority, never caller-supplied prices or quantities. */

@@ -33,9 +33,37 @@ also exercises combined filters, literal input, stable tie ordering, buyer
 isolation, agent/anonymous refusal, empty and invalid requests, and source
 record reconciliation. This is test data, never application data.
 
+The original workspace and order history are also bounded. `GET /api/barrow/state`
+returns at most 25 order bodies in `orders` and page metadata/counts in
+`orderPage`. It retains superseded records for API history. `waitingDraft` is
+one independently selected authorized draft: newest stale account revision
+first, otherwise newest draft, with order ID ties. It can lie outside page one.
+The order pad reads that draft directly and pages the selected account's drafts.
+
+`GET /api/barrow/orders/history` returns at most 25 full `orders`, page-scoped
+`people`, `page`, `pageSize`, `hasNext`, full visible status `counts`, duplicate
+PO flags and completed substitution references. Filters are `po`, `sku`,
+`location`, inclusive `from`/`to` preparation dates in America/New_York, exact
+`accountId`, and `status`: `all`, `draft`, `review`, `submitted`, `reserving`,
+`shortfall`, `approved`, `releasing`, `cancelled`. Review groups submitted,
+reserving, shortfall and releasing. History excludes superseded drafts and
+keeps descending insertion order. PO/SKU/location retain the original Unicode
+`en-US` case folding and literal substring semantics; location includes recorded
+ship-to name, street, city and state. Text filters accept at most 160 characters.
+Invalid dates, inverted bounds, unknown statuses and invalid pages refuse.
+
+Next/Previous in the original history and draft chooser retain their current
+filters. Changing a history filter starts at page one. Counts, duplicate-PO
+release checks and completed substitution checks cover the authorized collection,
+not just the displayed page. Drafts outside the first page remain selectable;
+opening one loads its exact current record. History reads stored bodies in
+batches of at most 100, retaining only one browser page; its Unicode/date
+filtering may scan batches and has no additional latency claim. Concurrent
+writes may move current-data pages. Bulk confirmation selection uses the current
+history page. The account collection remains unpaginated.
+
 RPT-006 remains partial. Carrier tracking search and its performance point,
-saved report filters, scheduled scoped report delivery and revoked-recipient
-proof are missing. There is no connected carrier tracking source. The existing
-workspace state and original history list still load the full visible order
-collection; only this search door and its results are paginated. No scheduled
-report, finance-role permission, recipient consent or delivery claim is made.
+saved report filters, scheduled scoped report delivery, revoked-recipient
+proof and account-list pagination are missing. There is no connected carrier
+tracking source. No scheduled report, finance-role permission, recipient consent
+or delivery claim is made.

@@ -1,3 +1,4 @@
+import { workspaceOrders, waitingDraft } from './workspace-orders'
 import { searchOrders } from './order-search'
 import { readCommissionRules, saveCommissionRules } from './commission-rules'
 import { commissionReport, commissionCsv } from './commission-report'
@@ -32,7 +33,6 @@ import { orderTimeline } from './timeline'
 import { diagnostics } from './diagnostics'
 import { saveReportZone } from './report-zone'
 import { fulfillmentReport } from './fulfillment'
-import { orderHistory } from './reorders'
 import { catalogue, pierConfigured, pierState } from './pier'
 import { invoiceCsv } from './invoice'
 import { Problem,fail,requireSupplier,supplier } from './model'
@@ -65,12 +65,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const selected=await accounts(env.DB,actor)
-   const rows=await env.DB.prepare('SELECT value_json,revision FROM bw_orders'+(supplier(actor)?'':" WHERE account_id IN (SELECT id FROM bw_accounts WHERE json_extract(value_json,'$.email')=?)")+' ORDER BY rowid DESC').bind(...(supplier(actor)?[]:[actor.email])).all<any>()
-   const orders=rows.results.map(row=>({...JSON.parse(row.value_json),revision:row.revision}))
-   // Order history names people, not operator IDs: the display names of everyone these orders record.
-   const ids=[...new Set(orders.flatMap((order:any)=>[order.preparedBy,order.submittedBy,order.approvedBy]).filter((id:unknown)=>typeof id==='string'&&!id.startsWith('agent:')))]
-   const people=ids.length?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<any>()).results.map(row=>[row.id,row.display_name])):{}
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
+   const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
+   const {orders,people,...orderPage}=page
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent},accounts:selected,orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
   if(path==='/api/barrow/shipping/options' && request.method==='GET') {
@@ -92,7 +89,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const exported=/^\/api\/barrow\/export\/([a-z]+)\.csv$/.exec(path)
   if(exported && request.method==='GET' && (exportKinds as readonly string[]).includes(exported[1])) return await exportResponse(env,actor,exported[1] as (typeof exportKinds)[number])
   if(path==='/api/barrow/orders/search' && request.method==='GET') return json(await searchOrders(env,actor,url.searchParams))
-  if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})
+  if(path==='/api/barrow/orders/history' && request.method==='GET') return json(await workspaceOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/locations' && request.method==='GET') return json({locations:await readLocations(env.DB,actor,url.searchParams.get('accountId')??'')})
   if(path==='/api/barrow/lists' && request.method==='GET') return json({lists:await readLists(env.DB,actor,url.searchParams.get('accountId')??'')})
   if(path==='/api/barrow/quotes' && request.method==='GET') return json({quotes:await readQuotes(env.DB,actor,url.searchParams.get('accountId'))})
