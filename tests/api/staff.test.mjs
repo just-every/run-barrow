@@ -27,7 +27,8 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const products = await stock(pier, '100');
  const otherCustomer = await pier.command('party.save', { name: 'Wren Market', kind: 'customer' });
- const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
+ const reportMail={MAIL_WEBHOOK_SECRET:Buffer.from('synthetic-barrow-11').toString('base64'),MAIL_EVENT_TENANT:'synthetic-barrow-12'};
+ const h = await installation({https:true,bindings:{...reportMail,PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}}); t.after(() => h.close());
  await h.command('account.save', { id: 'cedar', value: { ...accountValue(products.customer.id), assignedRep: 'synthetic-barrow-1' } });
  await h.command('account.save', { id: 'wren', value: { ...accountValue(otherCustomer.id, 'wren@example.test'), name: 'Wren Market', assignedRep: 'synthetic-barrow-2' } });
  const buyer = { as: await h.signIn('buyer@example.test') }, admin = { as: await h.signIn('admin@example.test', 'admin') };
@@ -175,10 +176,21 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  for (const filters of [{}, { accountId: 'wren' }]) await h.command('report.save', { name: 'Too broad', reportType: 'sales', filters, recipientIds: [repGrant.userId] }, { status: 400 });
  const schedule = await saveReport({ accountId: 'cedar' });
  const run = await h.command('report.run', { scheduleId: schedule.id }), download = `/api/barrow/report-runs/${run.id}.json`;
+ const reportMails=()=>h.mail.requests.filter(row=>row.message.subject.startsWith('Barrow report:'));
+ assert.equal(reportMails().length,1);assert.deepEqual(reportMails()[0].message.to,['rep@example.test']);
+ assert.ok(!reportMails()[0].message.text.includes(approved.id));assert.ok(!reportMails()[0].message.text.includes('Cedar Street Pantry'));
+ await h.command('report.run',{scheduleId:schedule.id});await h.command('report.dispatch',{});
+ assert.equal(reportMails().length,1,'An activated member recipient gets one notification per snapshot');
  assert.equal((await h.api(download, undefined, rep)).filters.accountId, 'cedar');
  await h.api(download, undefined, { ...finance, status: 403 });
  assert.ok((await h.api('/api/barrow/report-schedules', undefined, rep)).schedules.some(row => row.id === schedule.id));
+ // Historical pending-delivery fixture at the network edge: source snapshot,
+ // recipient and grant all came through public commands, not a stand-in sender.
+ await h.db.prepare("UPDATE bw_report_deliveries SET status='queued',provider_message_id=NULL WHERE run_id=? AND operator_id=?").bind(run.id,repGrant.userId).run();
  repGrant = await update(repGrant, policy('rep', { accounts: [], reports: ['sales', 'commissions'], commissionRep: 'synthetic-barrow-1' }));
+ await h.command('report.dispatch',{});assert.equal(reportMails().length,1);
+ assert.equal((await h.api('/api/barrow/report-schedules')).runs.length,0);
+ assert.equal((await h.api('/api/barrow/report-schedules',undefined,rep)).runs.find(row=>row.id===run.id).status,'cancelled');
  assert.deepEqual((await h.api('/api/barrow/state', undefined, rep)).accounts, []);
  await h.api('/api/barrow/reports/sales?accountId=cedar', undefined, { ...rep, status: 403 });
  await h.api(download, undefined, { ...rep, status: 403 });
@@ -233,7 +245,7 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  const changedPolicy=await h.command('commission.settings',{revision:commissionPolicy.revision,reason:'Manager reviewed future original-line attribution.',rules:[{id:'synthetic-barrow-10',rep:'synthetic-barrow-1',from:validUntil,rateBps:500,basis:'acceptance',splits:[{rep:'synthetic-barrow-1',shareBps:10000}]}]},manager);
  assert.ok(changedPolicy.revision);assert.equal((await h.api('/api/barrow/commissions',undefined,manager)).rules[0].id,'synthetic-barrow-10');
  // Portability carries attribution without reviving staff authority or outreach.
- const target=await installation();t.after(()=>target.close());
+ const target=await installation({https:true,bindings:reportMail});t.after(()=>target.close());
  await restore(target,await archive(h));
  const restoredGrants=(await target.api('/api/barrow/staff/members')).members;
  assert.equal(restoredGrants.length,(await roster()).length);
@@ -241,6 +253,7 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  await target.api(financeDownload,undefined,{status:403});
  const restoredSchedules=await target.api('/api/barrow/report-schedules');
  assert.ok(restoredSchedules.schedules.every(schedule=>schedule.restored===1));
+ await target.command('report.dispatch',{});assert.equal(target.mail.requests.filter(row=>row.message.subject.startsWith('Barrow report:')).length,0);
  const events = (await h.api('/api/barrow/audit?limit=200')).events;
  for (const action of ['staff.granted', 'staff.rights-changed', 'staff.revoked', 'staff.permission-refused']) {
   const event = events.find(row => row.action === action);
