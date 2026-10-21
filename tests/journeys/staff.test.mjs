@@ -156,6 +156,27 @@ test('owner invites five native functional staff roles, exact scoped reports and
  await expect(team.getByRole('article').filter({ hasText: 'Native sign-in: active' })).toHaveCount(people.length);
  await captureWidths(owner, 'staff-owner-active-roster');
 
+ // A rep's over-limit price revision exposes no manager approval control.
+ const sellingRep=active.find(person=>person.role==='rep'),salesManager=active.find(person=>person.role==='sales-manager');
+ await sellingRep.page.getByRole('button',{name:'Orders',exact:true}).click();
+ const sellingQuote=sellingRep.page.locator(`#quote-${assignedQuote.id}`);
+ await sellingQuote.getByRole('button',{name:'Propose quote',exact:true}).click();
+ const proposal=sellingQuote.getByRole('form',{name:`Propose revision for ${assignedQuote.id}`,exact:true});
+ await proposal.getByLabel('Quoted unit price (USD, blank for current price)',{exact:true}).fill('55.00');
+ await proposal.getByLabel('Valid through (Eastern time, inclusive)',{exact:true}).fill('2099-12-31');
+ sellingRep.page.once('dialog',dialog=>dialog.accept('Rep requests a USD 20 merchandise discount beyond the USD 10 allowance.'));
+ await proposal.getByRole('button',{name:'Send revision 1',exact:true}).click();
+ await sellingQuote.getByText('Discount awaiting approval',{exact:true}).waitFor();
+ await expect(sellingQuote.getByRole('button',{name:'Approve discount',exact:true})).toHaveCount(0);
+ await captureWidths(sellingRep.page,'staff-rep-discount-awaits-manager');
+ await salesManager.page.getByRole('button',{name:'Orders',exact:true}).click();
+ const managerQuote=salesManager.page.locator(`#quote-${assignedQuote.id}`);
+ await managerQuote.getByRole('button',{name:'Approve discount',exact:true}).waitFor();
+ await captureWidths(salesManager.page,'staff-manager-discount-review');
+ salesManager.page.once('dialog',dialog=>dialog.accept('Manager reviewed the USD 20 merchandise discount within the USD 50 allowance.'));
+ await managerQuote.getByRole('button',{name:'Approve discount',exact:true}).click();
+ await managerQuote.getByText('Ready to accept',{exact:true}).waitFor();
+ await captureWidths(salesManager.page,'staff-manager-discount-approved');
  const financePerson=active.find(person=>person.role==='finance');
  const financeSchedule=await h.command('report.save',{name:'Outside accountant monthly aging',reportType:'finance',filters:{accountId:assigned},recipientIds:[financePerson.actor.id]});
  const financeRun=await h.command('report.run',{scheduleId:financeSchedule.id});

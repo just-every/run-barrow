@@ -92,6 +92,7 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  let quote = await h.command('quote.request', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 2 }] }, rep);
  const foreignQuote = await h.command('quote.request', { accountId: 'wren', lines: [{ sku: 'OAT-1', quantity: 2 }] });
  const validUntil = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date());
+ await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil,lines:[{sku:'OAT-1',quantity:2}],freightQuote:{methodId:'synthetic-barrow-14',warehouse:'New York',cents:100,reason:'Rep cannot grant a supplier freight quote.'}},{...rep,status:403});
  const propose = unitCents => h.command('quote.propose', { quoteId: quote.id, revision: quote.revision, validUntil, lines: [{ sku: 'OAT-1', quantity: 2, unitCents }], reason: 'Agreed exact merchandise discount.' }, rep);
  quote = await propose(6450);
  assert.equal(quote.status, 'proposed'); assert.equal(quote.revisions.at(-1).approval.by, repGrant.userId);
@@ -241,6 +242,11 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  // Manager policy edits require explicit authority for the entire policy.
  await h.api('/api/barrow/commissions',undefined,{...manager,status:403});
  managerGrant=await update(managerGrant,policy('sales-manager',{accounts:'all',warehouses:'all',reports:['commissions'],discountLimitCents:200,stockExceptionLimitCents:13000}));
+ const freeCustomer=await pier.command('party.save',{name:'Community Gifts',kind:'customer'});
+ await h.command('account.save',{id:'gifts',value:{...accountValue(freeCustomer.id,'synthetic-barrow-13@example.test'),name:'Community Gifts',minimumCents:0,prices:[{sku:'OAT-1',unitCents:0,minQty:1}]}});
+ managerGrant=await update(managerGrant,policy('sales-manager',{accounts:'all',warehouses:'all',reports:['commissions'],discountLimitCents:200,stockExceptionLimitCents:0}));
+ const freeDraft=await h.command('order.prepare',{accountId:'gifts',lines:[{sku:'OAT-1',quantity:1}]});assert.equal(freeDraft.totalCents,0);
+ await h.command('order.stock-exception',{orderId:freeDraft.id,reason:'Zero allowance grants no stock exception, including free merchandise.'},{...manager,status:403});
  const commissionPolicy=await h.api('/api/barrow/commissions',undefined,manager);
  const changedPolicy=await h.command('commission.settings',{revision:commissionPolicy.revision,reason:'Manager reviewed future original-line attribution.',rules:[{id:'synthetic-barrow-10',rep:'synthetic-barrow-1',from:validUntil,rateBps:500,basis:'acceptance',splits:[{rep:'synthetic-barrow-1',shareBps:10000}]}]},manager);
  assert.ok(changedPolicy.revision);assert.equal((await h.api('/api/barrow/commissions',undefined,manager)).rules[0].id,'synthetic-barrow-10');
