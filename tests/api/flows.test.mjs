@@ -266,7 +266,7 @@ test('trade applicant verification, duplicate-reviewed decisions, private certif
  const link=new URL(invitation.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)[0]);
  const confirmation=await h.request('/auth/confirm',{method:'POST',body:{token:link.searchParams.get('token')},as:''});assert.equal(confirmation.status,303);
  const buyer={as:confirmation.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ')};
- const approvedAccount=(await h.api('/api/barrow/state',undefined,buyer)).accounts[0];assert.equal(approvedAccount.id,row.accountId);
+ const approvedState=await h.api('/api/barrow/state',undefined,buyer),approvedAccount=approvedState.accounts[0];assert.equal(approvedAccount.id,row.accountId);assert.deepEqual(approvedState.actor.company.rights,['administrator','purchaser','approver','finance']);assert.equal(approvedState.actor.company.accountId,row.accountId);
  assert.equal((await h.api(`/api/barrow/locations?accountId=${row.accountId}`,undefined,buyer)).locations.length,2);
  assert.equal((await h.api(`/api/barrow/catalogue?accountId=${row.accountId}`,undefined,buyer)).items[0].unitCents,6500);
  // Every current commercial API family rejects an application session; it is never a Base sign-in.

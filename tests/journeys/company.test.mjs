@@ -90,6 +90,7 @@ test('company administrator invites four native users, limited purchaser waits f
   assert.deepEqual(state.accounts.map(row => row.id), ['cedar']);
   assert.equal(new URL(page.url()).searchParams.has('companyToken'), false);
   await page.getByRole('button', { name: 'Orders', exact: true }).waitFor();
+  if(person.rights.includes('Finance viewer'))await page.getByRole('heading',{name:'Your orders',exact:true}).waitFor();else await page.getByRole('spinbutton',{name:/quantity for Toasted oat granola/}).waitFor();
   await captureWidths(page, `company-active-user-${index + 1}`);
   invited.push({ ...person, page, cookie, actor: state.actor });
  }
@@ -114,7 +115,7 @@ test('company administrator invites four native users, limited purchaser waits f
  const buy = purchaser.page;
  await buy.getByRole('button', { name: 'Catalog', exact: true }).click();
  await buy.getByRole('spinbutton', { name: /quantity for Toasted oat granola/ }).fill('2');
- await buy.getByLabel('Ship to', { exact: true }).selectOption(downtown.id);
+ await buy.getByLabel('Ship to').selectOption(downtown.id);
  await buy.getByLabel('Your purchase order / reference', { exact: true }).fill('Company purchase');
  await captureWidths(buy, 'company-limited-purchaser-cart');
  // Save both audiences through the real list dialog before preparing this cart.
