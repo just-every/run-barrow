@@ -13,15 +13,15 @@ import { quantityProblem } from '../quantity-rules'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
 import type { Account, Catalogue, Order, RunCommand } from './types'
 import { useLocations } from './locations'
-import { byAgent, clock, money, orderNumber, terms, town, when } from './types'
+import { byAgent, clock, money, terms, town, when } from './types'
 
 interface Props {
-  account: Account; accounts: Account[]; supplier: boolean; drafts: Order[]; draft?: Order; draftCount: number; commandError?: string; run: RunCommand; busy: boolean
+  account: Account; accounts: Account[]; supplier: boolean; draft?: Order; draftCount: number; commandError?: string; run: RunCommand; busy: boolean
   onAccount: (id: string) => void; onDraft: (id: string) => void; onPrepared: () => void
 }
 
 // The rep's order pad: one account, a large style card beside the size matrix, and the running total always in view.
-export function OrderPad({ account, accounts, supplier, drafts, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
+export function OrderPad({ account, accounts, supplier, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
   const [unitOrder,setUnitOrder] = useState(false)
   const [importing,setImporting] = useState(false)
@@ -142,10 +142,6 @@ export function OrderPad({ account, accounts, supplier, drafts, draft, draftCoun
       </div>
       <div className="br-pad-pickers">
         {supplier && <AccountPicker accounts={accounts} value={account.id} onChange={id => id && onAccount(id)} />}
-        <label>Start from<select value={draft?.id ?? ''} onChange={event => onDraft(event.target.value)} disabled={busy}>
-          <option value="">New order</option>
-          {drafts.map(value => <option key={value.id} value={value.id}>{orderNumber(value.id)} · {when(value.preparedAt)} · {money(value.totalCents, value.currency ?? 'AUD')}</option>)}
-        </select></label>
         {shipTos.length > 0 && <label>Ship to<select value={shipToId} onChange={event => setShipToId(event.target.value)} disabled={busy}><option value="">Default ship-to</option>{shipTos.map(location => <option key={location.id} value={location.id}>{location.value.name} · {location.value.city}, {location.value.state}{location.isDefault ? ' (default)' : ''}</option>)}</select></label>}
         <label>Delivery location label<input value={deliveryLocation} maxLength={240} onChange={event => setDeliveryLocation(event.target.value)} disabled={busy} placeholder="Store or delivery location" /></label>
         {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}

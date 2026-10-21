@@ -1,9 +1,9 @@
 import { useEffect, useState, type ComponentProps } from 'react'
 import { OrderPad } from './order-pad'
 import { request, errorMessage } from './api'
-import type { Order } from './types'
+import { money, orderNumber, when, type Order } from './types'
 
-type Props = Omit<ComponentProps<typeof OrderPad>, 'drafts'|'draft'> & { draftId:string; version:unknown }
+type Props = Omit<ComponentProps<typeof OrderPad>, 'draft'> & { draftId:string; version:unknown }
 /** Keep the pad's complete draft collection reachable without loading it all on every command. */
 export function DraftWorkspace({draftId,version,...props}: Props) {
  const [page,setPage]=useState(1),[drafts,setDrafts]=useState<Order[]>([]),[hasNext,setHasNext]=useState(false)
@@ -28,6 +28,10 @@ export function DraftWorkspace({draftId,version,...props}: Props) {
    <button type="button" className="br-secondary" disabled={loading||page<=1} onClick={()=>setPage(value=>value-1)}>Previous drafts</button>
    <button type="button" className="br-secondary" disabled={loading||!hasNext} onClick={()=>setPage(value=>value+1)}>Next drafts</button>
   </div>
-  <OrderPad {...props} busy={props.busy||loading||Boolean(draftId&&!selected&&!error)} drafts={options} draft={selected}/>
+  <label>Start from<select value={selected?.id ?? ''} disabled={props.busy||loading} onChange={event=>props.onDraft(event.target.value)}>
+   <option value="">New order</option>
+   {options.map(value=><option key={value.id} value={value.id}>{orderNumber(value.id)} · {when(value.preparedAt)} · {money(value.totalCents,value.currency??'AUD')}</option>)}
+  </select></label>
+  <OrderPad {...props} busy={props.busy||loading||Boolean(draftId&&!selected&&!error)} draft={selected}/>
  </div>
 }
