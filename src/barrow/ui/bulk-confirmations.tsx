@@ -35,7 +35,7 @@ export function BulkConfirmations({orderIds}:{orderIds:string[]}) {
    <fieldset className="br-stack" disabled={busy}><legend>Recorded confirmations</legend>
     {orders.map(order=><div className="br-stack" key={order.orderId}>
      <label><input type="checkbox" disabled={!order.confirmations.length} checked={selected[order.orderId]!==undefined} onChange={event=>choose(order.orderId,event.target.checked?order.confirmations.at(-1)!.number:undefined)}/>{order.reference||order.orderId} · {order.orderId}</label>
-     {order.confirmations.length?<label>Revision for {order.reference||order.orderId}<select disabled={selected[order.orderId]===undefined} value={selected[order.orderId]??order.confirmations.at(-1)!.number} onChange={event=>choose(order.orderId,Number(event.target.value))}>{order.confirmations.map(record=><option key={record.number} value={record.number}>C{record.number} · {record.stage} · {record.orderRevision}</option>)}</select></label>:<p>No recorded confirmation.</p>}
+     {order.confirmations.length?<label>Revision for {order.reference||order.orderId}<select aria-label={`Revision for ${order.reference||order.orderId}`} disabled={selected[order.orderId]===undefined} value={selected[order.orderId]??order.confirmations.at(-1)!.number} onChange={event=>choose(order.orderId,Number(event.target.value))}>{order.confirmations.map(record=><option key={record.number} value={record.number}>C{record.number} · {record.stage} · {record.orderRevision}</option>)}</select></label>:<p>No recorded confirmation.</p>}
     </div>)}
    </fieldset>
    <ConfirmationLayoutTools selected={layout} onSelect={id=>{setLayout(id);setDownloaded(false)}}/>
