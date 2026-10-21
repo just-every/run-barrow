@@ -1,6 +1,7 @@
 import { readCommissionRules, saveCommissionRules } from './commission-rules'
 import { commissionReport, commissionCsv } from './commission-report'
 import { readConfirmationLayouts, saveConfirmationLayout } from './confirmation-layouts'
+import { confirmationChoices, bulkConfirmationResponse } from './bulk-confirmations'
 import { quoteMailWebhook } from './quote-mail-events'
 import { quoteMailCommand, dispatchQuoteMail } from './quote-mail'
 import { readRetention, retentionCommand } from './retention'
@@ -58,6 +59,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/commissions' && request.method==='GET')return json(await commissionReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/commissions.csv' && request.method==='GET')return await commissionCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/confirmation-layouts' && request.method==='GET')return json(await readConfirmationLayouts(env.DB,actor))
+  if(path==='/api/barrow/confirmations/selection' && request.method==='POST')return json(await confirmationChoices(env.DB,actor,await boundedJson(request,20000)))
+  if(path==='/api/barrow/confirmations/export.csv' && request.method==='POST')return await bulkConfirmationResponse(env.DB,actor,await boundedJson(request,20000))
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const selected=await accounts(env.DB,actor)

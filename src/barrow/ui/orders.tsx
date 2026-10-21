@@ -1,4 +1,5 @@
 import { OrderConfirmations } from './order-confirmations'
+import { BulkConfirmations } from './bulk-confirmations'
 import { useEffect, useState } from 'react'
 import type { Account, Order, RunCommand } from './types'
 import { byAgent, day, money, orderNumber, stale, terms, when } from './types'
@@ -59,6 +60,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
       <button type="button" className="br-secondary" onClick={() => setQuery({po:'',from:'',to:'',sku:'',location:''})}>Clear search</button>
       {searchError && <p role="alert">{searchError}</p>}
     </div>
+    {supplier && <BulkConfirmations key={shown.map(order=>order.id).join(',')} orderIds={shown.map(order=>order.id)}/>}
     {!orders.length && <Empty title="No orders yet">Choose products from a trade account’s catalog to prepare your first order.</Empty>}
     {orders.length > 0 && !shown.length && <p className="br-quiet-text">No orders in this view.</p>}
     {shown.map(order => {

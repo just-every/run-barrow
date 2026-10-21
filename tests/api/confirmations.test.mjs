@@ -99,3 +99,58 @@ test('ORD-014: named per-line export layouts set default and selected column ord
  assert.deepEqual(await target.api('/api/barrow/confirmation-layouts'),{...settings,availableColumns:initial.availableColumns});
  assert.equal(await(await target.request(path)).text(),await(await h.request(path)).text());
 });
+
+test('ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with named layouts, source identities and unchanged selling-unit bases',async t=>{
+ const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier,'10000');
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
+ let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0,prices:[{sku:'OAT-1',unitCents:6500,minQty:1,units:[{code:'pallet',baseQuantity:'12',unitCents:74000,packContents:'12 cases'}]}]}});
+ const buyer={as:await h.signIn(account.value.email)},other={as:await h.signIn('other@example.test')};
+ const selected=[],expected=[];
+ for(let index=0;index<50;index++) {
+  let order=await h.command('order.prepare',{accountId:account.id,reference:`SPRING-${index+1}`,lines:[{sku:'OAT-1',quantity:index+1},{sku:'OAT-1',unit:'pallet',quantity:1}]},buyer);
+  order=await h.command('order.submit',{orderId:order.id},buyer);
+  selected.push({orderId:order.id,number:1});
+  expected.push(...order.lines.map(line=>({order:order.id,order_revision:order.revision,confirmation:`${order.id}-C1`,po:order.reference,sku:line.sku,unit:line.unit,quantity:String(line.quantity),base_quantity:line.baseQuantity,currency:'USD',line_cents:String(line.lineCents)})));
+ }
+ const first=selected[0],draft=await h.command('order.prepare',{accountId:account.id,reference:'NOT-SELECTED',lines:[{sku:'OAT-1',quantity:2}]},buyer);
+ await h.command('order.approve',{orderId:first.orderId});
+ const ids=selected.map(row=>row.orderId),selectionPath='/api/barrow/confirmations/selection',exportPath='/api/barrow/confirmations/export.csv';
+ const choices=(await h.api(selectionPath,{orderIds:ids},buyer)).orders;
+ assert.deepEqual(choices.map(row=>row.orderId),ids);assert.deepEqual(choices[0].confirmations.map(row=>[row.number,row.stage]),[[1,'submitted'],[2,'accepted']]);
+ assert.equal(choices[0].confirmations[0].orderRevision,expected[0].order_revision);
+ assert.deepEqual((await h.api(selectionPath,{orderIds:[draft.id]})).orders[0].confirmations,[]);
+ let settings=await h.api('/api/barrow/confirmation-layouts');
+ settings=await h.command('confirmation-layout.save',{revision:settings.revision,name:'Production lines',columns:['po','sku','unit','quantity','base_quantity','currency','line_cents'],makeDefault:true});
+ const layout=settings.defaultId,download=async(body,actor={})=>{
+  const response=await h.request(exportPath,{...actor,method:'POST',body});assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');
+  return response.text();
+ };
+ const body={confirmations:selected},csv=await download(body,buyer),[columns,...values]=rows(csv);
+ assert.deepEqual(columns,['po','sku','unit','quantity','base_quantity','currency','line_cents','order','order_revision','confirmation']);
+ const actual=values.map(row=>Object.fromEntries(columns.map((column,index)=>[column,row[index]])));
+ assert.deepEqual(actual,expected);assert.equal(new Set(actual.map(row=>row.order)).size,50);
+ assert.equal(actual.reduce((sum,row)=>sum+Number(row.line_cents),0),expected.reduce((sum,row)=>sum+Number(row.line_cents),0));
+ assert.equal(actual.filter(row=>row.unit==='pallet').length,50);assert.equal(actual.filter(row=>row.unit==='case').length,50);
+ assert.ok(!csv.includes(draft.id));
+ assert.equal(await download({...body,layout}),csv);
+ // Both recorded stages exist, but a bulk export accepts one explicit revision per order.
+ const accepted=await download({confirmations:[{...first,number:2}],layout});assert.ok(accepted.includes(`${first.orderId}-C2`));assert.ok(!accepted.includes(`${first.orderId}-C1`));
+ account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,termsDays:7,prices:[{sku:'OAT-1',unitCents:9999,minQty:1}]}});
+ assert.equal(await download(body,buyer),csv);
+ for(const [payload,status] of [[{confirmations:[]},400],[{confirmations:[null]},400],[{confirmations:[first,first]},400],[{confirmations:[{...first,number:0}]},400],[{confirmations:[{...first,number:999}]},404],[{confirmations:[{orderId:draft.id,number:1}]},404],[{...body,layout:'missing'},404]])await h.api(exportPath,payload,{status});
+ for(const actor of [other]) {
+  await h.api(selectionPath,{orderIds:ids},{...actor,status:404});
+  const denied=await h.request(exportPath,{...actor,method:'POST',body});assert.equal(denied.status,404);assert.ok(!(await denied.text()).includes('SPRING-'));
+ }
+ // One foreign order rejects the whole selection, including otherwise authorized rows.
+ const foreign=await h.command('account.save',{id:'foreign',value:{...accountValue(inventory.customer.id,'foreign@example.test'),name:'Separate buyer',minimumCents:0}});
+ let foreignOrder=await h.command('order.prepare',{accountId:foreign.id,reference:'PRIVATE-OTHER',lines:[{sku:'OAT-1',quantity:2}]});foreignOrder=await h.command('order.submit',{orderId:foreignOrder.id});
+ await h.api(exportPath,{confirmations:[first,{orderId:foreignOrder.id,number:1}]},{...buyer,status:404});
+ await h.api(exportPath,{...body,layout},{...buyer,status:403});
+ const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
+ await h.api(selectionPath,{orderIds:ids},{...agent,status:403});await h.api(exportPath,body,{...agent,status:403});
+ await h.api(exportPath,body,{headers:{origin:'https://foreign.example.test'},status:403});
+ await h.api(exportPath,body,{as:'',status:401});
+ const target=await installation();t.after(()=>target.close());await restore(target,await archive(h));
+ assert.equal(await(await target.request(exportPath,{method:'POST',body:{...body,layout}})).text(),csv);
+});

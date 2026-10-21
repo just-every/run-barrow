@@ -15,7 +15,7 @@ export function ConfirmationLayoutTools({selected,onSelect}:{selected:string;onS
    <details><summary>Manage named layouts</summary><div className="br-stack">
     <label>Layout name<input value={name} maxLength={80} onChange={event=>setName(event.target.value)} disabled={busy}/></label>
     <label htmlFor={`${formId}-columns`}>Columns, in export order</label><textarea id={`${formId}-columns`} value={columns} onChange={event=>setColumns(event.target.value)} disabled={busy}/>
-    <p className="br-quiet-text">Choose comma-separated columns from: {settings.availableColumns.join(', ')}. One row per recorded order line. Matrix and bulk production exports are not available.</p>
+    <p className="br-quiet-text">Choose comma-separated columns from: {settings.availableColumns.join(', ')}. One row per recorded order line. Bulk CSV adds any missing order, order revision and confirmation identifiers. Matrix and style/color/size production totals are not available.</p>
     <div className="br-actions"><button type="button" disabled={busy||!name.trim()} onClick={()=>void save('confirmation-layout.save',{name,columns:columns.split(',').map(value=>value.trim())})}>Save as new layout</button>
      <button type="button" className="br-secondary" disabled={busy||!selected||!name.trim()} onClick={()=>void save('confirmation-layout.save',{id:selected,name,columns:columns.split(',').map(value=>value.trim())})}>Update selected layout</button>
      <button type="button" className="br-secondary" disabled={busy||!selected} onClick={()=>void save('confirmation-layout.default',{id:selected})}>Make selected layout default</button></div>
