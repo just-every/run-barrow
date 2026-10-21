@@ -12,6 +12,7 @@ function TaskEditor({ task, people, busy, update }: { task: Task; people: Board[
   const save = (extra: Record<string, unknown> = {}) => update({ id: task.id, revision: task.revision, ownerId, nextContactDate, ...extra })
   return <article id={`followup-${task.id}`} style={{scrollMarginTop:'7rem'}} className="br-card br-stack"><h3>{task.title}</h3>
     <p>Last recorded source: {task.reason} · {task.status} · next contact {task.nextContactDate}</p>
+    {task.escalated && task.status === 'open' && <p><strong>Escalated since {task.escalated.since} to {people.find(person => person.id === task.escalated!.toId)?.displayName ?? 'a former owner or admin'}</strong> until a decision or an explicit closure.</p>}
     <a href={task.sourcePath}>Open source record</a>
     {task.status === 'closed' ? <p>Resolution: {task.resolution}</p> : <>
       <div className="br-form-grid"><label>Task owner<select value={ownerId} onChange={event => setOwner(event.target.value)}>{!people.some(person => person.id === ownerId) && <option value={ownerId} disabled>Former staff member; choose a current owner</option>}{people.map(person => <option key={person.id} value={person.id}>{person.displayName}</option>)}</select></label>

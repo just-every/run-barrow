@@ -1,8 +1,11 @@
 import type { Bindings } from '../auth.server'
 import { audit } from './access'
 import { normalizedCompanyName } from './account-profile'
-import { fail, integer, text, type Actor } from './model'
+import { fail, integer, supplierDate, text, type Actor } from './model'
 import { usAddress, addressCheck } from './us-address'
+import { applicationReview } from './application-followup'
+import { applicationStatusEmails } from './application-mail'
+import { now } from './clock'
 export type ApplicationRow={id:string;value_json:string;revision:string;state:string;account_id:string|null;created_at:string;updated_at:string}
 export async function applicationRow(db:D1Database,id:string) {
  const row=await db.prepare('SELECT * FROM bw_applications WHERE id=? UNION ALL SELECT * FROM bw_application_intake WHERE id=?').bind(id,id).first<ApplicationRow>()
@@ -15,7 +18,7 @@ export function applicationValue(p:any) {
  if(p.noEin!==true&&!/^\d{2}-\d{7}$/.test(p.ein??''))fail('INPUT','Use EIN format XX-XXXXXXX, never a Social Security number, or choose no EIN (sole proprietor).',400)
  if(!Array.isArray(p.locations)||p.locations.length<1||p.locations.length>20)fail('INPUT','Supply between one and twenty requested locations.',400)
  const locations=p.locations.map((v:any)=>({name:text(v.name,'Location name',120),line1:text(v.line1,'Address line 1',120),...(v.line2?{line2:text(v.line2,'Address line 2',120)}:{}),city:text(v.city,'City',80),...usAddress(v.state,v.zip)}))
- return {name:text(p.name,'Company legal name',160),...(p.dba?{dba:text(p.dba,'DBA',160)}:{}),email,ein:p.noEin===true?null:p.ein,noEin:p.noEin===true,contactName:text(p.contactName,'Contact name',120),phone:text(p.phone,'Contact phone',40),annualVolumeUsd:integer(p.annualVolumeUsd,'Expected annual volume USD',0,1000000000),locations,consent:true}
+ return {name:text(p.name,'Company legal name',160),...(p.dba?{dba:text(p.dba,'DBA',160)}:{}),email,ein:p.noEin===true?null:p.ein,noEin:p.noEin===true,contactName:text(p.contactName,'Contact name',120),phone:text(p.phone,'Contact phone',40),annualVolumeUsd:integer(p.annualVolumeUsd,'Expected annual volume USD',0,1000000000),requestedTermsDays:p.requestedTermsDays===undefined||p.requestedTermsDays===null?null:integer(p.requestedTermsDays,'Requested payment terms (days)',0,365),locations,consent:true}
 }
 export function applicationEvent(db:D1Database,id:string,state:string,reason:string,actorId:string,at:string) {
  return db.prepare('INSERT INTO bw_application_history VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,state,reason,actorId,at)
@@ -27,7 +30,7 @@ export async function applicationView(db:D1Database,row:ApplicationRow,staff=fal
  const value=JSON.parse(row.value_json)
  const documents=(await db.prepare('SELECT id,name,type,size,sha256,created_at FROM bw_application_documents WHERE application_id=? ORDER BY created_at,id').bind(row.id).all<any>()).results.map(doc=>({...doc,path:`/api/barrow/applications/${row.id}/documents/${doc.id}`}))
  const history=(await db.prepare('SELECT state,reason,created_at FROM bw_application_history WHERE application_id=? ORDER BY created_at,rowid').bind(row.id).all<any>()).results
- return {id:row.id,value,revision:row.revision,state:row.state,accountId:row.account_id,createdAt:row.created_at,updatedAt:row.updated_at,documents,history,addressCheck,documentLabels:'Not validated; exemption review is TAX-003’s. Not malware-screened.',...(staff?{duplicates:await applicationDuplicates(db,row)}:{})}
+ return {id:row.id,value,revision:row.revision,state:row.state,accountId:row.account_id,createdAt:row.created_at,updatedAt:row.updated_at,documents,history,addressCheck,documentLabels:'Not validated; exemption review is TAX-003’s. Not malware-screened.',...(staff?{duplicates:await applicationDuplicates(db,row),review:await applicationReview(db,row.id,supplierDate(await now())),statusEmails:await applicationStatusEmails(db,row.id)}:{})}
 }
 export async function applicationDuplicates(db:D1Database,row:ApplicationRow) {
  const value=JSON.parse(row.value_json),name=normalizedCompanyName(value.name)

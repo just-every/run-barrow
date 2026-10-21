@@ -17,7 +17,7 @@ export const exportKinds = ['applications', 'applicationdocuments', 'accounts', 
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
- applications:['id','accountId','revision','state','name','dba','ein','noEin','contactName','email','phone','annualVolumeUsd','locations','consent','createdAt','updatedAt'],
+ applications:['id','accountId','revision','state','name','dba','ein','noEin','contactName','email','phone','annualVolumeUsd','requestedTermsDays','locations','consent','createdAt','updatedAt'],
  applicationdocuments:['id','applicationId','name','type','bytes','sha256','time','path'],
  accounts: ['id', 'revision', 'name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'currency', 'city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'],
  prices: ['accountId', 'accountRevision', 'sku', 'currency', 'unitCents', 'minQty', 'casePack', 'increment', 'units', 'pricing'],

@@ -56,7 +56,7 @@ export async function followupSources(db: D1Database, at: Date) {
   const id = applicationTaskId(row.id)
   if (['approved', 'declined', 'withdrawn'].includes(row.state)) { resolved.set(id, `Decision recorded: application ${row.state}.`); continue }
   const shown = tasks.has(id) ? escalatedView(tasks.get(id), supplierDate(at)) : null
-  candidates.push({ id, kind: 'application', accountId: id, sourceId: row.id, sourcePath: '/api/barrow/applications', title: shown?.title ?? `Review trade application ${JSON.parse(row.value_json).name}`, reason: shown?.reason ?? 'Verified application awaiting review.', priority: shown?.priority ?? 2 })
+  candidates.push({ id, kind: 'application', accountId: id, sourceId: row.id, sourcePath: `/app?application=${encodeURIComponent(row.id)}`, title: shown?.title ?? `Review trade application ${JSON.parse(row.value_json).name}`, reason: shown?.reason ?? 'Verified application awaiting review.', priority: shown?.priority ?? 2 })
  }
  const accountRevisions = new Map(accountRows.results.map(row => [row.id, row.revision]))
  return { candidates, resolved, unknownAge, accountRevisions }

@@ -156,6 +156,14 @@ test('ACC-007: amount and location routes run sequential approvers with delegati
  await approve(placed, finance, { status: 409 });
  const moved = await read(waiting.id);
  assert.equal(moved.status, 'draft'); assert.match(moved.approvalVoided.reason, /address/);
+ // An account terms change (today's credit door; PAY-004 adds credit exposure) voids the same way.
+ ({ waiting } = await submit());
+ const termed = await approve(waiting, ops);
+ const before = await h.api('/api/barrow/accounts/by-id/cedar');
+ await h.command('account.save', { id: 'cedar', revision: before.revision, value: { ...before.value, termsDays: 60 } });
+ await approve(termed, finance, { status: 409 });
+ const reterm = await read(waiting.id);
+ assert.equal(reterm.status, 'draft'); assert.equal(reterm.approvalRoute, undefined); assert.match(reterm.approvalVoided.reason, /account changed/);
 
  // A location rule: a smaller order to the north store takes its own single-step route.
  const northOrder = await submit(2, north.id);

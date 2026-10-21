@@ -7,6 +7,7 @@ import { readDocument } from './documents'
 import { fail, requireSupplier, text, type Actor } from './model'
 import { applicationRow, applicationValue, applicationView, applicationEvent, applicationDuplicates, purgeUnverified, type ApplicationRow } from './application-records'
 import { applicationTaskStatements } from './application-followup'
+import { sendApplicationStatus } from './application-mail'
 import { formToken, spamCheck, applicationsOpen, sendApplicationCode, applicant, verifyApplication } from './application-auth'
 const json=(value:unknown,headers:Record<string,string>={})=>Response.json(value,{headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...headers}})
 const docStatement=(env:Bindings,id:string,doc:Awaited<ReturnType<typeof readDocument>>,at:string)=>env.DB.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),id,doc.name,doc.type,doc.size,doc.sha256,doc.contentBase64,at)
@@ -90,6 +91,8 @@ export async function applicationCommand(request:Request,env:Bindings,actor:Acto
  }
  const task=await applicationTaskStatements(env.DB,row,state==='approved'?'approved':state==='declined'?'declined':'information-requested',at,actor.id)
  await commit(env.DB,actor,[rowGuard(env,row),changed(env.DB),guard('bw_accounts',accounts),guard('bw_applications',snapshot),...creation,...task,audit(env.DB,actor,row.id,`application.duplicates-reviewed:${JSON.stringify(matches.map(({id,kind,revision})=>({id,kind,revision})))}`,{revision,source:type,reason:'Supplier reviewed these exact matches without merging or reassigning any identity.'}),env.DB.prepare('UPDATE bw_applications SET state=?,account_id=?,revision=?,updated_at=? WHERE id=?').bind(state,accountId,revision,at,row.id),applicationEvent(env.DB,row.id,state,reason,actor.id,at),audit(env.DB,actor,row.id,`application.${state.replaceAll(' ','-')}`,{...(accountId?{accountId}:{}),revision,source:type,reason})])
+ // AUTO-001: one generic status email per staff decision (state and link only) after the decision is recorded; it never ends review work.
+ const statusEmail=await sendApplicationStatus(env,{id:row.id,email:value.email},state)
  if(accountId)await accountCommand(request,env,actor,'account.invite',{accountId})
- return {...await applicationView(env.DB,await applicationRow(env.DB,row.id),true),...(state==='approved'?{invitationRequestedTo:value.email,invitationRequestedAt:at}: {})}
+ return {...await applicationView(env.DB,await applicationRow(env.DB,row.id),true),statusEmail,...(state==='approved'?{invitationRequestedTo:value.email,invitationRequestedAt:at}: {})}
 }

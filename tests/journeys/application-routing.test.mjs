@@ -5,9 +5,9 @@ import { chromium, expect } from '@playwright/test';
 import { installation, stock } from '../api/harness.mjs';
 import { captureWidths, signedContext } from './browser-helpers.mjs';
 
-test('the owner routes applications by territory and the escalated review task stays on the board until a decision at desktop and phone', async t => {
+test('applications route by territory to a reviewer with a prepared request, the applicant gets generic status emails, and the escalated task stays on the board through the request until a decision at desktop and phone', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
- const products = await stock(pier);
+ await stock(pier);
  const h = await installation({ built: true, https: true, bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
  await h.signIn('territory-owner@example.test', 'admin');
 
@@ -21,6 +21,7 @@ test('the owner routes applications by territory and the escalated review task s
   await owner.getByRole('checkbox').check();
   await owner.getByRole('button', { name: 'Finish setup', exact: true }).click();
  }
+ const prepared = 'Please attach your South Carolina resale certificate.';
  await owner.getByRole('button', { name: 'Accounts', exact: true }).click();
  const routing = owner.getByRole('region', { name: 'Application routing', exact: true });
  await routing.getByText('No routing rules', { exact: false }).waitFor();
@@ -36,6 +37,7 @@ test('the owner routes applications by territory and the escalated review task s
  await form.getByLabel('Rule 1 reviewer', { exact: true }).selectOption({ label: label('admin') });
  await form.getByLabel('Rule 1 escalation person', { exact: true }).selectOption({ label: label('owner') });
  await form.getByLabel('Rule 1 deadline days', { exact: true }).fill('2');
+ await form.getByLabel('Rule 1 prepared request', { exact: true }).fill(prepared);
  await form.getByLabel('Reason for this routing change', { exact: true }).fill('Southeast applications without a certificate go to the territory owner.');
  await captureWidths(owner, 'application-routing-rule-form');
  await form.getByRole('button', { name: 'Save application routing', exact: true }).click();
@@ -43,39 +45,75 @@ test('the owner routes applications by territory and the escalated review task s
  await expect.poll(async () => (await h.api('/api/barrow/application-rules')).rules.length).toBe(1);
  await captureWidths(owner, 'application-routing-saved');
 
- // An applicant in the Southeast verifies without a certificate; the routed task appears on the owner's board.
- const apiForm = await h.api('/api/barrow/applications/form', undefined, { as: '' });
- await new Promise(resolve => setTimeout(resolve, 3050));
- const pending = await h.api('/api/barrow/applications', { name: 'Palmetto & Pine Provisions', ein: '12-3456789', contactName: 'River Buyer', email: 'applicant@example.test', phone: '803 555 0101', annualVolumeUsd: 90000, locations: [{ name: 'Downtown', line1: '101 Main Street', city: 'Columbia', state: 'SC', zip: '29201' }], consent: true, website: '', formToken: apiForm.formToken }, { as: '' });
+ // A Southeast applicant applies on the public form without a certificate, asking for Net 30 terms, and verifies.
+ const visitor = await browser.newContext({ ignoreHTTPSErrors: true }); t.after(() => visitor.close());
+ const page = await visitor.newPage();
+ await page.goto(h.origin + '/apply');
+ const apply = page.getByRole('form', { name: 'Public trade form' });
+ for (const [field, value] of Object.entries({ 'Company legal name': 'Palmetto & Pine Provisions', 'EIN, never a Social Security number': '12-3456789', 'Contact name': 'River Buyer', 'Contact email': 'applicant@example.test', 'Contact phone': '803 555 0101', 'Expected annual volume in whole USD': '90000', 'Location name': 'Downtown', 'Address line 1': '101 Main Street', City: 'Columbia', 'US state': 'SC', 'ZIP code': '29201' })) await apply.getByLabel(field, { exact: true }).fill(value);
+ await apply.getByLabel('Requested payment terms', { exact: true }).selectOption({ label: 'Net 30' });
+ await apply.getByRole('checkbox', { name: 'Your details and documents go only to the supplier' }).check();
+ await captureWidths(page, 'application-form-requested-terms');
+ await page.waitForTimeout(3100);
+ await apply.getByRole('button', { name: 'Submit and request verification code' }).click();
+ await page.getByRole('status').filter({ hasText: 'Verification accepted' }).waitFor();
  const code = h.mail.requests.findLast(row => row.message.to.includes('applicant@example.test') && row.message.subject === 'Verify your trade application').message.text.match(/code is (\d{6})/)[1];
- assert.equal((await h.request('/api/barrow/applications/verify', { method: 'POST', body: { id: pending.id, code }, as: '' })).status, 200);
- await owner.reload();
- await owner.getByRole('button', { name: 'Data', exact: true }).click();
- await owner.getByLabel('Queue view').selectOption('all');
+ await page.getByLabel('Verification code', { exact: true }).fill(code);
+ await page.getByRole('button', { name: 'Verify email and view application' }).click();
+ await page.getByText('Status: submitted', { exact: true }).waitFor();
+ const [application] = (await h.api('/api/barrow/applications')).applications;
+ assert.equal(application.value.requestedTermsDays, 30);
+
+ const queue = async () => { await owner.reload(); await owner.getByRole('button', { name: 'Data', exact: true }).click(); await owner.getByLabel('Queue view').selectOption('all') };
+ await queue();
  const task = owner.locator('article').filter({ hasText: 'Review trade application Palmetto & Pine Provisions' });
- await task.getByText(/routed by “Southeast without a certificate” to territory Southeast; no certificate attached/).waitFor();
+ await task.getByText(/routed by “Southeast without a certificate” to territory Southeast; Net 30 terms requested; no certificate attached/).waitFor();
  await captureWidths(owner, 'application-task-routed');
 
- // Past its deadline the task escalates and stays; the decision, not any message, ends it.
- const taskId = `application:${pending.id}`, stored = JSON.parse((await h.db.prepare('SELECT value_json FROM bw_followups WHERE id=?').bind(taskId).first()).value_json);
- stored.nextContactDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() - 86400000));
+ // Past its deadline the task escalates to the named escalation person.
+ const taskId = `application:${application.id}`, stored = JSON.parse((await h.db.prepare('SELECT value_json FROM bw_followups WHERE id=?').bind(taskId).first()).value_json);
+ stored.application.deadline = stored.nextContactDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() - 86400000));
  await h.db.prepare('UPDATE bw_followups SET value_json=? WHERE id=?').bind(JSON.stringify(stored), taskId).run(); // stands in for the passing days
- await owner.reload();
- await owner.getByRole('button', { name: 'Data', exact: true }).click();
- await owner.getByLabel('Queue view').selectOption('all');
- await task.getByText(/Escalated: the review deadline .* passed with no decision/).waitFor();
+ await queue();
+ await task.getByText(new RegExp(`Escalated since .* to ${people.find(row => row.role === 'owner').name}`)).first().waitFor();
  await captureWidths(owner, 'application-task-escalated');
- const row = (await h.api('/api/barrow/applications')).applications.find(application => application.id === pending.id);
- await h.command('application.request-information', { id: row.id, revision: row.revision, reason: 'Please attach your state resale certificate.', duplicateReviews: [] });
- await owner.reload();
- await owner.getByRole('button', { name: 'Data', exact: true }).click();
- await owner.getByLabel('Queue view').selectOption('all');
+
+ // The reviewer sends the reviewed prepared request from the application; the applicant gets a generic status email and the escalation stays.
+ await owner.getByRole('button', { name: 'Accounts', exact: true }).click();
+ const review = owner.getByRole('region', { name: 'Trade applications' });
+ await review.getByLabel('Application', { exact: false }).selectOption({ label: 'Palmetto & Pine Provisions · submitted' });
+ const panel = review.getByRole('group', { name: 'Routing and review deadline' });
+ await panel.getByText(/Escalated since .* It stays escalated until a decision or an explicit closure/).waitFor();
+ await panel.getByRole('button', { name: 'Use the prepared request' }).click();
+ await expect(review.getByLabel('Decision reason (shown to applicant)')).toHaveValue(prepared);
+ await captureWidths(owner, 'application-review-prepared-request');
+ await review.getByRole('button', { name: 'Request missing certificate' }).click();
+ await review.getByRole('heading', { name: 'Palmetto & Pine Provisions · information requested' }).waitFor();
+ await panel.getByText(/Status emails to the applicant: .* information requested: accepted/).waitFor();
+ const notice = h.mail.requests.findLast(row => row.message.to.includes('applicant@example.test') && row.message.subject === 'Your trade application status changed').message;
+ assert.match(notice.text, /status is now: information requested/); assert.equal(notice.text.includes('resale'), false);
+ await page.reload(); await page.getByText('Status: information requested', { exact: true }).waitFor();
+ await page.getByText(prepared, { exact: false }).waitFor();
+ await queue();
  await task.getByText(/Information requested from the applicant/).waitFor();
- const open = (await h.api('/api/barrow/applications')).applications.find(application => application.id === pending.id);
- await h.command('application.decline', { id: open.id, revision: open.revision, reason: 'Outside our trade criteria.', duplicateReviews: [] });
- await owner.reload();
- await owner.getByRole('button', { name: 'Data', exact: true }).click();
- await owner.getByLabel('Queue view').selectOption('all');
+ await task.getByText(/Escalated since/).first().waitFor();
+ await captureWidths(owner, 'application-task-escalated-after-request');
+
+ // The applicant uploads the certificate; only the recorded decision closes the task.
+ await page.getByLabel('Requested certificate', { exact: false }).setInputFiles({ name: 'resale.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic-barrow-401') });
+ await page.getByRole('button', { name: 'Answer information request' }).click();
+ await page.getByText('Status: submitted', { exact: true }).waitFor();
+ await queue();
+ await task.getByText(/The applicant answered/).waitFor();
+ await task.getByText(/Escalated since/).first().waitFor();
+ await owner.getByRole('button', { name: 'Accounts', exact: true }).click();
+ await review.getByLabel('Application', { exact: false }).selectOption({ label: 'Palmetto & Pine Provisions · submitted' });
+ await review.getByLabel('Decision reason (shown to applicant)').fill('Outside our current trade criteria.');
+ await review.getByRole('button', { name: 'Decline application', exact: true }).click();
+ await review.getByRole('heading', { name: 'Palmetto & Pine Provisions · declined' }).waitFor();
+ await queue();
  await task.getByText('Resolution: Decision recorded: application declined.').waitFor();
  await captureWidths(owner, 'application-task-closed-by-decision');
+ await page.reload(); await page.getByText('Status: declined', { exact: true }).waitFor();
+ assert.equal(h.mail.requests.filter(row => row.message.to.includes('applicant@example.test') && row.message.subject === 'Your trade application status changed').length, 2);
 });

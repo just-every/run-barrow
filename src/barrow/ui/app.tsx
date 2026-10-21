@@ -78,6 +78,7 @@ export function BarrowApp() {
     const invitationQuery=new URLSearchParams(window.location.search);if(invitationQuery.has('companyInvitation')&&invitationQuery.has('companyToken'))setInvitation({id:invitationQuery.get('companyInvitation')!,token:invitationQuery.get('companyToken')!})
     if ((new URLSearchParams(window.location.search).get('task') ?? '').startsWith('quote-mail:')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('reportRun')) setTab('Data')
+    if (new URLSearchParams(window.location.search).has('application')) setTab('Accounts')
     if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
     void load()
   }, [load])
@@ -152,7 +153,7 @@ export function BarrowApp() {
           {activeTab === 'Accounts' && (legacySupplier||staff?.role==='sales-manager'&&staff.accounts==='all') && <RepAssignments version={state} run={run} busy={busy}/>}
           {activeTab === 'Accounts' && legacySupplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
           {activeTab === 'Accounts' && legacySupplier && <Applications version={state} busy={busy} run={run}/>}
-          {activeTab === 'Accounts' && legacySupplier && <ApplicationRules version={state} busy={busy} run={run} owner={state.actor.role==='owner'}/>}
+          {activeTab === 'Accounts' && legacySupplier && <ApplicationRules version={state} busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <UsagePublisher busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
           {activeTab === 'Team'&&state.actor.role==='owner'&&<StaffMembers accounts={state.accounts} version={state} run={run} busy={busy}/>}
