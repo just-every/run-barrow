@@ -24,7 +24,7 @@ export function AccountPicker({ accounts, value, onChange, empty='Choose an acco
   return <div className="br-stack" role="group" aria-label="Trade account selection">
     <AccountPages directory={directory}/>
     {error&&<p role="alert">{error}</p>}
-    <label>Trade account<select value={value} disabled={directory.loading} onChange={event=>onChange(event.target.value)}>
+    <label>Trade account<select aria-label="Trade account" value={value} disabled={directory.loading} onChange={event=>onChange(event.target.value)}>
       <option value="">{empty}</option>
       {options.map(account=><option key={account.id} value={account.id}>{account.value.name}</option>)}
     </select></label>
