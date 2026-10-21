@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { installation, stock, accountValue } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore } from './harness.mjs';
 
 const policy = (role, extra = {}) => ({
  role, accounts: ['cedar'], warehouses: [], reports: [],
@@ -232,6 +232,15 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  const commissionPolicy=await h.api('/api/barrow/commissions',undefined,manager);
  const changedPolicy=await h.command('commission.settings',{revision:commissionPolicy.revision,reason:'Manager reviewed future original-line attribution.',rules:[{id:'synthetic-barrow-10',rep:'synthetic-barrow-1',from:validUntil,rateBps:500,basis:'acceptance',splits:[{rep:'synthetic-barrow-1',shareBps:10000}]}]},manager);
  assert.ok(changedPolicy.revision);assert.equal((await h.api('/api/barrow/commissions',undefined,manager)).rules[0].id,'synthetic-barrow-10');
+ // Portability carries attribution without reviving staff authority or outreach.
+ const target=await installation();t.after(()=>target.close());
+ await restore(target,await archive(h));
+ const restoredGrants=(await target.api('/api/barrow/staff/members')).members;
+ assert.equal(restoredGrants.length,(await roster()).length);
+ assert.ok(restoredGrants.every(grant=>grant.state==='revoked'&&!grant.effective));
+ await target.api(financeDownload,undefined,{status:403});
+ const restoredSchedules=await target.api('/api/barrow/report-schedules');
+ assert.ok(restoredSchedules.schedules.every(schedule=>schedule.restored===1));
  const events = (await h.api('/api/barrow/audit?limit=200')).events;
  for (const action of ['staff.granted', 'staff.rights-changed', 'staff.revoked', 'staff.permission-refused']) {
   const event = events.find(row => row.action === action);
