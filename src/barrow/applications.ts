@@ -86,7 +86,7 @@ export async function applicationCommand(request:Request,env:Bindings,actor:Acto
   accountId=saved.record.id
   creation=[...saved.statements,...applicationLocationStatements(env,actor,accountId,value.locations,at)]
  }
- await commit(env.DB,actor,[rowGuard(env,row),changed(env.DB),guard('bw_accounts',accounts),guard('bw_applications',snapshot),...creation,env.DB.prepare('UPDATE bw_applications SET state=?,account_id=?,revision=?,updated_at=? WHERE id=?').bind(state,accountId,revision,at,row.id),applicationEvent(env.DB,row.id,state,reason,actor.id,at),audit(env.DB,actor,row.id,`application.${state.replaceAll(' ','-')}`,{...(accountId?{accountId}:{}),revision,source:type,reason})])
+ await commit(env.DB,actor,[rowGuard(env,row),changed(env.DB),guard('bw_accounts',accounts),guard('bw_applications',snapshot),...creation,audit(env.DB,actor,row.id,`application.duplicates-reviewed:${JSON.stringify(matches.map(({id,kind,revision})=>({id,kind,revision})))}`,{revision,source:type,reason:'Supplier reviewed these exact matches without merging or reassigning any identity.'}),env.DB.prepare('UPDATE bw_applications SET state=?,account_id=?,revision=?,updated_at=? WHERE id=?').bind(state,accountId,revision,at,row.id),applicationEvent(env.DB,row.id,state,reason,actor.id,at),audit(env.DB,actor,row.id,`application.${state.replaceAll(' ','-')}`,{...(accountId?{accountId}:{}),revision,source:type,reason})])
  if(accountId)await accountCommand(request,env,actor,'account.invite',{accountId})
  return {...await applicationView(env.DB,await applicationRow(env.DB,row.id),true),...(state==='approved'?{invitationRequestedTo:value.email,invitationRequestedAt:at}: {})}
 }
