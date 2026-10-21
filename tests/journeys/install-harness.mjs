@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
 const exec = promisify(execFile);
 const source = resolve('.');
+const rerBin = join(source, 'node_modules', '.bin', 'rer');
 export async function freshCheckout(parent, name) {
  const root = join(parent, name);
  await exec('git', ['clone', '--quiet', '--no-hardlinks', source, root]);
@@ -15,18 +16,21 @@ export async function freshCheckout(parent, name) {
 export const workspace = () => mkdtemp(join(tmpdir(), 'barrow-install-journey-'));
 export const removeWorkspace = path => rm(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
 export async function rer(root, args) {
- try { return await exec('pnpm', ['exec', 'rer', ...args], { cwd: root, maxBuffer: 1024 * 1024 }); }
+ try { return await exec(rerBin, args, { cwd: root, maxBuffer: 1024 * 1024 }); }
  catch (error) { throw new Error(`rer ${args[0]} failed (exit ${error.code}); inspect the private checkout ${root}`); }
 }
 export async function start(root) {
  // The documented dev door installs a fresh clone itself, including its pinned runtime.
  const logPath = join(root, 'journey-private.log'), log = await open(logPath, 'w', 0o600);
- const child = spawn('rer', ['dev'], { cwd: root, stdio: ['ignore', log.fd, log.fd] });
+ const child = spawn(rerBin, ['dev'], { cwd: root, stdio: ['ignore', log.fd, log.fd] });
+ let startupError;
+ child.once('error', error => { startupError = error; });
  await log.close();
  let serverPid;
  try {
   const exit = new Promise(resolve => child.once('exit', resolve));
   for (let attempt = 0; attempt < 600; attempt++) {
+   if (startupError) throw startupError;
    const text = await readFile(logPath, 'utf8');
    serverPid = Number(text.match(/background \(PID (\d+)\)/)?.[1]) || serverPid;
    const origin = text.match(/RER_READY (https?:\/\/\S+)/)?.[1];
