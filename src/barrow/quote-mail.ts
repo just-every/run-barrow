@@ -1,4 +1,5 @@
 import { bootstrapLegacyCompanyMembers, companyPurchasingRecipientSql } from './company-members'
+import { repRecipientSql } from './rep-scope'
 // AUTO-003 delivers only ORD-005's existing audiences, using durable user identities.
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
@@ -20,8 +21,9 @@ export type QuoteMailRow = {
 const htmlEscape = (value: string) => value.replace(/[&<>"']/g, character => `&#${character.charCodeAt(0)};`)
 const retryWindow = 24 * 60 * 60 * 1000
 const retryable = "status IN ('queued','not configured','rate_limited','uncertain') AND restored=0"
-const authorized = `SELECT p.email FROM oa_operators p WHERE p.id=m.recipient_id AND p.status='active' AND (
- (m.audience='supplier' AND p.role IN ('owner','admin') AND p.id<>m.actor_id) OR
+// Supplier-side recipients are owner/admin (accounts with no rep) or the rep who holds the account today (ACC-006).
+const authorizedAt = (today: string) => `SELECT p.email FROM oa_operators p WHERE p.id=m.recipient_id AND p.status='active' AND (
+ (m.audience='supplier' AND p.id<>m.actor_id AND (p.role IN ('owner','admin') OR ${repRecipientSql('p','m.account_id',today)})) OR
  (m.audience='buyer' AND ${companyPurchasingRecipientSql('p','m.account_id')}))`
 const currentExpiry = `SELECT 1 FROM bw_quotes q WHERE q.id=m.quote_id
  AND json_extract(q.value_json,'$.status')='proposed' AND json_extract(q.value_json,'$.accepted') IS NULL
@@ -39,10 +41,11 @@ export async function queueQuoteMail(env: Bindings) {
  const summary = "q.id || ' revision ' || json_extract(q.value_json,'$.revisions[#-1].number') || ' expires after today (America/New_York).'"
  await env.DB.batch([
   env.DB.prepare(`INSERT OR IGNORE INTO bw_quote_mail(${columns})
-   SELECT lower(hex(randomblob(16))),q.id,q.account_id,CASE WHEN p.role='member' THEN 'buyer' ELSE 'supplier' END,
+   SELECT lower(hex(randomblob(16))),q.id,q.account_id,CASE WHEN p.role IN ('owner','admin') OR ${repRecipientSql('p','q.account_id',today)} THEN 'supplier' ELSE 'buyer' END,
    p.id,p.email,${summary},'expiry','system',json_extract(q.value_json,'$.revisions[#-1].number'),?,?
    FROM bw_quotes q JOIN oa_operators p ON p.status='active' AND (
-    p.role IN ('owner','admin') OR (${companyPurchasingRecipientSql('p','q.account_id')}))
+    (p.role IN ('owner','admin') AND NOT EXISTS(SELECT 1 FROM oa_operators r WHERE ${repRecipientSql('r','q.account_id',today)}))
+    OR ${repRecipientSql('p','q.account_id',today)} OR (${companyPurchasingRecipientSql('p','q.account_id')}))
    WHERE ${expiryEligible} AND NOT EXISTS (SELECT 1 FROM bw_quote_mail m WHERE m.quote_id=q.id
    AND m.expiry_revision=json_extract(q.value_json,'$.revisions[#-1].number') AND m.kind='expiry'
    AND m.recipient_id=p.id)`).bind(stamp,stamp,today),
@@ -82,7 +85,7 @@ async function suppressed(env: Bindings, recipient: string) {
 
 /** Submission is leased; interrupted work retains the same delivery ID and immutable request. */
 async function submit(env: Bindings, row: QuoteMailRow, origin: string, stamp: string, time: number, today: string) {
- const person = await env.DB.prepare(`SELECT (${authorized}) AS email FROM bw_quote_mail m WHERE m.id=?`).bind(row.id).first<{email:string | null}>()
+ const person = await env.DB.prepare(`SELECT (${authorizedAt(today)}) AS email FROM bw_quote_mail m WHERE m.id=?`).bind(row.id).first<{email:string | null}>()
  if (!person?.email || (row.first_attempt_at && person.email!==row.recipient)) {
   await withdraw(env,row,await withdrawalReason(env,row),stamp)
   return
@@ -105,7 +108,7 @@ async function submit(env: Bindings, row: QuoteMailRow, origin: string, stamp: s
  // Authorization and expiry are checked again by the claim statement immediately before submit.
  const claimed = await env.DB.prepare(`UPDATE bw_quote_mail AS m SET status='uncertain',reason='submission in progress',recipient=?,
   submission_json=?,first_attempt_at=COALESCE(first_attempt_at,?),attempts=attempts+1,lease_until=?,updated_at=?
-  WHERE id=? AND ${retryable} AND lease_until<=? AND EXISTS (${authorized} AND p.email=? COLLATE BINARY)
+  WHERE id=? AND ${retryable} AND lease_until<=? AND EXISTS (${authorizedAt(today)} AND p.email=? COLLATE BINARY)
   AND (m.kind<>'expiry' OR EXISTS (${currentExpiry}))
   AND (first_attempt_at IS NULL OR first_attempt_at>?) RETURNING *`)
   .bind(recipient,JSON.stringify(message),stamp,time+120000,stamp,row.id,time,recipient,today,new Date(time-retryWindow).toISOString()).first<QuoteMailRow>()
@@ -149,7 +152,7 @@ export async function dispatchQuoteMail(env: Bindings) {
    await withdraw(env,row,'expiry reminder no longer current',stamp)
    continue
   }
-  const person = await env.DB.prepare(`SELECT (${authorized}) AS email FROM bw_quote_mail m WHERE m.id=?`).bind(row.id).first<{email:string | null}>()
+  const person = await env.DB.prepare(`SELECT (${authorizedAt(today)}) AS email FROM bw_quote_mail m WHERE m.id=?`).bind(row.id).first<{email:string | null}>()
   if (!person?.email || (row.first_attempt_at && person.email!==row.recipient)) {
    await withdraw(env,row,await withdrawalReason(env,row),stamp)
    continue

@@ -1,5 +1,6 @@
 import type { Bindings } from '../auth.server'
 import { supplierDate } from './model'
+import { repRecipientSql, supplierToday } from './rep-scope'
 import { commercialAuditEvent } from './audit-event'
 // One persistent contact obligation per quote and exact recipient user; a missing buyer is explicit.
 export async function recordMailFailure(env:Bindings,row:any) {
@@ -10,7 +11,8 @@ export async function recordMailFailure(env:Bindings,row:any) {
  if(row.audience==='buyer') {
   const quote=await env.DB.prepare('SELECT value_json FROM bw_quotes WHERE id=?').bind(row.quote_id).first<{value_json:string}>()
   const proposer=quote?JSON.parse(quote.value_json).revisions.at(-1)?.proposedBy:null
-  if(proposer&&await env.DB.prepare("SELECT id FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')").bind(proposer).first())ownerId=proposer
+  // The proposer owns the task while still an owner/admin, or a rep who holds the account today (ACC-006).
+  if(proposer&&await env.DB.prepare(`SELECT p.id FROM oa_operators p WHERE p.id=? AND p.status='active' AND (p.role IN ('owner','admin') OR ${repRecipientSql('p','?',await supplierToday())})`).bind(proposer,row.account_id).first())ownerId=proposer
  }
  const prior=await env.DB.prepare('SELECT value_json,revision FROM bw_followups WHERE id=?').bind(id).first<{value_json:string;revision:string}>()
  const before=prior?JSON.parse(prior.value_json):null

@@ -1,5 +1,6 @@
 // ACC-005 functional authority never widens Base's native member role.
 import { fail, type Actor } from './model'
+import { coveredTerritories, repAccountIds, repEpoch, supplierToday } from './rep-scope'
 
 export const staffRoles = ['sales-manager', 'rep', 'operations', 'finance', 'analyst'] as const
 export const staffReports = ['sales', 'finance', 'quotes', 'fulfillment', 'commissions'] as const
@@ -13,8 +14,10 @@ export type StaffPolicy = {
  stockExceptionLimitCents: number
  commissionRep?: string
 }
+/** For a rep, `accounts` is the effective scope read at request time: the owner's exact list plus ACC-006 assignments and coverage. */
 export type StaffGrant = StaffPolicy & {
  userId: string; revision: string; state: 'active' | 'revoked'; nativeVersion: number
+ territories: string[]; scopeEpoch: number
 }
 type StaffActor = Actor & { staff?: StaffGrant | null }
 const scope = (value: unknown): value is 'all' | string[] => value === 'all' || Array.isArray(value)
@@ -46,7 +49,7 @@ export async function validateStaffPolicy(db: D1Database, input: unknown): Promi
 }
 export function staffPolicyJson(policy: StaffPolicy) { return JSON.stringify({ ...policy, commissionRep: policy.commissionRep ?? null }) }
 export function parseStaffGrant(row: any): StaffGrant {
- return { ...parsePolicy(JSON.parse(row.policy_json)), userId: row.user_id, revision: row.revision, state: row.state, nativeVersion: row.native_version }
+ return { ...parsePolicy(JSON.parse(row.policy_json)), userId: row.user_id, revision: row.revision, state: row.state, nativeVersion: row.native_version, territories: [], scopeEpoch: 0 }
 }
 
 /** Both Native activation and the exact version are prerequisites, never effects. */
@@ -58,7 +61,13 @@ export async function readStaffGrant(db: D1Database, actor: Actor): Promise<Staf
   AND NOT EXISTS(SELECT 1 FROM bw_company_invites i WHERE i.email_key=lower(trim(p.email)) OR i.accepted_by=p.id)
   AND NOT EXISTS(SELECT 1 FROM bw_accounts a WHERE lower(trim(json_extract(a.value_json,'$.email')))=lower(trim(p.email)))`).bind(actor.id, actor.version).first<any>()
  if (!row) return null
- try { return parseStaffGrant(row) } catch { return null }
+ try {
+  const grant = parseStaffGrant(row)
+  if (grant.role !== 'rep') return grant
+  // ACC-006: read the epoch first, so any later assignment change makes this scope's writes fail their guard.
+  const scopeEpoch = await repEpoch(db), held = grant.accounts === 'all' ? null : new Set([...grant.accounts, ...await repAccountIds(db, grant.userId, await supplierToday())])
+  return { ...grant, scopeEpoch, ...(held ? { accounts: [...held].sort(), territories: await coveredTerritories(db, held) } : {}) }
+ } catch { return null }
 }
 /** Append to commit admission so a role downgrade cannot race a commercial write. */
 export function staffGuard(db: D1Database, grant: StaffGrant): D1PreparedStatement {
@@ -69,20 +78,26 @@ export function staffGuard(db: D1Database, grant: StaffGrant): D1PreparedStateme
   AND NOT EXISTS(SELECT 1 FROM bw_company_members m WHERE m.user_id=p.id OR m.email_key=lower(trim(p.email)))
   AND NOT EXISTS(SELECT 1 FROM bw_company_invites i WHERE i.email_key=lower(trim(p.email)) OR i.accepted_by=p.id)
   AND NOT EXISTS(SELECT 1 FROM bw_accounts a WHERE lower(trim(json_extract(a.value_json,'$.email')))=lower(trim(p.email)))
- ) THEN 1 ELSE 0 END`).bind(grant.userId, grant.revision, grant.nativeVersion)
+ ) AND (?<0 OR (SELECT value FROM bw_rep_epoch WHERE singleton=1)=?) THEN 1 ELSE 0 END`).bind(grant.userId, grant.revision, grant.nativeVersion, grant.role === 'rep' ? grant.scopeEpoch : -1, grant.scopeEpoch)
 }
 export function staffAccountAllowed(grant: StaffGrant, id: string): boolean {
  return grant.state === 'active' && typeof id === 'string' && !!id && (grant.accounts === 'all' || grant.accounts.includes(id))
 }
 /** Authorize the whole requested filter; a narrower grant never trims a report. */
-export function requireStaffReport(actor: StaffActor, type: StaffReport, params: URLSearchParams): void {
+export function requireStaffReport(actor: StaffActor, type: StaffReport, params: URLSearchParams, saved = false): void {
  if (actor.agent) fail('FORBIDDEN', 'Reports require an entitled signed-in person.', 403)
  if (actor.role === 'owner' || actor.role === 'admin') return
  const grant = actor.staff
  if (actor.role !== 'member' || !grant || grant.userId !== actor.id || grant.state !== 'active' || grant.nativeVersion !== actor.version || !grant.reports.includes(type)) fail('FORBIDDEN', 'Your staff grant does not entitle this report.', 403)
- if (['accountId', 'warehouse', 'rep'].some(key => params.getAll(key).length > 1)) fail('FORBIDDEN', 'Choose one exact report scope.', 403)
- const accountId = params.get('accountId') ?? ''
- if (grant.accounts !== 'all' && (!accountId || !staffAccountAllowed(grant, accountId))) fail('FORBIDDEN', 'Choose one explicitly permitted account; this grant does not cover an all-account report.', 403)
+ if (['accountId', 'warehouse', 'rep', 'territory'].some(key => params.getAll(key).length > 1)) fail('FORBIDDEN', 'Choose one exact report scope.', 403)
+ const accountId = params.get('accountId') ?? '', territory = params.get('territory') ?? ''
+ // A territory filter is authorized only when every account in it is held today; it is never trimmed to the held part.
+ // A rep's own commission statement is bound to their fixed label and its rows are limited to current accounts (ACC-006),
+ // so it needs no named account; every other scoped report names one held account or one completely held territory.
+ // Saved recipients are rechecked in SQL at freeze and send, which resolves one named account; a territory stays an on-demand filter.
+ if (saved && grant.accounts !== 'all' && territory) fail('FORBIDDEN', 'A saved report for scoped staff must name one account they hold.', 403)
+ const ownStatement = type === 'commissions' && grant.role === 'rep'
+ if (grant.accounts !== 'all' && (!ownStatement && !(accountId || territory) || accountId && !staffAccountAllowed(grant, accountId) || territory && !grant.territories.includes(territory))) fail('FORBIDDEN', 'Choose one explicitly permitted account or a territory you hold completely; this grant does not cover an all-account report.', 403)
  if (type === 'fulfillment' && grant.warehouses !== 'all') {
   const warehouse = params.get('warehouse') ?? ''
   if (!warehouse || !grant.warehouses.includes(warehouse)) fail('FORBIDDEN', 'Choose one explicitly permitted warehouse.', 403)

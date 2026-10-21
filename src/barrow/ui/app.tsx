@@ -1,5 +1,6 @@
 import {CommissionSettings} from './commission-settings'
 import {StaffMembers} from './staff-members'
+import {RepAssignments} from './rep-assignments'
 import {StaffWorkspace} from './staff-workspace'
 import {Followups} from './followups'
 import { CompanyUsers, CompanyInvitation } from './company-members'
@@ -21,6 +22,7 @@ import { StatementCard } from './statement'
 import { Quotes } from './quotes'
 import { Locations } from './locations'
 import { Empty, Notice } from './primitives'
+import { CurrentRep } from './current-rep'
 import type { Account, BarrowState, Order } from './types'
 
 export function BarrowApp() {
@@ -134,7 +136,7 @@ export function BarrowApp() {
         {usageRequired&&!invitation&&<UsageAcceptance onAccepted={()=>void load()}/>}
         {state&&!usageRequired&&!invitation && <>
           {!state.connection.configured && <Notice>Live stock and reservations need a Pier connection. {supplier ? 'Configure Pier in the installation settings before taking orders.' : 'Contact your supplier to enable ordering.'}</Notice>}
-          {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1></div>
+          {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1>{!supplier&&<CurrentRep reps={state.accounts.find(row=>row.id===accountId)?.currentReps}/>}</div>
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>}
           {activeTab === pad && (selected
@@ -144,12 +146,14 @@ export function BarrowApp() {
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Accounts' && <Accounts canCreate={!staff||staff.accounts==='all'} canInvite={legacySupplier} version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
+          {activeTab === 'Accounts' && (legacySupplier||staff?.role==='sales-manager'&&staff.accounts==='all') && <RepAssignments version={state} run={run} busy={busy}/>}
           {activeTab === 'Accounts' && legacySupplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
           {activeTab === 'Accounts' && legacySupplier && <Applications version={state} busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <UsagePublisher busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
           {activeTab === 'Team'&&state.actor.role==='owner'&&<StaffMembers accounts={state.accounts} version={state} run={run} busy={busy}/>}
           {activeTab === 'Reports'&&staff?.role==='sales-manager'&&staff.accounts==='all'&&<CommissionSettings onSaved={()=>void reload()}/>}
+          {activeTab === 'Reports'&&staff?.role==='rep'&&<RepAssignments version={state} run={run} busy={busy}/>}
           {activeTab === 'Reports'&&staff&&<StaffWorkspace actor={state.actor} accounts={state.accounts} orders={state.orders} people={state.people} run={run} busy={busy} version={state} onOpen={order=>openPad(order.accountId,order.id)}/>}
           {activeTab === 'Follow-ups'&&staff&&<Followups/>}
           {activeTab === 'Company' && companyAdmin && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier={false}/>}

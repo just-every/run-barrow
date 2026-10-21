@@ -4,7 +4,8 @@ export interface AccountValue {
   name: string; email: string; pierCustomerId: string; termsDays: number; minimumCents: number; prices: Price[]; city?: string; state?: string
   lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; warehouses?: string[]; providerReferences?: Record<string, string>
 }
-export interface Account { id: string; value: AccountValue; revision: string }
+export interface CurrentRep { name: string; coverage: boolean; through?: string }
+export interface Account { id: string; value: AccountValue; revision: string; currentReps?: CurrentRep[] }
 export interface Order {
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}
 

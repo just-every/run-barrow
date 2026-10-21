@@ -2,7 +2,7 @@ import { readStaffGrant, requireStaffReport } from './staff-policy'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { now } from './clock'
-import { fail, requirePerson, requireSupplier, type Actor } from './model'
+import { fail, requirePerson, requireSupplier, supplierDate, type Actor } from './model'
 import { cancelReportRecipient, reportAudit, reportCoverageSql, reportEntitlement, reportRecipientGuard } from './report-access'
 
 export const nextReportMonth = (at: Date) => new Date(Date.UTC(at.getUTCFullYear(),at.getUTCMonth()+1,1,9)).toISOString()
@@ -23,7 +23,7 @@ export async function reportScheduleCommand(env: Bindings, actor: Actor, type: s
   if (!['owner','admin'].includes(actor.role)) fail('FORBIDDEN','Only an owner or admin may configure saved report recipients.',403)
   if (typeof p.name!=='string' || !p.name.trim() || p.name.trim().length>120 || /[\r\n]|https?:\/\//i.test(p.name) || !['sales','finance'].includes(p.reportType)) fail('INPUT','Name the report (up to 120 characters) and choose sales or finance.',400)
   if (!Array.isArray(p.recipientIds) || !p.recipientIds.length || p.recipientIds.length>100 || p.recipientIds.some((v:any)=>typeof v!=='string') || new Set(p.recipientIds).size!==p.recipientIds.length) fail('INPUT','Choose one to 100 distinct active staff operator IDs.',400)
-  const filters: Record<string,string> = {}, allowed = p.reportType==='sales' ? ['accountId','channel','territory','sku'] : ['accountId']
+  const filters: Record<string,string> = {}, allowed = p.reportType==='sales' ? ['accountId','channel','territory','sku'] : ['accountId','territory']
   if (!p.filters || typeof p.filters!=='object' || Array.isArray(p.filters)) fail('INPUT','Supply report filters.',400)
   for (const [key,value] of Object.entries(p.filters)) {
    if (!allowed.includes(key) || typeof value!=='string' || value.length>160) fail('INPUT','Use only the listed report filters, up to 160 characters each.',400)
@@ -36,7 +36,7 @@ export async function reportScheduleCommand(env: Bindings, actor: Actor, type: s
    if (!row) fail('INPUT','Recipients must be active native staff with authority over the whole saved filter.',400)
    const recipient: Actor={...row,agent:false}
    recipient.staff=await readStaffGrant(env.DB,recipient)
-   try { requireStaffReport(recipient,p.reportType,new URLSearchParams(filters)) }
+   try { requireStaffReport(recipient,p.reportType,new URLSearchParams(filters),true) }
    catch { fail('INPUT','Every recipient must be entitled to the report type and whole saved filter.',400) }
    row.staffGrantRevision=recipient.role==='member' ? recipient.staff?.revision ?? null : null
    recipients.push(row)
@@ -46,7 +46,7 @@ export async function reportScheduleCommand(env: Bindings, actor: Actor, type: s
    ...recipients.flatMap(row=>[
     env.DB.prepare(`INSERT INTO bw_report_recipients(schedule_id,operator_id,operator_version,role,staff_grant_revision)
      SELECT s.id,p.id,p.version,p.role,r.staff_grant_revision FROM oa_operators p JOIN bw_report_schedules s ON s.id=?
-     JOIN (SELECT ? AS staff_grant_revision) r WHERE p.id=? AND p.version=? AND p.status='active' AND p.role=? AND ${reportCoverageSql()}`).bind(id,row.staffGrantRevision,row.id,row.version,row.role),changed(env.DB),
+     JOIN (SELECT ? AS staff_grant_revision) r WHERE p.id=? AND p.version=? AND p.status='active' AND p.role=? AND ${reportCoverageSql(supplierDate(at))}`).bind(id,row.staffGrantRevision,row.id,row.version,row.role),changed(env.DB),
    ]),
    audit(env.DB,actor,id,'report.saved',{revision:id,source:type,reason:'Saved immutable monthly report filters and exact active staff recipient identities; first day at 09:00 UTC for the previous calendar month.'}),
   ])
@@ -75,6 +75,6 @@ export async function reportDownload(env: Bindings, actor: Actor, id: string) {
   await cancelReportRecipient(env,run.schedule_id,actor.id,reason)
   fail('FORBIDDEN','This report is unavailable to your current sign-in: '+reason+'.',403)
  }
- await commit(env.DB,actor,[reportRecipientGuard(env,run.schedule_id,actor.id),reportAudit(env,actor.id,id,'downloaded','Exact recipient downloaded the whole frozen snapshot after current entitlement and suppression checks.')])
+ await commit(env.DB,actor,[reportRecipientGuard(env,run.schedule_id,actor.id,supplierDate(await now())),reportAudit(env,actor.id,id,'downloaded','Exact recipient downloaded the whole frozen snapshot after current entitlement and suppression checks.')])
  return new Response(run.snapshot_json,{headers:{'content-type':'application/json; charset=utf-8','content-disposition':'attachment; filename="barrow-report.json"','cache-control':'no-store','x-content-type-options':'nosniff'}})
 }

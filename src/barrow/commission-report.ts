@@ -65,9 +65,11 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
  requirePerson(actor); requireStaffReport(actor, 'commissions', params); requireSupplier(actor)
  const checkedAt = (await now()).toISOString(), filter = { rep: params.get('rep') ?? '', accountId: params.get('accountId') ?? '' }
  const restrictRep = actor.role==='member' && Boolean(filter.rep)
+ // ACC-006: a scoped staff statement shows only accounts held today; frozen attribution on those orders is unchanged.
+ const permitted = actor.staff && actor.staff.accounts !== 'all' ? new Set(actor.staff.accounts) : null
  // Commissions are private supplier attribution, deliberately separate from buyer-visible orders.
  const records = await env.DB.prepare(`SELECT o.value_json,c.value_json AS commission_json FROM bw_orders o LEFT JOIN bw_order_commissions c ON c.order_id=o.id WHERE (?='' OR json_extract(o.value_json,'$.accountId')=?) ORDER BY o.id`).bind(filter.accountId,filter.accountId).all<{ value_json: string; commission_json: string | null }>()
- const orders = records.results.map(record => ({ order: JSON.parse(record.value_json) as Order, commission: record.commission_json ? JSON.parse(record.commission_json) as CommissionSnapshot : null })).filter(row => !restrictRep || Boolean(row.commission?.lines.some(entry => entry.rule ? entry.rule.splits.some(split => split.rep === filter.rep) : row.commission!.assignedRep === filter.rep)))
+ const orders = records.results.map(record => ({ order: JSON.parse(record.value_json) as Order, commission: record.commission_json ? JSON.parse(record.commission_json) as CommissionSnapshot : null })).filter(row => !permitted || permitted.has(row.order.accountId)).filter(row => !restrictRep || Boolean(row.commission?.lines.some(entry => entry.rule ? entry.rule.splits.some(split => split.rep === filter.rep) : row.commission!.assignedRep === filter.rep)))
  const historicalUnrecorded = restrictRep ? null : orders.filter(row => row.order.approvedAt && !row.commission).length
  let state: any, origin: string | undefined, source: 'read' | 'unavailable' = 'read'
  try { [state, origin] = await Promise.all([pierState(env), pierOrigin(env)]) } catch { source = 'unavailable' }
@@ -104,7 +106,7 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
   returns: 'Only actual Pier return receipts linked to the original shipment reverse merchandise commission, capped by the earned merchandise basis. Missing or unreconciled sources leave amounts unknown, never zero.',
   payments: 'Payments and allocations are not recorded (PAY-003). Payment-basis commission is unknown; PAY-003 must add verified allocated payment evidence before it can earn or reverse.',
   credits: 'Credit notes and refunds are not recorded (PAY-010). Inventory returns are not credit notes; PAY-010 must add source-linked credit/refund effects without double counting returns.',
-  access: 'Owner and admins act for sales managers until ACC-005. Rep labels are attribution metadata; no new staff roles or scoped rep access are introduced.',
+  access: 'Owner, admins and all-account managers read every frozen statement. A rep reads only their fixed label’s statements for accounts they hold today (assignment or temporary coverage); an account transferred away leaves their view while its frozen attribution stays. Rep labels alone grant no access.',
  } }
 }
 export const commissionColumns = ['rep', 'assignedRep', 'orderId', 'line', 'accountId', 'account', 'sku', 'currency', 'ruleId', 'ruleRevision', 'basis', 'rateBps', 'shareBps', 'acceptedAt', 'sourceOrderId', 'sourceLineId', 'shipmentIds', 'returnIds', 'basisCents', 'cancelledBasisCents', 'returnedBasisCents', 'grossCents', 'reversedCents', 'netCents', 'source', 'reason', 'path'] as const

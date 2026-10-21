@@ -1,4 +1,5 @@
 import { audit, commit } from './access'
+import { attributedRep } from './rep-scope'
 import { fail, integer, requirePerson, requireSupplier, supplierDate, text, type Account, type Actor, type Order } from './model'
 
 export type CommissionRule = {
@@ -67,7 +68,7 @@ export async function saveCommissionRules(db: D1Database, actor: Actor, input: u
 export async function commissionSnapshot(db: D1Database, selected: Account, order: Order, approvedAt: string) {
  const at = new Date(approvedAt)
  if (!Number.isFinite(at.getTime())) fail('COMMISSION_INPUT', 'Approval needs a valid timestamp.', 400)
- const policy = await settings(db), day = supplierDate(at), assignedRep = selected.value.assignedRep ?? ''
+ const policy = await settings(db), day = supplierDate(at), assignedRep = await attributedRep(db, selected.id, day) ?? selected.value.assignedRep ?? ''
  const snapshot: CommissionSnapshot = { assignedRep, at: approvedAt, policyRevision: policy.revision, lines: order.lines.map((line, index) => {
   const matched = policy.rules.filter(rule => rule.rep === assignedRep && rule.from <= day && (!rule.to || day <= rule.to) && (!rule.accountId || rule.accountId === selected.id) && (!rule.sku || rule.sku === line.sku))
   matched.sort((a, b) => (Number(Boolean(b.accountId)) + Number(Boolean(b.sku))) - (Number(Boolean(a.accountId)) + Number(Boolean(a.sku))) || lexical(b.from, a.from) || lexical(a.id, b.id))

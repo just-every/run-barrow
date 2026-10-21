@@ -27,13 +27,13 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
  requirePerson(actor); requireStaffReport(actor, 'finance', params); requireSupplier(actor)
  const at = await now(), timeZone = await reportZone(env.DB)
  const asOf = date(params.get('asOf') ?? calendarDate(at, timeZone))
- const filter = { accountId: params.get('accountId') ?? '', assignedRep: params.get('assignedRep') ?? '' }
+ const filter = { accountId: params.get('accountId') ?? '', territory: params.get('territory') ?? '', assignedRep: params.get('assignedRep') ?? '' }
  const profiles = new Map((await accounts(env.DB, actor)).map(account => [account.id, account.value]))
  const records = await env.DB.prepare("SELECT value_json FROM bw_orders WHERE json_extract(value_json,'$.status')='approved' AND json_extract(value_json,'$.invoice') IS NOT NULL AND (?='' OR json_extract(value_json,'$.accountId')=?)").bind(filter.accountId,filter.accountId).all<{ value_json: string }>()
  const rows: FinanceRow[] = []
  for (const record of records.results) {
   const order = JSON.parse(record.value_json) as Order, invoice = order.invoice!, profile = profiles.get(order.accountId)
-  if (!profile || invoice.issuedAt > asOf || filter.accountId && order.accountId !== filter.accountId || filter.assignedRep && profile.assignedRep !== filter.assignedRep) continue
+  if (!profile || invoice.issuedAt > asOf || filter.accountId && order.accountId !== filter.accountId || filter.territory && (profile.territory ?? '') !== filter.territory || filter.assignedRep && profile.assignedRep !== filter.assignedRep) continue
   // Invoice dates are frozen calendar-day snapshots; changing the reporting zone never rewrites them.
   const overdueDays = Math.max(0, Math.round((Date.parse(asOf + 'T00:00:00Z') - Date.parse(invoice.dueAt + 'T00:00:00Z')) / 86400000))
   rows.push({ orderId: order.id, accountId: order.accountId, account: order.customerName, assignedRep: profile.assignedRep ?? '', reference: order.reference,
@@ -52,7 +52,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
    amounts: `${statementNote} Aging buckets contain integer invoiced cents, never summed across currencies; amounts include recorded delivery and handling; tax is not calculated.`,
    dates: `Invoices issued on or before ${asOf}, inclusive. Frozen issue and due dates retain their original calendar-day semantics. Default as-of day uses ${timeZone}. Due today is current; overdue days are whole calendar days.`,
    unrecorded: 'Available credit and exposure (PAY-004), deposits and verified payments (PAY-003), refunds and credits (PAY-010), failed payments and disputed balances (PAY-011), and ledger reconciliation (INT-002/INT-003) are not recorded.',
-   access: 'Owner and admins only. Assigned rep is current account metadata, not an access restriction or historical attribution; ACC-005/ACC-006 introduce scoped staff access.',
+   access: 'Owner, admins and entitled finance staff. A rep with the finance report right reads only an account they hold today, or a territory they hold completely, through the page and CSV; another rep’s account is refused, never trimmed. Assigned rep is account metadata, not an access restriction or historical attribution.',
   },
  }
 }

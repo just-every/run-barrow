@@ -1,4 +1,5 @@
 import { readStaffGrant,readStaffMembers,staffCommand } from './staff-members'
+import { readRepAssignments,repAssignmentCommand } from './rep-assignments'
 import { staffRequestGate,staffCommandGate } from './staff-access'
 import { bootstrapLegacyCompanyMembers, companyMembership, companyCommand, readCompanyMembers, readCompanyCollisions, ownCompanyInvitations, requireCompanyRight } from './company-members'
 import { applicationResponse, applicationCommand } from './applications'
@@ -85,6 +86,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
    return (await createPortabilityHandler({db:env.DB,policy:portabilityPolicy,appOrigin:env.AUTH_ORIGIN,basePath:'/api/barrow/portability',authorize:async()=>actor.id}))(request)
   }
+  if(path==='/api/barrow/rep-assignments'&&request.method==='GET')return json(await readRepAssignments(env,actor))
   if(path==='/api/barrow/report-schedules' && request.method==='GET')return json(await readReportSchedules(env,actor))
   const reportRun=/^\/api\/barrow\/report-runs\/([a-zA-Z0-9_-]+)\.json$/.exec(path)
   if(reportRun && request.method==='GET')return await reportDownload(env,actor,reportRun[1])
@@ -192,6 +194,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
    if(['staff.invite','staff.update','staff.revoke'].includes(body.type))return json({result:await staffCommand(request,env,actor,body.type,body.payload)})
+   if(['rep.assign','rep.cover','rep.end','rep.transfer'].includes(body.type))return json({result:await repAssignmentCommand(env,actor,body.type,body.payload)})
    if(['company.invite','company.accept','company.update','company.remove','company.erase'].includes(body.type))return json({result:await companyCommand(request,env,actor,body.type,body.payload)})
    if(['usage.publish','usage.accept'].includes(body.type))return json({result:await usageTermsCommand(env,actor,body.type,body.payload)})
    if(['application.approve','application.decline','application.request-information'].includes(body.type))return json({result:await applicationCommand(request,env,actor,body.type,body.payload)})
