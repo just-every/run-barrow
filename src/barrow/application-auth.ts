@@ -15,6 +15,11 @@ export async function formToken(env:Bindings) {
 export async function spamCheck(request:Request,env:Bindings,p:any) {
  const [at,nonce,mac]=String(p.formToken??'').split('.'),value=`${at}.${nonce}`,age=Date.now()-Number(at)
  if(p.website||!nonce||!Number.isFinite(age)||age<3000||age>86400000||mac!==await signature(env,value))fail('SPAM_CHECK','Spam checks refused the form. Wait three seconds after opening it and try again.',400)
+ if(env.TURNSTILE_SITE_KEY&&env.TURNSTILE_SECRET) {
+  const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',body:new URLSearchParams({secret:env.TURNSTILE_SECRET,response:typeof p.turnstileToken==='string'?p.turnstileToken:''})})
+  const result=await response.json() as any
+  if(!response.ok||result.success!==true||result.hostname!==new URL(env.AUTH_ORIGIN).hostname)fail('SPAM_CHECK','Complete the spam check and try again.',400)
+ }
  if(p.consent!==true)fail('CONSENT','Consent to application review is required.',400)
  const digest=await signature(env,`intake:${Math.floor(Date.now()/3600000)}:${request.headers.get('CF-Connecting-IP')??'unknown'}`)
  const rate=await env.DB.prepare('SELECT count FROM bw_application_rates WHERE digest=? AND expires_at>?').bind(digest,Date.now()).first<{count:number}>()
@@ -24,7 +29,9 @@ export async function spamCheck(request:Request,env:Bindings,p:any) {
 export const applicationsOpen=(env:Bindings)=>!!env.MAIL_FROM&&((env.MAIL_PROVIDER==='development'&&env.AUTH_LOCAL==='true')||(env.MAIL_PROVIDER==='resend'&&!!env.MAIL_API_KEY))
 export async function sendApplicationCode(env:Bindings,id:string,email:string) {
  const number=new Uint32Array(1);crypto.getRandomValues(number)
- const code=String(number[0]%1000000).padStart(6,'0'),hash=await digest(`${id}:${code}`)
+ let code=String(number[0]%1000000).padStart(6,'0'),hash=await digest(`${id}:${code}`)
+ const prior=await env.DB.prepare('SELECT code_hash FROM bw_application_codes WHERE application_id=?').bind(id).first<{code_hash:string}>()
+ if(prior?.code_hash===hash){code=String((Number(code)+1)%1000000).padStart(6,'0');hash=await digest(`${id}:${code}`)}
  await env.DB.prepare('INSERT INTO bw_application_codes VALUES(?,?,?,0) ON CONFLICT(application_id) DO UPDATE SET code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0').bind(id,hash,Date.now()+600000).run()
  let status='uncertain',providerMessageId:string|null=null
  try {

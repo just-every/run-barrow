@@ -42,6 +42,8 @@ export interface Bindings {
  MAIL_API_KEY?: string
  MAIL_EVENT_TENANT?: string
  MAIL_WEBHOOK_SECRET?: string
+ TURNSTILE_SITE_KEY?: string
+ TURNSTILE_SECRET?: string
  MAIL_ACCOUNT_ID?: string
 }
 

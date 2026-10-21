@@ -5,14 +5,16 @@ import { Notice } from './primitives'
 const emptyLocation=()=>({name:'',line1:'',city:'',state:'',zip:''})
 export function TradeApplication() {
  const [config,setConfig]=useState<any>(null),[id,setId]=useState(''),[code,setCode]=useState(''),[email,setEmail]=useState(''),[application,setApplication]=useState<any>(null),[message,setMessage]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false)
+ const [challenge,setChallenge]=useState(false)
  const [locations,setLocations]=useState([emptyLocation()]),[noEin,setNoEin]=useState(false),[file,setFile]=useState<File|null>(null)
  useEffect(()=>{void request('/api/barrow/applications/form').then(setConfig).catch(e=>setError(errorMessage(e)));void request('/api/barrow/applications/mine').then(setApplication).catch(()=>{});setId(new URLSearchParams(window.location.search).get('application')??'')},[])
+ useEffect(()=>{if(config?.captchaSiteKey&&!challenge){const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js';script.async=true;script.defer=true;document.head.appendChild(script);setChallenge(true)}},[config,challenge])
  async function act(fn:()=>Promise<void>) {setBusy(true);setError('');setMessage('');try{await fn()}catch(e){setError(errorMessage(e))}finally{setBusy(false)}}
  async function submit(event:FormEvent<HTMLFormElement>) {
   event.preventDefault();const data=new FormData(event.currentTarget)
   await act(async()=>{
    const documents=await Promise.all(data.getAll('documents').filter((v):v is File=>v instanceof File&&v.size>0).map(applicationFile))
-   const result=await request<any>('/api/barrow/applications',{formToken:config.formToken,website:data.get('website'),consent:data.get('consent')==='on',name:data.get('name'),dba:data.get('dba'),ein:data.get('ein'),noEin,contactName:data.get('contactName'),email:data.get('email'),phone:data.get('phone'),annualVolumeUsd:Number(data.get('annualVolumeUsd')),locations,documents})
+   const result=await request<any>('/api/barrow/applications',{formToken:config.formToken,turnstileToken:data.get('cf-turnstile-response'),website:data.get('website'),consent:data.get('consent')==='on',name:data.get('name'),dba:data.get('dba'),ein:data.get('ein'),noEin,contactName:data.get('contactName'),email:data.get('email'),phone:data.get('phone'),annualVolumeUsd:Number(data.get('annualVolumeUsd')),locations,documents})
    setId(result.id);setEmail(String(data.get('email')));setMessage(`Verification ${result.delivery.status}. Your application ID is ${result.id}. Keep this ID for future status visits.`);window.history.replaceState(null,'',`/apply?application=${result.id}`)
   })
  }
@@ -34,7 +36,7 @@ export function TradeApplication() {
     <label>Contact name<input name="contactName" required maxLength={120}/></label><label>Contact email<input name="email" type="email" required maxLength={200}/></label><label>Contact phone<input name="phone" type="tel" required maxLength={40}/></label><label>Expected annual volume in whole USD<input name="annualVolumeUsd" type="number" min={0} max={1000000000} step={1} required/></label>
     <fieldset className="br-stack"><legend>Requested locations</legend><p>Format checked (state code, ZIP format and range); not verified with USPS or a carrier.</p>{locations.map((location,index)=><div key={index} className="br-stack"><h3>Location {index+1}</h3>{Object.entries(location).map(([key,value])=><label key={key}>{({name:'Location name',line1:'Address line 1',city:'City',state:'US state',zip:'ZIP code'} as any)[key]}<input required value={value} onChange={e=>setLocations(rows=>rows.map((v,i)=>i===index?{...v,[key]:e.target.value}:v))}/></label>)}{locations.length>1&&<button type="button" className="br-secondary" onClick={()=>setLocations(rows=>rows.filter((_,i)=>i!==index))}>Remove location {index+1}</button>}</div>)}<button type="button" className="br-secondary" disabled={locations.length>=20} onClick={()=>setLocations(rows=>[...rows,emptyLocation()])}>Add requested location</button></fieldset>
     <label>Resale certificates (up to 5 PDF, PNG or JPEG files, each at most 1 MB)<input type="file" name="documents" multiple accept="application/pdf,image/png,image/jpeg"/></label><p>Not validated; exemption review is TAX-003’s. Not malware-screened.</p>
-    <label hidden aria-hidden="true">Leave this empty<input name="website" tabIndex={-1} autoComplete="off"/></label><label><input type="checkbox" name="consent" required/>Your details and documents go only to the supplier to review this trade application and contact you about it.</label><p>Spam checks apply.</p><button disabled={busy}>Submit and request verification code</button>
+    <label hidden aria-hidden="true">Leave this empty<input name="website" tabIndex={-1} autoComplete="off"/></label><label><input type="checkbox" name="consent" required/>Your details and documents go only to the supplier to review this trade application and contact you about it.</label><p>Spam checks apply.</p>{config.captchaSiteKey&&<div className="cf-turnstile" data-sitekey={config.captchaSiteKey}/>}<button disabled={busy}>Submit and request verification code</button>
    </form>:<Notice>Applications are closed: verification mail is not configured.</Notice>}
   </>}
  </main></div>
