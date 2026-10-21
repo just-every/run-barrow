@@ -1,3 +1,4 @@
+import { requireCompanyRight } from './company-policy'
 // PAY-007: an account statement derived from today's records, which are invoices only (one per fully reserved approved
 // order, integer cents in the order's currency). Period bounds are inclusive YYYY-MM-DD dates compared with each
 // invoice's recorded issue date, the America/New_York calendar day on which it was issued. Opening = invoices issued
@@ -20,6 +21,7 @@ const amount = (cents: number, currency: string) => `${currency} ${(cents / 100)
 export async function statement(db: D1Database, actor: Actor, accountId: string, query: URLSearchParams) {
  requirePerson(actor)
  const selected = await account(db, actor, accountId)
+ await requireCompanyRight(db,actor,accountId,'finance')
  const from = day(query.get('from'), 'start'), to = day(query.get('to'), 'end') ?? supplierDate(await now())
  if (from && from > to) fail('DATE', 'The start date must precede the end date.', 400)
  const rows = await db.prepare("SELECT value_json FROM bw_orders WHERE account_id=? AND json_extract(value_json,'$.status')='approved' AND json_extract(value_json,'$.invoice') IS NOT NULL").bind(selected.id).all<{ value_json: string }>()

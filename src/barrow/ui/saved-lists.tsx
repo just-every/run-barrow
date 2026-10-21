@@ -5,7 +5,7 @@ import { request, errorMessage } from './api'
 import { when } from './types'
 import type { CartLine } from './cart-import'
 
-export interface SavedList { id: string; accountId: string; name: string; shared: boolean; mine: boolean; updatedAt: string; lines: { sku: string; unit?: string; quantity: string }[]; revision: string }
+export interface SavedList { id: string; accountId: string; name: string; shared: boolean; mine: boolean; creatorName?:string; updatedAt: string; lines: { sku: string; unit?: string; quantity: string }[]; revision: string }
 
 const command = async <T,>(type: string, payload: Record<string, unknown>) => (await request<{ result: T }>('/api/barrow/commands', { type, payload })).result
 
@@ -38,7 +38,7 @@ export function SavedLists({ accountId, cart, onAdd, onClose }: { accountId: str
     {!lists && !error && <p role="status">Loading lists…</p>}
     {lists && lists.length === 0 && <p>No saved lists on this account yet.</p>}
     {lists && lists.length > 0 && <ul aria-label="Lists on this account" className="br-stack">{lists.map(list => <li key={list.id}>
-      <strong>{list.name}</strong> · {list.lines.length} {list.lines.length === 1 ? 'line' : 'lines'} · {list.shared ? 'Shared with this account' : 'Only you'} · updated {when(list.updatedAt)}
+      <strong>{list.name}</strong> · {list.lines.length} {list.lines.length === 1 ? 'line' : 'lines'} · {list.shared ? 'Shared with this account' : 'Only you'} · created by {list.creatorName??'a company user'} · updated {when(list.updatedAt)}
       <span className="br-actions">
         <button type="button" disabled={busy} onClick={() => onAdd(list)}>Add {list.name} to cart</button>
         <button type="button" className="br-secondary" disabled={busy} onClick={() => void act('list.duplicate', { listId: list.id })}>Duplicate</button>

@@ -12,7 +12,7 @@ export async function readUsageTerms(env:Bindings,actor:Actor) {
 export async function requireUsageTerms(env:Bindings,actor:Actor,accountId?:string) {
  if(actor.agent&&accountId) {
   const row=await latest(env.DB)
-  if(row&&!await env.DB.prepare("SELECT 1 FROM bw_accounts a JOIN oa_operators p ON p.email=json_extract(a.value_json,'$.email') JOIN bw_usage_acceptances u ON u.user_id=p.id WHERE a.id=? AND p.role='member' AND p.status='active' AND u.version=?").bind(accountId,row.version).first())fail('USAGE_TERMS_REQUIRED','The account’s buyer person must accept the current portal usage terms.')
+  if(row&&!await env.DB.prepare("SELECT 1 FROM bw_company_members m JOIN oa_operators p ON p.id=m.user_id JOIN bw_usage_acceptances u ON u.user_id=p.id WHERE m.account_id=? AND m.state='active' AND m.erased_at IS NULL AND p.role='member' AND p.status='active' AND u.version=?").bind(accountId,row.version).first())fail('USAGE_TERMS_REQUIRED','The account’s buyer person must accept the current portal usage terms.')
   return
  }
  if(supplier(actor))return

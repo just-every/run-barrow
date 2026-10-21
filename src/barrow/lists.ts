@@ -1,3 +1,4 @@
+import { requireCompanyRight } from './company-policy'
 // ORD-002: saved shopping lists. A list belongs to one trade account and keeps only desired SKUs, selling units and
 // quantities: never a price, stock figure or promise. A private list is seen by its creator alone; a shared list by
 // everyone who can act for the account today (its buyer and the supplier owner/admin) and by agents, who only read it.
@@ -34,15 +35,16 @@ const visible = (actor: Actor, list: ShoppingList) => list.shared || (!actor.age
 /** Every list on one account this person or agent may see, newest first; another account's lists stay not found. */
 export async function readLists(db: D1Database, actor: Actor, accountId: string) {
  const selected = await account(db, actor, accountId)
+ await requireCompanyRight(db,actor,accountId,'purchasing')
  const rows = await db.prepare('SELECT * FROM bw_lists WHERE account_id=? ORDER BY rowid DESC').bind(selected.id).all<any>()
- return rows.results.map(parse).filter(list => visible(actor, list)).map(list => ({ ...list, mine: !actor.agent && list.createdBy === actor.id }))
+ return Promise.all(rows.results.map(parse).filter(list=>visible(actor,list)).map(async list=>({...list,mine:!actor.agent&&list.createdBy===actor.id,creatorName:(await db.prepare('SELECT display_name FROM oa_operators WHERE id=?').bind(list.createdBy).first<{display_name:string}>())?.display_name??list.createdBy})))
 }
 
 export async function readList(db: D1Database, actor: Actor, id: string) {
  const row = await db.prepare('SELECT * FROM bw_lists WHERE id=?').bind(id).first<any>()
  if (!row) missing()
  const list = parse(row)
- try { await account(db, actor, list.accountId) } catch { missing() }
+ try { await account(db, actor, list.accountId);await requireCompanyRight(db,actor,list.accountId,'purchasing') } catch { missing() }
  return visible(actor, list) ? list : missing()
 }
 
@@ -67,7 +69,7 @@ export async function listCommand(db: D1Database, actor: Actor, type: string, p:
  requirePerson(actor)
  const at = (await now()).toISOString(), name = () => text(p.name, 'List name', 80)
  if (type === 'list.save' && p.listId === undefined) {
-  const selected = await account(db, actor, text(p.accountId, 'Account'))
+  const selected = await account(db, actor, text(p.accountId, 'Account'));await requireCompanyRight(db,actor,selected.id,'purchasing')
   return insert(db, actor, selected.id, { name: name(), shared: p.shared === true, createdBy: actor.id, createdAt: at, updatedBy: actor.id, updatedAt: at, lines: lines(p.lines) })
  }
  const list = await readList(db, actor, text(p.listId, 'List'))

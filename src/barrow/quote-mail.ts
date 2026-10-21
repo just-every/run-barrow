@@ -1,3 +1,4 @@
+import { bootstrapLegacyCompanyMembers, companyPurchasingRecipientSql } from './company-members'
 // AUTO-003 delivers only ORD-005's existing audiences, using durable user identities.
 import type { Bindings } from '../auth.server'
 import { operatorMail } from '../mail.server.mjs'
@@ -21,8 +22,7 @@ const retryWindow = 24 * 60 * 60 * 1000
 const retryable = "status IN ('queued','not configured','rate_limited','uncertain') AND restored=0"
 const authorized = `SELECT p.email FROM oa_operators p WHERE p.id=m.recipient_id AND p.status='active' AND (
  (m.audience='supplier' AND p.role IN ('owner','admin') AND p.id<>m.actor_id) OR
- (m.audience='buyer' AND p.role='member' AND EXISTS (SELECT 1 FROM bw_accounts a
- WHERE a.id=m.account_id AND json_extract(a.value_json,'$.email')=p.email COLLATE BINARY)))`
+ (m.audience='buyer' AND ${companyPurchasingRecipientSql('p','m.account_id')}))`
 const currentExpiry = `SELECT 1 FROM bw_quotes q WHERE q.id=m.quote_id
  AND json_extract(q.value_json,'$.status')='proposed' AND json_extract(q.value_json,'$.accepted') IS NULL
  AND json_extract(q.value_json,'$.revisions[#-1].number')=m.expiry_revision
@@ -33,6 +33,7 @@ const expiryEligible = `json_extract(q.value_json,'$.status')='proposed'
 
 /** Expiry is email-only. Unique keys include the latest revision and user, never a new notice. */
 export async function queueQuoteMail(env: Bindings) {
+ await bootstrapLegacyCompanyMembers(env.DB)
  const at = await now(), stamp = at.toISOString(), today = supplierDate(at)
  const columns = 'id,quote_id,account_id,audience,recipient_id,recipient,summary,kind,actor_id,expiry_revision,created_at,updated_at'
  const summary = "q.id || ' revision ' || json_extract(q.value_json,'$.revisions[#-1].number') || ' expires after today (America/New_York).'"
@@ -41,18 +42,16 @@ export async function queueQuoteMail(env: Bindings) {
    SELECT lower(hex(randomblob(16))),q.id,q.account_id,CASE WHEN p.role='member' THEN 'buyer' ELSE 'supplier' END,
    p.id,p.email,${summary},'expiry','system',json_extract(q.value_json,'$.revisions[#-1].number'),?,?
    FROM bw_quotes q JOIN oa_operators p ON p.status='active' AND (
-    p.role IN ('owner','admin') OR (p.role='member' AND EXISTS (SELECT 1 FROM bw_accounts a
-    WHERE a.id=q.account_id AND json_extract(a.value_json,'$.email')=p.email COLLATE BINARY)))
+    p.role IN ('owner','admin') OR (${companyPurchasingRecipientSql('p','q.account_id')}))
    WHERE ${expiryEligible} AND NOT EXISTS (SELECT 1 FROM bw_quote_mail m WHERE m.quote_id=q.id
    AND m.expiry_revision=json_extract(q.value_json,'$.revisions[#-1].number') AND m.kind='expiry'
-   AND m.audience=CASE WHEN p.role='member' THEN 'buyer' ELSE 'supplier' END)`).bind(stamp,stamp,today),
+   AND m.recipient_id=p.id)`).bind(stamp,stamp,today),
   env.DB.prepare(`INSERT OR IGNORE INTO bw_quote_mail(${columns},status,reason)
    SELECT lower(hex(randomblob(16))),q.id,q.account_id,'buyer',NULL,NULL,${summary},'expiry','system',
    json_extract(q.value_json,'$.revisions[#-1].number'),?,?,'withdrawn','no authorized buyer recipient'
    FROM bw_quotes q WHERE ${expiryEligible} AND NOT EXISTS (SELECT 1 FROM bw_quote_mail m WHERE m.quote_id=q.id
    AND m.expiry_revision=json_extract(q.value_json,'$.revisions[#-1].number') AND m.kind='expiry' AND m.audience='buyer')
-   AND NOT EXISTS (SELECT 1 FROM oa_operators p JOIN bw_accounts a ON a.id=q.account_id
-   WHERE p.status='active' AND p.role='member' AND json_extract(a.value_json,'$.email')=p.email COLLATE BINARY)`).bind(stamp,stamp,today),
+   AND NOT EXISTS (SELECT 1 FROM oa_operators p WHERE ${companyPurchasingRecipientSql('p','q.account_id')})`).bind(stamp,stamp,today),
  ])
 }
 
@@ -62,7 +61,7 @@ async function withdraw(env: Bindings, row: QuoteMailRow, reason: string, stamp:
 }
 
 async function withdrawalReason(env:Bindings,row:QuoteMailRow) {
- if(row.audience==='buyer'&&await env.DB.prepare("SELECT 1 FROM oa_operators p JOIN bw_accounts a ON a.id=? WHERE p.id=? AND p.email<>json_extract(a.value_json,'$.email') COLLATE BINARY").bind(row.account_id,row.recipient_id).first())return 'no authorized buyer recipient'
+ if(row.audience==='buyer'&&!await env.DB.prepare(`SELECT 1 FROM oa_operators p WHERE p.id=? AND ${companyPurchasingRecipientSql('p','m.account_id').replaceAll('m.account_id','?')}`).bind(row.recipient_id,row.account_id).first())return 'no authorized buyer recipient'
  return 'recipient no longer authorized'
 }
 

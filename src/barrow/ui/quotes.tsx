@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { request, errorMessage } from './api'
+import { OrderTerms, type TermsChoice } from './sales-terms'
 import { QuoteShippingFields,AgreedQuoteDelivery } from './quote-shipping'
 import type { Delivery } from '../shipping-rules'
 import { Notice } from './primitives'
@@ -16,7 +17,8 @@ const cents = (value: string) => /^\d{1,7}(\.\d{1,2})?$/.test(value.trim()) ? Nu
 
 // ORD-004: quotes on the Orders page. The supplier proposes revisions and approves discounts; the buyer accepts the
 // latest approved revision before its valid-through date, which converts it into one order for supplier review.
-export function Quotes({ supplier, busy, run, version }: { supplier: boolean; busy: boolean; run: RunCommand; version: unknown }) {
+export function Quotes({ supplier, busy, run, version, canPurchase=true }: { supplier: boolean; busy: boolean; run: RunCommand; version: unknown; canPurchase?:boolean }) {
+  const [terms,setTerms]=useState<Record<string,TermsChoice>>({})
   const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
   const [quotes, setQuotes] = useState<Quote[] | null>(null)
   const [error, setError] = useState('')
@@ -55,7 +57,8 @@ export function Quotes({ supplier, busy, run, version }: { supplier: boolean; bu
           {supplier && !quote.accepted && <button type="button" className="br-secondary" disabled={busy} onClick={() => setEditing(editing === quote.id ? '' : quote.id)}>{latest ? 'Revise quote' : 'Propose quote'}</button>}
           {supplier && quote.status === 'awaiting-approval' && latest && <button type="button" disabled={busy} onClick={() => { const reason = window.prompt(`Why approve ${money(latest.basisCents - latest.totalCents)} below current prices?`); if (reason?.trim()) void run('quote.approve', { quoteId: quote.id, revision: quote.revision, number: latest.number, reason: reason.trim() }) }}>Approve discount</button>}
           {!supplier && quote.status==='proposed' && !quote.expired && latest?.delivery && <label><input type="checkbox" checked={Boolean(deliveryAccepted[quote.id+':'+latest.delivery.fingerprint])} onChange={event=>setDeliveryAccepted(current=>({...current,[quote.id+':'+latest.delivery!.fingerprint]:event.target.checked}))}/>I accept this delivery method, cost and window.</label>}
-          {!supplier && quote.status === 'proposed' && !quote.expired && latest && <button type="button" disabled={busy} onClick={() => void run('quote.accept', { quoteId: quote.id, number: latest.number,deliveryAcknowledged:latest.delivery?Boolean(deliveryAccepted[quote.id+':'+latest.delivery.fingerprint]):undefined })}>Accept revision {latest.number} and place order</button>}
+          {!supplier && canPurchase && quote.status === 'proposed' && !quote.expired && <OrderTerms accountId={quote.accountId} supplier={false} onChange={choice=>setTerms(current=>({...current,[quote.id]:choice}))} />}
+          {!supplier && canPurchase && quote.status === 'proposed' && !quote.expired && latest && <button type="button" disabled={busy} onClick={() => void run('quote.accept', { quoteId: quote.id, number: latest.number,...terms[quote.id],deliveryAcknowledged:latest.delivery?Boolean(deliveryAccepted[quote.id+':'+latest.delivery.fingerprint]):undefined })}>Accept revision {latest.number} and place order</button>}
           {!supplier && quote.status === 'awaiting-approval' && <p className="br-quiet-text">Your supplier is preparing this quote.</p>}
           {!supplier && quote.expired && <p className="br-quiet-text">This quote expired. Ask your supplier for a revised quote.</p>}
         </div>

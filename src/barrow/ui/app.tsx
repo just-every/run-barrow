@@ -1,3 +1,4 @@
+import { CompanyUsers, CompanyInvitation } from './company-members'
 import { ApplicationRetention } from './application-retention'
 import { Applications } from './applications'
 import { UsageAcceptance, UsagePublisher } from './usage-terms'
@@ -22,6 +23,7 @@ export function BarrowApp() {
   const [state, setState] = useState<BarrowState | null>(null)
   const [error, setError] = useState('')
   const [usageRequired,setUsageRequired]=useState(false)
+  const [invitation,setInvitation]=useState<{id:string;token:string}|null>(null)
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -32,8 +34,10 @@ export function BarrowApp() {
   const [accountId, setAccountId] = useState('')
   const [draftId, setDraftId] = useState('')
   const supplier = state?.actor.role === 'owner' || state?.actor.role === 'admin'
+  const rights=state?.actor.company?.rights??[]
+  const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=supplier||rights.includes('finance'),companyAdmin=supplier||rights.includes('administrator')
   const pad = supplier ? 'Order pad' : 'Catalog'
-  const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit'] : [pad, 'Orders']
+  const tabs = supplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit'] : [...(purchasing?[pad]:[]),'Orders',...(companyAdmin?['Company']:[])]
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
   const selected=selectedAccount?.id===accountId?selectedAccount:null
@@ -60,6 +64,7 @@ export function BarrowApp() {
     finally { setLoading(false) }
   }, [reload])
   useEffect(() => {
+    const invitationQuery=new URLSearchParams(window.location.search);if(invitationQuery.has('companyInvitation')&&invitationQuery.has('companyToken'))setInvitation({id:invitationQuery.get('companyInvitation')!,token:invitationQuery.get('companyToken')!})
     if ((new URLSearchParams(window.location.search).get('task') ?? '').startsWith('quote-mail:')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('reportRun')) setTab('Data')
     if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
@@ -118,8 +123,9 @@ export function BarrowApp() {
         {error && <Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice>}
         {notice && <Notice>{notice}</Notice>}
         {!state && loading && <p role="status" className="br-loading">Loading your wholesale workspace…</p>}
-        {usageRequired&&<UsageAcceptance onAccepted={()=>void load()}/>}
-        {state&&!usageRequired && <>
+        {invitation&&<CompanyInvitation {...invitation} onAccepted={()=>{setInvitation(null);void load()}}/>}
+        {usageRequired&&!invitation&&<UsageAcceptance onAccepted={()=>void load()}/>}
+        {state&&!usageRequired&&!invitation && <>
           {!state.connection.configured && <Notice>Live stock and reservations need a Pier connection. {supplier ? 'Configure Pier in the installation settings before taking orders.' : 'Contact your supplier to enable ordering.'}</Notice>}
           {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1></div>
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
@@ -135,11 +141,13 @@ export function BarrowApp() {
           {activeTab === 'Accounts' && supplier && <Applications version={state} busy={busy} run={run}/>}
           {activeTab === 'Accounts' && supplier && <UsagePublisher busy={busy} run={run}/>}
           {activeTab === 'Accounts' && supplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
-          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
-          {activeTab === 'Orders' && <Quotes supplier={supplier} busy={busy} run={run} version={state.orders} />}
-          {activeTab === 'Orders' && <StatementCard accounts={state.accounts} />}
-          {activeTab === 'Orders' && !supplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
-          {activeTab === 'Orders' && !supplier && <ExportLinks supplier={false} />}
+          {activeTab === 'Company' && companyAdmin && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier={false}/>}
+          {activeTab === 'Accounts' && supplier && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier/>}
+          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} companyApprover={supplier||rights.includes('approver')} canPurchase={supplier||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+          {activeTab === 'Orders' && purchasing && <Quotes canPurchase={supplier||Boolean(state.actor.company?.rights.includes('purchaser'))} supplier={supplier} busy={busy} run={run} version={state.orders} />}
+          {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
+          {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
+          {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}

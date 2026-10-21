@@ -1,3 +1,4 @@
+import { companyAccountPredicate } from './company-access'
 // ORD-015: versioned sales terms, per-account assignment and the acceptance recorded on each submitted order.
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
@@ -120,7 +121,7 @@ export async function termsSignatureResponse(env: Bindings, actor: Actor, order:
 export async function termsDocumentResponse(env: Bindings, actor: Actor, series: string, version: number) {
  requirePerson(actor)
  if (!supplier(actor)) {
-  const mine = (await env.DB.prepare("SELECT 1 FROM bw_terms_assignments t JOIN bw_accounts a ON a.id=t.account_id WHERE t.series=? AND json_extract(a.value_json,'$.email')=?").bind(series, actor.email).first())
+  const mine = (await env.DB.prepare(`SELECT 1 FROM bw_terms_assignments t JOIN bw_accounts a ON a.id=t.account_id WHERE t.series=? AND ${companyAccountPredicate('a.id')}`).bind(series, actor.id).first())
   if (!mine) fail('NOT_FOUND', 'Sales terms not found.', 404)
  }
  const row = await env.DB.prepare('SELECT pdf_name,pdf_base64 FROM bw_sales_terms WHERE series=? AND version=? AND pdf_base64 IS NOT NULL').bind(series, version).first<{ pdf_name: string; pdf_base64: string }>()
@@ -134,4 +135,14 @@ export async function termsExport(db: D1Database, actor: Actor, accountIds: stri
  const salesterms = [...rows].sort((a, b) => a.series.localeCompare(b.series) || a.version - b.version).map(row => ({ series: row.series, version: row.version, title: row.title, contentSha256: row.content_sha256, createdBy: row.created_by, createdAt: row.created_at, body: row.body, pdfName: row.pdf_name ?? '', pdfBytes: row.pdf_size ?? '', pdfSha256: row.pdf_sha256 ?? '', pdfPath: row.pdf_sha256 ? `/api/barrow/sales-terms/${encodeURIComponent(row.series)}/${row.version}/document` : '' }))
  const termsacceptances = orders.filter(order => order.termsAcceptance).map(order => { const a = order.termsAcceptance!; return { orderId: order.id, accountId: order.accountId, series: a.series, version: a.version, contentSha256: a.contentSha256, how: a.how, acceptedBy: a.acceptedBy, acceptedAt: a.acceptedAt, printedName: a.printedName ?? '', signatureSha256: a.signatureSha256 ?? '', signaturePath: a.signatureSha256 ? `/api/barrow/orders/${order.id}/terms-signature` : '' } })
  return { salesterms, termsacceptances }
+}
+
+/** A company release preserves the purchaser’s exact acceptance while it is still current. */
+export async function termsAtCompanyRelease(env:Bindings,actor:Actor,selected:Account,order:Order,p:unknown,at:string) {
+ if(p!==undefined)return termsAtSubmission(env,actor,selected,order.id,p,at)
+ const assigned=await assignment(env.DB,selected.id),current=assigned?await newest(env.DB,assigned.series):null,accepted=order.termsAcceptance
+ if(!accepted)return termsAtSubmission(env,actor,selected,order.id,undefined,at)
+ if(!current||accepted.series!==current.series||accepted.version!==current.version||accepted.contentSha256!==current.content_sha256)fail('TERMS_REQUIRED','The sales terms changed. Review and accept the current version before company release.')
+ const checked=await termsAtSubmission(env,actor,selected,order.id,{version:accepted.version,accepted:true},at)
+ return {...checked,acceptance:accepted,statements:[]}
 }

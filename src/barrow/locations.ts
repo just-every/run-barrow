@@ -1,3 +1,4 @@
+import { requireCompanyRight, companyMembership } from './company-policy'
 // ACC-003: billing and delivery locations. Each trade account keeps bill-to, ship-to and contact records; ship-tos carry
 // default delivery instructions and a location-specific tax exemption reference. Addresses are format checked, never
 // claimed as verified. Orders snapshot the chosen bill-to and ship-to in full, so editing, re-defaulting or archiving
@@ -42,12 +43,15 @@ function locationValue(kind: LocationKind, p: any): LocationValue {
 export async function readLocations(db: D1Database, actor: Actor, accountId: string) {
  requirePerson(actor)
  const selected = await account(db, actor, text(accountId, 'Account'))
- return (await db.prepare('SELECT * FROM bw_locations WHERE account_id=? ORDER BY kind,rowid').bind(selected.id).all<any>()).results.map(row)
+ const locations=(await db.prepare('SELECT * FROM bw_locations WHERE account_id=? ORDER BY kind,rowid').bind(selected.id).all<any>()).results.map(row)
+ const member=await companyMembership(db,actor,accountId)
+ return member&&member.locations!=='all'&&!member.rights.includes('administrator')?locations.filter(location=>location.kind==='ship-to'&&member.locations.includes(location.id)):locations
 }
 
 export async function locationCommand(db: D1Database, actor: Actor, type: string, p: any) {
  requirePerson(actor)
  const selected = await account(db, actor, text(p.accountId, 'Account'))
+ await requireCompanyRight(db,actor,selected.id,'administrator')
  if (type === 'location.save') {
   const existing = p.id ? await db.prepare('SELECT * FROM bw_locations WHERE id=? AND account_id=?').bind(text(p.id, 'Location', 60), selected.id).first<any>() : null
   if (p.id && !existing) fail('NOT_FOUND', 'Location not found.', 404)

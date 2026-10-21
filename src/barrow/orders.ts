@@ -1,3 +1,6 @@
+import { companySubmission } from './company-purchase'
+import { companyOrderRead } from './company-access'
+import { companyRightsGuard, requireCompanyRight, requireCompanyApproval } from './company-policy'
 import { commissionSnapshot } from './commission-rules'
 import { confirmationStatements } from './confirmations'
 import type { Bindings } from '../auth.server'
@@ -16,17 +19,18 @@ import { readDocument, documentStatement, carryDocument } from './documents'
 import { locationSnapshot } from './locations'
 import { acceptDelivery, deliveryTotal, freightQuote, selectDelivery, shippingGuard } from './shipping'
 import { freshnessLimit, staleStock } from './freshness'
-import { termsAtSubmission } from './sales-terms'
+import { termsAtSubmission, termsAtCompanyRelease } from './sales-terms'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
  if(!row) fail('NOT_FOUND','Order not found.',404)
  const order={...JSON.parse(row.value_json),revision:row.revision}
  await account(db,actor,order.accountId)
+ await companyOrderRead(db,actor,order)
  return order
 }
 async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
- const confirmations = ['order.submitted','order.submitted-release','order.approved'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':'submitted') : []
+ const confirmations = ['order.submitted','order.submitted-release','order.company-approved','order.approved'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':'submitted') : []
  await commit(env.DB,actor,[...guards,...confirmations,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
   'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
   'order.document-attached':'Attached the supporting PO document to the draft.',
@@ -92,6 +96,19 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
+ if(['order.submit','order.attach','shipping.select'].includes(type))await requireCompanyRight(env.DB,actor,order.accountId,'purchaser',order.shipTo?.id)
+ if(type==='order.company-approve') {
+  if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','This order is not awaiting company approval.')
+  if(p.revision!==order.revision)fail('CHANGED','Refresh the exact order before company approval.')
+  if(order.preparedBy===actor.id)fail('SELF_APPROVAL','The preparer cannot approve their own order.',403)
+  const approval=await requireCompanyApproval(env.DB,actor,{...order,preparedBy:order.companyPreparedBy??order.preparedBy})
+  const selected=await account(env.DB,actor,order.accountId);requireActiveAccount(selected)
+  if(selected.revision!==order.accountRevision)fail('PRICE_CHANGED','The account changed. The purchaser must prepare a new draft.')
+  await assertCurrentPricing(env,selected,order,true)
+  const stale=staleStock(order,await freshnessLimit(env.DB),await now());if(stale)fail('STOCK_STALE',stale)
+  const at=(await now()).toISOString(),release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtCompanyRelease(env,actor,selected,order,p.termsAcceptance,at)
+  return save(env,actor,{...order,status:'submitted',...(release.poRelease?{poRelease:release.poRelease}:{}),companyApprovedBy:actor.id,companyApprovedAt:at,...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})},'order.company-approved',[release.guard,approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery),terms.guard,...terms.statements],text(p.reason,'Company approval reason',1000))
+ }
  if(type==='shipping.select' || type==='shipping.quote') {
   if(order.status!=='draft')fail('SHIPPING_LOCKED','Delivery changes require a new reviewed draft.')
   const selected=await account(env.DB,actor,order.accountId),context={currency:order.currency??'AUD',account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes}
@@ -110,10 +127,11 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   await assertCurrentPricing(env,selected,order,true)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
-  if(order.delivery && actor.email!==selected.value.email)fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
+  if(order.delivery && ['owner','admin'].includes(actor.role))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
   const delivery=await acceptDelivery(env,actor,{currency:order.currency??'AUD',account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
   const at=(await now()).toISOString(),release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtSubmission(env,actor,selected,order.id,p.termsAcceptance,at)
-  return save(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{}),...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})},release.poRelease?'order.submitted-release':'order.submitted',[activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard,terms.guard,...terms.statements],terms.acceptance?`Buyer submitted the prepared commercial snapshot for supplier review, with sales terms "${terms.acceptance.series}" version ${terms.acceptance.version} accepted (${terms.acceptance.how==='buyer'?'buyer acceptance in the portal':'on-device signature captured by supplier staff'}).`:undefined)
+  const submission=await companySubmission(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{}),...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})})
+  return save(env,actor,submission.order,submission.waiting?'order.company-approval-requested':release.poRelease?'order.submitted-release':'order.submitted',[submission.guard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard,terms.guard,...terms.statements],terms.acceptance?`Buyer submitted the prepared commercial snapshot for supplier review, with sales terms "${terms.acceptance.series}" version ${terms.acceptance.version} accepted (${terms.acceptance.how==='buyer'?'buyer acceptance in the portal':'on-device signature captured by supplier staff'}).`:undefined)
  }
  if(type==='order.attach') {
   if(order.status!=='draft') fail('DOCUMENT_LOCKED','Attach the PO document before the order is submitted.')
@@ -179,6 +197,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
 async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<ReturnType<typeof reviewReorder>>) {
   const selected=context?.selected ?? await account(env.DB,actor,text(p.accountId,'Account'))
   requireActiveAccount(selected)
+  const member=await requireCompanyRight(env.DB,actor,selected.id,'purchaser')
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
   const available=context?.available ?? await catalogue(env,selected)
   const today=supplierDate(await now()),lines=prepareLines(p.lines,available.items,today).map((line,index)=>({...line,...buyerSku(p.lines[index])})),details=purchaseDetails(p,today)
@@ -190,14 +209,16 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   if(replaced) {
    requirePerson(actor)
    if(replaced.accountId!==selected.id) fail('REPLACES','A draft can only be replaced by an order for the same trade account.',400)
-   if(replaced.status!=='draft') fail('REPLACES','This draft was already submitted or replaced. Refresh your orders.')
+   if(!['draft','awaiting-company-approval'].includes(replaced.status)) fail('REPLACES','This draft was already submitted or replaced. Refresh your orders.')
   }
   // ACC-003: the chosen (or default) bill-to and ship-to are copied whole; later location edits never reach this order.
   const billTo=await locationSnapshot(env.DB,selected,'bill-to',p.billToId),shipTo=await locationSnapshot(env.DB,selected,'ship-to',p.shipToId)
+  await requireCompanyRight(env.DB,actor,selected.id,'purchaser',shipTo?.id)
+  if(member&&member.locations!=='all'&&!shipTo)fail('FORBIDDEN','Choose one of your permitted ship-to locations.',403)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
   const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`})]:[]
-  await commit(env.DB,actor,[activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])
+  await commit(env.DB,actor,[companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])
   return order
 }

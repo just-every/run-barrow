@@ -1,3 +1,6 @@
+import { companySubmission } from './company-purchase'
+import { requireCompanyRight } from './company-policy'
+import { termsAtSubmission } from './sales-terms'
 import { confirmationStatements } from './confirmations'
 // ORD-004: negotiated wholesale quotes. A buyer requests a quote from a cart; the supplier proposes numbered revisions
 // with line prices or discounts, quantities, payment terms, a shipping note and an inclusive valid-through date in
@@ -47,13 +50,14 @@ async function readQuote(db: D1Database, actor: Actor, id: string) {
  const row = await db.prepare('SELECT value_json,revision FROM bw_quotes WHERE id=?').bind(id).first<any>()
  if (!row) missing()
  const quote = parse(row)
- try { await account(db, actor, quote.accountId) } catch { missing() }
+ try { await account(db, actor, quote.accountId);await requireCompanyRight(db,actor,quote.accountId,'purchasing') } catch { missing() }
  return quote
 }
 
 export async function readQuotes(db: D1Database, actor: Actor, accountId: string | null) {
  requirePerson(actor)
  const ids = accountId ? [(await account(db, actor, accountId)).id] : (await accounts(db, actor)).map(row => row.id)
+ for(const id of ids)await requireCompanyRight(db,actor,id,'purchasing')
  const rows = ids.length ? (await db.prepare('SELECT value_json,revision FROM bw_quotes WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid DESC').bind(JSON.stringify(ids)).all<any>()).results : []
  return threaded(db, actor, rows.map(parse), supplierDate(await now()))
 }
@@ -125,6 +129,7 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
  if (type === 'quote.request') {
   const selected = await account(env.DB, actor, text(p.accountId, 'Account'))
   requireActiveAccount(selected)
+  await requireCompanyRight(env.DB,actor,selected.id,'purchaser')
   if (!Array.isArray(p.lines) || !p.lines.length || p.lines.length > 100) fail('LINES', 'Choose between one and 100 lines.', 400)
   const offers = await catalogue(env, selected), lines = prepareLines(p.lines, offers.items, today, false)
   const id = await nextQuote(env.DB), revision = crypto.randomUUID()
@@ -160,10 +165,13 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   const billTo = await locationSnapshot(env.DB, selected, 'bill-to', undefined), shipTo = await locationSnapshot(env.DB, selected, 'ship-to', undefined)
   const delivery=await acceptDelivery(env,actor,{account:selected,lines,shipTo,quotes:latest.freightQuotes},latest.delivery,p.deliveryAcknowledged)
   const id = await nextNumber(env.DB), orderRevision = crypto.randomUUID()
-  const order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, delivery, totalCents: deliveryTotal(lines,delivery), currency: 'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
+  let order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, delivery, totalCents: deliveryTotal(lines,delivery), currency: 'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
+  const terms=await termsAtSubmission(env,actor,selected,order.id,p.termsAcceptance,at)
+  if(terms.acceptance)order.termsAcceptance=terms.acceptance
+  const submission=await companySubmission(env,actor,order);order=submission.order
   const accepted = { ...quote, status: 'accepted' as const, accepted: { revision: number, by: actor.id, at, orderId: id } }
   try {
-   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [activeAccountGuard(env.DB, selected), shippingGuard(env.DB,delivery), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision),...await confirmationStatements(env.DB,actor,order,'submitted'), audit(env.DB, actor, id, 'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at)], id)
+   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [submission.guard,terms.guard,...terms.statements,activeAccountGuard(env.DB, selected), shippingGuard(env.DB,delivery), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision),...(submission.waiting?[]:await confirmationStatements(env.DB,actor,order,'submitted')), audit(env.DB, actor, id, submission.waiting?'order.company-approval-requested':'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at)], id)
    return { quote: view(actor, saved, today), order }
   } catch (error) {
    // A concurrent acceptance of the same revision already converted it: return that one order.

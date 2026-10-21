@@ -75,7 +75,7 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
  if (url.pathname === '/setup' || url.pathname === '/app' || url.pathname.startsWith('/app/')) {
   const setup = await firstRunResponse(request, env, operatorAuth(env), { theme })
   if (setup) return setup
-  if (url.pathname.startsWith('/app') && !await operatorAuth(env).getSession(request)) return new Response(null,{status:303,headers:{location:'/signin?returnTo=%2Fapp','cache-control':'no-store'}})
+  if (url.pathname.startsWith('/app') && !await operatorAuth(env).getSession(request)) return new Response(null,{status:303,headers:{location:'/signin?returnTo='+encodeURIComponent(url.pathname+url.search),'cache-control':'no-store'}})
  }
 
  return null

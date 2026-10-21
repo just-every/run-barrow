@@ -1,3 +1,4 @@
+import { companyAccountIds, companyMembership } from './company-policy'
 import { applicationAccountErasure } from './application-custody'
 import { quoteMailErasureStatements } from './quote-mail-custody'
 import { commercialAuditEvent } from './audit-event'
@@ -10,12 +11,13 @@ import { toD1Sql } from '@runeditrun/rer/modules/erasure/fence'
 import { accountDirectorySnapshot, directoryPredicate, companyIdentityChanged, duplicateCompany, duplicateReviewAction, validateDuplicateReviews } from './account-profile'
 import { portabilityPolicy } from './portability-policy.mjs'
 export async function accounts(db:D1Database,actor:Actor):Promise<Account[]> {
- const rows=await db.prepare('SELECT * FROM bw_accounts'+(supplier(actor)?'':" WHERE json_extract(value_json,'$.email')=?")+' ORDER BY id').bind(...(supplier(actor)?[]:[actor.email])).all<any>()
+ const ids=await companyAccountIds(db,actor)
+ const rows=await db.prepare('SELECT * FROM bw_accounts'+(ids===null?'':' WHERE id IN (SELECT value FROM json_each(?))')+' ORDER BY id').bind(...(ids===null?[]:[JSON.stringify(ids)])).all<any>()
  return rows.results.map(row=>({id:row.id,value:JSON.parse(row.value_json),revision:row.revision}))
 }
 export async function account(db:D1Database,actor:Actor,id:string):Promise<Account> {
  const row=await db.prepare('SELECT * FROM bw_accounts WHERE id=?').bind(id).first<any>()
- if(!row || (!supplier(actor) && JSON.parse(row.value_json).email!==actor.email)) fail('NOT_FOUND','Trade account not found.',404)
+ if(!row || (!supplier(actor) && !await companyMembership(db,actor,id))) fail('NOT_FOUND','Trade account not found.',404)
  return {id:row.id,value:JSON.parse(row.value_json),revision:row.revision}
 }
 // A new account without a chosen ID takes one from its name ("Palmetto & Pine" → palmetto-pine, then palmetto-pine-2).
@@ -59,6 +61,8 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
  }
  const selected=await account(env.DB,actor,p.accountId)
  if(type==='account.invite') {
+  const restored=await env.DB.prepare("SELECT 1 FROM bw_company_members m WHERE m.account_id=? AND NOT EXISTS(SELECT 1 FROM bw_company_members active JOIN oa_operators p ON p.id=active.user_id WHERE active.account_id=m.account_id AND active.state='active' AND p.status='active' AND p.role='member')").bind(selected.id).first()
+  if(restored){const {companyCommand,unlimitedCompanyPolicy}=await import('./company-members');return companyCommand(request,env,actor,'company.invite',{accountId:selected.id,email:selected.value.email,name:selected.value.name,policy:unlimitedCompanyPolicy,reason:'Supplier explicitly reauthorized the first buyer after account restoration or removal.'})}
   await commit(env.DB,actor,[audit(env.DB,actor,selected.id,'account.invitation-requested',{accountId:selected.id,revision:selected.revision,source:'account.invite',reason:'Supplier requested a native buyer invitation; this records a request, not mail delivery.'})])
   return operatorAuth(env).invite(request,{email:selected.value.email,displayName:selected.value.name,role:'member',returnTo:'/app'})
  }
@@ -70,7 +74,7 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
   const portability=await createPortability({db:env.DB,policy:portabilityPolicy})
   const checkpoint=[...await portability.invalidateTransfersStatements(),...await portability.redactionStatements()].map(toD1Sql)
   const erased=commercialAuditEvent(actor.id,selected.id,'account.erased',{accountId:selected.id,revision:selected.revision,source:'account.erase',reason:'Supplier confirmed erasure of an unused account and retirement of import custody.'})
-  return retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[{sql:'INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_retention_requests WHERE account_id=? AND held=1) THEN 1 ELSE 0 END',params:[selected.id]},{sql:'DELETE FROM bw_retention_requests WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?) AND NOT EXISTS(SELECT 1 FROM bw_quotes WHERE account_id=?)',params:[selected.id,selected.revision,selected.id,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'},{sql:'DELETE FROM bw_lists WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_locations WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_terms_assignments WHERE account_id=?',params:[selected.id]},...applicationAccountErasure(selected.id),...quoteMailErasureStatements(selected.id),{sql:'DELETE FROM bw_followups WHERE account_id=?',params:[selected.id]},erased]})
+  return retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[{sql:'INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_retention_requests WHERE account_id=? AND held=1) THEN 1 ELSE 0 END',params:[selected.id]},{sql:'DELETE FROM bw_retention_requests WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_invites WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_members WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_legacy_accounts WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?) AND NOT EXISTS(SELECT 1 FROM bw_quotes WHERE account_id=?)',params:[selected.id,selected.revision,selected.id,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'},{sql:'DELETE FROM bw_lists WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_locations WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_terms_assignments WHERE account_id=?',params:[selected.id]},...applicationAccountErasure(selected.id),...quoteMailErasureStatements(selected.id),{sql:'DELETE FROM bw_followups WHERE account_id=?',params:[selected.id]},erased]})
  }
  fail('NOT_FOUND','Unknown account command.',404)
 }

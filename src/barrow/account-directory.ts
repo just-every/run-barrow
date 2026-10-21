@@ -1,3 +1,4 @@
+import { companyAccountPredicate } from './company-access'
 import { account } from './accounts'
 import { duplicateCompany, companyIdentityChanged } from './account-profile'
 import { fail, requireSupplier, supplier, type Account, type Actor } from './model'
@@ -20,7 +21,7 @@ export async function accountPage(db: D1Database, actor: Actor, query: URLSearch
  const sorts: Record<string,string> = { id: 'id ASC', 'name-asc': "lower(json_extract(value_json,'$.name')) ASC,id ASC", 'name-desc': "lower(json_extract(value_json,'$.name')) DESC,id ASC" }
  if (!Object.hasOwn(sorts, sort)) fail('SEARCH', 'Choose a listed account sort.', 400)
  const clauses = ['1=1'], values: (string|number)[] = []
- if (!supplier(actor)) { clauses.push("json_extract(value_json,'$.email')=?"); values.push(actor.email) }
+ if (!supplier(actor)) { clauses.push(companyAccountPredicate('id')); values.push(actor.id) }
  if (search) {
   clauses.push("(instr(lower(id),lower(?))>0 OR instr(lower(json_extract(value_json,'$.name')),lower(?))>0 OR instr(lower(json_extract(value_json,'$.email')),lower(?))>0 OR instr(lower(json_extract(value_json,'$.pierCustomerId')),lower(?))>0)")
   values.push(search,search,search,search)

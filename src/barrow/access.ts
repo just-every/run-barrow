@@ -1,3 +1,4 @@
+import { companyRightsGuard } from './company-policy'
 import { operatorAuth, type Bindings } from '../auth.server'
 import { commercialAuditEvent, type AuditContext } from './audit-event'
 import { fail, type Actor } from './model'
@@ -22,7 +23,7 @@ export function admission(db: D1Database, actor: Actor): D1PreparedStatement {
  return db.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN ${sql} THEN 1 ELSE 0 END`).bind(...values)
 }
 export async function commit(db: D1Database, actor: Actor, statements: D1PreparedStatement[]) {
- await db.batch([admission(db,actor),...statements,db.prepare('DELETE FROM bw_guard')])
+ await db.batch([admission(db,actor),...(actor.company?[companyRightsGuard(db,actor.company)]:[]),...statements,db.prepare('DELETE FROM bw_guard')])
 }
 export const changed = (db: D1Database) => db.prepare('INSERT INTO bw_guard(value) VALUES(changes())')
 export const audit = (db:D1Database,actor:Actor,subject:string,action:string,context:AuditContext) => {

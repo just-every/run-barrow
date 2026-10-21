@@ -1,0 +1,24 @@
+import type { Actor } from './model'
+import { fail, supplier } from './model'
+import { requireCompanyRight } from './company-policy'
+/** Every former account-email query uses the same current native-member authority. */
+export function companyAccountPredicate(column:string) {
+ if(!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(column))throw new Error('Invalid account scope column')
+ return `${column} IN (SELECT cm.account_id FROM bw_company_members cm JOIN oa_operators cp ON cp.id=cm.user_id WHERE cm.user_id=? AND cm.state='active' AND cm.erased_at IS NULL AND cp.role='member' AND cp.status='active')`
+}
+export function companyOrderScope(actor:Actor,column='account_id',valueColumn='value_json') {
+ if(supplier(actor))return {sql:'',values:[] as string[]}
+ const rights=actor.company?.rights??[],purchasing=rights.some(r=>r==='purchaser'||r==='approver')
+ return {sql:` AND ${companyAccountPredicate(column)}${purchasing?'':rights.includes('finance')?` AND json_extract(${valueColumn},'$.invoice') IS NOT NULL`:' AND 0'}`,values:[actor.id]}
+}
+export async function companyOrderRead(db:D1Database,actor:Actor,order:{accountId:string;invoice?:unknown}) {
+ if(supplier(actor))return
+ const member=actor.company
+ if(!member||member.accountId!==order.accountId)fail('NOT_FOUND','Order not found.',404)
+ if(member.rights.some(right=>right==='purchaser'||right==='approver'))return
+ if(member.rights.includes('finance')&&order.invoice)return
+ fail('FORBIDDEN','Your company rights do not permit this order view.',403)
+}
+export async function companyFinance(db:D1Database,actor:Actor,accountId:string) {
+ return requireCompanyRight(db,actor,accountId,'finance')
+}
