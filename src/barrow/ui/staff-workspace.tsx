@@ -19,13 +19,13 @@ const label = (key: string) => key.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/
 const object = (value: unknown): value is RecordValue => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 const safeSource = (value: unknown) => typeof value === 'string' && value.startsWith('/api/barrow/') && !/[\r\n\\]/.test(value)
 
-function Fact({ value, name = '', currency, sourceLinks=true }: { value: unknown; name?: string; currency?: unknown;sourceLinks?:boolean }): ReactNode {
+function Fact({ value, name = '', currency, sourceLinks=true,moneyValues=false }: { value: unknown; name?: string; currency?: unknown;sourceLinks?:boolean;moneyValues?:boolean }): ReactNode {
   if (value === null || value === undefined) return <>Unknown / not recorded</>
   if (typeof value === 'boolean') return <>{value ? 'Yes' : 'No'}</>
-  if (typeof value === 'number' && name.endsWith('Cents')) return <>{currency === 'USD' || currency === 'AUD' ? money(value, currency) : `${value} cents`}</>
+  if (typeof value === 'number' && (moneyValues||name.endsWith('Cents'))) return <>{currency === 'USD' || currency === 'AUD' ? money(value, currency) : `${value} cents`}</>
   if (typeof value === 'number' && /Bps$|^bps$|BasisPoints$/.test(name)) return <>{(value / 100).toFixed(2)}%</>
   if (Array.isArray(value)) return value.length ? <ul>{value.map((item, index) => <li key={index}><Fact value={item} currency={currency} sourceLinks={sourceLinks} /></li>)}</ul> : <>None recorded</>
-  if (object(value)) return <dl>{Object.entries(value).map(([key, item]) => <div key={key}><dt>{label(key)}</dt><dd><Fact name={key} value={item} currency={value.currency ?? currency} sourceLinks={sourceLinks} /></dd></div>)}</dl>
+  if (object(value)) return <dl>{Object.entries(value).map(([key, item]) => <div key={key}><dt>{label(key)}</dt><dd><Fact name={key} value={item} currency={value.currency ?? currency} sourceLinks={sourceLinks} moneyValues={name==='buckets'} /></dd></div>)}</dl>
   if (sourceLinks&&safeSource(value)) return <a href={String(value)}>Open source record</a>
   return <>{String(value) || 'Not recorded'}</>
 }

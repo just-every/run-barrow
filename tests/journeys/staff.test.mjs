@@ -183,7 +183,7 @@ test('owner invites five native functional staff roles, exact scoped reports and
   const rows = report[person.report === 'fulfillment' ? 'lines' : 'rows'];
   assert.deepEqual(rows.map(row => row.orderId), [invoices.get(assigned).id], `${person.role} reads the assigned source without the other account`);
   assert.equal(JSON.stringify(report).includes(invoices.get(other).id), false);
-  if (person.report === 'finance') assert.equal(rows[0].amountCents, invoices.get(assigned).totalCents);
+  if (person.report === 'finance') {assert.equal(rows[0].amountCents, invoices.get(assigned).totalCents);await expect(reports.getByRole('region',{name:'Report totals',exact:true}).getByText('Current',{exact:true}).locator('..')).toContainText('USD 130.00');}
   if (person.report === 'sales') assert.equal(rows[0].bookedCents, invoices.get(assigned).totalCents);
   if (person.report === 'fulfillment') assert.equal(report.source, 'Pier');
   if (['sales', 'finance'].includes(person.report)) {
