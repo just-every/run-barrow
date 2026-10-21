@@ -9,6 +9,7 @@ import { OrderShipping } from './order-shipping'
 import { Reorder } from './reorder'
 import { CancelOrder } from './cancel-order'
 import { OrderTimeline } from './order-timeline'
+import { OrderSearch } from './order-search'
 import { request, errorMessage } from './api'
 
 const explanations: Record<Order['status'], string> = {
@@ -54,6 +55,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, busy, 
     <div className="br-heading-row"><h2>{supplier ? 'All orders' : 'Your orders'}</h2>
       <div className="br-segments" role="group" aria-label="Show orders">{filters.map(([name, test]) => <button key={name} type="button" aria-pressed={filter === name} onClick={() => setFilter(name)}>{name} <span>{orders.filter(test).length}</span></button>)}</div>
     </div>
+    <OrderSearch />
     <div className="br-card br-stack" role="search" aria-label="Order history search">
       <h3>Find a previous order</h3>
       {([['po','Purchase order / reference','text'],['from','From date (Eastern time)','date'],['to','Through date (Eastern time)','date'],['sku','Ordered SKU','text'],['location','Delivery location','text']] as const).map(([key,label,type]) => <label key={key}>{label}<input type={type} value={query[key]} onChange={event => setQuery(current => ({...current,[key]:event.target.value}))} /></label>)}

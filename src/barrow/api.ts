@@ -1,3 +1,4 @@
+import { searchOrders } from './order-search'
 import { readCommissionRules, saveCommissionRules } from './commission-rules'
 import { commissionReport, commissionCsv } from './commission-report'
 import { readConfirmationLayouts, saveConfirmationLayout } from './confirmation-layouts'
@@ -90,6 +91,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/export.json' && request.method==='GET') return await exportResponse(env,actor,'json')
   const exported=/^\/api\/barrow\/export\/([a-z]+)\.csv$/.exec(path)
   if(exported && request.method==='GET' && (exportKinds as readonly string[]).includes(exported[1])) return await exportResponse(env,actor,exported[1] as (typeof exportKinds)[number])
+  if(path==='/api/barrow/orders/search' && request.method==='GET') return json(await searchOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json({orders:await orderHistory(env,actor,url.searchParams)})
   if(path==='/api/barrow/locations' && request.method==='GET') return json({locations:await readLocations(env.DB,actor,url.searchParams.get('accountId')??'')})
   if(path==='/api/barrow/lists' && request.method==='GET') return json({lists:await readLists(env.DB,actor,url.searchParams.get('accountId')??'')})
