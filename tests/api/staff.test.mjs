@@ -209,6 +209,29 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  assert.equal((await h.request('/api/barrow/reports/sales', analyst)).status, 200);
  const native = (await h.api('/auth/operators')).find(row => row.id === analystGrant.userId);
  assert.equal(analystGrant.nativeVersion, native.version);
+
+ // An invited outside finance operator is an exact private recipient, can opt out,
+ // and cannot use another staff person's link. No bare-address subscription exists.
+ const financeId=(await h.api('/api/barrow/state',undefined,finance)).actor.id;
+ const financeSchedule=await h.command('report.save',{name:'Outside accountant aging',reportType:'finance',filters:{accountId:'cedar'},recipientIds:[financeId]});
+ const financeRun=await h.command('report.run',{scheduleId:financeSchedule.id});
+ const financeDownload=`/api/barrow/report-runs/${financeRun.id}.json`;
+ assert.equal((await h.request(financeDownload,finance)).status,200);
+ await h.api(financeDownload,undefined,{...analyst,status:403});
+ await h.command('report.remove-recipient',{scheduleId:financeSchedule.id},finance);
+ await h.api(financeDownload,undefined,{...finance,status:403});
+ const ownAudit=(await h.api('/api/barrow/audit',undefined,manager)).events;
+ assert.ok(ownAudit.some(event=>event.action==='quote.discount-approved'&&event.accountId==='cedar'&&event.revision&&event.source&&event.reason));
+ assert.ok(ownAudit.every(event=>event.actorId===managerGrant.userId));
+ const ownCsv=await (await h.request('/api/barrow/audit.csv',manager)).text();
+ assert.ok(ownCsv.includes('quote.discount-approved'));assert.ok(!ownCsv.includes('staff.granted'));
+ for(const who of [rep,operations,finance,analyst])await h.api('/api/barrow/applications',undefined,{...who,status:403});
+ // Manager policy edits require explicit authority for the entire policy.
+ await h.api('/api/barrow/commissions',undefined,{...manager,status:403});
+ managerGrant=await update(managerGrant,policy('sales-manager',{accounts:'all',warehouses:'all',reports:['commissions'],discountLimitCents:200,stockExceptionLimitCents:13000}));
+ const commissionPolicy=await h.api('/api/barrow/commissions',undefined,manager);
+ const changedPolicy=await h.command('commission.settings',{revision:commissionPolicy.revision,reason:'Manager reviewed future original-line attribution.',rules:[{id:'synthetic-barrow-10',rep:'synthetic-barrow-1',from:validUntil,rateBps:500,basis:'acceptance',splits:[{rep:'synthetic-barrow-1',shareBps:10000}]}]},manager);
+ assert.ok(changedPolicy.revision);assert.equal((await h.api('/api/barrow/commissions',undefined,manager)).rules[0].id,'synthetic-barrow-10');
  const events = (await h.api('/api/barrow/audit?limit=200')).events;
  for (const action of ['staff.granted', 'staff.rights-changed', 'staff.revoked', 'staff.permission-refused']) {
   const event = events.find(row => row.action === action);
