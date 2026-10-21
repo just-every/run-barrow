@@ -3,6 +3,7 @@ import { operatorMail } from '../mail.server.mjs'
 import { digest } from './access'
 import { applicationRow } from './application-records'
 import { fail } from './model'
+import { applicationTaskStatements } from './application-followup'
 const encoder=new TextEncoder()
 async function signature(env:Bindings,value:string) {
  const key=await crypto.subtle.importKey('raw',encoder.encode(env.SESSION_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign'])
@@ -56,10 +57,12 @@ export async function verifyApplication(env:Bindings,id:string,code:unknown) {
   fail('APPLICATION_CODE','Incorrect application code.',401)
  }
  const token=crypto.randomUUID()+crypto.randomUUID(),at=new Date().toISOString(),revision=crypto.randomUUID()
+ // AUTO-001: the first verification opens the routed owner task in the same batch (intake documents count toward certificate completeness).
+ const task=row.state==='unverified'?await applicationTaskStatements(env.DB,{id,value_json:row.value_json},'submitted',at,'applicant'):[]
  await env.DB.batch([
   env.DB.prepare('DELETE FROM bw_application_codes WHERE application_id=? AND code_hash=? AND expires_at>? AND attempts<5').bind(id,saved.code_hash,Date.now()),env.DB.prepare('INSERT INTO bw_guard VALUES(changes())'),
   env.DB.prepare('INSERT INTO bw_application_sessions VALUES(?,?,?)').bind(await digest(token),id,Date.now()+86400000),
-  ...(row.state==='unverified'?[env.DB.prepare("INSERT INTO bw_applications VALUES(?,?,?,'submitted',NULL,?,?)").bind(id,JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(row.value_json)).filter(([key])=>key!=='documents'))),revision,row.created_at,at),...((JSON.parse(row.value_json).documents??[]) as any[]).map(doc=>env.DB.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),id,doc.name,doc.type,doc.size,doc.sha256,doc.contentBase64,at)),...((JSON.parse(row.value_json).documents??[]) as any[]).map(doc=>env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,'applicant','application.document-added',at,JSON.stringify({revision,source:'application.verify',reason:`Verified application document SHA-256 ${doc.sha256}.`}))),env.DB.prepare('DELETE FROM bw_application_intake WHERE id=?').bind(id),env.DB.prepare('INSERT INTO bw_application_history VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,'submitted','Email verified; application submitted.','applicant',at)]:[]),
+  ...(row.state==='unverified'?[env.DB.prepare("INSERT INTO bw_applications VALUES(?,?,?,'submitted',NULL,?,?)").bind(id,JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(row.value_json)).filter(([key])=>key!=='documents'))),revision,row.created_at,at),...((JSON.parse(row.value_json).documents??[]) as any[]).map(doc=>env.DB.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),id,doc.name,doc.type,doc.size,doc.sha256,doc.contentBase64,at)),...((JSON.parse(row.value_json).documents??[]) as any[]).map(doc=>env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,'applicant','application.document-added',at,JSON.stringify({revision,source:'application.verify',reason:`Verified application document SHA-256 ${doc.sha256}.`}))),env.DB.prepare('DELETE FROM bw_application_intake WHERE id=?').bind(id),env.DB.prepare('INSERT INTO bw_application_history VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,'submitted','Email verified; application submitted.','applicant',at),...task]:[]),
   env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),id,'application','application.verified',at,JSON.stringify({revision,source:'application.verify',reason:'Applicant verified the contact email; no membership or account granted.'})),env.DB.prepare('DELETE FROM bw_guard')])
  return `barrow_application=${token}; Path=/api/barrow/applications; HttpOnly; Secure; SameSite=Strict; Max-Age=86400`
 }

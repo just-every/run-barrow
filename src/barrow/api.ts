@@ -1,6 +1,7 @@
 import { readStaffGrant,readStaffMembers,staffCommand } from './staff-members'
 import { readRepAssignments,repAssignmentCommand } from './rep-assignments'
 import { readCompanyRoutes,companyRouteCommand } from './company-routes'
+import { readApplicationRules,saveApplicationRules } from './application-rules'
 import { withApprovalStatus } from './company-approval'
 import { staffRequestGate,staffCommandGate } from './staff-access'
 import { bootstrapLegacyCompanyMembers, companyMembership, companyCommand, readCompanyMembers, readCompanyCollisions, ownCompanyInvitations, requireCompanyRight } from './company-members'
@@ -77,6 +78,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/staff/members'&&request.method==='GET')return json({members:await readStaffMembers(env.DB,actor)})
   if(path==='/api/barrow/company/invitations'&&request.method==='GET')return json({invitations:await ownCompanyInvitations(env.DB,actor)})
   if(path==='/api/barrow/company/collisions'&&request.method==='GET')return json({collisions:await readCompanyCollisions(env.DB,actor)})
+  if(path==='/api/barrow/application-rules'&&request.method==='GET')return json(await readApplicationRules(env.DB,actor))
   if(path==='/api/barrow/company/routes'&&request.method==='GET')return json(await readCompanyRoutes(env.DB,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/company/members'&&request.method==='GET')return json(await readCompanyMembers(env.DB,actor,url.searchParams.get('accountId')??''))
   if(!['GET','HEAD'].includes(request.method) && !actor.agent && request.headers.get('origin')!==env.AUTH_ORIGIN) fail('ORIGIN','Use this installation’s own page to change records.',403)
@@ -201,6 +203,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(['company.route.save','company.delegate','company.undelegate'].includes(body.type))return json({result:await companyRouteCommand(env,actor,body.type,body.payload)})
    if(['company.invite','company.accept','company.update','company.remove','company.erase'].includes(body.type))return json({result:await companyCommand(request,env,actor,body.type,body.payload)})
    if(['usage.publish','usage.accept'].includes(body.type))return json({result:await usageTermsCommand(env,actor,body.type,body.payload)})
+   if(body.type==='application.rules.save')return json({result:await saveApplicationRules(env.DB,actor,body.payload)})
    if(['application.approve','application.decline','application.request-information'].includes(body.type))return json({result:await applicationCommand(request,env,actor,body.type,body.payload)})
    if(['report.save','report.remove-recipient'].includes(body.type))result=await reportScheduleCommand(env,actor,body.type,body.payload)
    else if(body.type==='report.run'){ result=await runSavedReport(env,actor,body.payload);await dispatchReports(env) }

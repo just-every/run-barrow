@@ -14,6 +14,7 @@ export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role=
 export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}) {
  const grant=actor.staff
  if(!grant)return true
+ if(task.kind==='application')return false // AUTO-001: application records stay with owner/admin until ct rules on functional reviewers
  if(!staffAccountAllowed(grant,task.accountId))return false
  return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','reconciliation','credit','refund'].includes(task.kind)
 }

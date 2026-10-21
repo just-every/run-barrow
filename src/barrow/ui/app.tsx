@@ -7,6 +7,7 @@ import { CompanyUsers, CompanyInvitation } from './company-members'
 import { CompanyRoutes } from './company-routes'
 import { ApplicationRetention } from './application-retention'
 import { Applications } from './applications'
+import { ApplicationRules } from './application-rules'
 import { UsageAcceptance, UsagePublisher } from './usage-terms'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { HydrationUnit } from '../../base/hydration/unit'
@@ -151,6 +152,7 @@ export function BarrowApp() {
           {activeTab === 'Accounts' && (legacySupplier||staff?.role==='sales-manager'&&staff.accounts==='all') && <RepAssignments version={state} run={run} busy={busy}/>}
           {activeTab === 'Accounts' && legacySupplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
           {activeTab === 'Accounts' && legacySupplier && <Applications version={state} busy={busy} run={run}/>}
+          {activeTab === 'Accounts' && legacySupplier && <ApplicationRules version={state} busy={busy} run={run} owner={state.actor.role==='owner'}/>}
           {activeTab === 'Accounts' && legacySupplier && <UsagePublisher busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}
           {activeTab === 'Team'&&state.actor.role==='owner'&&<StaffMembers accounts={state.accounts} version={state} run={run} busy={busy}/>}

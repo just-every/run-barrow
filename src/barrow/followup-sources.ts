@@ -1,7 +1,9 @@
 import type { AccountValue, Order } from './model'
 import type { Quote } from './quotes'
+import { applicationTaskId, escalatedView } from './application-followup'
+import { supplierDate } from './model'
 
-export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail'
+export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail' | 'application'
 export type FollowupSource = { id: string; kind: FollowupKind; accountId: string; sourceId: string; sourcePath: string; title: string; reason: string; priority: number }
 const day = 86400000
 export async function followupSources(db: D1Database, at: Date) {
@@ -43,6 +45,18 @@ export async function followupSources(db: D1Database, at: Date) {
   // An undated submitted order could be newer: do not invent a dormant age.
   if (mine.some(order => !submissions.has(order.id))) { unknownAge.push(`Account ${row.id}: an undated submission leaves dormant age unknown.`); continue }
   candidates.push({ id, kind: 'dormant', accountId: row.id, sourceId: row.id, sourcePath: '/api/barrow/state', title: `Dormant account ${account.name}`, reason: `${dates.length ? 'Latest submitted order' : 'Earliest recorded account save'} ${since}; no submitted activity within 90 elapsed days.`, priority: 4 })
+ }
+ // AUTO-001: an open application stays a candidate (escalated once past its deadline) until a decision resolves it.
+ const [applicationRows, applicationTasks] = await Promise.all([
+  db.prepare("SELECT id,value_json,state FROM bw_applications WHERE state<>'unverified'").all<{ id: string; value_json: string; state: string }>(),
+  db.prepare("SELECT value_json FROM bw_followups WHERE id LIKE 'application:%'").all<{ value_json: string }>(),
+ ])
+ const tasks = new Map(applicationTasks.results.map(row => { const task = JSON.parse(row.value_json); return [task.id as string, task] }))
+ for (const row of applicationRows.results) {
+  const id = applicationTaskId(row.id)
+  if (['approved', 'declined', 'withdrawn'].includes(row.state)) { resolved.set(id, `Decision recorded: application ${row.state}.`); continue }
+  const shown = tasks.has(id) ? escalatedView(tasks.get(id), supplierDate(at)) : null
+  candidates.push({ id, kind: 'application', accountId: id, sourceId: row.id, sourcePath: '/api/barrow/applications', title: shown?.title ?? `Review trade application ${JSON.parse(row.value_json).name}`, reason: shown?.reason ?? 'Verified application awaiting review.', priority: shown?.priority ?? 2 })
  }
  const accountRevisions = new Map(accountRows.results.map(row => [row.id, row.revision]))
  return { candidates, resolved, unknownAge, accountRevisions }

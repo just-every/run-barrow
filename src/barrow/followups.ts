@@ -4,6 +4,7 @@ import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { now } from './clock'
 import { followupSources, type FollowupSource } from './followup-sources'
+import { applicationTaskStatements, escalatedView } from './application-followup'
 import { fail, requirePerson, requireSupplier, text, type Actor } from './model'
 import { calendarDate, reportZone } from './report-zone'
 
@@ -33,7 +34,7 @@ export async function readFollowups(env: Bindings, actor: Actor, params: URLSear
  authorize(actor)
  const timeZone = await reportZone(env.DB), today = calendarDate(await now(), timeZone), on = params.has('on') ? validDay(params.get('on')) : today
  const tasks=(await allTasks(env.DB)).filter(task=>staffTaskAllowed(actor,task));const staff=actor.staff?Array.from(new Map((await Promise.all(tasks.map(task=>taskPeople(env.DB,task)))).flat().map(p=>[p.id,{id:p.id,displayName:p.displayName}])).values()):await people(env.DB)
- return { tasks: tasks.filter(task => params.get('view') === 'all' || task.status === 'open' && task.nextContactDate <= on).sort((a, b) => a.priority - b.priority || a.nextContactDate.localeCompare(b.nextContactDate) || a.id.localeCompare(b.id)), people: staff, today, timeZone, on, notes }
+ return { tasks: tasks.map(task => escalatedView(task, today)).filter(task => params.get('view') === 'all' || task.status === 'open' && task.nextContactDate <= on).sort((a, b) => a.priority - b.priority || a.nextContactDate.localeCompare(b.nextContactDate) || a.id.localeCompare(b.id)), people: staff, today, timeZone, on, notes }
 }
 function updateStatement(db: D1Database, before: FollowupTask, after: FollowupValue, revision: string) {
  return db.prepare('UPDATE bw_followups SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(after), revision, before.id, before.revision)
@@ -54,6 +55,12 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
      statements.push(updateStatement(env.DB, existingTask, { ...value, ...source }, crypto.randomUUID()), changed(env.DB))
      updated.push(source.id)
     }
+    continue
+   }
+   if (source.kind === 'application') {
+    // An application verified before its task existed gets the same routed owner task.
+    const app = await env.DB.prepare('SELECT id,value_json FROM bw_applications WHERE id=?').bind(source.sourceId).first<{ id: string; value_json: string }>()
+    if (app) { statements.push(...await applicationTaskStatements(env.DB, app, 'submitted', at, actor.id)); created.push(source.id) }
     continue
    }
    const accountRevision = sources.accountRevisions.get(source.accountId)

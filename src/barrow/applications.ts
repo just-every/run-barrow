@@ -6,6 +6,7 @@ import { applicationLocationStatements } from './application-locations'
 import { readDocument } from './documents'
 import { fail, requireSupplier, text, type Actor } from './model'
 import { applicationRow, applicationValue, applicationView, applicationEvent, applicationDuplicates, purgeUnverified, type ApplicationRow } from './application-records'
+import { applicationTaskStatements } from './application-followup'
 import { formToken, spamCheck, applicationsOpen, sendApplicationCode, applicant, verifyApplication } from './application-auth'
 const json=(value:unknown,headers:Record<string,string>={})=>Response.json(value,{headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...headers}})
 const docStatement=(env:Bindings,id:string,doc:Awaited<ReturnType<typeof readDocument>>,at:string)=>env.DB.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),id,doc.name,doc.type,doc.size,doc.sha256,doc.contentBase64,at)
@@ -58,7 +59,8 @@ export async function applicationResponse(request:Request,env:Bindings):Promise<
   if(!['submitted','information requested'].includes(row.state))fail('APPLICATION_STATE','This application already has a decision.')
   const withdraw=p.action==='withdraw',doc=withdraw?null:row.state==='information requested'?await readDocument(p.document,'An application document','application document'):fail('APPLICATION_STATE','There is no open document request.')
   const state=withdraw?'withdrawn':'submitted',reason=withdraw?'Applicant withdrew the application.':'Applicant answered the information request.'
-  await env.DB.batch([rowGuard(env,row),changed(env.DB),env.DB.prepare('UPDATE bw_applications SET state=?,revision=?,updated_at=? WHERE id=?').bind(state,revision,at,row.id),...(doc?[docStatement(env,row.id,doc,at)]:[]),applicationEvent(env.DB,row.id,state,reason,'applicant',at),env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),row.id,'applicant',doc?'application.document-added':'application.withdrawn',at,JSON.stringify({revision,source:'application.respond',reason})),env.DB.prepare('DELETE FROM bw_guard')])
+  const task=await applicationTaskStatements(env.DB,row,withdraw?'withdrawn':'answered',at,'applicant')
+  await env.DB.batch([rowGuard(env,row),changed(env.DB),env.DB.prepare('UPDATE bw_applications SET state=?,revision=?,updated_at=? WHERE id=?').bind(state,revision,at,row.id),...(doc?[docStatement(env,row.id,doc,at)]:[]),...task,applicationEvent(env.DB,row.id,state,reason,'applicant',at),env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),row.id,'applicant',doc?'application.document-added':'application.withdrawn',at,JSON.stringify({revision,source:'application.respond',reason})),env.DB.prepare('DELETE FROM bw_guard')])
   return json(await applicationView(env.DB,await applicationRow(env.DB,row.id)))
  }
  const actor=await current(request,env);requireSupplier(actor)
@@ -86,7 +88,8 @@ export async function applicationCommand(request:Request,env:Bindings,actor:Acto
   accountId=saved.record.id
   creation=[...saved.statements,...applicationLocationStatements(env,actor,accountId,value.locations,at)]
  }
- await commit(env.DB,actor,[rowGuard(env,row),changed(env.DB),guard('bw_accounts',accounts),guard('bw_applications',snapshot),...creation,audit(env.DB,actor,row.id,`application.duplicates-reviewed:${JSON.stringify(matches.map(({id,kind,revision})=>({id,kind,revision})))}`,{revision,source:type,reason:'Supplier reviewed these exact matches without merging or reassigning any identity.'}),env.DB.prepare('UPDATE bw_applications SET state=?,account_id=?,revision=?,updated_at=? WHERE id=?').bind(state,accountId,revision,at,row.id),applicationEvent(env.DB,row.id,state,reason,actor.id,at),audit(env.DB,actor,row.id,`application.${state.replaceAll(' ','-')}`,{...(accountId?{accountId}:{}),revision,source:type,reason})])
+ const task=await applicationTaskStatements(env.DB,row,state==='approved'?'approved':state==='declined'?'declined':'information-requested',at,actor.id)
+ await commit(env.DB,actor,[rowGuard(env,row),changed(env.DB),guard('bw_accounts',accounts),guard('bw_applications',snapshot),...creation,...task,audit(env.DB,actor,row.id,`application.duplicates-reviewed:${JSON.stringify(matches.map(({id,kind,revision})=>({id,kind,revision})))}`,{revision,source:type,reason:'Supplier reviewed these exact matches without merging or reassigning any identity.'}),env.DB.prepare('UPDATE bw_applications SET state=?,account_id=?,revision=?,updated_at=? WHERE id=?').bind(state,accountId,revision,at,row.id),applicationEvent(env.DB,row.id,state,reason,actor.id,at),audit(env.DB,actor,row.id,`application.${state.replaceAll(' ','-')}`,{...(accountId?{accountId}:{}),revision,source:type,reason})])
  if(accountId)await accountCommand(request,env,actor,'account.invite',{accountId})
  return {...await applicationView(env.DB,await applicationRow(env.DB,row.id),true),...(state==='approved'?{invitationRequestedTo:value.email,invitationRequestedAt:at}: {})}
 }
