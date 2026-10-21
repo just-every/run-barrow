@@ -77,7 +77,7 @@ export function BarrowApp() {
     if (lock.current) return false
     lock.current = true; setBusy(true); setError(''); setNotice('')
     try {
-      await request('/api/barrow/commands', { type, payload })
+      const response=await request<{result?:{status?:string;order?:{status?:string}}}>('/api/barrow/commands', { type, payload })
       if(type==='account.erase'&&payload.accountId===accountId)setAccountId('')
       try { await reload() } catch (error) {
         setError(`The action completed, but the latest records could not be loaded. Refresh before taking another action. ${errorMessage(error)}`)
@@ -90,7 +90,7 @@ export function BarrowApp() {
         'order.refresh': 'Order stock status refreshed.', 'order.cancel': 'Order cancelled. Pier confirmed the stock release.', 'order.attach': 'PO document attached to the draft.', 'order.reorder': 'Reorder draft prepared. Review it in Orders before submitting.',
         'quote.request': 'Quote requested. Your supplier will propose prices and terms in Orders.', 'quote.propose': 'Quote revision saved.', 'quote.approve': 'Discount approved. The buyer can now accept this revision.', 'quote.accept': 'Quote accepted. The order is submitted for supplier review.',
       }
-      setNotice(messages[type] ?? 'Action completed.')
+      setNotice(response.result?.status==='awaiting-company-approval'||response.result?.order?.status==='awaiting-company-approval'?'Order awaits company approval. A different authorized approver must release it before supplier review.':type==='order.company-approve'?'Company purchase approved and submitted for supplier review.':messages[type] ?? 'Action completed.')
       return true
     } catch (error) {
       setError(errorMessage(error))
