@@ -156,6 +156,9 @@ test('owner invites five native functional staff roles, exact scoped reports and
  await expect(team.getByRole('article').filter({ hasText: 'Native sign-in: active' })).toHaveCount(people.length);
  await captureWidths(owner, 'staff-owner-active-roster');
 
+ const withinStock=await h.command('order.prepare',{accountId:assigned,reference:'Stock within allowance',lines:[{sku:'OAT-1',quantity:2}]});
+ const aboveStock=await h.command('order.prepare',{accountId:assigned,reference:'Stock above allowance',lines:[{sku:'OAT-1',quantity:4}]});
+ assert.ok(withinStock.totalCents<=people[0].stockExceptionLimitCents&&aboveStock.totalCents>people[0].stockExceptionLimitCents);
  // A rep's over-limit price revision exposes no manager approval control.
  const sellingRep=active.find(person=>person.role==='rep'),salesManager=active.find(person=>person.role==='sales-manager');
  await sellingRep.page.getByRole('button',{name:'Orders',exact:true}).click();
@@ -167,11 +170,14 @@ test('owner invites five native functional staff roles, exact scoped reports and
  sellingRep.page.once('dialog',dialog=>dialog.accept('Rep requests a USD 20 merchandise discount beyond the USD 10 allowance.'));
  await proposal.getByRole('button',{name:'Send revision 1',exact:true}).click();
  await sellingQuote.getByText('Discount awaiting approval',{exact:true}).waitFor();
+ await expect(sellingRep.page.getByRole('button',{name:'Accept stale stock observation',exact:true})).toHaveCount(0);
  await expect(sellingQuote.getByRole('button',{name:'Approve discount',exact:true})).toHaveCount(0);
  await captureWidths(sellingRep.page,'staff-rep-discount-awaits-manager');
  await salesManager.page.getByRole('button',{name:'Orders',exact:true}).click();
  const managerQuote=salesManager.page.locator(`#quote-${assignedQuote.id}`);
  await managerQuote.getByRole('button',{name:'Approve discount',exact:true}).waitFor();
+ await expect(salesManager.page.getByRole('article').filter({hasText:'Reference: Stock within allowance'}).getByRole('button',{name:'Accept stale stock observation',exact:true})).toHaveCount(1);
+ await expect(salesManager.page.getByRole('article').filter({hasText:'Reference: Stock above allowance'}).getByRole('button',{name:'Accept stale stock observation',exact:true})).toHaveCount(0);
  await captureWidths(salesManager.page,'staff-manager-discount-review');
  salesManager.page.once('dialog',dialog=>dialog.accept('Manager reviewed the USD 20 merchandise discount within the USD 50 allowance.'));
  await managerQuote.getByRole('button',{name:'Approve discount',exact:true}).click();
