@@ -24,6 +24,7 @@ export function BarrowApp() {
   const [error, setError] = useState('')
   const [usageRequired,setUsageRequired]=useState(false)
   const [invitation,setInvitation]=useState<{id:string;token:string}|null>(null)
+  const [invitationMessages,setInvitationMessages]=useState<string[]>([])
   const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -49,6 +50,7 @@ export function BarrowApp() {
   const reload = useCallback(async () => {
     const first = !loaded.current
     loaded.current = true
+    const invitations=await request<any>('/api/barrow/company/invitations');setInvitationMessages(invitations.invitations.filter((v:any)=>v.status!=='invitation requested').map((v:any)=>v.status))
     const usage=await request<any>('/api/barrow/usage-terms')
     setUsageRequired(usage.required)
     if(usage.required)return
@@ -121,7 +123,7 @@ export function BarrowApp() {
     <main id="main-content" className={`br-main${activeTab === pad && selected ? ' br-main-pad' : ''}`} aria-busy={loading || busy}>
       <HydrationUnit><section>
         {error && <Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice>}
-        {notice && <Notice>{notice}</Notice>}
+        {notice && <Notice>{notice}</Notice>}{invitationMessages.map(message=><Notice key={message}>{message}</Notice>)}
         {!state && loading && <p role="status" className="br-loading">Loading your wholesale workspace…</p>}
         {invitation&&<CompanyInvitation {...invitation} onAccepted={()=>{setInvitation(null);void load()}}/>}
         {usageRequired&&!invitation&&<UsageAcceptance onAccepted={()=>void load()}/>}

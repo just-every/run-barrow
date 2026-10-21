@@ -102,7 +102,8 @@ export async function companyCommand(request: Request, env: Bindings, actor: Act
   const match = await collision(env.DB, accountId, email), id = crypto.randomUUID(), secret = token(), expiresAt = Date.now() + week
   const prior = await env.DB.prepare("SELECT * FROM bw_company_members WHERE email_key=? AND account_id=? AND state<>'removed'").bind(email, accountId).first<any>()
   // An active member is edited explicitly; invitation is still a uniform request.
-  const blocked = match.reason ?? (prior?.state === 'active' ? 'already active in this company' : null)
+  const previousCompany=!supplier(actor)&&await env.DB.prepare("SELECT 1 FROM bw_company_members WHERE email_key=? AND account_id<>?").bind(email,accountId).first()
+  const blocked = match.reason ?? (previousCompany?'supplier review required for company transfer':null) ?? (prior?.state === 'active' ? 'already active in this company' : null)
   const userId = match.person?.id ?? crypto.randomUUID(), memberId = prior?.id ?? crypto.randomUUID()
   // Read snapshots are fenced in the same batch, including Unicode collision keys
   // which SQLite cannot independently normalize.

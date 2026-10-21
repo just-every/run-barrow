@@ -303,7 +303,7 @@ test('trade applicant verification, duplicate-reviewed decisions, private certif
 
 test('company buyers: native invitations, scoped purchasing approval, finance, shared lists, exact recipients and one-user erasure',async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());const products=await stock(pier,'100');
- const h=await installation({https:true,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,MAIL_EVENT_TENANT:'synthetic-barrow-1',MAIL_WEBHOOK_SECRET:'synthetic-barrow-2'}});t.after(()=>h.close());
+ const h=await installation({https:true,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,MAIL_EVENT_TENANT:'synthetic-barrow-1',MAIL_WEBHOOK_SECRET:'whsec_'+Buffer.from('synthetic-barrow-2').toString('base64')}});t.after(()=>h.close());
  let cedar=await h.command('account.save',{id:'cedar',value:{...accountValue(products.customer.id),minimumCents:0,prices:[{sku:'OAT-1',unitCents:40000,minQty:1}]}});
  await h.command('account.save',{id:'other',value:{...accountValue('synthetic-barrow-3','other@example.test'),name:'Harbour Provisions'}});
  const admin={as:await h.signIn('buyer@example.test')},foreign={as:await h.signIn('other@example.test')};
@@ -374,7 +374,7 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  await h.command('quote.message',{quoteId:quote.id,body:'Buyer-visible revision is ready.'});
  for(const who of [admin,purchaser,approver]){const view=await h.api(`/api/barrow/quotes/${quote.id}`,undefined,who);assert.ok(view.thread.some(v=>v.body==='Buyer-visible revision is ready.'));assert.ok(!JSON.stringify(view).includes('Private margin discussion'))}
  await h.api(`/api/barrow/quotes/${quote.id}`,undefined,{...finance,status:404});
- const mailed=h.mail.requests.filter(v=>v.message.subject===`Barrow quote ${quote.id}`).flatMap(v=>v.message.to);for(const address of ['buyer@example.test','purchaser@example.test','approver@example.test'])assert.ok(mailed.includes(address));assert.ok(!mailed.includes('finance@example.test'));
+ const mailed=h.mail.requests.filter(v=>v.message.subject===`Barrow quote ${quote.id}`).flatMap(v=>v.message.to);for(const address of ['buyer@example.test','purchaser@example.test','approver@example.test'])assert.ok(mailed.includes(address),`Missing purchasing recipient ${address}`);assert.ok(!mailed.includes('finance@example.test'));
  const quotedOrder=await h.command('quote.accept',{quoteId:quote.id,number:1},purchaser);assert.equal(quotedOrder.order.status,'awaiting-company-approval');
  await h.configure({MAIL_API_KEY:''});await h.command('quote.message',{quoteId:quote.id,body:'Queued recipient revocation proof.'});
  const queued=(await h.db.prepare("SELECT id,status FROM bw_quote_mail WHERE quote_id=? AND recipient_id=? AND status='not configured'").bind(quote.id,purchaserId).all()).results;assert.ok(queued.length);
