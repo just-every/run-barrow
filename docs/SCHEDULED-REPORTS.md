@@ -4,9 +4,14 @@ Open **Data → Saved monthly reports**. Name a sales or invoice-aging report,
 save an account filter (and optional sales SKU), and select active staff from
 the operator list. The HTTP save door also accepts sales channel/territory
 filters. Definitions are immutable; save a new definition for different filters.
-Only active owner/admin operator IDs are eligible today. Never enter an email
-address, choose a buyer or use an agent credential. Outside accountants and
-buyer AP contacts wait for ACC-005's invited analyst/finance operators.
+Owner/admin identities and owner-granted functional staff are eligible only when
+their current Native activation/version, report entitlement and complete saved
+account filter match. Invite an outside accountant as a finance or analyst member
+through **Team**, explicitly grant the report type and account scope, and wait for
+them to confirm the Native invitation. Never enter a bare email address, choose a
+company buyer or use an agent credential. A grant covering listed accounts cannot
+receive an all-account schedule. ACC-005's conservative grant policy remains
+partial pending ct approval.
 
 The monthly schedule runs on the first day at 09:00 UTC, using the previous
 complete calendar month. **Run previous month now** creates that same period's
@@ -36,8 +41,9 @@ suppression and access to the whole saved filter. Narrower access is refused,
 recorded and never produces a trimmed result. Unauthorized or expired download
 links return 403. No credential in the URL can grant access.
 
-Choose **Remove me from this report** to withdraw. Staff can also remove another
-selected recipient. Removal, role changes, deactivation or operator-version
+Choose **Remove me from this report** to withdraw. Owner/admin can remove another
+selected recipient; functional staff remove only themselves in **Reports → Your
+scheduled snapshots**. Removal, staff-grant revision changes, deactivation or operator-version
 changes cancel queued notifications immediately and revoke existing downloads.
 A later reactivation does not restore the saved operator version's entitlement.
 Create a new native definition with current eligible identities if needed.
@@ -66,8 +72,8 @@ HTTP doors:
 - `report.dispatch`: process due definitions and pending eligible deliveries; also runs hourly through the installation scheduler.
 - `GET /api/barrow/report-runs/<run-id>.json`: exact-recipient frozen download.
 
-RPT-006 stays partial. Tracking source/search and performance, account-list
-pagination and broader report types remain missing. ACC-005 must add eligible
-invited finance/analyst roles per report type, ACC-006 must enforce whole-filter
-assigned-account coverage before reps become recipients, INT-015 retains bounce
+RPT-006 stays partial. Account-list pagination uses bounded current-authority pages. Tracking source/search and
+its performance proof and broader scheduled report types remain missing. ACC-005
+adds exact functional report/account coverage and grant-revision revocation;
+ACC-006 must preserve this for territories and delegated coverage. INT-015 retains bounce
 and suppression custody, and DATA-002 records every step.
