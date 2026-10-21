@@ -6,7 +6,7 @@ import { chromium } from '@playwright/test';
 import { installation, stock } from '../api/harness.mjs';
 const directory=process.env.BARROW_JOURNEY_EVIDENCE??'/tmp/sx-barrow-c25-screens';
 export async function captureWidths(page,name) {
- await mkdir(directory,{recursive:true});
+ await mkdir(directory,{recursive:true});await page.evaluate(()=>scrollTo(0,0));
  for(const width of [1440,390]) {
   await page.setViewportSize({width,height:1000});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${name} ${width}: horizontal overflow`);
@@ -35,6 +35,7 @@ test('native trade application, review, private status, usage acceptance and ret
  const address=async index=>{for(const [label,value] of Object.entries({'Location name':index?'Cedar North':'Cedar Downtown','Address line 1':index?'202 Main Street':'101 Main Street',City:'Columbia','US state':'SC','ZIP code':'29201'}))await form.getByLabel(label,{exact:true}).nth(index).fill(value)};
  await address(0);await form.getByRole('button',{name:'Add requested location'}).click();await address(1);
  await form.getByLabel('Resale certificates',{exact:false}).setInputFiles([{name:'resale.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 synthetic-barrow-1')},{name:'business.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 synthetic-barrow-2')}]);
+ assert.equal(await form.locator('[name=website]').isVisible(),false);
  await form.getByRole('checkbox',{name:'Your details and documents go only to the supplier'}).check();await captureWidths(page,'application-form');
  await page.waitForTimeout(3100);await form.getByRole('button',{name:'Submit and request verification code'}).click();await page.getByRole('status').filter({hasText:'Verification accepted'}).waitFor();
  assert.equal((await h.api('/api/barrow/applications')).applications.length,0);
@@ -49,7 +50,7 @@ test('native trade application, review, private status, usage acceptance and ret
  await queue.getByRole('button',{name:'Approve application and request invitation'}).click();await queue.getByRole('heading',{name:'Cedar Street Pantry · approved'}).waitFor();await captureWidths(staff,'application-approved-review');
  await page.reload();await page.getByText('Status: approved',{exact:true}).waitFor();await captureWidths(page,'application-approved-status');
  const v1=await h.command('usage.publish',{title:'Portal use',body:'Use this portal only for the approved Cedar trade relationship.'});
- const buyer=await signedContext(browser,h,await h.signIn('applicant@example.test')),buy=await buyer.newPage();await buy.goto(h.origin+'/app');await buy.getByRole('heading',{name:'Portal usage terms',exact:true}).waitFor();await captureWidths(buy,'usage-first-signin');await buy.getByRole('checkbox').check();await buy.getByRole('button',{name:'Accept portal usage terms'}).click();await buy.getByRole('button',{name:'Orders',exact:true}).waitFor().catch(async error=>{await captureWidths(buy,'failure-usage');console.log('USAGE_DOM',await buy.locator('main').innerText());console.log('USAGE_FRESH',JSON.stringify(await h.api('/api/barrow/usage-terms',undefined,{as:await buyer.cookies().then(rows=>rows.map(r=>`${r.name}=${r.value}`).join('; '))})));throw error});await captureWidths(buy,'application-approved-assortment');await buy.getByRole('button',{name:'Orders',exact:true}).click();
+ const buyer=await signedContext(browser,h,await h.signIn('applicant@example.test')),buy=await buyer.newPage();await buy.goto(h.origin+'/app');await buy.getByRole('heading',{name:'Portal usage terms',exact:true}).waitFor();await captureWidths(buy,'usage-first-signin');await buy.getByRole('checkbox').check();await buy.getByRole('button',{name:'Accept portal usage terms'}).click();await buy.getByRole('button',{name:'Orders',exact:true}).waitFor();await captureWidths(buy,'application-approved-assortment');await buy.getByRole('button',{name:'Orders',exact:true}).click();
  await h.command('usage.publish',{title:'Portal use update',body:'Updated portal usage obligations.'});await buy.reload();await buy.getByText('Portal use update · version 2',{exact:true}).waitFor();await captureWidths(buy,'usage-reaccept');await buy.getByRole('checkbox').check();await buy.getByRole('button',{name:'Accept portal usage terms'}).click();await buy.getByRole('button',{name:'Orders',exact:true}).waitFor();
  await staff.reload();await staff.getByRole('button',{name:'Accounts',exact:true}).click();await staff.getByRole('region',{name:'Portal usage terms'}).getByRole('heading',{name:'Portal usage terms',exact:true}).waitFor();await captureWidths(staff,'usage-publisher');
  const token=await h.api('/api/barrow/applications/form',undefined,{as:''});await page.waitForTimeout(3100);
