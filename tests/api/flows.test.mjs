@@ -351,6 +351,10 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'Cannot self-approve.'},{...purchaser,status:403});
  await h.command('order.prepare',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},{...finance,status:403});
  await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'Finance cannot approve.'},{...finance,status:403});
+ const approvingPerson=(await h.api('/api/barrow/state',undefined,approver)).actor.id;let approverMember=(await members()).members.find(v=>v.userId===approvingPerson);
+ const restrictedApprover=await h.command('company.update',{accountId:'cedar',memberId:approverMember.id,revision:approverMember.revision,policy:policy(['approver'],{perOrderLimitCents:0,approvalLimitCents:100000,locationLimits:{[place.id]:{approvalLimitCents:70000}}}),reason:'Apply a lower allowance at Downtown.'},admin);
+ await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'Current location approval limit must apply.'},{...approver,status:403});
+ await h.command('company.update',{accountId:'cedar',memberId:approverMember.id,revision:restrictedApprover.revision,policy:policy(['approver'],{perOrderLimitCents:0,approvalLimitCents:100000}),reason:'Administrator explicitly raised the location approval allowance.'},admin);
  await h.command('order.approve',{orderId:waiting.id},{status:409});await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'An agent cannot approve.'},{...agent,status:403});
  cedar=await h.command('account.save',{id:'cedar',revision:cedar.revision,value:{...cedar.value,prices:[{sku:'OAT-1',unitCents:45000,minQty:1}]}});
  await h.command('order.company-approve',{orderId:waiting.id,revision:waiting.revision,reason:'Must recheck changed prices.'},{...approver,status:409});
@@ -388,6 +392,13 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  await h.command('company.remove',{accountId:'cedar',memberId:purchaserMember.id,revision:purchaserMember.revision,reason:'Purchaser no longer represents this company.'},admin);
  await h.api('/api/barrow/catalogue?accountId=cedar',undefined,{...purchaser,status:404});await h.command('order.company-approve',{orderId:quotedOrder.order.id,revision:quotedOrder.order.revision,reason:'Removed preparer cannot retain authority.'},{...approver,status:404});
  for(const row of queued)assert.equal((await h.db.prepare('SELECT status FROM bw_quote_mail WHERE id=?').bind(row.id).first()).status,'withdrawn');
+ // A delegate transfer is supplier-owned: the new company's administrator cannot join historical identities.
+ roster=await members();const financeMember=roster.members.find(v=>v.email==='finance@example.test');
+ await h.command('company.remove',{accountId:'cedar',memberId:financeMember.id,revision:financeMember.revision,reason:'Supplier-reviewed move to the Harbour company.'});
+ await h.command('company.invite',{accountId:'other',email:'finance@example.test',name:'Company Finance',policy:policy(['finance']),reason:'Company administrator cannot perform a transfer.'},foreign);
+ assert.ok((await h.api('/api/barrow/company/collisions')).collisions.some(v=>v.email==='finance@example.test'&&v.collision_reason.includes('supplier review')));
+ await h.command('company.invite',{accountId:'other',email:'finance@example.test',name:'Company Finance',policy:policy(['finance']),reason:'Supplier reviewed the removed prior membership and approved the transfer.'});
+ await h.command('company.accept',companyToken('finance@example.test'),finance);assert.deepEqual((await h.api('/api/barrow/state',undefined,finance)).accounts.map(v=>v.id),['other']);
  const before=await archive(h),hold=await h.command('retention.request',{accountId:'cedar',held:true,reason:'Hold user history for review.'});
  purchaserMember=(await members()).members.find(v=>v.userId===purchaserId);
  await h.command('company.erase',{memberId:purchaserMember.id,revision:purchaserMember.revision,confirm:'ERASE',reason:'Owner review blocked by hold.'},{status:409});
@@ -397,5 +408,5 @@ test('company buyers: native invitations, scoped purchasing approval, finance, s
  const retained=(await h.api('/api/barrow/lists?accountId=cedar',undefined,admin)).lists.find(v=>v.id===shared.id);assert.equal(retained.createdBy,purchaserId);assert.equal(retained.creatorName,'Former company user');assert.equal((await h.api(`/api/barrow/orders/${approved.id}`)).totalCents,90000);
  const after=await archive(h);assert.ok(!JSON.stringify(after).includes('purchaser@example.test'));assert.ok(!JSON.stringify(after).includes('Limited Purchaser'));assert.equal((await h.api(`/api/barrow/orders/${small.id}/confirmations`,undefined,approver)).confirmations[0].snapshot.termsAcceptance.printedName,'Former company user');
  const target=await installation();t.after(()=>target.close());await restore(target,before,{status:400,laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal}});
- assert.ok(JSON.stringify(await h.api('/api/barrow/audit?search=company')).includes('company.user-erased'));
+ const events=(await h.api('/api/barrow/audit?accountId=cedar&limit=200')).events;for(const action of ['company.invitation-requested','company.invitation-accepted','company.rights-changed','company.user-removed','company.user-erased','order.company-approved']){const event=events.find(v=>v.action===action);assert.ok(event,action);assert.ok(event.actorId&&event.createdAt&&event.revision&&event.source&&event.reason);assert.equal(event.actorKind,'human')}await h.api('/api/barrow/audit',undefined,{...finance,status:403});
 });

@@ -50,7 +50,7 @@ function preserveLastAdministrator(db: D1Database, member: CompanyMembership) {
 /** Reject supplier identities and every other company's contact-of-record or membership. */
 async function collision(db: D1Database, accountId: string, email: string) {
  const [accounts, members, people] = await Promise.all([
-  db.prepare('SELECT id,value_json FROM bw_accounts WHERE id<>?').bind(accountId).all<any>(),
+  db.prepare("SELECT id,value_json FROM bw_accounts a WHERE id<>? AND NOT EXISTS(SELECT 1 FROM bw_company_members former WHERE former.account_id=a.id AND former.email_key=? AND former.state='removed')").bind(accountId,email).all<any>(),
   db.prepare("SELECT account_id,email_key FROM bw_company_members WHERE state IN ('invited','active') AND account_id<>?").bind(accountId).all<any>(),
   db.prepare('SELECT id,email,role,status FROM oa_operators').all<any>(),
  ])
