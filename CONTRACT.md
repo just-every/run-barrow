@@ -373,8 +373,8 @@ Judged from the code and tests at commit `034687f` (21 October 2026). ORD-015 co
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 36 | 24 | 73 | 133 |
-| All | 42 | 24 | 73 | 139 |
+| Target and push further | 37 | 23 | 73 | 133 |
+| All | 43 | 23 | 73 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -384,7 +384,7 @@ Judged from the code and tests at commit `034687f` (21 October 2026). ORD-015 co
 | `BAR-004` | Account move-in | published | done | `src/barrow/imports/service.ts`; `src/barrow/imports/targets.ts`; `tests/api/flows.test.mjs` |  |
 | `BAR-005` | Export, restore and erasure | published | done | `src/barrow/accounts.ts`; `src/barrow/portability-policy.mjs`; `tests/api/flows.test.mjs` |  |
 | `BAR-006` | Run site | published | done | `src/site/pages.ts`; `src/site/docs/pages.ts`; `tests/site.test.mjs` |  |
-| `ACC-001` | Trade applications and approval | target | done | `tests/api/flows.test.mjs` — “trade applicant verification, duplicate-reviewed decisions, private certificates, usage reacceptance and owner custody through HTTP”: public form fields and email verification; duplicate-reviewed request/upload/approve/decline; both parties’ status and native invitation; unknown-person price exclusion; usage person/version/hash/time and reacceptance; scoped exports, retention nomination/erasure and restore fence. `tests/journeys/applications.test.mjs` — “native trade application, review, private status, usage acceptance and retention screens at desktop and phone”: UI journey at 1440/390 . |  |
+| `ACC-001` | Trade applications and approval | target | done | `tests/api/flows.test.mjs` — “trade applicant verification, duplicate-reviewed decisions, private certificates, usage reacceptance and owner custody through HTTP”: public form fields and email verification; duplicate-reviewed request/upload/approve/decline; both parties’ status and native invitation; unknown-person price exclusion; usage person/version/hash/time and reacceptance; scoped exports, retention nomination/erasure and restore fence. `tests/journeys/applications.test.mjs` — “native trade application, review, private status, usage acceptance and retention screens at desktop and phone”: UI journey at 1440/390. |  |
 | `ACC-002` | Company buyers and purchasing rights | target | missing |  | Implement company buyers and purchasing rights and prove the stated journey. |
 | `ACC-003` | Billing and delivery locations | target | done | `src/barrow/locations.ts`; `src/barrow/us-address.ts`; `src/barrow/ui/locations.tsx`; `src/barrow/orders.ts`; `src/barrow/export.ts`; `tests/api/locations.test.mjs` |  |
 | `ACC-004` | Account lifecycle and commercial profile | target | done | `src/barrow/accounts.ts`; `src/barrow/account-profile.ts`; `src/barrow/imports/service.ts`; `src/barrow/orders.ts`; `src/barrow/ui/account-form.tsx`; `tests/api/flows.test.mjs`; `tests/api/acknowledgment.test.mjs` |  |
