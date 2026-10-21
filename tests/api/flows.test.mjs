@@ -273,6 +273,7 @@ test('trade applicant verification, duplicate-reviewed decisions, private certif
  for(const path of ['/api/barrow/state',`/api/barrow/catalogue?accountId=${row.accountId}`,`/api/barrow/statements/${row.accountId}`,'/api/barrow/sales-terms','/api/barrow/export.json'])for(const who of [applicant,declined])assert.equal((await h.request(path,who)).status,401,path);
  const first=await h.command('usage.publish',{title:'Portal use',body:'Use this portal only for your own trade account.'});
  const doors=['/api/barrow/state',`/api/barrow/catalogue?accountId=${row.accountId}`,`/api/barrow/accounts/by-id/${row.accountId}`,`/api/barrow/locations?accountId=${row.accountId}`,`/api/barrow/lists?accountId=${row.accountId}`,`/api/barrow/quotes?accountId=${row.accountId}`,`/api/barrow/statements/${row.accountId}`,'/api/barrow/orders/history','/api/barrow/export.json'];
+ assert.equal((await h.api(`/api/barrow/catalogue?accountId=${row.accountId}`,undefined,{...agent,status:409})).error.code,'USAGE_TERMS_REQUIRED');
  for(const path of doors)assert.equal((await h.api(path,undefined,{...buyer,status:409})).error.code,'USAGE_TERMS_REQUIRED',path);
  await h.command('cart.preview',{accountId:row.accountId,lines:[]},{...buyer,status:409});
  await h.command('usage.accept',{version:first.version,sha256:first.sha256,accepted:true},{...agent,status:403});
@@ -288,6 +289,8 @@ test('trade applicant verification, duplicate-reviewed decisions, private certif
  const policy=await h.command('retention.settings',{revision:null,days:{poDocuments:null,media:null,messages:null,commercialHistory:null,applicationRecords:1},reason:'Review declined applications after one day.'});
  await h.db.prepare('UPDATE bw_applications SET updated_at=? WHERE id=?').bind(new Date(Date.now()-2*86400000).toISOString(),duplicate.id).run();
  const retention=await h.api('/api/barrow/retention'),candidate=retention.applications.find(v=>v.id===duplicate.id);assert.equal(candidate.eligible,true);assert.equal(retention.applications.find(v=>v.id===row.id).eligible,false);
+ const withdrawing=await apply({name:'Willow Grocer',email:'withdraw@example.test',noEin:true});const withdrawSession=await verify(withdrawing.id,'withdraw@example.test');const withdrawingView=await h.api('/api/barrow/applications/mine',undefined,withdrawSession);
+ const withdrawn=await h.api('/api/barrow/applications/respond',{action:'withdraw',revision:withdrawingView.revision},withdrawSession);assert.equal(withdrawn.state,'withdrawn');await h.command('application.approve',{id:withdrawn.id,revision:withdrawn.revision,reason:'Cannot approve withdrawn application',duplicateReviews:[]},{status:409});
  const before=await archive(h);
  const receipt=await h.command('retention.erase-application',{id:candidate.id,revision:candidate.revision,policyRevision:policy.revision,confirm:'ERASE',reason:'Owner reviewed expired declined application.'});assert.equal(receipt.applicationId,duplicate.id);
  assert.equal((await h.request('/api/barrow/applications/mine',declined)).status,401);

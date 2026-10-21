@@ -80,13 +80,13 @@ export async function applicationCommand(request:Request,env:Bindings,actor:Acto
  const snapshot=(await env.DB.prepare("SELECT id,revision FROM bw_applications WHERE state IN ('submitted','information requested') ORDER BY id").all<any>()).results
  const accounts=(await env.DB.prepare('SELECT id,revision FROM bw_accounts ORDER BY id').all<any>()).results
  const guard=(table:string,rows:any[])=>env.DB.prepare(`INSERT INTO bw_guard SELECT CASE WHEN (SELECT json_group_array(json_object('id',id,'revision',revision)) FROM (SELECT id,revision FROM ${table} ${table==='bw_applications'?"WHERE state IN ('submitted','information requested')":''} ORDER BY id))=? THEN 1 ELSE 0 END`).bind(JSON.stringify(rows))
- let accountId:string|null=null,invitation:unknown=null,creation:D1PreparedStatement[]=[]
+ let accountId:string|null=null,creation:D1PreparedStatement[]=[]
  if(state==='approved') {
   const saved=await prepareAccountSave(env,actor,{id:p.accountId,value:{...p.account,name:value.name,email:value.email},duplicateReviews:p.accountDuplicateReviews??[],reason})
   accountId=saved.record.id
   creation=[...saved.statements,...applicationLocationStatements(env,actor,accountId,value.locations,at)]
  }
  await commit(env.DB,actor,[rowGuard(env,row),changed(env.DB),guard('bw_accounts',accounts),guard('bw_applications',snapshot),...creation,env.DB.prepare('UPDATE bw_applications SET state=?,account_id=?,revision=?,updated_at=? WHERE id=?').bind(state,accountId,revision,at,row.id),applicationEvent(env.DB,row.id,state,reason,actor.id,at),audit(env.DB,actor,row.id,`application.${state.replaceAll(' ','-')}`,{...(accountId?{accountId}:{}),revision,source:type,reason})])
- if(accountId)invitation=await accountCommand(request,env,actor,'account.invite',{accountId})
+ if(accountId)await accountCommand(request,env,actor,'account.invite',{accountId})
  return {...await applicationView(env.DB,await applicationRow(env.DB,row.id),true),...(state==='approved'?{invitationRequestedTo:value.email,invitationRequestedAt:at}: {})}
 }
