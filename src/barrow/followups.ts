@@ -24,10 +24,10 @@ async function taskPeople(db:D1Database,task:{accountId:string;kind:string}) {
 }
 const allTasks = async (db: D1Database) => (await db.prepare('SELECT value_json,revision FROM bw_followups ORDER BY id').all<Stored>()).results.map(parse)
 const notes = {
- scope: 'ACC-005 functional staff see and act only on tasks their role and current account grant cover. ACC-006 adds territories and delegated coverage. Wholesale source tasks are refreshed by an explicit command; recorded quote mail failures create owned tasks automatically.',
+ scope: 'Your role and current account access determine which follow-ups you can read, assign and resolve. Refresh reconciles current wholesale records; recorded quote email failures create owned tasks automatically.',
  sources: 'Quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days. Missing sources or unknown ages do not prove resolution.',
  contact: 'Contact attempts are manually recorded and do not send outreach; quote email delivery is recorded separately. Failed contact leaves work open unless a person explicitly records a separate resolution.',
- exceptions: 'Carrier delivery and payment exceptions are not recorded until SHIP-003, PAY-011 and AGT-005 provide verified sources.',
+ exceptions: 'Carrier delivery and payment exceptions are not recorded.',
 }
 export async function readFollowups(env: Bindings, actor: Actor, params: URLSearchParams) {
  authorize(actor)
