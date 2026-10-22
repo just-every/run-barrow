@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { installation, stock, accountValue, archive, restore, activateStaff } from './harness.mjs';
 import { sheetFixture, csvRows } from './line-sheet-fixture.mjs';
 const rows = text => text.trim().split('\r\n').map(line=>line.slice(1,-1).split('","'));
@@ -158,11 +159,17 @@ test('ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with
 });
 
 const sized=skus=>skus.map(sku=>({sku,style:'TEE-BLUE',color:'Blue',size:sku.split('-').at(-1)}));
+// A 4x6 RGB JPEG; the test adds an EXIF segment that Barrow must strip before hashing and embedding.
+const jpeg=Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAGAAQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDm6KKK+iPGP//Z','base64');
+const withExif=Buffer.concat([jpeg.subarray(0,2),Buffer.from([0xff,0xe1,0x00,0x10]),Buffer.from('Exif\0\0GPS-1234','latin1'),jpeg.subarray(2)]),imageSha=createHash('sha256').update(jpeg).digest('hex');
 test('ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep',async t=>{
  const f=await sheetFixture(t),{h,buyers,sheet,skus}=f,year=new Date().getUTCFullYear()+1,w1=[`${year}-03-02`,`${year}-03-14`],w2=[`${year}-03-16`,`${year}-03-30`];
  await h.command('seller.identity',{revision:null,legalName:'Wrong buyer edit',address:'Nowhere'},{...buyers.cedar,status:403});
  const identity=await h.command('seller.identity',{revision:null,legalName:'Mill House Apparel LLC',address:'12 Spring St, New York, NY',registration:'synthetic-barrow-7'});
- await h.command('variant.attributes',{revision:(await h.api('/api/barrow/variant-attributes')).revision,variants:sized(skus)});
+ let catalog=await h.command('variant.attributes',{revision:(await h.api('/api/barrow/variant-attributes')).revision,variants:sized(skus)});
+ for(const [payload,who,status] of [[{sku:skus[2],contentBase64:Buffer.from('%PDF-1.4 synthetic').toString('base64')},{},400],[{sku:'UNRECORDED',contentBase64:withExif.toString('base64')},{},404],[{sku:skus[2],contentBase64:withExif.toString('base64')},buyers.cedar,403]])await h.command('variant.image',{revision:catalog.revision,...payload},{...who,status});
+ catalog=await h.command('variant.image',{revision:catalog.revision,sku:skus[2],contentBase64:withExif.toString('base64')});
+ assert.deepEqual(catalog.variants[skus[2]].image,{sha256:imageSha,width:4,height:6,size:jpeg.length});
  await h.command('terms.publish',{series:'Wholesale terms',title:'Wholesale terms 2027',body:'Synthetic cancellation and returns terms.'});
  await h.command('terms.assign',{accountId:'cedar',series:'Wholesale terms',requireAcceptance:true});
  const rep=await activateStaff(h,'rep@example.test',{role:'rep',accounts:[],warehouses:[],reports:[],discountLimitCents:0,stockExceptionLimitCents:0});
@@ -170,19 +177,21 @@ test('ORD-014: a seasonal matrix order with two ship windows is confirmed with s
  const window=([requestedDate,cancelAfter])=>({requestedDate,cancelAfter});
  let order=await h.command('order.prepare',{accountId:'cedar',lineSheetId:sheet.id,lineSheetRevision:sheet.revision,reference:'SPRING-MATRIX',lines:[{sku:skus[0],quantity:4,...window(w1)},{sku:skus[1],quantity:6,...window(w1)},{sku:skus[2],quantity:2,...window(w2)}]},buyers.cedar);
  assert.equal(order.season,`Spring ${year}`);
+ assert.deepEqual(order.lines.map(l=>l.image?.sha256),[undefined,undefined,imageSha]);
  assert.deepEqual(order.lines.map(l=>[l.style,l.color,l.size,l.requestedDate,l.cancelAfter]),[['TEE-BLUE','Blue','S',...w1],['TEE-BLUE','Blue','M',...w1],['TEE-BLUE','Blue','3XL',...w2]]);
  order=await h.command('order.submit',{orderId:order.id,termsAcceptance:{version:1,accepted:true}},buyers.cedar);
  const path=`/api/barrow/orders/${order.id}/confirmations`;
  const download=async(number,who)=>{
   const pdf=await h.request(`${path}/${number}.pdf`,who),csv=await h.request(`${path}/${number}.csv`,who);assert.equal(pdf.status,200);assert.equal(csv.status,200);
   const text=Buffer.from(await pdf.arrayBuffer()).toString('latin1');
-  for(const value of ['Seller: Mill House Apparel LLC',`Season: Spring ${year}`,`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size 3XL',`Ship window: ${w2[0]} | Cancel after: ${w2[1]}`,'Sales terms: Wholesale terms 2027','Terms accepted by the buyer in the portal'])assert.ok(text.includes(value),value);
+  for(const value of ['Seller: Mill House Apparel LLC',`Season: Spring ${year}`,`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size 3XL',`Ship window: ${w2[0]} | Cancel after: ${w2[1]}`,'Sales terms: Wholesale terms 2027','Terms accepted by the buyer in the portal',`Product image sha256 ${imageSha}`,'/Subtype /Image /Width 4 /Height 6 /ColorSpace /DeviceRGB',jpeg.toString('latin1')])assert.ok(text.includes(value),value);
+  assert.ok(!text.includes('GPS-1234'));
   return {pdf:text,csv:await csv.text()};
  };
  const c1=await download(1,buyers.cedar);assert.deepEqual(await download(1,rep.who),c1);
  const first=csvRows(c1.csv).rows;
  assert.deepEqual(first.map(r=>[r.sku,r.style,r.color,r.size,r.requested_date,r.cancel_after,r.season,r.quantity]),[[skus[0],'TEE-BLUE','Blue','S',...w1,`Spring ${year}`,'4'],[skus[1],'TEE-BLUE','Blue','M',...w1,`Spring ${year}`,'6'],[skus[2],'TEE-BLUE','Blue','3XL',...w2,`Spring ${year}`,'2']]);
- assert.ok(first.every(r=>r.seller==='Mill House Apparel LLC | 12 Spring St, New York, NY | synthetic-barrow-7'));
+ assert.ok(first.every(r=>r.seller==='Mill House Apparel LLC | 12 Spring St, New York, NY | synthetic-barrow-7'));assert.deepEqual(first.map(r=>r.image_sha256),['','',imageSha]);
  // Only the buyer revises a submitted order; stale, unaccepted-terms and supplier attempts change nothing.
  const change={orderId:order.id,revision:order.revision,changes:[{line:1,quantity:3}]},accept={termsAcceptance:{version:1,accepted:true}};
  await h.command('order.revise',{...change,...accept},{...rep.who,status:403});
@@ -221,11 +230,13 @@ test('ORD-014: a seasonal matrix order with two ship windows is confirmed with s
  assert.equal(Buffer.from(await(await h.request(new URL(link).pathname,buyers.cedar)).arrayBuffer()).toString('latin1'),c2.pdf);
  assert.equal((await h.request(new URL(link).pathname,buyers.wren)).status,404);
  assert.deepEqual(Object.entries((await h.api(path,undefined,buyers.cedar)).emails).map(([number,email])=>[number,email.status]),[['1','accepted'],['2','accepted'],['3','accepted']]);
- // A later seller identity never rewrites recorded documents; restore keeps both revisions byte-identical and sends nothing.
+ // A later seller identity or removed image never rewrites recorded documents; restore keeps both revisions byte-identical and sends nothing.
  await h.command('seller.identity',{revision:identity.revision,legalName:'Renamed Seller LLC',address:'1 Other St'});
- assert.equal((await download(1,buyers.cedar)).csv,c1.csv);
+ await h.command('variant.image',{revision:(await h.api('/api/barrow/variant-attributes')).revision,sku:skus[2],remove:true});
+ assert.deepEqual(await download(1,buyers.cedar),c1);
  const target=await installation();t.after(()=>target.close());await restore(target,await archive(h));
  for(const number of [1,2])assert.equal(await(await target.request(`${path}/${number}.csv`)).text(),await(await h.request(`${path}/${number}.csv`)).text());
+ assert.equal(Buffer.from(await(await target.request(`${path}/1.pdf`)).arrayBuffer()).toString('latin1'),c1.pdf);
  assert.equal(target.mail.requests.length,0);
 });
 

@@ -31,7 +31,7 @@ import { readRetention, retentionCommand } from './retention'
 import { readConfirmations, confirmationResponse } from './confirmations'
 import { confirmationEmails } from './confirmation-mail'
 import { readSellerIdentity, saveSellerIdentity } from './seller-identity'
-import { readVariantAttributes, saveVariantAttributes } from './variant-attributes'
+import { readVariantAttributes, saveVariantAttributes, saveVariantImage } from './variant-attributes'
 import { substitutionCommand } from './substitutions'
 import { listCommercialAudit,exportCommercialAudit } from './commercial-audit'
 import { runtimeBindings, type Bindings } from '../auth.server'
@@ -260,6 +260,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(body.type==='seller.identity')result=await saveSellerIdentity(env.DB,actor,body.payload)
    else if(body.type==='variant.attributes')result=await saveVariantAttributes(env.DB,actor,body.payload)
+   else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
    else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)

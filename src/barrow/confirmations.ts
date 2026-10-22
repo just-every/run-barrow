@@ -5,7 +5,8 @@ import type { Actor, Line, Order } from './model'
 import { fail } from './model'
 import { audit } from './access'
 import { csvText } from './cart-csv'
-import { textPdf } from './pdf'
+import { imagePdf, textPdf, type PdfEntry } from './pdf'
+import { readImages, type StoredImage } from './product-images'
 import { now } from './clock'
 import { termsText, type TermsAcceptance } from './sales-terms'
 import { sellerIdentity, sellerLine, type SellerIdentity } from './seller-identity'
@@ -33,7 +34,7 @@ export async function readConfirmations(db: D1Database, orderId: string): Promis
  return rows.results.map(row => ({ number: row.number, stage: row.stage, at: row.created_at, snapshot: JSON.parse(row.value_json) }))
 }
 const address = (value: Order['shipTo']) => value ? [value.name, value.line1, value.line2, value.city, value.state, value.zip].filter(Boolean).join(', ') : 'Not recorded'
-const absent = 'Product images are not recorded in this confirmation; sales terms appear only where the assigned terms were accepted. Tax is not calculated.'
+const limitations = (s: Snapshot) => `${s.lines.every(line => line.image) ? '' : 'Lines without a recorded variant image show none. '}Sales terms appear only where the assigned terms were accepted. Tax is not calculated.`
 const termsLines = (record: Confirmation) => {
  const t = record.snapshot.termsAcceptance
  if (!t) return []
@@ -47,16 +48,17 @@ const ownWindow = (line: Line) => Boolean(line.requestedDate || line.cancelAfter
 const shipDate = (s: Snapshot, line: Line) => ownWindow(line) ? line.requestedDate : s.requestedDate
 const cancelDate = (s: Snapshot, line: Line) => ownWindow(line) ? line.cancelAfter : s.cancelAfter
 const variant = (line: Line) => line.style ? ` | Style ${line.style} | Color ${line.color} | Size ${line.size}` : ''
-export function confirmationPdf(record: Confirmation) {
+export function confirmationPdf(record: Confirmation, images = new Map<string, StoredImage>()) {
  const s = record.snapshot, currency = s.currency ?? 'AUD'
  const windows = [...new Set(s.lines.map(line => `${shipDate(s, line) ?? 'Not recorded'} to cancel ${cancelDate(s, line) ?? 'not recorded'}`))]
  const revision = s.changes ? [`Revises confirmation C${s.revises ?? '?'}: ${s.changes.map(change => `line ${change.line + 1} ${change.sku} quantity ${change.before.quantity} -> ${change.after.quantity}`).join('; ')}`] : []
- const lines = [`Order confirmation ${s.id}-C${record.number}`, `${record.stage.toUpperCase()} | ${record.at}`, `Order revision: ${s.orderRevision}`, ...revision, `Seller: ${sellerLine(s.seller)}`, `Buyer: ${s.customerName} | Account: ${s.accountId}`, `PO: ${s.reference || 'Not recorded'}`, `Season: ${s.season ?? 'Not recorded'}`, `Bill to: ${address(s.billTo)}`, `Ship to: ${address(s.shipTo)}`, windows.length > 1 ? `Ship windows: ${windows.join('; ')}` : `Requested delivery: ${s.requestedDate ?? 'Not recorded'} | Cancel after: ${s.cancelAfter ?? 'Not recorded'}`, `Payment terms: ${s.termsDays === 0 ? 'Due on receipt' : `Net ${s.termsDays} days`}`, '', ...s.lines.flatMap(line => [`${line.sku} | ${line.name}${variant(line)}`, s.priceDisplay ? `${line.quantity} ${line.unit??'units'} | ${priceLabels(line,currency,s.priceDisplay.confirmation)}${s.priceDisplay.confirmation==='retail'?'':`; wholesale line ${amount(line.lineCents??line.quantity*line.unitCents,currency)}`}` : `${line.quantity} ${line.unit ?? 'units'} at ${amount(line.unitCents,currency)}; line ${amount(line.lineCents ?? line.quantity * line.unitCents,currency)}`, `Base quantity: ${line.baseQuantity ?? line.quantity} ${line.baseUnit ?? 'units'}${line.packContents ? ` | Pack: ${line.packContents}` : ''}`, ...(windows.length > 1 ? [`Ship window: ${shipDate(s, line) ?? 'Not recorded'} | Cancel after: ${cancelDate(s, line) ?? 'Not recorded'}`] : [])]), '', ...(s.delivery ? [`Delivery: ${s.delivery.name} | ${s.delivery.windowStart} to ${s.delivery.windowEnd}`, `Freight and handling: ${amount(s.delivery.totalCents ?? 0,currency)}`] : ['Delivery method and charge: not recorded']), `Order total: ${amount(s.totalCents,currency)}`, ...(s.instructions ? [`Instructions: ${s.instructions}`] : []), ...termsLines(record), '', absent]
- return textPdf(lines.flatMap(wrap))
+ const lines: PdfEntry[] = [`Order confirmation ${s.id}-C${record.number}`, `${record.stage.toUpperCase()} | ${record.at}`, `Order revision: ${s.orderRevision}`, ...revision, `Seller: ${sellerLine(s.seller)}`, `Buyer: ${s.customerName} | Account: ${s.accountId}`, `PO: ${s.reference || 'Not recorded'}`, `Season: ${s.season ?? 'Not recorded'}`, `Bill to: ${address(s.billTo)}`, `Ship to: ${address(s.shipTo)}`, windows.length > 1 ? `Ship windows: ${windows.join('; ')}` : `Requested delivery: ${s.requestedDate ?? 'Not recorded'} | Cancel after: ${s.cancelAfter ?? 'Not recorded'}`, `Payment terms: ${s.termsDays === 0 ? 'Due on receipt' : `Net ${s.termsDays} days`}`, '', ...s.lines.flatMap((line): PdfEntry[] => [...(line.image && images.has(line.image.sha256) ? [{ image: line.image.sha256 }] : []), `${line.sku} | ${line.name}${variant(line)}`, ...(line.image ? [`Product image sha256 ${line.image.sha256}`] : []), s.priceDisplay ? `${line.quantity} ${line.unit??'units'} | ${priceLabels(line,currency,s.priceDisplay.confirmation)}${s.priceDisplay.confirmation==='retail'?'':`; wholesale line ${amount(line.lineCents??line.quantity*line.unitCents,currency)}`}` : `${line.quantity} ${line.unit ?? 'units'} at ${amount(line.unitCents,currency)}; line ${amount(line.lineCents ?? line.quantity * line.unitCents,currency)}`, `Base quantity: ${line.baseQuantity ?? line.quantity} ${line.baseUnit ?? 'units'}${line.packContents ? ` | Pack: ${line.packContents}` : ''}`, ...(windows.length > 1 ? [`Ship window: ${shipDate(s, line) ?? 'Not recorded'} | Cancel after: ${cancelDate(s, line) ?? 'Not recorded'}`] : [])]), '', ...(s.delivery ? [`Delivery: ${s.delivery.name} | ${s.delivery.windowStart} to ${s.delivery.windowEnd}`, `Freight and handling: ${amount(s.delivery.totalCents ?? 0,currency)}`] : ['Delivery method and charge: not recorded']), `Order total: ${amount(s.totalCents,currency)}`, ...(s.instructions ? [`Instructions: ${s.instructions}`] : []), ...termsLines(record), '', limitations(s)]
+ const flowed = lines.flatMap((entry): PdfEntry[] => typeof entry === 'string' ? wrap(entry) : [entry])
+ return flowed.some(entry => typeof entry !== 'string') ? imagePdf(flowed, images) : textPdf(flowed as string[])
 }
 export function confirmationCsvRows(record: Confirmation, selected: readonly ConfirmationColumn[]) {
  const s = record.snapshot
- const values=s.lines.map(line => [`${s.id}-C${record.number}`,record.stage,record.at,s.id,s.orderRevision,s.accountId,s.customerName,s.reference,address(s.billTo),address(s.shipTo),shipDate(s,line),cancelDate(s,line),s.termsDays,s.currency ?? 'AUD',line.sku,line.name,line.quantity,line.unit,line.baseQuantity ?? line.quantity,line.baseUnit,line.unitCents,line.lineCents ?? line.quantity * line.unitCents,s.delivery?.totalCents ?? 0,s.totalCents,absent,line.msrpCents,marginBps(line.unitCents,line.msrpCents),s.season,sellerLine(s.seller),line.style,line.color,line.size])
+ const values=s.lines.map(line => [`${s.id}-C${record.number}`,record.stage,record.at,s.id,s.orderRevision,s.accountId,s.customerName,s.reference,address(s.billTo),address(s.shipTo),shipDate(s,line),cancelDate(s,line),s.termsDays,s.currency ?? 'AUD',line.sku,line.name,line.quantity,line.unit,line.baseQuantity ?? line.quantity,line.baseUnit,line.unitCents,line.lineCents ?? line.quantity * line.unitCents,s.delivery?.totalCents ?? 0,s.totalCents,limitations(s),line.msrpCents,marginBps(line.unitCents,line.msrpCents),s.season,sellerLine(s.seller),line.style,line.color,line.size,line.image?.sha256])
  return values.map(row=>selected.map(column=>row[confirmationColumns.indexOf(column)]))
 }
 export function withConfirmationCurrency(columns:ConfirmationColumn[]):ConfirmationColumn[] {
@@ -83,5 +85,5 @@ export function confirmationCsv(record: Confirmation, layout: Pick<ConfirmationL
 export async function confirmationResponse(db: D1Database, order: Order, number: number, format: 'csv'|'pdf', layoutId?:string) {
  const record = (await readConfirmations(db,order.id)).find(record => record.number === number)
  if (!record) fail('NOT_FOUND','Confirmation revision not found.',404)
- return new Response(format === 'pdf' ? confirmationPdf(record) : confirmationCsv(record,await selectedConfirmationLayout(db,layoutId)), {headers:{'content-type':format === 'pdf' ? 'application/pdf' : 'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename="${order.id}-C${record.number}.${format}"`}})
+ return new Response(format === 'pdf' ? confirmationPdf(record,await readImages(db,record.snapshot.lines.map(line=>line.image))) : confirmationCsv(record,await selectedConfirmationLayout(db,layoutId)), {headers:{'content-type':format === 'pdf' ? 'application/pdf' : 'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename="${order.id}-C${record.number}.${format}"`}})
 }

@@ -27,6 +27,6 @@ export function OrderConfirmations({ orderId, supplier }: { orderId: string; sup
    <a href={`/api/barrow/orders/${encodeURIComponent(orderId)}/confirmations/${record.number}.pdf`} download>Download confirmation {record.number} PDF</a>{' · '}
    <a href={`/api/barrow/orders/${encodeURIComponent(orderId)}/confirmations/${record.number}.csv${layout?`?layout=${encodeURIComponent(layout)}`:''}`} download>Download confirmation {record.number} CSV</a>
   </p>)}
-  {Boolean(records?.length) && <p>Each revision records the seller identity, lines with their style, color, size and ship window, addresses, delivery and payment terms. Configured wholesale and MSRP columns follow the recorded document preferences. Accepted sales terms appear where the account had assigned terms. Product images are not recorded. Tax is not calculated.</p>}
+  {Boolean(records?.length) && <p>Each revision records the seller identity, lines with their style, color, size, image and ship window, addresses, delivery and payment terms. Configured wholesale and MSRP columns follow the recorded document preferences. Recorded variant images appear in the PDF. Accepted sales terms appear where the account had assigned terms. Tax is not calculated.</p>}
  </details>
 }
