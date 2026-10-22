@@ -13,7 +13,7 @@ export async function request<T>(path: string, body?: unknown, preloaded = false
   const data: any = await response.json().catch(() => null)
   if (!response.ok || data?.error) {
     const detail = typeof data?.error?.message === 'string' ? data.error.message : `The request failed (${response.status}). Please try again.`
-    throw new Error(detail)
+    throw Object.assign(new Error(detail),{status:response.status,code:typeof data?.error?.code==='string'?data.error.code:undefined})
   }
   if (data === null) throw new Error('Barrow returned an unreadable response. Please try again.')
   return data as T
