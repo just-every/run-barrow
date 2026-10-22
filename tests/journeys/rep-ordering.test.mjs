@@ -130,6 +130,7 @@ test('a rep plans a showroom visit, records buyer notes and samples, turns the s
  await expect(card).toContainText('Next action: avery-rep');
  await captureWidths(avery, 'visits-sample-acknowledged');
  await avery.getByRole('button', { name: 'Follow-ups', exact: true }).click();
+ await avery.getByLabel('Queue view').selectOption('all'); // the next action is dated for the visit day
  const task = avery.locator('article').filter({ hasText: 'Showroom visit with Cedar Street Pantry' });
  await task.getByText(/Pier acknowledged sample order .*: 2 of 2 units reserved/).waitFor();
  await captureWidths(avery, 'visits-follow-up-in-queue');
