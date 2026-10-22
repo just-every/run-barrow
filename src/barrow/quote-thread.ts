@@ -13,7 +13,7 @@ import { supplierRoute } from './quote-routing'
 export type Side = 'buyer' | 'supplier'
 export type NoticeKind = 'requested' | 'message' | 'internal' | 'revision' | 'accepted'
 export type Attachment = { name: string; type: string; size: number; sha256: string; path: string }
-export type Entry = { id: string; quoteId: string; accountId: string; kind: 'message' | 'internal'; side: Side; authorId: string; authorEmail: string; body: string; quoteRevision: number; at: string; attachment?: Attachment }
+export type Entry = { id: string; quoteId: string; accountId: string; kind: 'message' | 'internal'; side: Side; authorId: string; authorEmail: string; body: string; quoteRevision: number; at: string; erasedAttachment?: {type:string;size:number;sha256:string}; attachment?: Attachment }
 export type Notice = { id: string; quoteId: string; kind: NoticeKind; summary: string; at: string }
 type QuoteRef = { id: string; accountId: string; revisions: { number: number }[] }
 
@@ -27,7 +27,7 @@ export const notice = (db: D1Database, actor: Actor, quote: { id: string; accoun
 }
 
 function entry(row: any): Entry {
- return { id: row.id, quoteId: row.quote_id, accountId: row.account_id, kind: row.kind, side: row.side, authorId: row.author_id, authorEmail: row.author_email, body: row.body, quoteRevision: row.quote_revision, at: row.created_at, ...(row.attachment_name ? { attachment: { name: row.attachment_name, type: row.attachment_type, size: row.attachment_size, sha256: row.attachment_sha256, path: attachmentPath(row.quote_id, row.id) } } : {}) }
+ return { id: row.id, quoteId: row.quote_id, accountId: row.account_id, kind: row.kind, side: row.side, authorId: row.author_id, authorEmail: row.author_email, body: row.body, quoteRevision: row.quote_revision, at: row.created_at, ...(row.attachment_name ? { attachment: { name: row.attachment_name, type: row.attachment_type, size: row.attachment_size, sha256: row.attachment_sha256, path: attachmentPath(row.quote_id, row.id) } } : row.attachment_sha256 ? {erasedAttachment:{type:row.attachment_type,size:row.attachment_size,sha256:row.attachment_sha256}} : {}) }
 }
 
 /** Thread entries for quotes the actor may already read; buyers never receive internal notes. */

@@ -29,7 +29,7 @@ const currentExpiry = `SELECT 1 FROM bw_quotes q WHERE q.id=m.quote_id
  AND json_extract(q.value_json,'$.status')='proposed' AND json_extract(q.value_json,'$.accepted') IS NULL
  AND json_extract(q.value_json,'$.revisions[#-1].number')=m.expiry_revision
  AND json_extract(q.value_json,'$.revisions[#-1].validUntil')=?`
-const expiryEligible = `json_extract(q.value_json,'$.status')='proposed'
+const expiryEligible = `EXISTS(SELECT 1 FROM bw_accounts a WHERE a.id=q.account_id AND json_extract(a.value_json,'$.email') NOT LIKE '%@erased.invalid') AND json_extract(q.value_json,'$.status')='proposed'
  AND json_extract(q.value_json,'$.accepted') IS NULL
  AND json_extract(q.value_json,'$.revisions[#-1].validUntil')=?`
 

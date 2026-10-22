@@ -10,6 +10,8 @@ const rerBin = join(source, 'node_modules', '.bin', 'rer');
 export async function freshCheckout(parent, name) {
  const root = join(parent, name);
  await exec('git', ['clone', '--quiet', '--no-hardlinks', source, root]);
+ await exec('git', ['config','user.name','Run Edit Run fleet'], { cwd: root });
+ await exec('git', ['config','user.email','fleet@runeditrun.com'], { cwd: root });
  await exec('git', ['remote', 'set-url', 'origin', 'https://github.com/just-every/run-barrow'], { cwd: root });
  return root;
 }

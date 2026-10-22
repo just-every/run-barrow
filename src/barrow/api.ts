@@ -1,3 +1,5 @@
+import { erasureRestoreResponse, requireArchiveJournal, exportIndependentJournal, attachIndependentJournal, initializeIndependentJournal } from './erasure-journal'
+import { previewAccountErasure, executeAccountErasure } from './account-erasure'
 import { repPerformance, repPerformanceCsv } from './rep-performance'
 import { saveRepTarget } from './rep-targets'
 import { readStaffGrant,readStaffMembers,staffCommand } from './staff-members'
@@ -55,7 +57,7 @@ import { saveReportZone } from './report-zone'
 import { fulfillmentReport } from './fulfillment'
 import { catalogue, pierConfigured, pierState } from './pier'
 import { invoiceCsv } from './invoice'
-import { Problem,fail,requireSupplier,supplier } from './model'
+import { Problem,fail,requireSupplier,supplier,text } from './model'
 import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport,type PierSkus } from './imports'
 /** MOVE-007: read-only SKU check of the connected Pier catalog; null when Pier cannot be read. */
 async function pierSkus(env:Bindings):Promise<PierSkus> {
@@ -68,6 +70,20 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
  if(!path.startsWith('/api/barrow/')) return null
  try {
   const env=runtimeBindings(original)
+  if(path==='/api/barrow/erasure-journal') {
+   const actor=await current(request,env)
+   if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may handle the independent erasure journal.',403)
+   if(request.method==='GET'){const bundle=await exportIndependentJournal(env);return new Response(JSON.stringify(bundle),{headers:{'content-type':'application/json','content-disposition':'attachment; filename="barrow-erasure-journal.json"','cache-control':'no-store'}})}
+   if(request.method!=='POST')return json({error:'Use GET or POST'},405)
+   if(request.headers.get('origin')!==env.AUTH_ORIGIN)fail('ORIGIN','Use this installation’s own origin.',403)
+   const input=await boundedJson(request,1500000) as any
+   if(input?.confirm!=='JOURNAL')fail('CONFIRM','Type JOURNAL to attest this is the source installation’s complete current journal.',400)
+   const reason=text(input.reason,'Journal handling reason',1000)
+   const result=input.initialize===true?await initializeIndependentJournal(env,actor,reason):await attachIndependentJournal(env,input.bundle)
+   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO oa_auth_audit VALUES(?,?,?,?,?)').bind(crypto.randomUUID(),actor.id,'retention.journal-attached',JSON.stringify({sourceIdentity:result.sourceIdentity,reason}),Date.now())])
+   return json(result)
+  }
+  const fenced=await erasureRestoreResponse(env);if(fenced)return fenced
   const application=await applicationResponse(request,env)
   if(application)return application
   if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
@@ -94,6 +110,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path.startsWith('/api/barrow/portability/')) {
    requireSupplier(actor)
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
+   if(path==='/api/barrow/portability/imports'&&request.method==='POST') {
+    const input=await boundedJson(request.clone() as any,1500000) as any
+    try{await requireArchiveJournal(env,input?.manifest?.sourceIdentity)}catch{fail('ERASURE_JOURNAL_REQUIRED','Attach the source installation’s complete independent R2 erasure journal before importing an archive.',400)}
+   }
    return (await createPortabilityHandler({db:env.DB,policy:portabilityPolicy,appOrigin:env.AUTH_ORIGIN,basePath:'/api/barrow/portability',authorize:async()=>actor.id}))(request)
   }
   if(path==='/api/barrow/rep-assignments'&&request.method==='GET')return json(await readRepAssignments(env,actor))
@@ -219,6 +239,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='report.run'){ result=await runSavedReport(env,actor,body.payload);await dispatchReports(env) }
    else if(body.type==='report.dispatch'){requireSupplier(actor);await dispatchReports(env);result={dispatched:true}}
    else if(body.type==='commission.settings')result=await saveCommissionRules(env.DB,actor,body.payload)
+   else if(body.type==='retention.preview')result=await previewAccountErasure(env,actor,body.payload)
+   else if(body.type==='retention.erase-account'||body.type==='retention.revoke-access')result=await executeAccountErasure(env,actor,body.payload,body.type==='retention.revoke-access'?'revoke':'erase')
    else if(['retention.settings','retention.request','retention.erase-document','retention.erase-application'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)

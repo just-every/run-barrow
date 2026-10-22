@@ -1,3 +1,4 @@
+import { AccountErasure } from './account-erasure'
 import {RepPerformance} from './rep-performance'
 import {CommissionSettings} from './commission-settings'
 import {StaffMembers} from './staff-members'
@@ -181,6 +182,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
+          {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
         </>}
