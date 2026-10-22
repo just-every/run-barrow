@@ -34,7 +34,7 @@ export function RepPerformance({version,run,busy}:{version:unknown;run:RunComman
     <details><summary>Activity source records</summary><ul>{row.sources.map((source,index)=><li key={`${source.kind}-${source.id}-${index}`}><a href={source.appPath??source.path}>{source.kind} · {source.id}</a> · {source.accountId}</li>)}</ul></details>
    </article>)}
    {report.canEditTargets&&<form className="br-stack" aria-label="Set rep activity goals" onSubmit={event=>{event.preventDefault();void save()}}><h3>Set activity goals for this period</h3><p>{report.from} through {report.to} · {report.timeZone}</p>
-    <label>Goal rep<select required value={userId} onChange={e=>chooseTarget(e.target.value)}><option value="">Choose a native rep</option>{report.reps.map(person=><option key={person.userId} value={person.userId}>{person.name}</option>)}</select></label>
+    <label>Goal rep<select aria-label="Goal rep" required value={userId} onChange={e=>chooseTarget(e.target.value)}><option value="">Choose a native rep</option>{report.reps.map(person=><option key={person.userId} value={person.userId}>{person.name}</option>)}</select></label>
     <div className="br-form-grid"><label>Completed visit goal<input required type="number" min={0} step={1} value={completedVisits} onChange={e=>setCompletedVisits(e.target.value)}/></label><label>New account goal<input required type="number" min={0} step={1} value={newAccounts} onChange={e=>setNewAccounts(e.target.value)}/></label></div>
     <label>Reason for activity goals<textarea required maxLength={1000} value={reason} onChange={e=>setReason(e.target.value)}/></label><div className="br-actions"><button disabled={busy||!userId||!reason.trim()}>Save activity goals</button></div>
    </form>}
