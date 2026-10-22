@@ -1,7 +1,7 @@
 // Built Worker, native synthetic sessions, real pinned Pier. Screenshots stay outside the public tree.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import {chromium,expect} from '@playwright/test';
 import {sheetFixture,csvRows} from '../api/line-sheet-fixture.mjs';
 import {withExif} from '../fixtures/confirmation-image.mjs';
@@ -44,7 +44,8 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  await expect(card).toContainText(`Revises C1: line 2 ${skus[1]} 6 → 3`);await card.getByRole('link',{name:'Download confirmation 2 PDF',exact:true}).waitFor();
  await expect(card).toContainText('Email to the account contact: accepted');
  await shot(buyerPage,card,'confirmation-revisions');
- const pdf=await(await buyer.request.get(`${h.origin}/api/barrow/orders/${order.id}/confirmations/2.pdf`)).text();
+ const pdfBytes=await(await buyer.request.get(`${h.origin}/api/barrow/orders/${order.id}/confirmations/2.pdf`)).body(),pdf=pdfBytes.toString('latin1');
+ if(process.env.BARROW_JOURNEY_EVIDENCE)await writeFile(`${process.env.BARROW_JOURNEY_EVIDENCE}/confirmation-revised.pdf`,pdfBytes);
  for(const value of ['Seller: Mill House Apparel LLC',`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size M','/Subtype /Image'])assert.ok(pdf.includes(value),value);
  for(const reference of ['synthetic-barrow-season-2','synthetic-barrow-season-3']){const o=await h.command('order.prepare',{accountId:'cedar',lineSheetId:sheet.id,lineSheetRevision:sheet.revision,reference,lines:[{sku:skus[0],quantity:1}]},buyers.cedar);await h.command('order.submit',{orderId:o.id},buyers.cedar)}
  // The owner loads that season by filter and downloads production totals from the Orders screen.
