@@ -1,10 +1,14 @@
+import { companyCommand, unlimitedCompanyPolicy } from './company-members'
+import { requireApplicationAccess } from './application-access'
+import { readStaffGrant } from './staff-policy'
+import { staffRequestGate } from './staff-access'
 import { boundedJson } from '@runeditrun/rer/modules/portability/http'
 import type { Bindings } from '../auth.server'
 import { current, audit, changed, commit } from './access'
 import { accountCommand, prepareAccountSave } from './accounts'
 import { applicationLocationStatements } from './application-locations'
 import { readDocument } from './documents'
-import { fail, requireSupplier, text, type Actor } from './model'
+import { fail, Problem, text, type Actor } from './model'
 import { applicationRow, applicationValue, applicationView, applicationEvent, applicationDuplicates, purgeUnverified, type ApplicationRow } from './application-records'
 import { applicationTaskStatements } from './application-followup'
 import { sendApplicationStatus } from './application-mail'
@@ -12,6 +16,18 @@ import { formToken, spamCheck, applicationsOpen, sendApplicationCode, applicant,
 const json=(value:unknown,headers:Record<string,string>={})=>Response.json(value,{headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...headers}})
 const docStatement=(env:Bindings,id:string,doc:Awaited<ReturnType<typeof readDocument>>,at:string)=>env.DB.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),id,doc.name,doc.type,doc.size,doc.sha256,doc.contentBase64,at)
 const rowGuard=(env:Bindings,row:ApplicationRow)=>env.DB.prepare('UPDATE bw_applications SET revision=revision WHERE id=? AND revision=? AND state=?').bind(row.id,row.revision,row.state)
+async function applicationActor(request: Request, env: Bindings) {
+ const actor = await current(request, env).catch(error => {
+  if (error instanceof Problem && error.status === 401 && !request.headers.has('authorization')) return null
+  throw error
+ })
+ if (actor) {
+  actor.staff = await readStaffGrant(env.DB, actor)
+  await staffRequestGate(env, actor, new URL(request.url).pathname, request.method)
+  requireApplicationAccess(actor)
+ }
+ return actor
+}
 export async function applicationResponse(request:Request,env:Bindings):Promise<Response|null> {
  const path=new URL(request.url).pathname
  if(!path.startsWith('/api/barrow/applications'))return null
@@ -44,14 +60,13 @@ export async function applicationResponse(request:Request,env:Bindings):Promise<
  if(path==='/api/barrow/applications/mine'&&request.method==='GET')return json(await applicationView(env.DB,await applicant(request,env)))
  const document=/^\/api\/barrow\/applications\/([^/]+)\/documents\/([^/]+)$/.exec(path)
  if(document&&request.method==='GET') {
-  try { const actor=await current(request,env);requireSupplier(actor) }catch(error) {
-   // Agent credentials never fall through to an applicant cookie.
-   if(request.headers.has('authorization'))throw error
-   await applicant(request,env,document[1])
-  }
+  // Only a missing native session may use the application's own session; a permission refusal never falls through.
+  const actor = await applicationActor(request, env)
+  if (!actor) await applicant(request,env,document[1])
   const doc=await env.DB.prepare('SELECT * FROM bw_application_documents WHERE application_id=? AND id=?').bind(document[1],document[2]).first<any>()
   if(!doc)fail('NOT_FOUND','Application document not found.',404)
   const row=await applicationRow(env.DB,document[1]);if(row.state==='unverified')fail('NOT_FOUND','Application document not found.',404)
+  if (actor) await commit(env.DB, actor, [audit(env.DB, actor, row.id, 'application.document-downloaded', {revision: row.revision, source: 'application.document', reason: `Downloaded application document ${doc.id} (${doc.sha256}).`})])
   return new Response(Uint8Array.from(atob(doc.content_base64),c=>c.charCodeAt(0)),{headers:{'content-type':doc.type,'content-disposition':`attachment; filename="${doc.name}"`,'x-content-type-options':'nosniff','cache-control':'no-store','content-security-policy':"sandbox; default-src 'none'"}})
  }
  if(path==='/api/barrow/applications/respond'&&request.method==='POST') {
@@ -64,15 +79,18 @@ export async function applicationResponse(request:Request,env:Bindings):Promise<
   await env.DB.batch([rowGuard(env,row),changed(env.DB),env.DB.prepare('UPDATE bw_applications SET state=?,revision=?,updated_at=? WHERE id=?').bind(state,revision,at,row.id),...(doc?[docStatement(env,row.id,doc,at)]:[]),...task,applicationEvent(env.DB,row.id,state,reason,'applicant',at),env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),row.id,'applicant',doc?'application.document-added':'application.withdrawn',at,JSON.stringify({revision,source:'application.respond',reason})),env.DB.prepare('DELETE FROM bw_guard')])
   return json(await applicationView(env.DB,await applicationRow(env.DB,row.id)))
  }
- const actor=await current(request,env);requireSupplier(actor)
+ const actor=await applicationActor(request,env)
+ if (!actor) fail('AUTH', 'Sign in to review applications.', 401)
  if(path==='/api/barrow/applications'&&request.method==='GET') {
   const rows=(await env.DB.prepare("SELECT * FROM bw_applications WHERE state<>'unverified' ORDER BY created_at,id").all<ApplicationRow>()).results
-  return json({applications:await Promise.all(rows.map(row=>applicationView(env.DB,row,true)))})
+  const access = requireApplicationAccess(actor)
+  const applications = await Promise.all(rows.map(row=>applicationView(env.DB,row,access==='review')))
+  return json({access, applications: access==='review' ? applications : applications.map(row=>({id:row.id, value:{name:row.value.name}, documents:row.documents, documentLabels:row.documentLabels}))})
  }
  return null
 }
 export async function applicationCommand(request:Request,env:Bindings,actor:Actor,type:string,p:any) {
- requireSupplier(actor)
+ requireApplicationAccess(actor, true)
  const row=await applicationRow(env.DB,text(p.id,'Application ID')),value=JSON.parse(row.value_json)
  if(row.revision!==p.revision)fail('CHANGED','Refresh this application before reviewing it.')
  if(!['submitted','information requested'].includes(row.state))fail('APPLICATION_STATE','Only verified open applications may be reviewed.')
@@ -93,6 +111,9 @@ export async function applicationCommand(request:Request,env:Bindings,actor:Acto
  await commit(env.DB,actor,[rowGuard(env,row),changed(env.DB),guard('bw_accounts',accounts),guard('bw_applications',snapshot),...creation,...task,audit(env.DB,actor,row.id,`application.duplicates-reviewed:${JSON.stringify(matches.map(({id,kind,revision})=>({id,kind,revision})))}`,{revision,source:type,reason:'Supplier reviewed these exact matches without merging or reassigning any identity.'}),env.DB.prepare('UPDATE bw_applications SET state=?,account_id=?,revision=?,updated_at=? WHERE id=?').bind(state,accountId,revision,at,row.id),applicationEvent(env.DB,row.id,state,reason,actor.id,at),audit(env.DB,actor,row.id,`application.${state.replaceAll(' ','-')}`,{...(accountId?{accountId}:{}),revision,source:type,reason})])
  // AUTO-001: one generic status email per staff decision (state and link only) after the decision is recorded; it never ends review work.
  const statusEmail=await sendApplicationStatus(env,{id:row.id,email:value.email},state)
- if(accountId)await accountCommand(request,env,actor,'account.invite',{accountId})
+ if(accountId) {
+  if(actor.staff) await companyCommand(request,env,actor,'company.invite',{accountId,email:value.email,name:value.name,policy:unlimitedCompanyPolicy,reason:'Application reviewer approved the first buyer; exact-email company invitation requires native sign-in and explicit acceptance.'})
+  else await accountCommand(request,env,actor,'account.invite',{accountId})
+ }
  return {...await applicationView(env.DB,await applicationRow(env.DB,row.id),true),statusEmail,...(state==='approved'?{invitationRequestedTo:value.email,invitationRequestedAt:at}: {})}
 }

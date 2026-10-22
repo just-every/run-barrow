@@ -6,6 +6,7 @@ import {Followups} from './followups'
 import { CompanyUsers, CompanyInvitation } from './company-members'
 import { CompanyRoutes } from './company-routes'
 import { ApplicationRetention } from './application-retention'
+import { applicationAccess } from '../application-access'
 import { Applications } from './applications'
 import { ApplicationRules } from './application-rules'
 import { ApprovalNotices } from './approval-notices'
@@ -49,7 +50,8 @@ export function BarrowApp() {
   const rights=state?.actor.company?.rights??[]
   const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=legacySupplier||staff?.role==='finance'||rights.includes('finance'),companyAdmin=legacySupplier||!staff&&rights.includes('administrator')
   const pad = supplier ? 'Order pad' : 'Catalog'
-  const tabs = staff?[...(staffSelling?[pad]:[]),...(staff.role==='sales-manager'?['Accounts']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit']:legacySupplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[])] : [...(purchasing?[pad]:[]),'Orders',...(companyAdmin?['Company']:[])]
+  const applicationRight = state ? applicationAccess(state.actor) : null
+  const tabs = staff?[...(staffSelling?[pad]:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit']:legacySupplier ? [pad, 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[])] : [...(purchasing?[pad]:[]),'Orders',...(companyAdmin?['Company']:[])]
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
   const selected=selectedAccount?.id===accountId?selectedAccount:null
@@ -154,7 +156,7 @@ export function BarrowApp() {
           {activeTab === 'Accounts' && <Accounts canCreate={!staff||staff.accounts==='all'} canInvite={legacySupplier} version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Accounts' && (legacySupplier||staff?.role==='sales-manager'&&staff.accounts==='all') && <RepAssignments version={state} run={run} busy={busy}/>}
           {activeTab === 'Accounts' && legacySupplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}
-          {activeTab === 'Accounts' && legacySupplier && <Applications version={state} busy={busy} run={run}/>}
+          {(activeTab === 'Accounts' && applicationRight==='review' || activeTab === 'Applications' && applicationRight==='documents') && <Applications version={state} busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <ApplicationRules version={state} busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <UsagePublisher busy={busy} run={run}/>}
           {activeTab === 'Accounts' && legacySupplier && <SalesTerms accounts={state.accounts} busy={busy} run={run} />}

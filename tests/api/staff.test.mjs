@@ -267,3 +267,72 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
   assert.ok(event, action); assert.ok(event.actorId && event.createdAt && event.revision && event.source && event.reason);
  }
 });
+
+test('functional application reviewers: all-account managers decide and download, finance reads certificates, every other grant and revoked access is refused', async t => {
+ const h=await installation({https:true});t.after(()=>h.close());
+ await h.command('account.save',{id:'cedar',value:accountValue('synthetic-barrow-302')});
+ const {verifiedApplication}=await import('./application-fixture.mjs');
+ const {application:submitted,applicant,bytes}=await verifiedApplication(h);
+ const grantPerson=async(email,grantPolicy)=>{
+  const who={as:await h.signIn(email)};
+  const grant=await h.command('staff.invite',{email,name:'Functional reviewer',policy:grantPolicy,reason});
+  return {who,grant};
+ };
+ const managerPolicy=policy('sales-manager',{accounts:'all',entitlements:['applications']});
+ let {who:manager,grant:managerGrant}=await grantPerson('reviewer@example.test',managerPolicy);
+ let {who:finance,grant:financeGrant}=await grantPerson('certificate@example.test',policy('finance',{entitlements:['application-documents']}));
+ for(const invalid of [policy('sales-manager',{entitlements:['applications']}),policy('rep',{accounts:'all',entitlements:['applications']}),policy('operations',{entitlements:['application-documents']}),policy('analyst',{entitlements:['applications']}),policy('sales-manager',{accounts:'all',entitlements:['application-documents']}),policy('finance',{entitlements:['applications']})])
+  await h.command('staff.invite',{email:'invalid-reviewer@example.test',name:'Invalid reviewer',policy:invalid,reason},{status:400});
+ const forbidden=[];
+ for(const [index,grantPolicy] of [policy('rep'),policy('operations'),policy('analyst'),policy('sales-manager'),policy('sales-manager',{accounts:'all'}),policy('finance')].entries())
+  forbidden.push((await grantPerson(`restricted-${index}@example.test`,grantPolicy)).who);
+ const {token}=await h.api('/api/barrow/agent-token',{});
+ forbidden.push({as:'',headers:{authorization:`Bearer ${token}`}});
+ const documentPath=submitted.documents[0].path;
+ const refusal=async who=>{
+  for(const path of ['/api/barrow/applications',documentPath,'/api/barrow/export/applications.csv','/api/barrow/export/applicationdocuments.csv'])await h.api(path,undefined,{...who,status:403});
+  for(const type of ['application.request-information','application.approve','application.decline','application.rules.save'])await h.command(type,{id:submitted.id,revision:submitted.revision,reason}, {...who,status:403});
+ };
+ for(const who of forbidden)await refusal(who);
+ // A valid applicant cookie must not turn a staff permission refusal into a document grant.
+ await h.api(documentPath,undefined,{as:forbidden[0].as+'; '+applicant.as,status:403});
+ const queue=await h.api('/api/barrow/applications',undefined,manager);
+ assert.equal(queue.access,'review');let row=queue.applications.find(row=>row.id===submitted.id);
+ assert.equal(row.value.email,'applicant@example.test');assert.equal(row.duplicates[0].id,'cedar');
+ const financeView=await h.api('/api/barrow/applications',undefined,finance);
+ assert.equal(financeView.access,'documents');assert.deepEqual(financeView.applications[0].value,{name:'Cedar Street Pantry'});
+ assert.equal(financeView.applications[0].history,undefined);assert.equal(financeView.applications[0].duplicates,undefined);
+ for(const who of [manager,finance]){
+  const response=await h.request(documentPath,who);assert.equal(response.status,200);assert.equal(await response.text(),bytes);
+  assert.equal((await h.request('/api/barrow/export/applicationdocuments.csv',who)).status,200);
+ }
+ assert.equal((await h.request('/api/barrow/export/applications.csv',manager)).status,200);
+ await h.api('/api/barrow/export/applications.csv',undefined,{...finance,status:403});
+ for(const type of ['application.request-information','application.approve','application.decline'])await h.command(type,{id:row.id,revision:row.revision,reason},{...finance,status:403});
+ const decide=(type,application,extra={})=>h.command(type,{id:application.id,revision:application.revision,reason:'Reviewed exact application and separate-company duplicates.',duplicateReviews:application.duplicates.map(({id,kind,revision})=>({id,kind,revision})),...extra},manager);
+ row=await decide('application.request-information',row);assert.equal(row.state,'information requested');
+ row=await decide('application.approve',row,{accountDuplicateReviews:row.duplicates.filter(d=>d.kind==='account').map(({id,revision})=>({id,revision})),account:{pierCustomerId:'synthetic-barrow-304',termsDays:30,minimumCents:0,prices:[]}});
+ assert.equal(row.state,'approved');assert.ok(row.accountId);assert.equal(row.invitationRequestedTo,'applicant@example.test');
+ const invitation=h.mail.requests.findLast(r=>r.message.to.includes('applicant@example.test')&&r.message.subject==='Your company buyer invitation').message.text.match(/https?:\/\/[^\s<>]+/)[0];
+ const link=new URL(invitation), buyer={as:await h.signIn('applicant@example.test','existing')};
+ const joined=await h.command('company.accept',{invitationId:link.searchParams.get('companyInvitation'),token:link.searchParams.get('companyToken')},buyer);
+ assert.equal(joined.accountId,row.accountId);assert.ok(joined.rights.includes('administrator'));
+ await h.api('/auth/operators',undefined,{...manager,status:403});
+ await h.api('/auth/invite',{email:'unapproved@example.test',displayName:'No authority',role:'member'},{...manager,status:403});
+ const second=await verifiedApplication(h,{name:'Harbor Provisions',email:'harbor@example.test'});
+ const open=(await h.api('/api/barrow/applications',undefined,manager)).applications.find(row=>row.id===second.application.id);
+ assert.equal((await decide('application.decline',open)).state,'declined');
+ const pending=await verifiedApplication(h,{name:'Eastside Market',email:'eastside@example.test'});
+ const pendingRow=(await h.api('/api/barrow/applications',undefined,manager)).applications.find(row=>row.id===pending.application.id);
+ await decide('application.approve',pendingRow,{account:{pierCustomerId:'synthetic-barrow-306',termsDays:30,minimumCents:0,prices:[]}});
+ const pendingLink=new URL(h.mail.requests.findLast(r=>r.message.to.includes('eastside@example.test')&&r.message.subject==='Your company buyer invitation').message.text.match(/https?:\/\/[^\s<>]+/)[0]);
+ const pendingBuyer={as:await h.signIn('eastside@example.test','existing')};
+ const events=(await h.api('/api/barrow/audit')).events;
+ for(const action of ['application.information-requested','application.approved','application.declined','application.document-downloaded'])assert.ok(events.some(event=>event.action===action&&event.actorId===managerGrant.userId));
+ assert.ok(events.some(event=>event.action==='application.document-downloaded'&&event.actorId===financeGrant.userId));
+ managerGrant=await h.command('staff.update',{userId:managerGrant.userId,revision:managerGrant.revision,policy:policy('sales-manager',{accounts:'all'}),reason});
+ await refusal(manager);
+ await h.command('company.accept',{invitationId:pendingLink.searchParams.get('companyInvitation'),token:pendingLink.searchParams.get('companyToken')},{...pendingBuyer,status:409});
+ await h.command('staff.revoke',{userId:financeGrant.userId,revision:financeGrant.revision,reason});
+ await refusal(finance);
+});

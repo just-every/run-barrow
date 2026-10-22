@@ -1,3 +1,4 @@
+import { applicationAccess } from './application-access'
 import { staffTaskAllowed } from './staff-access'
 import { requireCompanyRight } from './company-policy'
 import { applicationExport } from './application-custody'
@@ -64,7 +65,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const documentIds = new Set((await env.DB.prepare('SELECT d.order_id FROM bw_order_documents d JOIN bw_orders o ON o.id=d.order_id WHERE o.account_id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<{order_id:string}>()).results.map(row=>row.order_id))
  const quotedeliveries=supplier(actor)&&!actor.staff?(await env.DB.prepare('SELECT id,quote_id,account_id,recipient_id,recipient,status,reason,provider_message_id,attempts,created_at,updated_at,task_id FROM bw_quote_mail ORDER BY rowid').all<Record<string,unknown>>()).results:undefined
  const terms = await termsExport(env.DB, actor, ids, orders)
- const applicationRecords=actor.staff?{applications:[],applicationdocuments:[]}:await applicationExport(env.DB,actor,ids)
+ const applicationRecords=await applicationExport(env.DB,actor,ids)
  const records = {
   ...applicationRecords,
   ...terms,
@@ -93,6 +94,10 @@ export async function commercialExport(env: Bindings, actor: Actor) {
 }
 
 export async function exportResponse(env: Bindings, actor: Actor, kind: Kind | 'json') {
+ if (kind==='applications' || kind==='applicationdocuments') {
+  const access=applicationAccess(actor)
+  if(actor.staff && (access!=='review' && !(access==='documents' && kind==='applicationdocuments')) || !supplier(actor) && !(await accounts(env.DB,actor)).length) fail('FORBIDDEN','Your current sign-in is not entitled to this application export.',403)
+ }
  const data = await commercialExport(env, actor)
  const headers = { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' }
  if (kind === 'json') return new Response(JSON.stringify(data, null, 2), { headers: { ...headers, 'content-type': 'application/json; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-export.json"' } })

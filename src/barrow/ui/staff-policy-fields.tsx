@@ -8,6 +8,7 @@ export type StaffPolicy = {
   role: keyof typeof staffRoles
   accounts: 'all' | string[]
   warehouses: 'all' | string[]
+  entitlements?: ('applications' | 'application-documents')[]
   reports: (keyof typeof staffReports)[]
   discountLimitCents: number
   stockExceptionLimitCents: number
@@ -19,6 +20,7 @@ export type StaffPolicyForm = Omit<StaffPolicy, 'role' | 'discountLimitCents' | 
 export const emptyStaffPolicy = (): StaffPolicyForm => ({ role: '', accounts: [], warehouses: [], reports: [], discountLimitCents: '0', stockExceptionLimitCents: '0', commissionRep: '' })
 export const staffPolicyForm = (policy: StaffPolicy): StaffPolicyForm => ({ ...policy, discountLimitCents: String(policy.discountLimitCents), stockExceptionLimitCents: String(policy.stockExceptionLimitCents) })
 export const staffPolicyValue = (form: StaffPolicyForm): StaffPolicy => ({
+  ...(form.entitlements?.length ? {entitlements:form.entitlements} : {}),
   role: form.role as StaffPolicy['role'], accounts: form.accounts, warehouses: form.warehouses, reports: form.reports,
   discountLimitCents: Number(form.discountLimitCents), stockExceptionLimitCents: Number(form.stockExceptionLimitCents),
   ...(form.commissionRep?.trim() ? { commissionRep: form.commissionRep.trim() } : {}),
@@ -31,11 +33,11 @@ export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPoli
   const warehouses = [...new Set(accounts.flatMap(account => account.value.warehouses ?? []))].sort()
   return <fieldset className="br-stack"><legend>Functional staff access</legend>
     <p>Choose every scope explicitly. No selection means no access; zero allowances permit no exception. Functional roles do not grant installation settings or authority to grant access.</p>
-    <label>Functional role<select aria-label="Functional role" required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'] })}>
+    <label>Functional role<select aria-label="Functional role" required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'], entitlements: [] })}>
       <option value="">Choose a functional role</option>{Object.entries(staffRoles).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
     </select></label>
     <fieldset className="br-stack"><legend>Trade accounts</legend>
-      <label><input type="checkbox" checked={form.accounts === 'all'} onChange={event => change({ accounts: event.target.checked ? 'all' : [] })} />All trade accounts, including future accounts</label>
+      <label><input type="checkbox" checked={form.accounts === 'all'} onChange={event => change({ accounts: event.target.checked ? 'all' : [], entitlements: [] })} />All trade accounts, including future accounts</label>
       {form.accounts !== 'all' && <>
         <AccountPicker accounts={accounts} value={accountId} onChange={setAccountId} />
         <div className="br-actions"><button type="button" className="br-secondary" disabled={!accountId || form.accounts.includes(accountId)} onClick={() => { if (form.accounts !== 'all') change({ accounts: [...form.accounts, accountId] }); setAccountId('') }}>Add scoped account</button></div>
@@ -52,6 +54,11 @@ export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPoli
         {!form.warehouses.length && <p className="br-quiet-text">No warehouses granted.</p>}
         <ul>{form.warehouses.map(name => <li key={name}>{name} <button type="button" className="br-quiet" aria-label={`Remove warehouse ${name}`} onClick={() => change({ warehouses: (form.warehouses as string[]).filter(value => value !== name) })}>Remove</button></li>)}</ul>
       </>}
+    </fieldset>
+    <fieldset className="br-stack"><legend>Application entitlements</legend>
+      {form.role === 'sales-manager' && form.accounts === 'all' ? <label><input type="checkbox" checked={form.entitlements?.includes('applications') ?? false} onChange={event => change({entitlements:event.target.checked?['applications']:[]})}/>Review trade applications and download their documents</label>
+      : form.role === 'finance' ? <label><input type="checkbox" checked={form.entitlements?.includes('application-documents') ?? false} onChange={event => change({entitlements:event.target.checked?['application-documents']:[]})}/>Read application documents for certificate review</label>
+      : <p>Application review requires a sales manager covering all accounts. Finance may receive read-only document access.</p>}
     </fieldset>
     <fieldset className="br-stack"><legend>Direct report entitlements</legend>{Object.entries(staffReports).map(([key, name]) => {
       const report = key as StaffPolicy['reports'][number]

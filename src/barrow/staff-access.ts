@@ -1,3 +1,4 @@
+import { applicationAccess } from './application-access'
 import type { Bindings } from '../auth.server'
 import { audit, commit } from './access'
 import { fail, type Actor } from './model'
@@ -27,6 +28,15 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(!actor.staff)return
  const relative=path.slice('/api/barrow/'.length),role=actor.staff.role
  if(relative==='commands')return
+ if (relative === 'applications' || relative.startsWith('applications/')) {
+  if (method === 'GET' && applicationAccess(actor) && (relative === 'applications' || /^applications\/[^/]+\/documents\/[^/]+$/.test(relative))) return
+  return denied(env, actor, path)
+ }
+ if (relative === 'export/applications.csv' || relative === 'export/applicationdocuments.csv') {
+  const access = applicationAccess(actor)
+  if (method === 'GET' && (access === 'review' || access === 'documents' && relative === 'export/applicationdocuments.csv')) return
+  return denied(env, actor, path)
+ }
  if(method==='GET'&&['state','company/invitations','usage-terms','report-schedules','audit','audit.csv'].includes(relative))return
  if(method==='GET'&&/^report-runs\/[A-Za-z0-9_-]+\.json$/.test(relative))return
  if(method==='GET'&&/^reports\/(sales|finance|quotes|fulfillment|commissions)(\.csv)?$/.test(relative))return // report computes whole-filter entitlement before reading
@@ -63,6 +73,10 @@ const commandRoles:Record<string,string[]>={
 export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:any) {
  if(!actor.staff)return
  const grant=actor.staff
+ if(type.startsWith('application.')) {
+  if(applicationAccess(actor)==='review' && ['application.request-information','application.approve','application.decline'].includes(type)) return
+  return denied(env,actor,type)
+ }
  if(!commandRoles[type]?.includes(grant.role))return denied(env,actor,type)
  if(['terms.publish','commission.settings','rep.assign','rep.cover','rep.end','rep.transfer'].includes(type)&&grant.accounts!=='all')return denied(env,actor,type)
  if(['order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses

@@ -43,6 +43,7 @@ export function StaffMembers({ accounts, version, run, busy }: { accounts: Accou
           <p>Native sign-in: {member.status} · Staff grant: {member.state}</p><p>Effective supplier access: {member.effective?'Yes':'No'}</p>
           <dl><dt>Accounts</dt><dd>{member.accounts === 'all' ? 'All trade accounts' : member.accounts.map(accountName).join(', ') || 'None'}</dd>
             <dt>Warehouses</dt><dd>{member.warehouses === 'all' ? 'All warehouses' : member.warehouses.join(', ') || 'None'}</dd>
+            <dt>Applications</dt><dd>{member.entitlements?.map(right=>right==='applications'?'Review and documents':'Read-only documents').join(', ') || 'None'}</dd>
             <dt>Reports</dt><dd>{member.reports.map(report => staffReports[report]).join(', ') || 'None'}</dd>
             <dt>Discount approval allowance</dt><dd>{money(member.discountLimitCents)}</dd>
             <dt>Stock exception allowance</dt><dd>{money(member.stockExceptionLimitCents)}</dd>

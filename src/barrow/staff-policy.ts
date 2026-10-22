@@ -3,12 +3,14 @@ import { fail, type Actor } from './model'
 import { coveredTerritories, repAccountIds, repEpoch, supplierToday } from './rep-scope'
 
 export const staffRoles = ['sales-manager', 'rep', 'operations', 'finance', 'analyst'] as const
+export const staffEntitlements = ['applications', 'application-documents'] as const
 export const staffReports = ['sales', 'finance', 'quotes', 'fulfillment', 'commissions'] as const
 export type StaffReport = (typeof staffReports)[number]
 export type StaffPolicy = {
  role: (typeof staffRoles)[number]
  accounts: 'all' | string[]
  warehouses: 'all' | string[]
+ entitlements?: (typeof staffEntitlements)[number][]
  reports: StaffReport[]
  discountLimitCents: number
  stockExceptionLimitCents: number
@@ -28,14 +30,18 @@ const cents = (value: unknown): value is number => typeof value === 'number' && 
 function parsePolicy(input: any): StaffPolicy {
  const fields = ['role', 'accounts', 'warehouses', 'reports', 'discountLimitCents', 'stockExceptionLimitCents']
  if (!input || typeof input !== 'object' || Array.isArray(input) || fields.some(key => !(key in input))
-  || Object.keys(input).some(key => ![...fields, 'commissionRep'].includes(key))
+  || Object.keys(input).some(key => ![...fields, 'commissionRep', 'entitlements'].includes(key))
   || !staffRoles.includes(input.role) || !scope(input.accounts) || !scope(input.warehouses)
   || !Array.isArray(input.reports) || input.reports.some((kind: any) => !staffReports.includes(kind)) || new Set(input.reports).size !== input.reports.length
   || !cents(input.discountLimitCents) || !cents(input.stockExceptionLimitCents)) fail('STAFF_POLICY', 'Set an exact staff role, explicit account and warehouse scopes, report rights and nonnegative whole USD-cent limits.', 400)
+ const entitlements = input.entitlements ?? []
+ if (!Array.isArray(entitlements) || new Set(entitlements).size !== entitlements.length || entitlements.some((right: unknown) => !staffEntitlements.includes(right as any)
+  || right === 'applications' && (input.role !== 'sales-manager' || input.accounts !== 'all')
+  || right === 'application-documents' && input.role !== 'finance')) fail('STAFF_POLICY', 'Application review requires an all-account sales manager; read-only application documents require finance.', 400)
  if (input.commissionRep !== undefined && input.commissionRep !== null && (typeof input.commissionRep !== 'string' || !input.commissionRep.length || input.commissionRep.length > 160 || input.commissionRep !== input.commissionRep.trim() || /[\u0000-\u001f\u007f]/u.test(input.commissionRep))) fail('STAFF_POLICY', 'Use an exact commission rep label.', 400)
  if(input.role!=='rep'&&input.commissionRep!==undefined&&input.commissionRep!==null)fail('STAFF_POLICY','A fixed commission rep label belongs only to a rep grant.',400)
  if (input.role === 'rep' && input.reports.includes('commissions') && !input.commissionRep) fail('STAFF_POLICY', 'A rep commission report needs an explicit fixed rep label.', 400)
- return { role: input.role, accounts: input.accounts === 'all' ? 'all' : [...input.accounts], warehouses: input.warehouses === 'all' ? 'all' : [...input.warehouses], reports: [...input.reports], discountLimitCents: input.discountLimitCents, stockExceptionLimitCents: input.stockExceptionLimitCents, ...(input.commissionRep ? { commissionRep: input.commissionRep } : {}) }
+ return { role: input.role, ...(entitlements.length ? { entitlements: [...entitlements] } : {}), accounts: input.accounts === 'all' ? 'all' : [...input.accounts], warehouses: input.warehouses === 'all' ? 'all' : [...input.warehouses], reports: [...input.reports], discountLimitCents: input.discountLimitCents, stockExceptionLimitCents: input.stockExceptionLimitCents, ...(input.commissionRep ? { commissionRep: input.commissionRep } : {}) }
 }
 export async function validateStaffPolicy(db: D1Database, input: unknown): Promise<StaffPolicy> {
  const policy = parsePolicy(input)

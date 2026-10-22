@@ -1,3 +1,5 @@
+import { applicationAccess } from './application-access'
+import { readStaffGrant, staffGuard } from './staff-policy'
 import { operatorMail } from '../mail.server.mjs'
 import { type Bindings } from '../auth.server'
 import { audit, changed, commit, digest } from './access'
@@ -119,7 +121,7 @@ export async function companyCommand(request: Request, env: Bindings, actor: Act
    else statements.push(env.DB.prepare("INSERT INTO bw_company_members(id,account_id,user_id,email,email_key,display_name,policy_json,state,revision,created_at,updated_at) VALUES(?,?,?,?,?,?,?,'invited',?,?,?)").bind(memberId, accountId, userId, email, email, name, JSON.stringify(policy), revision, at, at))
   }
   statements.push(env.DB.prepare('INSERT INTO bw_company_invites(id,account_id,member_id,email,email_key,display_name,token_hash,policy_json,status,collision_reason,expires_at,created_by,issuer_version,issuer_member_revision,created_at,reason,revision,delivery_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-   .bind(id, accountId, blocked ? null : memberId, email, email, name, blocked ? null : await digest(secret), JSON.stringify(policy), blocked ? 'collision' : 'requested', blocked, expiresAt, actor.id, actor.version, manager?.revision ?? null, at, reason, revision, blocked ? 'not sent' : 'pending'),
+   .bind(id, accountId, blocked ? null : memberId, email, email, name, blocked ? null : await digest(secret), JSON.stringify(policy), blocked ? 'collision' : 'requested', blocked, expiresAt, actor.id, actor.version, manager?.revision ?? actor.staff?.revision ?? null, at, reason, revision, blocked ? 'not sent' : 'pending'),
    audit(env.DB, actor, id, 'company.invitation-requested', { accountId, revision, source: type, reason }))
   await commit(env.DB, actor, statements)
   if (!blocked) {
@@ -186,12 +188,19 @@ async function acceptCompanyInvitation(env: Bindings, actor: Actor, p: any) {
  if (match.reason || match.person?.id !== actor.id) fail('COMPANY_COLLISION', 'This email is linked to another trade account; ask your supplier.', 409)
  const issuer = await env.DB.prepare("SELECT id,email,role,version FROM oa_operators WHERE id=? AND status='active'").bind(invite.created_by).first<any>()
  if (!issuer || issuer.version !== invite.issuer_version) fail('INVITATION_REVOKED', 'The inviter no longer has the invitation’s original authority.', 409)
+ // ACC-005 application approval may invite the first company buyer, without granting Native administration.
+ const issuerStaff = await readStaffGrant(env.DB, {...issuer, agent:false})
+ if(issuerStaff) {
+  const approved = await env.DB.prepare("SELECT 1 FROM bw_applications a JOIN bw_application_history h ON h.application_id=a.id WHERE a.account_id=? AND a.state='approved' AND json_extract(a.value_json,'$.email')=? AND h.state='approved' AND h.actor_id=?").bind(invite.account_id,invite.email_key,issuer.id).first()
+  if(applicationAccess({...issuer,agent:false,staff:issuerStaff})!=='review' || issuerStaff.revision!==invite.issuer_member_revision || !approved) fail('INVITATION_REVOKED', 'The application reviewer no longer holds this invitation’s original authority.', 409)
+  issuer.staff=issuerStaff
+ }
  const issuerMembership = supplier(issuer) ? null : await companyMembership(env.DB, {...issuer,agent:false}, invite.account_id)
  if (!supplier(issuer) && (!issuerMembership?.rights.includes('administrator') || issuerMembership.revision !== invite.issuer_member_revision)) fail('INVITATION_REVOKED', 'The inviter no longer has the invitation’s original company administrator rights.', 409)
  const member = await currentMember(env.DB, invite.member_id)
  if (!member || member.user_id !== actor.id || member.state !== 'invited') fail('INVITATION_REVOKED', 'The invitation no longer has a pending company user.', 409)
  const revision = crypto.randomUUID(), at = new Date().toISOString()
- await commit(env.DB, actor, [identitySnapshot, companyRightsGuard(env.DB, issuerMembership),
+ await commit(env.DB, actor, [identitySnapshot, companyRightsGuard(env.DB, issuerMembership), ...(issuerStaff?[staffGuard(env.DB,issuerStaff)]:[]),
   guard(env.DB, "EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND role=? AND status='active')", [issuer.id, issuer.version, issuer.role]),
   env.DB.prepare("UPDATE bw_company_invites SET status='accepted',token_hash=NULL,accepted_by=?,revision=? WHERE id=? AND revision=? AND status='requested' AND expires_at>? AND token_hash=?").bind(actor.id, revision, invite.id, invite.revision, Date.now(), invite.token_hash), changed(env.DB),
   env.DB.prepare("UPDATE bw_company_members SET state='active',revision=?,updated_at=? WHERE id=? AND revision=? AND state='invited'").bind(revision, at, member.id, member.revision), changed(env.DB),

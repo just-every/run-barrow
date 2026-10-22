@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from '@playwright/test';
 import { installation, stock } from '../api/harness.mjs';
+import { verifiedApplication } from '../api/application-fixture.mjs';
 import {captureWidths,signedContext} from './browser-helpers.mjs';
 const directory=process.env.BARROW_JOURNEY_EVIDENCE??'/tmp/sx-barrow-c25-screens';
 test('native trade application, review, private status, usage acceptance and retention screens at desktop and phone',async t=>{
@@ -51,4 +52,40 @@ test('native trade application, review, private status, usage acceptance and ret
  await staff.reload();
  await staff.getByRole('button',{name:'Data',exact:true}).click();await staff.getByRole('region',{name:'Application retention'}).waitFor();await captureWidths(staff,'application-retention');
  await visitor.close();await buyer.close();await owner.close();console.log(`BROWSER_CAPTURES ${directory}`);
+});
+
+
+test('owner grants functional application review and finance document access, reviewers use their own doors, and revocation closes them at desktop and phone', async t=>{
+ const h=await installation({built:true,https:true});t.after(()=>h.close());
+ const {application,bytes}=await verifiedApplication(h);
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const ownerContext=await signedContext(browser,h);t.after(()=>ownerContext.close());const owner=await ownerContext.newPage();await owner.goto(h.origin+'/app');
+ if(new URL(owner.url()).pathname==='/setup'){await owner.getByLabel('Your name').fill('Supplier owner');await owner.getByRole('checkbox').check();await owner.getByRole('button',{name:'Finish setup',exact:true}).click()}
+ const people=[];
+ for(const person of [{name:'Morgan Review',email:'manager-review@example.test',role:'sales-manager',entitlement:'Review trade applications and download their documents'}, {name:'Casey Certificates',email:'finance-review@example.test',role:'finance',entitlement:'Read application documents for certificate review'}]){
+  await owner.getByRole('button',{name:'Team',exact:true}).click();const form=owner.getByRole('form',{name:'Invite staff',exact:true});
+  await form.getByLabel('Staff name',{exact:true}).fill(person.name);await form.getByLabel('Exact staff email',{exact:true}).fill(person.email);await form.getByLabel('Functional role',{exact:true}).selectOption(person.role);
+  if(person.role==='sales-manager')await form.getByRole('checkbox',{name:'All trade accounts, including future accounts',exact:true}).check();
+  await form.getByRole('checkbox',{name:person.entitlement,exact:true}).check();await form.getByLabel('Reason for this access change',{exact:true}).fill('Owner authorized this functional application responsibility.');
+  await captureWidths(owner,`application-grant-${person.role}`);await form.getByRole('button',{name:'Send native staff invitation',exact:true}).click();
+  const message=h.mail.requests.findLast(row=>row.message.to.includes(person.email)).message;
+  const url=new URL(message.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)[0]);
+  const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000}});t.after(()=>context.close());const page=await context.newPage();await page.goto(h.origin+url.pathname+url.search);await page.getByRole('button',{name:'Confirm',exact:true}).click();await page.waitForURL(h.origin+'/app');
+  await page.getByRole('button',{name:person.role==='finance'?'Applications':'Accounts',exact:true}).click();
+  const queue=page.getByRole('region',{name:'Trade applications'});await queue.getByLabel('Application',{exact:false}).selectOption(application.id);await queue.getByRole('heading',{name:/Cedar Street Pantry/}).waitFor();
+  const download=await page.request.get(h.origin+application.documents[0].path);assert.equal(download.status(),200);assert.equal(await download.text(),bytes);
+  if(person.role==='finance'){
+   assert.equal(await queue.getByRole('button').count(),0);assert.equal(await queue.getByLabel('Decision reason (shown to applicant)').count(),0);
+   const refused=await page.request.post(h.origin+'/api/barrow/commands',{headers:{origin:h.origin},data:{type:'application.approve',payload:{id:application.id,revision:application.revision,reason:'Finance has no decision right.'}}});assert.equal(refused.status(),403);
+  }
+  await captureWidths(page,`application-reviewer-${person.role}`);people.push({...person,page,queue});
+ }
+ const manager=people[0];await manager.queue.getByLabel('Decision reason (shown to applicant)').fill('Please supply the missing state certificate.');await manager.queue.getByRole('button',{name:'Request missing certificate',exact:true}).click();await manager.queue.getByRole('heading',{name:'Cedar Street Pantry · information requested',exact:true}).waitFor();await captureWidths(manager.page,'application-manager-information-request');
+ await manager.queue.getByLabel('Decision reason (shown to applicant)').fill('The certificate is sufficient for this trade relationship.');await manager.queue.getByText('Approve and invite buyer',{exact:true}).click();await manager.queue.getByLabel('Exact Pier customer ID',{exact:true}).fill('synthetic-barrow-305');await manager.queue.getByRole('button',{name:'Approve application and request invitation',exact:true}).click();await manager.queue.getByRole('heading',{name:'Cedar Street Pantry · approved',exact:true}).waitFor();await captureWidths(manager.page,'application-manager-approved');
+ const second=await verifiedApplication(h,{name:'Harbor Provisions',email:'harbor@example.test'});await manager.page.reload();await manager.page.getByRole('button',{name:'Accounts',exact:true}).click();await manager.queue.getByLabel('Application',{exact:false}).selectOption(second.application.id);await manager.queue.getByLabel('Decision reason (shown to applicant)').fill('This business is outside our approved distribution.');await manager.queue.getByRole('button',{name:'Decline application',exact:true}).click();await manager.queue.getByRole('heading',{name:'Harbor Provisions · declined',exact:true}).waitFor();await captureWidths(manager.page,'application-manager-declined');
+ for(const person of people){
+  await owner.reload();await owner.getByRole('button',{name:'Team',exact:true}).click();const card=owner.getByRole('article').filter({has:owner.getByRole('heading',{name:person.name,exact:true})});
+  await card.getByRole('button',{name:`Edit access for ${person.name}`,exact:true}).click();const edit=owner.getByRole('form',{name:'Edit staff access',exact:true});await edit.getByLabel('Reason for this access change',{exact:true}).fill('End this application entitlement immediately.');await edit.getByRole('button',{name:'Revoke staff access',exact:true}).click();await owner.getByRole('form',{name:'Invite staff',exact:true}).waitFor();
+  const refused=await person.page.request.get(h.origin+application.documents[0].path);assert.equal(refused.status(),403);await person.page.reload();await person.page.getByRole('button',{name:'Orders',exact:true}).waitFor();assert.equal(await person.page.getByRole('region',{name:'Trade applications'}).count(),0);await captureWidths(person.page,`application-revoked-${person.role}`);
+ }
 });
