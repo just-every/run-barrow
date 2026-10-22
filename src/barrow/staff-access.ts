@@ -15,7 +15,7 @@ export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role=
 export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}) {
  const grant=actor.staff
  if(!grant)return true
- if(task.kind==='application')return false // AUTO-001: application records stay with owner/admin until ct rules on functional reviewers
+ if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
  return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','reconciliation','credit','refund'].includes(task.kind)
 }
@@ -87,6 +87,13 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
   if(row){if(accountId&&accountId!==row.account_id)fail('NOT_FOUND','Resource not found.',404);accountId=row.account_id}
  }
  if(type==='account.save'&&typeof p.id==='string')accountId=p.id
+ if(type==='followup.update'&&typeof p.id==='string') {
+  const task=await env.DB.prepare('SELECT value_json FROM bw_followups WHERE id=?').bind(p.id).first<{value_json:string}>()
+  if(task&&JSON.parse(task.value_json).kind==='application') {
+   if(applicationAccess(actor)==='review')return
+   return denied(env,actor,type)
+  }
+ }
  if(accountId&&!staffAccountAllowed(grant,accountId))fail('NOT_FOUND','Trade resource not found.',404)
  if(type==='account.save'&&!accountId&&grant.accounts!=='all')return denied(env,actor,type)
  if(type==='report.remove-recipient'&&p.operatorId!==undefined&&p.operatorId!==actor.id)return denied(env,actor,type)

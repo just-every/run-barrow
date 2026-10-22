@@ -1,8 +1,8 @@
 // AUTO-001: one persistent owner task per verified trade application. It is created when the application is verified,
 // restarts its review deadline when staff request information or the applicant answers, escalates once a deadline has
 // passed with no decision, and stays escalated until a recorded decision (approve, decline, applicant withdrawal) or an
-// explicit human closure. Requests, answers and queued emails never end it. These tasks are owner/admin only: the
-// follow-up doors hide application tasks from functional staff roles.
+// explicit human closure. Requests, answers and queued emails never end it. ACC-005 current application reviewers
+// may read and manage them; other functional staff never see these records.
 import { routeApplication } from './application-rules'
 import { commercialAuditEvent } from './audit-event'
 import { supplierDate } from './model'
@@ -38,15 +38,15 @@ export async function applicationTaskStatements(db: D1Database, application: { i
  if (before && before.status !== 'open') return []
  const documents = Array.isArray(value.documents) ? value.documents.length : (await db.prepare('SELECT COUNT(*) AS count FROM bw_application_documents WHERE application_id=?').bind(application.id).first<{ count: number }>())?.count ?? 0
  const earlier: ApplicationTaskRoute | undefined = before?.application
- const route = earlier ?? await routeApplication(db, { states: (value.locations ?? []).map((place: any) => place.state), termsDays: value.requestedTermsDays ?? 0, volumeUsd: value.annualVolumeUsd ?? 0, documents })
+ const route = await routeApplication(db, { states: (value.locations ?? []).map((place: any) => place.state), termsDays: value.requestedTermsDays ?? 0, volumeUsd: value.annualVolumeUsd ?? 0, documents }, earlier ? { ...earlier, ownerId: before.ownerId } : undefined)
  const deadline = addDays(today, route.deadlineDays), escalatedOn = earlier ? escalatedSince(earlier, today) : null
  const baseReason = event === 'information-requested' ? `Information requested from the applicant; follow up if they have not answered by ${deadline}.`
   : event === 'answered' ? `The applicant answered; review again by ${deadline}.`
   : `Verified application${route.ruleName ? ` routed by “${route.ruleName}”` : ''}${route.territory ? ` to territory ${route.territory}` : ''}; ${termsLabel(value.requestedTermsDays)}; ${documents ? `${documents} document${documents === 1 ? '' : 's'} attached, not validated` : 'no certificate attached'}. Review by ${deadline}.`
  const block: ApplicationTaskRoute = { ruleId: route.ruleId ?? null, ruleName: route.ruleName ?? null, ...(route.territory ? { territory: route.territory } : {}), ownerId: route.ownerId, escalateToId: route.escalateToId, deadlineDays: route.deadlineDays, ...(route.request ? { request: route.request } : {}), baseReason, deadline, ...(escalatedOn ? { escalatedOn } : {}) }
  const next = { ...(before ?? {}), id, kind: 'application', accountId: id, sourceId: application.id, sourcePath: `/app?application=${encodeURIComponent(application.id)}`, title: `Review trade application ${value.name}`, reason: baseReason, priority: escalatedOn ? 1 : 2, createdAt: before?.createdAt ?? at,
-  ownerId: before?.ownerId ?? route.ownerId, nextContactDate: deadline, status: 'open', contacts: before?.contacts ?? [], application: block }
- return [prior ? db.prepare('UPDATE bw_followups SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(next), revision, id, prior.revision) : db.prepare('INSERT OR IGNORE INTO bw_followups(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, id, JSON.stringify(next), revision),
+  ownerId: route.ownerId, nextContactDate: deadline, status: 'open', contacts: before?.contacts ?? [], application: block }
+ return [...route.guards, prior ? db.prepare('UPDATE bw_followups SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(next), revision, id, prior.revision) : db.prepare('INSERT OR IGNORE INTO bw_followups(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, id, JSON.stringify(next), revision),
   audit(prior ? 'application.task-updated' : 'application.task-opened', `${prior ? 'Restarted' : 'Opened'} the owner review task (${event}); reviewer ${next.ownerId}, deadline ${deadline}${escalatedOn ? `, escalated since ${escalatedOn}` : ''}.`)]
 }
 
@@ -56,5 +56,5 @@ export async function applicationReview(db: D1Database, applicationId: string, t
  if (!row) return null
  const task = escalatedView(JSON.parse(row.value_json), today), application: ApplicationTaskRoute = task.application
  const names = new Map((await db.prepare("SELECT id,display_name AS name FROM oa_operators WHERE id IN (?,?)").bind(task.ownerId, application.escalateToId).all<{ id: string; name: string }>()).results.map(person => [person.id, person.name]))
- return { taskId: task.id, status: task.status as string, resolution: (task.resolution ?? null) as string | null, ruleName: application.ruleName, territory: application.territory ?? null, reviewer: names.get(task.ownerId) ?? 'a former owner or admin', escalationPerson: names.get(application.escalateToId) ?? 'a former owner or admin', deadline: application.deadline, escalatedSince: task.escalated?.since ?? null, preparedRequest: application.request ?? null }
+ return { taskId: task.id, status: task.status as string, resolution: (task.resolution ?? null) as string | null, ruleName: application.ruleName, territory: application.territory ?? null, reviewer: names.get(task.ownerId) ?? 'a former application reviewer', escalationPerson: names.get(application.escalateToId) ?? 'a former application reviewer', deadline: application.deadline, escalatedSince: task.escalated?.since ?? null, preparedRequest: application.request ?? null }
 }

@@ -84,7 +84,7 @@ export function BarrowApp() {
     const invitationQuery=new URLSearchParams(window.location.search);if(invitationQuery.has('companyInvitation')&&invitationQuery.has('companyToken'))setInvitation({id:invitationQuery.get('companyInvitation')!,token:invitationQuery.get('companyToken')!})
     if ((new URLSearchParams(window.location.search).get('task') ?? '').startsWith('quote-mail:')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('reportRun')) setTab('Data')
-    if (new URLSearchParams(window.location.search).has('application')) setTab('Accounts')
+    if (new URLSearchParams(window.location.search).has('application') && (!staff || applicationRight==='review')) setTab('Accounts')
     if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
     void load()
   }, [load])
