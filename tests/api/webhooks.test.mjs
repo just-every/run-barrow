@@ -16,7 +16,7 @@ test('INT-013: signed immutable events retain failed attempts, endpoint backoff/
  await h.command('webhook.replay',{deliveryId:id,reason:webhookReason},{status:409});
  // A rate-limited endpoint delays all events; enqueueing a second event cannot bypass it.
  await elapseWebhook(h);receiver.status=429;receiver.retryAfter='120';await dispatchWebhook(h);
- await h.command('account.save',{id:'second',value:accountValue('synthetic-barrow-2','second@example.test')});
+ await h.command('account.save',{id:'second',value:{...accountValue('synthetic-barrow-2','second@example.test'),name:'Maple Outfitters'}});
  const beforeRate=receiver.requests.length;state=await dispatchWebhook(h);assert.equal(receiver.requests.length,beforeRate);assert.ok(state.subscriptions[0].next_delivery_at>Date.now());
  receiver.status=503;receiver.retryAfter=null;
  // Only the first handoff is due while the second remains durably enqueued.
