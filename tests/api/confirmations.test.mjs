@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import { createHash } from 'node:crypto';
+import {jpeg,withExif,imageSha} from '../fixtures/confirmation-image.mjs';
 import { installation, stock, accountValue, archive, restore, activateStaff } from './harness.mjs';
 import { sheetFixture, csvRows } from './line-sheet-fixture.mjs';
 const rows = text => text.trim().split('\r\n').map(line=>line.slice(1,-1).split('","'));
@@ -160,8 +160,7 @@ test('ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with
 
 const sized=skus=>skus.map(sku=>({sku,style:'TEE-BLUE',color:'Blue',size:sku.split('-').at(-1)}));
 // A 4x6 RGB JPEG; the test adds an EXIF segment that Barrow must strip before hashing and embedding.
-const jpeg=Buffer.from('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAGAAQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDm6KKK+iPGP//Z','base64');
-const withExif=Buffer.concat([jpeg.subarray(0,2),Buffer.from([0xff,0xe1,0x00,0x10]),Buffer.from('Exif\0\0GPS-1234','latin1'),jpeg.subarray(2)]),imageSha=createHash('sha256').update(jpeg).digest('hex');
+
 test('ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep',async t=>{
  const f=await sheetFixture(t),{h,buyers,sheet,skus}=f,year=new Date().getUTCFullYear()+1,w1=[`${year}-03-02`,`${year}-03-14`],w2=[`${year}-03-16`,`${year}-03-30`];
  await h.command('seller.identity',{revision:null,legalName:'Wrong buyer edit',address:'Nowhere'},{...buyers.cedar,status:403});

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {chromium,expect} from '@playwright/test';
 import {sheetFixture,csvRows} from '../api/line-sheet-fixture.mjs';
+import {withExif} from '../fixtures/confirmation-image.mjs';
 import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
 async function app(page,h) {
  await page.goto(h.origin+'/app');
@@ -24,6 +25,9 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  await settings.getByRole('button',{name:'Save seller identity',exact:true}).click();await expect(settings.getByRole('status')).toContainText('Seller legal identity saved');
  await settings.getByLabel('One variant per line: SKU, style, color, size',{exact:true}).fill(skus.map(sku=>`${sku}, TEE-BLUE, Blue, ${sku.split('-').at(-1)}`).join('\n'));
  await settings.getByRole('button',{name:'Save variant attributes',exact:true}).click();await expect(settings.getByRole('status')).toContainText('Variant attributes saved');
+ await settings.getByLabel('Variant',{exact:true}).selectOption(skus[2]);
+ await settings.getByLabel('JPEG image',{exact:true}).setInputFiles({name:'blue-tee.jpg',mimeType:'image/jpeg',buffer:withExif});
+ await expect(settings.getByRole('status')).toContainText('Product image saved');
  await shot(page,settings,'confirmation-settings');
  // Two ship windows through the public preparation door; the buyer revises on their own Orders screen.
  const w1=[`${year}-03-02`,`${year}-03-14`],w2=[`${year}-03-16`,`${year}-03-30`];
@@ -41,7 +45,7 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  await expect(card).toContainText('Email to the account contact: accepted');
  await shot(buyerPage,card,'confirmation-revisions');
  const pdf=await(await buyer.request.get(`${h.origin}/api/barrow/orders/${order.id}/confirmations/2.pdf`)).text();
- for(const value of ['Seller: Mill House Apparel LLC',`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size M'])assert.ok(pdf.includes(value),value);
+ for(const value of ['Seller: Mill House Apparel LLC',`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size M','/Subtype /Image'])assert.ok(pdf.includes(value),value);
  for(const reference of ['synthetic-barrow-season-2','synthetic-barrow-season-3']){const o=await h.command('order.prepare',{accountId:'cedar',lineSheetId:sheet.id,lineSheetRevision:sheet.revision,reference,lines:[{sku:skus[0],quantity:1}]},buyers.cedar);await h.command('order.submit',{orderId:o.id},buyers.cedar)}
  // The owner loads that season by filter and downloads production totals from the Orders screen.
  await page.getByRole('button',{name:'Orders',exact:true}).click();
@@ -54,4 +58,18 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  assert.deepEqual(totals.rows.map(row=>[row.style,row.color,row.size,row.base_quantity,row.order_count]),[['TEE-BLUE','Blue','S','6','3'],['TEE-BLUE','Blue','M','3','1'],['TEE-BLUE','Blue','3XL','2','1']]);
  await expect(bulk.getByRole('status')).toContainText('totals CSV was downloaded');
  await shot(page,bulk,'confirmation-season-totals');
+ await bulk.getByText('Manage named layouts',{exact:true}).click();
+ await bulk.getByLabel('Layout name',{exact:true}).fill('Spring matrix');
+ await bulk.getByLabel('Layout shape',{exact:true}).selectOption('matrix');
+ await bulk.getByLabel('Columns, in export order',{exact:true}).fill('order, po, season, style, color, requested_date, cancel_after');
+ await bulk.getByRole('button',{name:'Save as new layout',exact:true}).click();
+ await expect.poll(async()=>(await h.api('/api/barrow/confirmation-layouts')).layouts.find(row=>row.name==='Spring matrix')?.shape).toBe('matrix');
+ const layout=(await h.api('/api/barrow/confirmation-layouts')).layouts.find(row=>row.name==='Spring matrix');
+ await expect(bulk.getByLabel('Download layout',{exact:true})).toHaveValue(layout.id);
+ await bulk.getByRole('button',{name:'Make selected layout default',exact:true}).click();
+ await expect.poll(async()=>(await h.api('/api/barrow/confirmation-layouts')).defaultId).toBe(layout.id);
+ const [matrixFile]=await Promise.all([page.waitForEvent('download'),bulk.getByRole('button',{name:'Download 3 selected confirmations CSV',exact:true}).click()]);
+ const matrix=csvRows(await readFile(await matrixFile.path(),'utf8'));
+ assert.equal(matrix.rows.reduce((sum,row)=>sum+['S','M','3XL'].reduce((qty,size)=>qty+Number(row[size]||0),0),0),11);
+ await shot(page,bulk,'confirmation-matrix-layout');
 });
