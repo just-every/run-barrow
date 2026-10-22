@@ -66,7 +66,7 @@ export async function reviewReorder(env: Bindings, actor: Actor, payload: any) {
  }
  const totalCents=lines.reduce((sum,line)=>sum+(line.lineCents??0),0)
  if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
- if(totalCents<selected.value.minimumCents) {blockers.push(`Selected lines do not meet the current order minimum of ${selected.value.minimumCents} USD cents.`);blockingCodes.push('ORDER_MINIMUM')}
+ if(totalCents<selected.value.minimumCents) {blockers.push(`Selected lines do not meet the current order minimum of ${selected.value.minimumCents} ${available.currency} cents.`);blockingCodes.push('ORDER_MINIMUM')}
  const review = {orderId:original.id,accountId:selected.id,sourceRevision:original.revision,accountRevision:selected.revision,selections,deliveryLocation:original.deliveryLocation ?? '',...(await activeShipTo(env.DB,selected.id,original.shipTo?.id)?{shipToId:original.shipTo!.id}:{}),currency:available.currency,originalCurrency:original.currency ?? 'AUD',termsDays:selected.value.termsDays,originalTermsDays:original.termsDays,minimumCents:selected.value.minimumCents,totalCents,lines,blockers,blockingCodes}
  return {review:{...review,fingerprint:await digest(JSON.stringify(review))} as ReorderReview,selected,available}
 }

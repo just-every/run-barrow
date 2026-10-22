@@ -30,3 +30,5 @@ On a phone, enter variant quantities or pack counts, then **Preview sheet cart**
 **Account PDF** includes only the configured price columns, ISO currency, recipient and revision. Orders provides the recorded confirmation PDF and CSV with their independently configured columns. Order totals remain wholesale even when the document shows retail prices.
 
 **Data → Quote conversion → Line-sheet engagement per buyer** shows authenticated buyer opens, visible-item view observations and SKU observations for the report period. Supplier previews do not count. Currency selection keeps quote/order money in one recorded currency, without conversion. Campaign sending, lookbooks, product-media storage and currency-converted reports belong to their own contract clauses.
+
+CAD vertical cart forms label their `unitPrice` with an explicit `currency` column; USD forms retain the existing `unitPriceUsd` column. Both upload through the same exact-quantity preview. Existing USD delivery methods are refused for CAD quotes and orders; they are never relabeled or converted implicitly.

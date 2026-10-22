@@ -122,15 +122,16 @@ export async function previewCart(selected: Account, offered: Awaited<ReturnType
 export function orderForm(selected: Account, offers: Offer[], p: any) {
  const layout = p.layout === 'matrix' ? 'matrix' : p.layout === 'vertical' ? 'vertical' : fail('INPUT', 'Choose the vertical or matrix order form.', 400)
  const cart = new Map<string, string>((Array.isArray(p.cart) ? p.cart : []).filter((line: any) => line && typeof line.sku === 'string').map((line: any) => [`${line.sku}|${line.unit ?? offers.find(offer => offer.sku === line.sku)?.unit}`, String(line.quantity)]))
- const price = (cents: number) => (cents / 100).toFixed(2)
+ const price = (cents: number) => `${Math.trunc(cents/100)}.${String(cents%100).padStart(2,'0')}`
+ const currency=selected.value.currency??'USD'
  let rows: unknown[][]
- if (layout === 'vertical') rows = [['sku', 'barcode', 'name', 'unit', 'unitPriceUsd', 'quantity'], ...offers.flatMap(offer => sellingUnits(offer).filter(unit => unit.code === offer.unit || cart.has(`${offer.sku}|${unit.code}`)).map(unit => [offer.sku, offer.barcode ?? '', offer.name, unit.code, price(unit.unitCents), cart.get(`${offer.sku}|${unit.code}`) ?? '']))]
+ if (layout === 'vertical') rows = [['sku', 'barcode', 'name', 'unit', ...(currency==='USD'?['unitPriceUsd']:['unitPrice','currency']), 'quantity'], ...offers.flatMap(offer => sellingUnits(offer).filter(unit => unit.code === offer.unit || cart.has(`${offer.sku}|${unit.code}`)).map(unit => [offer.sku, offer.barcode ?? '', offer.name, unit.code, price(unit.unitCents), ...(currency==='USD'?[]:[currency]), cart.get(`${offer.sku}|${unit.code}`) ?? '']))]
  else {
   if ([...cart.keys()].some(key => { const [sku, unit] = key.split('|'); return offers.find(offer => offer.sku === sku)?.unit !== unit })) fail('UNIT', 'The matrix form holds base units only. Download the vertical form for selling-unit lines.', 400)
   const { rows: styles, columns } = groupStyles(offers)
   rows = [['style', 'name', ...columns], ...styles.map(style => [style.key, style.name, ...columns.map(size => style.cells[size] ? cart.get(`${style.cells[size].sku}|${style.cells[size].unit}`) ?? '' : '')])]
  }
- return { filename: `barrow-order-form-${selected.id}-${layout}.csv`, csv: csvText(rows) }
+ return { filename: `barrow-order-form-${selected.id}-${layout}.csv`, currency, csv: csvText(rows) }
 }
 
 export async function cartCommand(env: Bindings, actor: Parameters<typeof account>[1], type: string, p: any) {

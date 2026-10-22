@@ -63,6 +63,8 @@ test('MSRP books import and edit exact USD/CAD cents and preserve configured she
  for(const [a,s,who,code,base,display] of [[cedar,sheet,buyers.cedar,'USD',1201,'both'],[wren,other,buyers.wren,'CAD',1303,'wholesale']]){
   const book=csvRows(await (await h.request(`/api/barrow/price-book.csv?accountId=${a.id}`)).text());assert.equal(book.rows.length,3);assert.equal(book.rows[0].currency,code);assert.equal(book.rows[0].unitCents,String(base));assert.equal(book.rows[0].msrpCents,String(base*2));assert.equal(book.rows[1].msrpCents,'');
   await h.api(`/api/barrow/price-book.csv?accountId=${a.id}`,undefined,{...who,status:403});
+  const form=await h.command('cart.form',{accountId:a.id,layout:'vertical',cart:[{sku:f.skus[0],quantity:3}]},who),formRows=csvRows(form.csv);assert.equal(form.currency,code);assert.equal(formRows.rows[0].quantity,'3');
+  if(code==='CAD'){assert.equal(formRows.rows[0].currency,'CAD');assert.equal(formRows.rows[0].unitPrice,'13.03');assert.ok(!formRows.header.includes('unitPriceUsd'));const roundTrip=await h.command('cart.preview',{accountId:a.id,csv:form.csv,mode:'replace'},who);assert.equal(roundTrip.totalCents,3909);assert.equal(roundTrip.currency,'CAD');}
   const page=await h.api(`/api/barrow/line-sheets/${s.id}`,undefined,who);assert.equal(page.currency,code);assert.equal(page.items[0].unitCents,base);
   const pdf=await (await h.request(`/api/barrow/line-sheets/${s.id}.pdf`,who)).text();assert.ok(pdf.includes(`Wholesale ${code} ${Math.trunc(base/100)}.${String(base%100).padStart(2,'0')}`));
   if(display==='both'){assert.equal(page.items[0].msrpCents,base*2);assert.equal(page.items[0].marginBps,5000);assert.equal(page.items[1].msrpCents,null);assert.equal(page.items[1].marginBps,null);assert.ok(pdf.includes('Margin 50.00%'));assert.ok(pdf.includes('MSRP absent'));}
@@ -86,4 +88,9 @@ test('MSRP books import and edit exact USD/CAD cents and preserve configured she
  const retailPdf=await(await h.request(`/api/barrow/line-sheets/${retail.id}.pdf`,buyers.cedar)).text();assert.ok(retailPdf.includes('MSRP USD 30.01'));assert.ok(!retailPdf.includes('Wholesale USD'));assert.ok(!retailPdf.includes('Margin'));
  const cart=await f.preview(retail,{lines:[{sku:f.skus[0],quantity:1}]});const draft=await f.prepare(retail,cart);await h.command('order.submit',{orderId:draft.id},buyers.cedar);
  const path=`/api/barrow/orders/${draft.id}/confirmations/1`,csv=csvRows(await(await h.request(path+'.csv',buyers.cedar)).text()),pdf=await(await h.request(path+'.pdf',buyers.cedar)).text();assert.ok(!csv.header.includes('unit_cents'));assert.ok(!csv.header.includes('line_cents'));assert.ok(!csv.header.includes('margin_bps'));assert.equal(csv.rows[0].msrp_cents,'3001');assert.equal(csv.rows[0].order_total_cents,'1201');assert.ok(pdf.includes('MSRP USD 30.01'));assert.ok(!pdf.includes('Wholesale USD'));assert.ok(!pdf.includes('Margin'));
+ // A CAD quote must not inherit USD delivery rates merely because the preview omitted a currency field.
+ const quote=await h.command('quote.request',{accountId:'wren',lines:[{sku:f.skus[0],quantity:1}]},buyers.wren);
+ await h.command('shipping.settings',{revision:null,methods:[{id:'parcel',name:'USD parcel',kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1500,handlingCents:0,freeOverCents:null,transitMinDays:2,transitMaxDays:5,quoteRequired:false}]});
+ assert.equal((await h.api(`/api/barrow/shipping/options?quoteId=${quote.id}`,undefined,{...buyers.wren,status:409})).error.code,'SHIPPING_CURRENCY');
+ assert.equal((await h.api(`/api/barrow/quotes/${quote.id}`,undefined,buyers.wren)).currency,'CAD');
 });

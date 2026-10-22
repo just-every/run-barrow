@@ -22,7 +22,7 @@ export async function saveShipping(env:Bindings,actor:Actor,p:any) {
 export type ShippingContext={currency?:'USD'|'AUD'|'CAD';account:Account;lines:Line[];shipTo?:Order['shipTo'];quotes?:FreightQuote[]}
 export async function deliveryOptions(env:Bindings,context:ShippingContext) {
  const settings=await shippingSettings(env.DB),today=supplierDate(await now()),subtotal=context.lines.reduce((sum,line)=>sum+(line.lineCents??line.quantity*line.unitCents),0)
- if(settings.methods.length&&context.currency!==undefined&&context.currency!=='USD')fail('SHIPPING_CURRENCY','Delivery methods are priced in USD. Prepare a new USD draft; this historical order keeps its original currency.')
+ if(settings.methods.length&&(context.currency??context.account.value.currency??'USD')!=='USD')fail('SHIPPING_CURRENCY','These delivery methods are priced in USD and cannot be applied to another currency. The order or quote retains its recorded currency.')
  const basis=await digest(JSON.stringify({accountId:context.account.id,accountRevision:context.account.revision,lines:context.lines.map(line=>({sku:line.sku,itemId:line.itemId,quantity:line.quantity,unit:line.unit??null,baseQuantity:line.baseQuantity??String(line.quantity),unitCents:line.unitCents,lineCents:line.lineCents??line.quantity*line.unitCents})),shipTo:context.shipTo??null,settings:settings.revision}))
  const options:DeliveryOption[]=[]
  for(const method of settings.methods) {
@@ -78,7 +78,7 @@ export async function shippingResponse(env:Bindings,actor:Actor,id:string) {
 export async function quoteShippingContext(env:Bindings,actor:Actor,id:string) {
  const row=await env.DB.prepare('SELECT value_json FROM bw_quotes WHERE id=?').bind(id).first<{value_json:string}>();if(!row)fail('NOT_FOUND','Quote not found.',404)
  const quote=JSON.parse(row.value_json),selected=await account(env.DB,actor,quote.accountId),latest=quote.revisions.at(-1)
- return {account:selected,lines:latest?.lines??quote.request,shipTo:await locationSnapshot(env.DB,selected,'ship-to',undefined),quotes:latest?.freightQuotes} as ShippingContext
+ return {currency:quote.currency??'USD',account:selected,lines:latest?.lines??quote.request,shipTo:await locationSnapshot(env.DB,selected,'ship-to',undefined),quotes:latest?.freightQuotes} as ShippingContext
 }
 
 /** The rate book is rechecked in the same SQL transaction that accepts the order. */

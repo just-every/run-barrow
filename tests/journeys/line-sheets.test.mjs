@@ -36,7 +36,7 @@ test('supplier publishes recipient-priced seasonal matrices and two buyers order
  for(const [key,s,code,total] of [['cedar',cedarSheet,'USD',4003],['wren',wrenSheet,'CAD',4309]]){
   const context=await signedContext(browser,h,buyers[key].as);t.after(()=>context.close());const buyerPage=await context.newPage();await app(buyerPage,h);
   // The existing catalog labels CAD as CAD too.
-  if(key==='wren'){await expect(buyerPage.getByText('CAD 13.03',{exact:false}).first()).toBeVisible();await shot(buyerPage,buyerPage.locator('.br-pad'),'sheet-cad-catalog');}
+  if(key==='wren'){await expect(buyerPage.getByText('CAD 13.03',{exact:false}).first()).toBeVisible();await shot(buyerPage,buyerPage.locator('.br-pad'),'sheet-cad-catalog');await shot(buyerPage,buyerPage.locator('.br-footer'),'sheet-currency-footer');}
   await buyerPage.getByRole('button',{name:'Line sheets',exact:true}).click();await buyerPage.getByRole('button',{name:key==='cedar'?/Spring for Cedar/:/Spring collection/}).first().click();
   const card=buyerPage.getByRole('article',{name:'Published line sheet',exact:true});await card.getByRole('heading').waitFor();await expect(card).toContainText(code);await expect(card).toContainText(key==='cedar'?'MSRP USD 24.02':'Wholesale CAD 13.03');if(key==='wren')await expect(card).not.toContainText('MSRP');
   await shot(buyerPage,card,`sheet-${key}-matrix`);await buyerPage.setViewportSize({width:390,height:1000});
