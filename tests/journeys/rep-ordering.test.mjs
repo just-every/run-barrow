@@ -110,7 +110,7 @@ test('a rep plans a showroom visit, records buyer notes and samples, turns the s
  await card.getByLabel('Show basket item 1', { exact: true }).selectOption('OAT-1');
  await card.getByLabel('Show basket quantity 1', { exact: true }).fill('12');
  await card.getByRole('button', { name: 'Prepare quote from basket', exact: true }).click();
- await card.getByText(/Show basket prepared as quote /).waitFor();
+ await card.getByText(/^Show basket prepared as quote /).waitFor();
  await card.locator('summary', { hasText: 'Record buyer notes and outcome' }).click();
  await card.getByRole('button', { name: 'Complete visit', exact: true }).click();
  await card.getByText('Showroom visit · ' + day + ' 10:30 · completed').waitFor();
