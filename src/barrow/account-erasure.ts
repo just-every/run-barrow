@@ -76,7 +76,7 @@ function redactSnapshot(value:any,people:ErasureOperation['people'],email:string
  if(/^(id|sku|reference|sha256|currency|unit|pierReference|customerName|name)$|Id$|By$|At$/.test(key))return value
  if(typeof value==='string')return replaceText(value,people,email,personal)
  if(Array.isArray(value))return value.map(item=>redactSnapshot(item,people,email,key,personal))
- if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>!['billTo','shipTo'].includes(key)).map(([key,item])=>[key,['instructions','note'].includes(key)?'[Erased personal details]':redactSnapshot(item,people,email,key,personal)]))
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>!['billTo','shipTo'].includes(key)).map(([key,item])=>[key,['instructions','note','printedName','contactName','phone'].includes(key)?'[Erased personal details]':redactSnapshot(item,people,email,key,personal)]))
  return value
 }
 async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<typeof facts>>,restoring=false) {
@@ -154,10 +154,11 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   const floor=[...orderFloors.values()].filter((floor):floor is string=>!!floor).sort().at(-1)??null,keep=Boolean(floor&&at<floor)
   for(const doc of r.bw_application_documents.filter(doc=>doc.application_id===row.id))add('application documents','application-document:'+doc.id,keep?'keep under financial floor':'remove',keep?'Approved certificates remain submitted-order evidence':'Outside the financial floor',keep?[]:[sql('DELETE FROM bw_application_documents WHERE id=?',doc.id)],floor)
  }
- // Provider event bodies/states are discarded before neutralizing the ledger.
+ // Preview each retained provider receipt/state as its own removable item.
+ const providerIds=new Set(r.bw_quote_mail.filter(row=>row.account_id===accountId).map(row=>row.provider_message_id).filter(Boolean))
+ for(const row of r.rer_mail_event_receipts.filter(row=>row.event_namespace==='quotes'&&providerIds.has(JSON.parse(row.event_json).providerMessageId)))add('mail event payloads','mail-event:'+row.provider+':'+row.tenant_id+':'+row.event_id,'remove','Provider payloads are outside the financial floor',[sql('DELETE FROM rer_mail_event_receipts WHERE provider=? AND tenant_id=? AND event_namespace=? AND event_id=?',row.provider,row.tenant_id,row.event_namespace,row.event_id)])
+ for(const row of r.rer_mail_event_states.filter(row=>row.event_namespace==='quotes'&&providerIds.has(row.provider_message_id)))add('mail event payloads','mail-state:'+row.provider+':'+row.tenant_id+':'+row.provider_message_id+':'+row.recipient,'remove','Provider recipient states are outside the financial floor',[sql('DELETE FROM rer_mail_event_states WHERE provider=? AND tenant_id=? AND event_namespace=? AND provider_message_id=? AND recipient=?',row.provider,row.tenant_id,row.event_namespace,row.provider_message_id,row.recipient)])
  for(const row of r.bw_quote_mail.filter(row=>row.account_id===accountId))add('mail ledger','mail:'+row.id,'remove personal fields; preserve custody IDs','Keep delivery ID, status, times and provider message ID',[
-  sql("DELETE FROM rer_mail_event_receipts WHERE event_namespace='quotes' AND json_extract(event_json,'$.providerMessageId')=?",row.provider_message_id),
-  sql("DELETE FROM rer_mail_event_states WHERE event_namespace='quotes' AND provider_message_id=?",row.provider_message_id),
   sql("UPDATE bw_quote_mail SET recipient=NULL,summary='[Erased notice]',submission_json=NULL,sender_result_json=NULL,reason='Personal fields erased by owner',restored=1,lease_until=0 WHERE id=?",row.id),
  ])
  for(const row of r.bw_quote_notices.filter(row=>row.account_id===accountId))add('notice summaries','notice:'+row.id,'neutralize','No personal details or restored outreach',[sql("UPDATE bw_quote_notices SET summary='[Erased notice]',mail_eligible=0 WHERE id=?",row.id)])
