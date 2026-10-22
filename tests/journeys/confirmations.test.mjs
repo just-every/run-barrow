@@ -25,7 +25,7 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  await settings.getByRole('button',{name:'Save seller identity',exact:true}).click();await expect(settings.getByRole('status')).toContainText('Seller legal identity saved');
  await settings.getByLabel('One variant per line: SKU, style, color, size',{exact:true}).fill(skus.map(sku=>`${sku}, TEE-BLUE, Blue, ${sku.split('-').at(-1)}`).join('\n'));
  await settings.getByRole('button',{name:'Save variant attributes',exact:true}).click();await expect(settings.getByRole('status')).toContainText('Variant attributes saved');
- await settings.getByLabel('Variant',{exact:true}).selectOption(skus[2]);
+ await settings.getByLabel('Variant').selectOption(skus[2]);
  await settings.getByLabel('JPEG image',{exact:true}).setInputFiles({name:'blue-tee.jpg',mimeType:'image/jpeg',buffer:withExif});
  await expect(settings.getByRole('status')).toContainText('Product image saved');
  await shot(page,settings,'confirmation-settings');
@@ -61,12 +61,12 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  await shot(page,bulk,'confirmation-season-totals');
  await bulk.getByText('Manage named layouts',{exact:true}).click();
  await bulk.getByLabel('Layout name',{exact:true}).fill('Spring matrix');
- await bulk.getByLabel('Layout shape',{exact:true}).selectOption('matrix');
+ await bulk.getByLabel('Layout shape').selectOption('matrix');
  await bulk.getByLabel('Columns, in export order',{exact:true}).fill('order, po, season, style, color, requested_date, cancel_after');
  await bulk.getByRole('button',{name:'Save as new layout',exact:true}).click();
  await expect.poll(async()=>(await h.api('/api/barrow/confirmation-layouts')).layouts.find(row=>row.name==='Spring matrix')?.shape).toBe('matrix');
  const layout=(await h.api('/api/barrow/confirmation-layouts')).layouts.find(row=>row.name==='Spring matrix');
- await expect(bulk.getByLabel('Download layout',{exact:true})).toHaveValue(layout.id);
+ await expect(bulk.getByLabel('Download layout')).toHaveValue(layout.id);
  await bulk.getByRole('button',{name:'Make selected layout default',exact:true}).click();
  await expect.poll(async()=>(await h.api('/api/barrow/confirmation-layouts')).defaultId).toBe(layout.id);
  const [matrixFile]=await Promise.all([page.waitForEvent('download'),bulk.getByRole('button',{name:'Download 3 selected confirmations CSV',exact:true}).click()]);
