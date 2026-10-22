@@ -1,3 +1,4 @@
+import { applicationReviewers } from './application-reviewers'
 import { staffTaskAllowed } from './staff-access'
 import { readStaffGrant,staffGuard } from './staff-policy'
 import type { Bindings } from '../auth.server'
@@ -37,7 +38,12 @@ const notes = {
 export async function readFollowups(env: Bindings, actor: Actor, params: URLSearchParams) {
  authorize(actor)
  const timeZone = await reportZone(env.DB), today = calendarDate(await now(), timeZone), on = params.has('on') ? validDay(params.get('on')) : today
- const tasks=(await allTasks(env.DB)).filter(task=>staffTaskAllowed(actor,task));const staff=actor.staff?Array.from(new Map((await Promise.all(tasks.map(task=>taskPeople(env.DB,task)))).flat().map(p=>[p.id,{id:p.id,displayName:p.displayName}])).values()):Array.from(new Map([...(await people(env.DB)),...(await Promise.all(tasks.map(task=>taskPeople(env.DB,task)))).flat()].map(p=>[p.id,{id:p.id,displayName:p.displayName}])).values())
+ const tasks=(await allTasks(env.DB)).filter(task=>staffTaskAllowed(actor,task))
+ const candidates=actor.staff?(await Promise.all(tasks.map(task=>taskPeople(env.DB,task)))).flat():[
+  ...await people(env.DB),
+  ...(tasks.some(task=>task.kind==='application')?(await applicationReviewers(env.DB)).map(person=>({id:person.id,displayName:person.name})):[]),
+ ]
+ const staff=Array.from(new Map(candidates.map(person=>[person.id,{id:person.id,displayName:person.displayName}])).values())
  // AUTO-001: an escalated application task stays due from its escalation day, whatever its next contact date says.
  return { tasks: tasks.map(task => escalatedView(task, today)).filter(task => params.get('view') === 'all' || task.status === 'open' && (task.nextContactDate <= on || !!task.escalated && task.escalated.since <= on)).sort((a, b) => a.priority - b.priority || a.nextContactDate.localeCompare(b.nextContactDate) || a.id.localeCompare(b.id)), people: staff, today, timeZone, on, notes }
 }
