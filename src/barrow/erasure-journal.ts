@@ -81,6 +81,7 @@ export async function reconcileErasureJournal(env:Bindings) {
   } else if(applied) await completeErasureIntent(env,operation.id,fingerprint)
   else throw new Error('ERASURE_JOURNAL_INDETERMINATE')
  }
+ if(await env.DB.prepare('SELECT 1 FROM bw_erasure_receipts r WHERE NOT EXISTS(SELECT 1 FROM bw_account_erasure_journal j WHERE j.id=r.id) LIMIT 1').first())throw new Error('ERASURE_MIGRATION_REVIEW_REQUIRED')
 }
 export async function erasureRestoreResponse(env:Bindings):Promise<Response|null> {
  try {await reconcileErasureJournal(env);return null}
@@ -123,7 +124,9 @@ export async function initializeIndependentJournal(env:Bindings,actor:{id:string
  if(!env.ERASURE_JOURNAL)throw new Error('ERASURE_JOURNAL_UNAVAILABLE')
  await env.DB.prepare('INSERT OR IGNORE INTO rer_portability_state(id,source_identity) VALUES(1,?)').bind(crypto.randomUUID()).run()
  const source=(await env.DB.prepare('SELECT source_identity FROM rer_portability_state WHERE id=1').first<any>()).source_identity,key=sourceKey(source),prior=await env.ERASURE_JOURNAL.get(key)
- if(prior&&(await prior.json<Source>()).initialized===true)return {sourceIdentity:source,initialized:true}
+ const untracked=await env.DB.prepare('SELECT 1 FROM bw_erasure_receipts r WHERE NOT EXISTS(SELECT 1 FROM bw_account_erasure_journal j WHERE j.id=r.id) LIMIT 1').first()
+ if(prior&&(await prior.json<Source>()).initialized===true&&!untracked)return {sourceIdentity:source,initialized:true}
+ if(prior)await updateSource(env,source,value=>({...value,initialized:false}))
  // Importing a database is never authorization to invent an empty journal.
  if(await env.DB.prepare("SELECT 1 FROM rer_portability_jobs WHERE kind='import' LIMIT 1").first())throw new Error('ERASURE_SOURCE_JOURNAL_REQUIRED')
  if(!prior)await env.ERASURE_JOURNAL.put(key,JSON.stringify({sourceIdentity:source,initialized:false,operations:[]}),{onlyIf:{etagDoesNotMatch:'*'}})
