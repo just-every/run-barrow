@@ -4,7 +4,7 @@
 // certificates). The first matching rule in order wins; an application no rule matches goes to the fallback. A route may
 // carry a prepared missing-information request that the reviewer reviews before sending; nothing is sent by a rule.
 // ACC-005 includes current all-account sales managers holding the applications entitlement; only owners/admins save rules.
-import { applicationReviewers, applicationReviewerGuard } from './application-access'
+import { applicationReviewers, applicationReviewerGuard } from './application-reviewers'
 import { audit, commit } from './access'
 import { fail, integer, requirePerson, text, type Actor } from './model'
 

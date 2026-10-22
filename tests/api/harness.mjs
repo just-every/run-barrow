@@ -1,5 +1,5 @@
 import { request as httpsRequest } from 'node:https';
-import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
+import { Miniflare, Log, LogLevel, convertV4MiniflareOptions } from 'miniflare';
 import { unstable_splitSqlQuery } from 'wrangler';
 import { build } from 'esbuild';
 import { randomBytes,randomUUID } from 'node:crypto';
@@ -8,11 +8,13 @@ import { tmpdir } from 'node:os';
 import { resolve,join } from 'node:path';
 import assert from 'node:assert/strict';
 import { pierSource } from '../pier-source.mjs';
-export async function installation({pier=false,bindings={},https,built=false}={}) {
+export async function installation({pier=false,bindings={},https,built=false,captureLogs=false}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
+ const logs=[];class CapturedLog extends Log {log(message){logs.push(String(message))}}
+ const logger=captureLogs?new CapturedLog(LogLevel.DEBUG):undefined;
  const messages=[],mail={deliveries:[],requests:[],reject:false,failStatus:undefined},idempotency=new Map();
  // Fake only the external mail boundary; Pier remains the real pinned Worker.
  const mailEdge=async request=>{
@@ -30,7 +32,7 @@ export async function installation({pier=false,bindings={},https,built=false}={}
   return new Response(await response.arrayBuffer(),{status:response.status,headers:Object.fromEntries(response.headers)});
  };
  let origin='http://localhost';
- const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),modules:true,script:bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['ERASURE_JOURNAL'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
+ const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),modules:true,script:bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['ERASURE_JOURNAL'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory,...(logger?{log:logger}:{})});
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
@@ -80,7 +82,7 @@ export async function installation({pier=false,bindings={},https,built=false}={}
    }
    throw Error('Invitation did not produce a usable sign-in link');
   };
-  return {mf,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  return {mf,logs,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
 }
 export async function stock(pier,quantity='24') {

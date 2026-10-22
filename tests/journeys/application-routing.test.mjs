@@ -56,6 +56,12 @@ test('applications route by territory to a reviewer with a prepared request, the
  await apply.getByRole('checkbox', { name: 'Your details and documents go only to the supplier' }).check();
  await captureWidths(page, 'application-form-requested-terms');
  await page.waitForTimeout(3100);
+ await apply.getByLabel('Resale certificates', {exact:false}).setInputFiles({name:'unsafe.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 /OpenAction /JavaScript synthetic-barrow-403')});
+ await apply.getByRole('button', { name: 'Submit and request verification code' }).click();
+ await page.getByRole('alert').filter({hasText:'This attachment contains active'}).waitFor();
+ await captureWidths(page,'application-dangerous-document-refused');
+ assert.equal((await h.api('/api/barrow/applications')).applications.length,0);
+ await apply.getByLabel('Resale certificates', {exact:false}).setInputFiles([]);
  await apply.getByRole('button', { name: 'Submit and request verification code' }).click();
  await page.getByRole('status').filter({ hasText: 'Verification accepted' }).waitFor();
  const code = h.mail.requests.findLast(row => row.message.to.includes('applicant@example.test') && row.message.subject === 'Verify your trade application').message.text.match(/code is (\d{6})/)[1];

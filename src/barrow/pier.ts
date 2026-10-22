@@ -30,7 +30,7 @@ async function call(env: Bindings,path: string,body?: unknown) {
  if(data.ok===false) fail('PIER_REJECTED','Pier refused this order. Check its customer, items and session permissions.',409)
  return data
 }
-export const pierOrigin = (env: Bindings) => demoEffect(() => env.PIER_ORIGIN, demoPierOrigin)
+export const pierOrigin = (env: Bindings) => demoEffect(() => env.PIER_ORIGIN && env.PIER_SESSION ? origin(env) : undefined, demoPierOrigin)
 export const pierConfigured = (env: Bindings) => demoEffect(() => Boolean(env.PIER_ORIGIN && env.PIER_SESSION), true)
 export const pierState = (env: Bindings) => demoEffect(() => call(env,'/api/pier/state'), demoPierState)
 export async function catalogue(env: Bindings,account: Account) {

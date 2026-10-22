@@ -15,6 +15,12 @@ export async function readDocument(p: any, noun = 'A PO document', kind = 'purch
  if (!bytes.length || bytes.length > documentLimit) fail('DOCUMENT', `${noun} must be between 1 byte and 1 MB.`, 400)
  const type = kinds.find(([, magic]) => magic.every((byte, index) => bytes[index] === byte))?.[0]
  if (!type) fail('DOCUMENT', `Attach a PDF, PNG or JPEG ${kind}.`, 400)
+ // Conservative active-content screen, not a malware verdict. Normalize PDF name escapes before checking actions.
+ const binary = Array.from(bytes, byte => String.fromCharCode(byte)).join('')
+ const normalized = binary.replace(/#([0-9a-f]{2})/gi, (_, hex) => String.fromCharCode(parseInt(hex,16)))
+ if (/\/(?:JavaScript|JS|AA|OpenAction|Launch|EmbeddedFile|Filespec|RichMedia|XFA|SubmitForm|GoToR|ImportData|Rendition|Encrypt|ObjStm|URI)\b/i.test(normalized)
+  || /<(?:script|svg|html)\b|<!doctype\s+html/i.test(binary)
+  || /PK\x03\x04|MZ[\s\S]{0,128}This program/i.test(binary)) fail('DOCUMENT_UNSAFE', 'This attachment contains active, embedded, encrypted or unsafe content. Supply a static PDF, PNG or JPEG. Files are not malware-screened.', 400)
  const sha256 = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map(x => x.toString(16).padStart(2, '0')).join('')
  return { name: safeName(name, type), type, size: bytes.length, sha256, contentBase64: p.contentBase64 }
 }

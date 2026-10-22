@@ -1,3 +1,5 @@
+import { requestLimit } from './request-limits'
+import { observePierConfiguration } from './connection-security'
 import { erasureRestoreResponse, requireArchiveJournal, exportIndependentJournal, attachIndependentJournal, initializeIndependentJournal } from './erasure-journal'
 import { previewAccountErasure, executeAccountErasure } from './account-erasure'
 import { repPerformance, repPerformanceCsv } from './rep-performance'
@@ -70,6 +72,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
  if(!path.startsWith('/api/barrow/')) return null
  try {
   const env=runtimeBindings(original)
+  const limited=await requestLimit(request,env);if(limited)return limited
   if(path==='/api/barrow/erasure-journal') {
    const actor=await current(request,env)
    if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may handle the independent erasure journal.',403)
@@ -92,6 +95,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
   })
+  await observePierConfiguration(env)
   actor.staff=await readStaffGrant(env.DB,actor)
   await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
