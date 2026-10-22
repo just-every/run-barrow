@@ -317,6 +317,7 @@ test('functional application reviewers: all-account managers decide and download
  const link=new URL(invitation), buyer={as:await h.signIn('applicant@example.test','existing')};
  const joined=await h.command('company.accept',{invitationId:link.searchParams.get('companyInvitation'),token:link.searchParams.get('companyToken')},buyer);
  assert.equal(joined.accountId,row.accountId);assert.ok(joined.rights.includes('administrator'));
+ const ownCertificate=await h.request(documentPath,{as:buyer.as+'; '+applicant.as});assert.equal(ownCertificate.status,200);assert.equal(await ownCertificate.text(),bytes);
  await h.api('/auth/operators',undefined,{...manager,status:403});
  await h.api('/auth/invite',{email:'unapproved@example.test',displayName:'No authority',role:'member'},{...manager,status:403});
  const second=await verifiedApplication(h,{name:'Harbor Provisions',email:'harbor@example.test'});

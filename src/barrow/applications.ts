@@ -1,5 +1,5 @@
 import { companyCommand, unlimitedCompanyPolicy } from './company-members'
-import { requireApplicationAccess } from './application-access'
+import { applicationAccess, requireApplicationAccess } from './application-access'
 import { readStaffGrant } from './staff-policy'
 import { staffRequestGate } from './staff-access'
 import { boundedJson } from '@runeditrun/rer/modules/portability/http'
@@ -16,7 +16,7 @@ import { formToken, spamCheck, applicationsOpen, sendApplicationCode, applicant,
 const json=(value:unknown,headers:Record<string,string>={})=>Response.json(value,{headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...headers}})
 const docStatement=(env:Bindings,id:string,doc:Awaited<ReturnType<typeof readDocument>>,at:string)=>env.DB.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),id,doc.name,doc.type,doc.size,doc.sha256,doc.contentBase64,at)
 const rowGuard=(env:Bindings,row:ApplicationRow)=>env.DB.prepare('UPDATE bw_applications SET revision=revision WHERE id=? AND revision=? AND state=?').bind(row.id,row.revision,row.state)
-async function applicationActor(request: Request, env: Bindings) {
+async function applicationActor(request: Request, env: Bindings, ownDocument?: string) {
  const actor = await current(request, env).catch(error => {
   if (error instanceof Problem && error.status === 401 && !request.headers.has('authorization')) return null
   throw error
@@ -24,6 +24,10 @@ async function applicationActor(request: Request, env: Bindings) {
  if (actor) {
   actor.staff = await readStaffGrant(env.DB, actor)
   await staffRequestGate(env, actor, new URL(request.url).pathname, request.method)
+  // A buyer may keep using the application's own 24-hour proof after native sign-in.
+  // Functional staff (including revoked grants) and agents never fall through to that proof.
+  if (ownDocument && !applicationAccess(actor) && !actor.agent && actor.role==='member'
+   && !await env.DB.prepare('SELECT 1 FROM bw_staff_members WHERE user_id=?').bind(actor.id).first()) return null
   requireApplicationAccess(actor)
  }
  return actor
@@ -60,8 +64,8 @@ export async function applicationResponse(request:Request,env:Bindings):Promise<
  if(path==='/api/barrow/applications/mine'&&request.method==='GET')return json(await applicationView(env.DB,await applicant(request,env)))
  const document=/^\/api\/barrow\/applications\/([^/]+)\/documents\/([^/]+)$/.exec(path)
  if(document&&request.method==='GET') {
-  // Only a missing native session may use the application's own session; a permission refusal never falls through.
-  const actor = await applicationActor(request, env)
+  // An applicant's own proof cannot override a functional-staff permission refusal.
+  const actor = await applicationActor(request, env, document[1])
   if (!actor) await applicant(request,env,document[1])
   const doc=await env.DB.prepare('SELECT * FROM bw_application_documents WHERE application_id=? AND id=?').bind(document[1],document[2]).first<any>()
   if(!doc)fail('NOT_FOUND','Application document not found.',404)
