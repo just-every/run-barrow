@@ -5,7 +5,7 @@ import { installation, stock, activateStaff } from './harness.mjs';
 const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
 const pdf = { name: 'resale certificate.pdf', contentBase64: Buffer.from('%PDF-1.4 synthetic-barrow-21').toString('base64') };
 
-test('AUTO-001: rules route verified applications by territory, requested terms and certificate to a reviewer with a deadline and a prepared request; applicants get generic status emails; escalation persists through requests, answers and emails until a decision or explicit closure', async t => {
+test('AUTO-001: rules route verified applications by territory, requested terms and certificate to a reviewer with a deadline and a prepared request; applicants get generic status emails; escalation persists through requests, refused uploads and emails until a decision or explicit closure', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const products = await stock(pier);
  const h = await installation({ https: true, bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
@@ -77,13 +77,13 @@ test('AUTO-001: rules route verified applications by territory, requested terms 
  let row = await review(first.id);
  assert.deepEqual([row.review.ruleName, row.review.territory, row.review.reviewer, row.review.escalationPerson, row.review.deadline, row.review.preparedRequest, row.review.escalatedSince], ['Southeast without a certificate', 'Southeast', name(manager.id), name(ownerId), easternDay(2), prepared, null]);
  // Requested terms and volume route the others; an unmatched application goes to the owner with three days.
- const terms = await apply({ requestedTermsDays: 60, locations: [newYork], documents: [pdf] });
+ const terms = await apply({ requestedTermsDays: 60, locations: [newYork] });
  assert.deepEqual([(await taskFor(terms.id)).ownerId, (await taskFor(terms.id)).nextContactDate, (await taskFor(terms.id)).application.ruleId], [ownerId, easternDay(1), 'net-terms']);
- assert.match((await taskFor(terms.id)).reason, /Net 60 terms requested; 1 document attached, not validated/);
+ assert.match((await taskFor(terms.id)).reason, /Net 60 terms requested; no certificate attached/);
  assert.equal((await review(terms.id)).value.requestedTermsDays, 60);
- const large = await apply({ annualVolumeUsd: 250000, locations: [newYork], documents: [pdf] });
+ const large = await apply({ annualVolumeUsd: 250000, locations: [newYork] });
  assert.deepEqual([(await taskFor(large.id)).application.ruleId, (await taskFor(large.id)).nextContactDate], ['large', easternDay(5)]);
- const plain = await apply({ locations: [{ ...location, state: 'GA', zip: '30301' }], documents: [pdf] });
+ const plain = await apply({ locations: [{ ...location, state: 'GA', zip: '30301' }] });
  assert.deepEqual([(await taskFor(plain.id)).ownerId, (await taskFor(plain.id)).nextContactDate, (await taskFor(plain.id)).application.ruleId], [ownerId, easternDay(3), null]);
 
  // 2. Past the deadline the open task escalates (priority 1, escalation person recorded); refresh keeps it escalated.
@@ -114,15 +114,17 @@ test('AUTO-001: rules route verified applications by territory, requested terms 
  // Moving the next contact date does not hide it: an escalated task stays due.
  await h.command('followup.update', { id: task.id, revision: task.revision, nextContactDate: easternDay(10) }, manager.who);
  assert.ok((await board({}, 'due')).some(row => row.sourceId === first.id));
- // The applicant answers with the document (their own change: no status email); still open and escalated.
- await h.api('/api/barrow/applications/respond', { revision: mine.revision, document: pdf }, first.session);
+ // Screening is unavailable: an upload cannot answer the request or change its review deadline.
+ const refused=await h.api('/api/barrow/applications/respond', { revision: mine.revision, document: pdf }, {...first.session,status:503});
+ assert.equal(refused.error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');
+ assert.deepEqual(await h.api('/api/barrow/applications/mine',undefined,first.session),mine);
  task = await taskFor(first.id);
- assert.equal(task.status, 'open'); assert.ok(task.escalated); assert.match(task.reason, /The applicant answered/);
+ assert.equal(task.status, 'open'); assert.ok(task.escalated); assert.match(task.reason, /Information requested from the applicant/);
  assert.equal(statusMails(first.email).length, 1);
 
  // 4. Only a recorded decision (or the applicant's withdrawal) ends it; approval sends one generic status email beside the invitation.
  row = await review(first.id);
- const approved = await h.command('application.approve', { id: row.id, revision: row.revision, reason: 'Certificate reviewed; approve.', duplicateReviews: [], account: { pierCustomerId: products.customer.id, termsDays: 30, minimumCents: 0, prices: [{ sku: 'OAT-1', unitCents: 6500, minQty: 2 }] } });
+ const approved = await h.command('application.approve', { id: row.id, revision: row.revision, reason: 'Trade criteria reviewed; approve without documents.', duplicateReviews: [], account: { pierCustomerId: products.customer.id, termsDays: 30, minimumCents: 0, prices: [{ sku: 'OAT-1', unitCents: 6500, minQty: 2 }] } });
  assert.equal(approved.state, 'approved'); assert.deepEqual(approved.statusEmail, { state: 'approved', status: 'accepted' });
  assert.match(statusMails(first.email).at(-1), /status is now: approved/);
  task = await taskFor(first.id);

@@ -268,11 +268,11 @@ test('ACC-005: owner grants Native members scoped functional work, amount approv
  }
 });
 
-test('functional application reviewers: all-account managers decide and download, finance reads certificates, every other grant and revoked access is refused', async t => {
+test('functional application reviewers: all-account managers decide, finance reads quarantined certificate metadata, every other grant and revoked access is refused', async t => {
  const h=await installation({https:true});t.after(()=>h.close());
  await h.command('account.save',{id:'cedar',value:accountValue('synthetic-barrow-302')});
  const {verifiedApplication}=await import('./application-fixture.mjs');
- const {application:submitted,applicant,bytes}=await verifiedApplication(h);
+ const {application:submitted,applicant,bytes}=await verifiedApplication(h,{existingDocument:true});
  const grantPerson=async(email,grantPolicy)=>{
   const who={as:await h.signIn(email)};
   const grant=await h.command('staff.invite',{email,name:'Functional reviewer',policy:grantPolicy,reason});
@@ -303,7 +303,7 @@ test('functional application reviewers: all-account managers decide and download
  assert.equal(financeView.access,'documents');assert.deepEqual(financeView.applications[0].value,{name:'Cedar Street Pantry'});
  assert.equal(financeView.applications[0].history,undefined);assert.equal(financeView.applications[0].duplicates,undefined);
  for(const who of [manager,finance]){
-  const response=await h.request(documentPath,who);assert.equal(response.status,200);assert.equal(await response.text(),bytes);
+  const response=await h.request(documentPath,who);assert.equal(response.status,503);assert.equal((await response.json()).error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');
   assert.equal((await h.request('/api/barrow/export/applicationdocuments.csv',who)).status,200);
  }
  assert.equal((await h.request('/api/barrow/export/applications.csv',manager)).status,200);
@@ -317,7 +317,7 @@ test('functional application reviewers: all-account managers decide and download
  const link=new URL(invitation), buyer={as:await h.signIn('applicant@example.test','existing')};
  const joined=await h.command('company.accept',{invitationId:link.searchParams.get('companyInvitation'),token:link.searchParams.get('companyToken')},buyer);
  assert.equal(joined.accountId,row.accountId);assert.ok(joined.rights.includes('administrator'));
- const ownCertificate=await h.request(documentPath,{as:buyer.as+'; '+applicant.as});assert.equal(ownCertificate.status,200);assert.equal(await ownCertificate.text(),bytes);
+ const ownCertificate=await h.request(documentPath,{as:buyer.as+'; '+applicant.as});assert.equal(ownCertificate.status,503);assert.equal((await ownCertificate.json()).error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');
  await h.api('/auth/operators',undefined,{...manager,status:403});
  await h.api('/auth/invite',{email:'unapproved@example.test',displayName:'No authority',role:'member'},{...manager,status:403});
  const second=await verifiedApplication(h,{name:'Harbor Provisions',email:'harbor@example.test'});
@@ -329,8 +329,11 @@ test('functional application reviewers: all-account managers decide and download
  const pendingLink=new URL(h.mail.requests.findLast(r=>r.message.to.includes('eastside@example.test')&&r.message.subject==='Your company buyer invitation').message.text.match(/https?:\/\/[^\s<>]+/)[0]);
  const pendingBuyer={as:await h.signIn('eastside@example.test','existing')};
  const events=(await h.api('/api/barrow/audit')).events;
- for(const action of ['application.information-requested','application.approved','application.declined','application.document-downloaded'])assert.ok(events.some(event=>event.action===action&&event.actorId===managerGrant.userId));
- assert.ok(events.some(event=>event.action==='application.document-downloaded'&&event.actorId===financeGrant.userId));
+ for(const action of ['application.information-requested','application.approved','application.declined','application.document-download-refused'])assert.ok(events.some(event=>event.action===action&&event.actorId===managerGrant.userId));
+ assert.ok(events.some(event=>event.action==='application.document-download-refused'&&event.actorId===financeGrant.userId));
+ assert.equal(JSON.stringify([events,h.logs]).includes(bytes),false);
+ assert.equal(financeView.applications[0].documents[0].available,false);
+ assert.match(financeView.applications[0].documentLabels,/Not malware-screened/);
  managerGrant=await h.command('staff.update',{userId:managerGrant.userId,revision:managerGrant.revision,policy:policy('sales-manager',{accounts:'all'}),reason});
  await refusal(manager);
  await h.command('company.accept',{invitationId:pendingLink.searchParams.get('companyInvitation'),token:pendingLink.searchParams.get('companyToken')},{...pendingBuyer,status:409});

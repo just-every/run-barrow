@@ -89,7 +89,7 @@ test('deployed Pier rotation and revocation are audited once, the replacement wo
  assert.equal(exported.includes(fingerprint),false);assert.equal(exported.includes(replacement),false);
 });
 
-test('unsafe active or embedded content is refused before PO, quote and public application documents are stored', async t=>{
+test('unsafe active or embedded PO and quote content is refused; public application documents fail closed until malware screening exists', async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());const products=await stock(pier);
  const h=await installation({captureLogs:true,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  await h.command('account.save',{id:'cedar',value:accountValue(products.customer.id)});
@@ -104,10 +104,13 @@ test('unsafe active or embedded content is refused before PO, quote and public a
   for(const [type,payload] of [['order.attach',{orderId:order.id,...document}],['quote.message',{quoteId:quote.id,body:'Please review.',attachment:document}]]){
    const result=await h.command(type,payload,{...buyer,status:400});assert.equal(result.error.code,'DOCUMENT_UNSAFE');assert.equal(JSON.stringify(result).includes(content),false);
   }
-  const refused=await h.api('/api/barrow/applications',{...input,documents:[document]},{as:'',status:400});assert.equal(refused.error.code,'DOCUMENT_UNSAFE');assert.equal(JSON.stringify(refused).includes(content),false);
+  const refused=await h.api('/api/barrow/applications',{...input,documents:[document]},{as:'',status:503});assert.equal(refused.error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');assert.equal(JSON.stringify(refused).includes(content),false);
  }
  for(const table of ['bw_order_documents','bw_quote_entries','bw_application_intake'])assert.equal((await h.db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()).n,0);
  const safe={name:'synthetic.pdf',contentBase64:Buffer.from('%PDF-1.4 synthetic-barrow-216').toString('base64')};
+ const refused=await h.api('/api/barrow/applications',{...input,documents:[safe]},{as:'',status:503});assert.equal(refused.error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');
+ assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM bw_application_intake').first()).n,0);
+ assert.equal(h.mail.requests.some(row=>row.message.subject==='Verify your trade application'),false);
  await h.command('order.attach',{orderId:order.id,...safe},buyer);const entry=await h.command('quote.message',{quoteId:quote.id,body:'Static document.',attachment:safe},buyer);
  for(const path of [`/api/barrow/orders/${order.id}/document`,entry.attachment.path]){
   const response=await h.request(path,buyer);assert.equal(response.status,200);assert.match(response.headers.get('content-disposition'),/^attachment;/);assert.match(response.headers.get('content-security-policy'),/sandbox/);

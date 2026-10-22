@@ -6,6 +6,7 @@ import { usAddress, addressCheck } from './us-address'
 import { applicationReview } from './application-followup'
 import { applicationStatusEmails } from './application-mail'
 import { now } from './clock'
+import { applicationDocumentLabels, applicationDocumentReason } from './application-document-policy'
 export type ApplicationRow={id:string;value_json:string;revision:string;state:string;account_id:string|null;created_at:string;updated_at:string}
 export async function applicationRow(db:D1Database,id:string) {
  const row=await db.prepare('SELECT * FROM bw_applications WHERE id=? UNION ALL SELECT * FROM bw_application_intake WHERE id=?').bind(id,id).first<ApplicationRow>()
@@ -28,9 +29,9 @@ export function applicationAudit(db:D1Database,actor:Actor,id:string,action:stri
 }
 export async function applicationView(db:D1Database,row:ApplicationRow,staff=false) {
  const value=JSON.parse(row.value_json)
- const documents=(await db.prepare('SELECT id,name,type,size,sha256,created_at FROM bw_application_documents WHERE application_id=? ORDER BY created_at,id').bind(row.id).all<any>()).results.map(doc=>({...doc,path:`/api/barrow/applications/${row.id}/documents/${doc.id}`}))
+ const documents=(await db.prepare('SELECT id,name,type,size,sha256,created_at FROM bw_application_documents WHERE application_id=? ORDER BY created_at,id').bind(row.id).all<any>()).results.map(doc=>({...doc,path:`/api/barrow/applications/${row.id}/documents/${doc.id}`,available:false,screening:'not malware-screened',reason:applicationDocumentReason}))
  const history=(await db.prepare('SELECT state,reason,created_at FROM bw_application_history WHERE application_id=? ORDER BY created_at,rowid').bind(row.id).all<any>()).results
- return {id:row.id,value,revision:row.revision,state:row.state,accountId:row.account_id,createdAt:row.created_at,updatedAt:row.updated_at,documents,history,addressCheck,documentLabels:'Not validated; exemption review is TAX-003’s. Not malware-screened.',...(staff?{duplicates:await applicationDuplicates(db,row),review:await applicationReview(db,row.id,supplierDate(await now())),statusEmails:await applicationStatusEmails(db,row.id)}:{})}
+ return {id:row.id,value,revision:row.revision,state:row.state,accountId:row.account_id,createdAt:row.created_at,updatedAt:row.updated_at,documents,history,addressCheck,documentLabels:applicationDocumentLabels,...(staff?{duplicates:await applicationDuplicates(db,row),review:await applicationReview(db,row.id,supplierDate(await now())),statusEmails:await applicationStatusEmails(db,row.id)}:{})}
 }
 export async function applicationDuplicates(db:D1Database,row:ApplicationRow) {
  const value=JSON.parse(row.value_json),name=normalizedCompanyName(value.name)

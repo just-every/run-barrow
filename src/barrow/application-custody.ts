@@ -7,13 +7,14 @@ import { createPortability } from '@runeditrun/rer/modules/portability'
 import { toD1Sql } from '@runeditrun/rer/modules/erasure/fence'
 import { portabilityPolicy } from './portability-policy.mjs'
 import type { ApplicationRow } from './application-records'
+import { applicationDocumentReason } from './application-document-policy'
 export async function applicationExport(db:D1Database,actor:Actor,accountIds:string[]) {
  const access=applicationAccess(actor)
  if(actor.staff&&!access)return {applications:[],applicationdocuments:[]}
  const rows=(await db.prepare(`SELECT * FROM bw_applications WHERE state<>'unverified'${supplier(actor)?'':' AND account_id IN (SELECT value FROM json_each(?))'} ORDER BY id`).bind(...(supplier(actor)?[]:[JSON.stringify(accountIds)])).all<ApplicationRow>()).results
  const ids=rows.map(row=>row.id)
  const documents=ids.length?(await db.prepare('SELECT id,application_id,name,type,size,sha256,created_at FROM bw_application_documents WHERE application_id IN (SELECT value FROM json_each(?)) ORDER BY application_id,id').bind(JSON.stringify(ids)).all<any>()).results:[]
- return {applications:(actor.staff&&access==='documents'?[]:rows).map(row=>({id:row.id,accountId:row.account_id??'',revision:row.revision,state:row.state,createdAt:row.created_at,updatedAt:row.updated_at,...JSON.parse(row.value_json)})),applicationdocuments:documents.map(row=>({id:row.id,applicationId:row.application_id,name:row.name,type:row.type,bytes:row.size,sha256:row.sha256,time:row.created_at,path:`/api/barrow/applications/${row.application_id}/documents/${row.id}`}))}
+ return {applications:(actor.staff&&access==='documents'?[]:rows).map(row=>({id:row.id,accountId:row.account_id??'',revision:row.revision,state:row.state,createdAt:row.created_at,updatedAt:row.updated_at,...JSON.parse(row.value_json)})),applicationdocuments:documents.map(row=>({id:row.id,applicationId:row.application_id,name:row.name,type:row.type,bytes:row.size,sha256:row.sha256,time:row.created_at,path:`/api/barrow/applications/${row.application_id}/documents/${row.id}`,available:false,screening:'not malware-screened',reason:applicationDocumentReason}))}
 }
 export async function applicationRetention(env:Bindings,days:number|null) {
  const rows=(await env.DB.prepare('SELECT * FROM bw_applications ORDER BY id').all<ApplicationRow>()).results

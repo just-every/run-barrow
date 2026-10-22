@@ -20,7 +20,7 @@ type Kind = (typeof exportKinds)[number]
 const columns: Record<Kind, string[]> = {
  reptargets:['id','userId','from','to','timeZone','completedVisits','newAccounts','revision','reason','createdBy','createdAt','updatedBy','updatedAt'],
  applications:['id','accountId','revision','state','name','dba','ein','noEin','contactName','email','phone','annualVolumeUsd','requestedTermsDays','locations','consent','createdAt','updatedAt'],
- applicationdocuments:['id','applicationId','name','type','bytes','sha256','time','path'],
+ applicationdocuments:['id','applicationId','name','type','bytes','sha256','time','path','available','screening','reason'],
  accounts: ['id', 'revision', 'name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'currency', 'city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'],
  prices: ['accountId', 'accountRevision', 'sku', 'currency', 'unitCents', 'msrpCents', 'minQty', 'casePack', 'increment', 'units', 'pricing'],
  orders: ['id', 'revision', 'accountId', 'accountRevision', 'customerName', 'status', 'currency', 'totalCents', 'termsDays', 'reference', 'poRelease', 'requestedDate', 'cancelAfter', 'deliveryLocation', 'instructions', 'preparedBy', 'preparedAt', 'submittedBy','companyPreparedBy','companyApprovedBy','companyApprovedAt', 'approvedBy', 'approvedAt', 'replaces', 'supersededBy', 'reorderedFrom', 'pierOrigin', 'pierOrderId', 'pierReference', 'invoiceNumber', 'document', 'quote', 'billTo', 'shipTo', 'delivery', 'merchandiseCents', 'shippingCents', 'substitutions', 'fromSubstitution'],

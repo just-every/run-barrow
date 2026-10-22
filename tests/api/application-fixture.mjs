@@ -1,16 +1,25 @@
+import { createHash, randomUUID } from 'node:crypto';
+
+// Represents a retained document from before public intake was closed. Never a scanner result.
+export async function existingApplicationDocument(h, applicationId, name='resale.pdf') {
+ const bytes='%PDF-1.4 synthetic-barrow-301',id=randomUUID();
+ await h.db.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(id,applicationId,name,'application/pdf',Buffer.byteLength(bytes),createHash('sha256').update(bytes).digest('hex'),Buffer.from(bytes).toString('base64'),new Date().toISOString()).run();
+ return {id,bytes};
+}
+
 // Public intake and email verification, with only the paid mail edge supplied by the harness.
-export async function verifiedApplication(h, {name='Cedar Street Pantry',email='applicant@example.test'}={}) {
+export async function verifiedApplication(h, {name='Cedar Street Pantry',email='applicant@example.test',existingDocument=false}={}) {
  const form=await h.api('/api/barrow/applications/form',undefined,{as:''});
  await new Promise(resolve=>setTimeout(resolve,3050));
- const bytes='%PDF-1.4 synthetic-barrow-301';
  const created=await h.api('/api/barrow/applications',{
   name,noEin:true,contactName:'River Buyer',email,phone:'803 555 0101',annualVolumeUsd:90000,
   locations:[{name:'Downtown store',line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'}],
-  documents:[{name:'resale.pdf',contentBase64:Buffer.from(bytes).toString('base64')}],consent:true,formToken:form.formToken,
+  documents:[],consent:true,formToken:form.formToken,
  },{as:''});
  const code=h.mail.requests.findLast(row=>row.message.to.includes(email)&&row.message.subject==='Verify your trade application').message.text.match(/code is (\d{6})/)[1];
  const response=await h.request('/api/barrow/applications/verify',{method:'POST',as:'',body:{id:created.id,code}});
  if(response.status!==200)throw new Error('Application verification failed');
  const applicant={as:response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')};
- return {application:await h.api('/api/barrow/applications/mine',undefined,applicant),applicant,bytes};
+ const retained=existingDocument?await existingApplicationDocument(h,created.id):null;
+ return {application:await h.api('/api/barrow/applications/mine',undefined,applicant),applicant,bytes:retained?.bytes};
 }

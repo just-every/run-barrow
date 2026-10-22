@@ -56,12 +56,11 @@ test('applications route by territory to a reviewer with a prepared request, the
  await apply.getByRole('checkbox', { name: 'Your details and documents go only to the supplier' }).check();
  await captureWidths(page, 'application-form-requested-terms');
  await page.waitForTimeout(3100);
- await apply.getByLabel('Resale certificates', {exact:false}).setInputFiles({name:'unsafe.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 /OpenAction /JavaScript synthetic-barrow-403')});
- await apply.getByRole('button', { name: 'Submit and request verification code' }).click();
- await page.getByRole('alert').filter({hasText:'This attachment contains active'}).waitFor();
- await captureWidths(page,'application-dangerous-document-refused');
+ await expect(apply.getByLabel('Resale certificates', {exact:false})).toBeDisabled();
+ const refused=await page.request.post(h.origin+'/api/barrow/applications',{headers:{origin:h.origin},data:{documents:[{name:'unsafe.pdf',contentBase64:Buffer.from('%PDF-1.4 /OpenAction /JavaScript synthetic-barrow-403').toString('base64')}]}});
+ assert.equal(refused.status(),503);assert.equal((await refused.json()).error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');
+ await captureWidths(page,'application-document-screening-unavailable');
  assert.equal((await h.api('/api/barrow/applications')).applications.length,0);
- await apply.getByLabel('Resale certificates', {exact:false}).setInputFiles([]);
  await apply.getByRole('button', { name: 'Submit and request verification code' }).click();
  await page.getByRole('status').filter({ hasText: 'Verification accepted' }).waitFor();
  const code = h.mail.requests.findLast(row => row.message.to.includes('applicant@example.test') && row.message.subject === 'Verify your trade application').message.text.match(/code is (\d{6})/)[1];
@@ -108,15 +107,14 @@ test('applications route by territory to a reviewer with a prepared request, the
  await task.getByText(/Escalated since/).first().waitFor();
  await captureWidths(reviewer, 'application-task-escalated-after-request');
 
- // The applicant uploads the certificate; only the recorded decision closes the task.
- await page.getByLabel('Requested certificate', { exact: false }).setInputFiles({ name: 'resale.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-1.4 synthetic-barrow-401') });
- await page.getByRole('button', { name: 'Answer information request' }).click();
- await page.getByText('Status: submitted', { exact: true }).waitFor();
+ // With screening unavailable the certificate request stays open; only the recorded decision closes the task.
+ assert.equal(await page.getByRole('button',{name:'Answer information request'}).count(),0);
+ await page.getByText('Status: information requested', { exact: true }).waitFor();
  await queue();
- await task.getByText(/The applicant answered/).waitFor();
+ await task.getByText(/Information requested from the applicant/).waitFor();
  await task.getByText(/Escalated since/).first().waitFor();
  await reviewer.getByRole('button', { name: 'Accounts', exact: true }).click();
- await review.getByLabel('Application', { exact: false }).selectOption({ label: 'Palmetto & Pine Provisions · submitted' });
+ await review.getByLabel('Application', { exact: false }).selectOption({ label: 'Palmetto & Pine Provisions · information requested' });
  await review.getByLabel('Decision reason (shown to applicant)').fill('Outside our current trade criteria.');
  await review.getByRole('button', { name: 'Decline application', exact: true }).click();
  await review.getByRole('heading', { name: 'Palmetto & Pine Provisions · declined' }).waitFor();
