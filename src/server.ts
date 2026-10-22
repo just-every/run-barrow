@@ -1,6 +1,7 @@
 import { purgeUnverified } from './barrow/application-records'
 import { dispatchReports } from './barrow/report-delivery'
 import { dispatchQuoteMail } from './barrow/quote-mail'
+import { escalateApprovals } from './barrow/approval-escalation'
 import { withDemo } from './modules/demo/index.mjs'
 import { seedDemo } from './demo'
 import { rejectedResponse } from './base/rejected-response'
@@ -28,7 +29,7 @@ function noTransform(response: Response): Response {
 }
 
 export default withDemo({
-  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env))})()) },
+  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await escalateApprovals(runtimeBindings(env))})()) },
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset

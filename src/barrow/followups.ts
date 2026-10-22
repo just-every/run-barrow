@@ -19,10 +19,14 @@ const validDay = (value: unknown) => {
  return value
 }
 const people = async (db: D1Database) => (await db.prepare("SELECT id,display_name AS displayName FROM oa_operators WHERE status='active' AND role IN ('owner','admin') ORDER BY display_name,id").all<{ id: string; displayName: string }>()).results
+// AUTO-002: an approval task goes only to someone who can approve the order: an owner, an admin, or a sales manager or
+// operations person holding every warehouse (reps still read it in their queue).
+const approves=(grant:{role:string;warehouses:unknown})=>['sales-manager','operations'].includes(grant.role)&&grant.warehouses==='all'
 async function taskPeople(db:D1Database,task:{accountId:string;kind:string}) {
  const native=(await db.prepare("SELECT id,email,role,version,display_name AS displayName FROM oa_operators WHERE status='active'").all<any>()).results
- const allowed=[];for(const p of native){if(['owner','admin'].includes(p.role)){allowed.push(p);continue}const grant=await readStaffGrant(db,{...p,agent:false});if(grant&&staffTaskAllowed({...p,agent:false,staff:grant},task))allowed.push({...p,grant})}return allowed
+ const allowed=[];for(const p of native){if(['owner','admin'].includes(p.role)){allowed.push(p);continue}const grant=await readStaffGrant(db,{...p,agent:false});if(grant&&staffTaskAllowed({...p,agent:false,staff:grant},task)&&(task.kind!=='approval'||approves(grant)))allowed.push({...p,grant})}return allowed
 }
+const installationOwner=async(env:Bindings)=>(await env.DB.prepare("SELECT id FROM oa_operators WHERE status='active' AND role='owner' ORDER BY email=? DESC,created_at,id LIMIT 1").bind(env.OWNER_EMAIL??'').first<{id:string}>())?.id
 const allTasks = async (db: D1Database) => (await db.prepare('SELECT value_json,revision FROM bw_followups ORDER BY id').all<Stored>()).results.map(parse)
 const notes = {
  scope: 'Your role and current account access determine which follow-ups you can read, assign and resolve. Refresh reconciles current wholesale records; recorded quote email failures create owned tasks automatically.',
@@ -66,7 +70,8 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
    }
    const accountRevision = sources.accountRevisions.get(source.accountId)
    if (!accountRevision) continue
-   const revision = crypto.randomUUID(), value: FollowupValue = { ...source, createdAt: at, ownerId: actor.id, nextContactDate: today, status: 'open', contacts: [] }
+   const ownerId = source.kind === 'approval' && actor.staff && !approves(actor.staff) ? await installationOwner(env) ?? actor.id : actor.id
+   const revision = crypto.randomUUID(), value: FollowupValue = { ...source, createdAt: at, ownerId, nextContactDate: today, status: 'open', contacts: [] }
    statements.push(env.DB.prepare('INSERT INTO bw_followups(id,account_id,value_json,revision) SELECT ?,?,?,? WHERE EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?)').bind(value.id, value.accountId, JSON.stringify(value), revision, source.accountId, accountRevision), changed(env.DB))
    created.push(value.id)
   }

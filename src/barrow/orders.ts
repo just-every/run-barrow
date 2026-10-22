@@ -22,6 +22,7 @@ import { locationSnapshot } from './locations'
 import { acceptDelivery, deliveryTotal, freightQuote, selectDelivery, shippingGuard } from './shipping'
 import { freshnessLimit, staleStock } from './freshness'
 import { termsAtSubmission, termsAtCompanyRelease } from './sales-terms'
+import { approvalNoticeStatements } from './approval-notices'
 export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Order> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(id).first<any>()
  if(!row) fail('NOT_FOUND','Order not found.',404)
@@ -30,10 +31,17 @@ export async function readOrder(db:D1Database,actor:Actor,id:string):Promise<Ord
  await companyOrderRead(db,actor,order)
  return order
 }
+// AUTO-002: what a transition does to approval notices and the supplier's approval task, in the same batch.
+const noticeClosing:Record<string,string>={'order.company-step-approved':'The step was decided; the request moved to its next step.','order.company-approved':'Company approval released the request to the supplier.','order.company-withdrawn':'The request was withdrawn to a draft; every approval so far is void.','order.company-approval-voided':'A material change voided the approvals; the request is a draft again.'}
+async function approvalEffects(env:Bindings,order:Order,action:string) {
+ const notices=action.startsWith('order.company-')||order.status==='awaiting-company-approval'?await approvalNoticeStatements(env.DB,order,await now(),noticeClosing[action]??`The request is now ${order.status}.`):[]
+ const task=action==='order.approved'?[env.DB.prepare("UPDATE bw_followups SET value_json=json_set(value_json,'$.status','closed','$.resolution',?),revision=? WHERE id=? AND json_extract(value_json,'$.status')='open'").bind('Supplier approved the order; its approval task is resolved.',crypto.randomUUID(),`approval:${order.id}`)]:[]
+ return [...notices,...task]
+}
 async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
  const confirmations = ['order.submitted','order.submitted-release','order.company-approved','order.approved'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':'submitted') : []
- await commit(env.DB,actor,[...guards,...confirmations,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
+ await commit(env.DB,actor,[...guards,...confirmations,...await approvalEffects(env,order,action),env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
   'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
   'order.document-attached':'Attached the supporting PO document to the draft.',
   'order.submitted-release':'Submitted as an explicitly authorized numbered release of a PO already on order.',
@@ -259,7 +267,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
   const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
-  const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`})]:[]
+  const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`}),env.DB.prepare('UPDATE bw_approval_notices SET closed_at=?,closed_reason=? WHERE order_id=? AND closed_at IS NULL').bind(new Date().toISOString(),`Superseded by revised request ${id}; it needs fresh approval at every step.`,replaced.id)]:[]
   await commit(env.DB,actor,[companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])
   return order
 }
