@@ -4,7 +4,10 @@ import { companyOrderRead } from './company-access'
 import { routeDecision,decidedEntry } from './company-approval'
 import { activeBuyerExists, companyRightsGuard, requireCompanyRight, requireCompanyApproval } from './company-policy'
 import { commissionSnapshot } from './commission-rules'
-import { confirmationStatements } from './confirmations'
+import { confirmationStatements, type LineChange } from './confirmations'
+import { emailLatestConfirmation } from './confirmation-mail'
+import { revisedOrder } from './order-revisions'
+import { withVariantAttributes } from './variant-attributes'
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit,changed,commit } from './access'
@@ -16,7 +19,7 @@ import { reviewReorder } from './reorders'
 import { priceLine } from './pricing'
 import { sellingUnits } from './units'
 import { prepareLines } from './unit-lines'
-import { purchaseDetails, buyerSku, purchaseRelease } from './purchase'
+import { purchaseDetails, buyerSku, purchaseRelease, lineWindow, promiseDate } from './purchase'
 import { readDocument, documentStatement, carryDocument } from './documents'
 import { locationSnapshot } from './locations'
 import { acceptDelivery, deliveryTotal, freightQuote, selectDelivery, shippingGuard } from './shipping'
@@ -38,9 +41,9 @@ async function approvalEffects(env:Bindings,order:Order,action:string) {
  const task=action==='order.approved'?[env.DB.prepare("UPDATE bw_followups SET value_json=json_set(value_json,'$.status','closed','$.resolution',?),revision=? WHERE id=? AND json_extract(value_json,'$.status')='open'").bind('Supplier approved the order; its approval task is resolved.',crypto.randomUUID(),`approval:${order.id}`)]:[]
  return [...notices,...task]
 }
-async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string) {
+async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string,changes?:LineChange[]) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
- const confirmations = ['order.submitted','order.submitted-release','order.company-approved','order.approved'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':'submitted') : []
+ const confirmations = ['order.submitted','order.submitted-release','order.company-approved','order.approved','order.revised'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':action==='order.revised'?'revised':'submitted',changes) : []
  await commit(env.DB,actor,[...guards,...confirmations,...await approvalEffects(env,order,action),env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
   'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
   'order.document-attached':'Attached the supporting PO document to the draft.',
@@ -51,6 +54,7 @@ async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1
   'order.release-requested':'Supplier cancelled the order; its Pier stock release is requested and the units stay unpromised until Pier confirms.',
   'order.released':'Pier acknowledged the stock release; the cancelled order holds no stock.',
  } as Record<string,string>)[action]??action})])
+ if(confirmations.length)await emailLatestConfirmation(env,order.id)
  return order
 }
 // Orders read as people say them: the next number after the highest one written (JV-10438 → JV-10439); a new book starts at ORD-10001.
@@ -120,7 +124,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
- if(['order.submit','order.attach','shipping.select'].includes(type))await requireCompanyRight(env.DB,actor,order.accountId,'purchaser',order.shipTo?.id)
+ if(['order.submit','order.attach','shipping.select','order.revise'].includes(type))await requireCompanyRight(env.DB,actor,order.accountId,'purchaser',order.shipTo?.id)
  if(type==='order.company-approve') {
   if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','This order is not awaiting company approval.')
   if(p.revision!==order.revision)fail('CHANGED','Refresh the exact order before company approval.')
@@ -178,6 +182,10 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const submission=await companySubmission(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{}),...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})})
   return save(env,actor,submission.order,submission.waiting?'order.company-approval-requested':release.poRelease?'order.submitted-release':'order.submitted',[submission.guard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard,terms.guard,...terms.statements],terms.acceptance?`Buyer submitted the prepared commercial snapshot for supplier review, with sales terms "${terms.acceptance.series}" version ${terms.acceptance.version} accepted (${terms.acceptance.how==='buyer'?'buyer acceptance in the portal':'on-device signature captured by supplier staff'}).`:undefined)
  }
+ if(type==='order.revise') {
+  const revision=await revisedOrder(env,actor,order,p)
+  return save(env,actor,revision.order,'order.revised',revision.guards,revision.reason,revision.changes)
+ }
  if(type==='order.attach') {
   if(order.status!=='draft') fail('DOCUMENT_LOCKED','Attach the PO document before the order is submitted.')
   const document=await readDocument(p),{contentBase64,...meta}=document
@@ -213,7 +221,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    if(!grant||!['sales-manager','operations'].includes(grant.role)||grant.warehouses!=='all'||!staffAccountAllowed(grant,order.accountId))fail('APPROVAL_REVOKED','The recorded approver no longer has authority.')
   }
   if(!approver) fail('APPROVAL_REVOKED','The recorded approver no longer has authority.')
-  const result=await reserveOrder(env,order.id,order.pierCustomerId,order.lines,order.requestedDate)
+  const result=await reserveOrder(env,order.id,order.pierCustomerId,order.lines,promiseDate(order))
   return recordReservation(env,actor,order,result)
  }
  if(type==='order.refresh') {
@@ -250,7 +258,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   const member=await requireCompanyRight(env.DB,actor,selected.id,'purchaser')
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
   const available=context?.available ?? await catalogue(env,selected)
-  const today=supplierDate(await now()),lines=prepareLines(p.lines,available.items,today).map((line,index)=>({...line,...buyerSku(p.lines[index])})),details=purchaseDetails(p,today)
+  const today=supplierDate(await now()),lines=await withVariantAttributes(env.DB,prepareLines(p.lines,available.items,today).map((line,index)=>({...line,...buyerSku(p.lines[index]),...lineWindow(p.lines[index],today)}))),details=purchaseDetails(p,today)
   const totalCents=lines.reduce((sum,line)=>sum+line.lineCents!,0)
   if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
   if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')
@@ -266,7 +274,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   await requireCompanyRight(env.DB,actor,selected.id,'purchaser',shipTo?.id)
   if(member&&member.locations!=='all'&&!shipTo)fail('FORBIDDEN','Choose one of your permitted ship-to locations.',403)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
-  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision}}:{}),currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
+  const order:Order={id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`}),env.DB.prepare('UPDATE bw_approval_notices SET closed_at=?,closed_reason=? WHERE order_id=? AND closed_at IS NULL').bind(new Date().toISOString(),`Superseded by revised request ${id}; it needs fresh approval at every step.`,replaced.id)]:[]
   await commit(env.DB,actor,[companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),...(sheet?[env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_line_sheets WHERE id=? AND revision=? AND json_extract(value_json,'$.state')='published') THEN 1 ELSE 0 END").bind(sheet.id,sheet.revision)]:[]),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])

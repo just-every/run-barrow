@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
-import { installation, stock, accountValue, archive, restore } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore, activateStaff } from './harness.mjs';
+import { sheetFixture, csvRows } from './line-sheet-fixture.mjs';
 const rows = text => text.trim().split('\r\n').map(line=>line.slice(1,-1).split('","'));
 
 test('ORD-014: numbered submitted and accepted confirmations retain exact commercial snapshots through edits, retry and cancellation', async t => {
@@ -154,4 +155,101 @@ test('ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with
  await h.api(exportPath,body,{as:'',status:401});
  const target=await installation();t.after(()=>target.close());await restore(target,await archive(h));
  assert.equal(await(await target.request(exportPath,{method:'POST',body:{...body,layout}})).text(),csv);
+});
+
+const sized=skus=>skus.map(sku=>({sku,style:'TEE-BLUE',color:'Blue',size:sku.split('-').at(-1)}));
+test('ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep',async t=>{
+ const f=await sheetFixture(t),{h,buyers,sheet,skus}=f,year=new Date().getUTCFullYear()+1,w1=[`${year}-03-02`,`${year}-03-14`],w2=[`${year}-03-16`,`${year}-03-30`];
+ await h.command('seller.identity',{revision:null,legalName:'Wrong buyer edit',address:'Nowhere'},{...buyers.cedar,status:403});
+ const identity=await h.command('seller.identity',{revision:null,legalName:'Mill House Apparel LLC',address:'12 Spring St, New York, NY',registration:'synthetic-barrow-7'});
+ await h.command('variant.attributes',{revision:(await h.api('/api/barrow/variant-attributes')).revision,variants:sized(skus)});
+ await h.command('terms.publish',{series:'Wholesale terms',title:'Wholesale terms 2027',body:'Synthetic cancellation and returns terms.'});
+ await h.command('terms.assign',{accountId:'cedar',series:'Wholesale terms',requireAcceptance:true});
+ const rep=await activateStaff(h,'rep@example.test',{role:'rep',accounts:[],warehouses:[],reports:[],discountLimitCents:0,stockExceptionLimitCents:0});
+ await h.command('rep.assign',{userId:rep.id,kind:'account',target:'cedar',reason:'The rep sells Cedar.'});
+ const window=([requestedDate,cancelAfter])=>({requestedDate,cancelAfter});
+ let order=await h.command('order.prepare',{accountId:'cedar',lineSheetId:sheet.id,lineSheetRevision:sheet.revision,reference:'SPRING-MATRIX',lines:[{sku:skus[0],quantity:4,...window(w1)},{sku:skus[1],quantity:6,...window(w1)},{sku:skus[2],quantity:2,...window(w2)}]},buyers.cedar);
+ assert.equal(order.season,`Spring ${year}`);
+ assert.deepEqual(order.lines.map(l=>[l.style,l.color,l.size,l.requestedDate,l.cancelAfter]),[['TEE-BLUE','Blue','S',...w1],['TEE-BLUE','Blue','M',...w1],['TEE-BLUE','Blue','3XL',...w2]]);
+ order=await h.command('order.submit',{orderId:order.id,termsAcceptance:{version:1,accepted:true}},buyers.cedar);
+ const path=`/api/barrow/orders/${order.id}/confirmations`;
+ const download=async(number,who)=>{
+  const pdf=await h.request(`${path}/${number}.pdf`,who),csv=await h.request(`${path}/${number}.csv`,who);assert.equal(pdf.status,200);assert.equal(csv.status,200);
+  const text=Buffer.from(await pdf.arrayBuffer()).toString('latin1');
+  for(const value of ['Seller: Mill House Apparel LLC',`Season: Spring ${year}`,`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size 3XL',`Ship window: ${w2[0]} | Cancel after: ${w2[1]}`,'Sales terms: Wholesale terms 2027','Terms accepted by the buyer in the portal'])assert.ok(text.includes(value),value);
+  return {pdf:text,csv:await csv.text()};
+ };
+ const c1=await download(1,buyers.cedar);assert.deepEqual(await download(1,rep.who),c1);
+ const first=csvRows(c1.csv).rows;
+ assert.deepEqual(first.map(r=>[r.sku,r.style,r.color,r.size,r.requested_date,r.cancel_after,r.season,r.quantity]),[[skus[0],'TEE-BLUE','Blue','S',...w1,`Spring ${year}`,'4'],[skus[1],'TEE-BLUE','Blue','M',...w1,`Spring ${year}`,'6'],[skus[2],'TEE-BLUE','Blue','3XL',...w2,`Spring ${year}`,'2']]);
+ assert.ok(first.every(r=>r.seller==='Mill House Apparel LLC | 12 Spring St, New York, NY | synthetic-barrow-7'));
+ // Only the buyer revises a submitted order; stale, unaccepted-terms and supplier attempts change nothing.
+ const change={orderId:order.id,revision:order.revision,changes:[{line:1,quantity:3}]},accept={termsAcceptance:{version:1,accepted:true}};
+ await h.command('order.revise',{...change,...accept},{...rep.who,status:403});
+ await h.command('order.revise',{...change,...accept},{status:403});
+ await h.command('order.revise',{...change,revision:'stale',...accept},{...buyers.cedar,status:409});
+ assert.equal((await h.command('order.revise',change,{...buyers.cedar,status:409})).error.code,'TERMS_REQUIRED');
+ await h.command('order.revise',{...change,changes:[{line:1,quantity:6}],...accept},{...buyers.cedar,status:400});
+ order=await h.command('order.revise',{...change,...accept},buyers.cedar);
+ assert.equal(order.status,'submitted');
+ const records=(await h.api(path,undefined,rep.who)).confirmations;
+ assert.deepEqual(records.map(r=>[r.number,r.stage]),[[1,'submitted'],[2,'revised']]);
+ assert.equal(records[1].snapshot.revises,1);assert.deepEqual(records[1].snapshot.changes,[{line:1,sku:skus[1],unit:'each',before:{quantity:6,lineCents:7206},after:{quantity:3,lineCents:3603}}]);
+ const c2=await download(2,rep.who);assert.deepEqual(await download(2,buyers.cedar),c2);
+ assert.ok(c2.pdf.includes(`Revises confirmation C1: line 2 ${skus[1]} quantity 6 -> 3`));
+ // Both revisions stay downloadable and differ only in the changed line (plus their own identity and total).
+ const own=['confirmation','stage','recorded_at','order_revision','order_total_cents'],strip=row=>Object.fromEntries(Object.entries(row).filter(([key])=>!own.includes(key)));
+ const before=first.map(strip),after=csvRows(c2.csv).rows.map(strip);
+ assert.deepEqual(after[0],before[0]);assert.deepEqual(after[2],before[2]);
+ assert.deepEqual(Object.keys(before[1]).filter(key=>before[1][key]!==after[1][key]),['quantity','base_quantity','line_cents']);
+ assert.deepEqual(await download(1,buyers.cedar),c1);
+ for(const suffix of ['','/1.pdf','/2.csv'])assert.equal((await h.request(path+suffix,buyers.wren)).status,404);
+ // A size-matrix layout puts recorded sizes across, one row per ship window.
+ let layouts=await h.api('/api/barrow/confirmation-layouts');
+ await h.command('confirmation-layout.save',{revision:layouts.revision,name:'Wrong matrix',shape:'matrix',columns:['sku']},{status:400});
+ layouts=await h.command('confirmation-layout.save',{revision:layouts.revision,name:'Cutting matrix',shape:'matrix',columns:['confirmation','po','style','color','requested_date','cancel_after']});
+ const matrix=csvRows(await(await h.request(`${path}/2.csv?layout=${layouts.layouts.at(-1).id}`,rep.who)).text());
+ assert.deepEqual(matrix.header,['confirmation','po','style','color','requested_date','cancel_after','unit','S','M','3XL']);
+ assert.deepEqual(matrix.rows.map(r=>[r.requested_date,r.S,r.M,r['3XL']]),[[w1[0],'4','3',''],[w2[0],'','','2']]);
+ // Each recorded revision is emailed once to the account contact with links to that exact revision only.
+ order=await h.command('order.approve',{orderId:order.id});
+ await h.command('order.revise',{orderId:order.id,revision:order.revision,changes:[{line:0,quantity:2}],...accept},{...buyers.cedar,status:409});
+ const promise=(await f.pier.api('/api/pier/state')).orders.find(o=>o.id===order.pierOrderId).promiseDate;assert.equal(promise,w1[0]);
+ const sent=h.mail.requests.map(r=>r.message).filter(m=>m.subject.startsWith(`Order confirmation ${order.id}`));
+ assert.deepEqual(sent.map(m=>[m.to,m.subject]),[[['buyer@example.test'],`Order confirmation ${order.id}-C1 (submitted)`],[['buyer@example.test'],`Order confirmation ${order.id}-C2 (revised)`],[['buyer@example.test'],`Order confirmation ${order.id}-C3 (accepted)`]]);
+ const link=sent[1].text.match(/https?:\/\/\S+\/confirmations\/2\.pdf/)[0];assert.ok(sent[1].html.includes(link));assert.ok(!sent[1].text.includes('3603')&&!sent[1].text.includes('TEE-BLUE'));
+ assert.equal(Buffer.from(await(await h.request(new URL(link).pathname,buyers.cedar)).arrayBuffer()).toString('latin1'),c2.pdf);
+ assert.equal((await h.request(new URL(link).pathname,buyers.wren)).status,404);
+ assert.deepEqual(Object.entries((await h.api(path,undefined,buyers.cedar)).emails).map(([number,email])=>[number,email.status]),[['1','accepted'],['2','accepted'],['3','accepted']]);
+ // A later seller identity never rewrites recorded documents; restore keeps both revisions byte-identical and sends nothing.
+ await h.command('seller.identity',{revision:identity.revision,legalName:'Renamed Seller LLC',address:'1 Other St'});
+ assert.equal((await download(1,buyers.cedar)).csv,c1.csv);
+ const target=await installation();t.after(()=>target.close());await restore(target,await archive(h));
+ for(const number of [1,2])assert.equal(await(await target.request(`${path}/${number}.csv`)).text(),await(await h.request(`${path}/${number}.csv`)).text());
+ assert.equal(target.mail.requests.length,0);
+});
+
+test('ORD-014: fifty recorded orders of one season export per line and as style, color and size production totals equal to their lines',async t=>{
+ const f=await sheetFixture(t),{h,buyers,sheet,skus}=f,year=new Date().getUTCFullYear()+1,season=`Spring ${year}`;
+ await h.command('variant.attributes',{revision:null,variants:sized(skus)});
+ const summer=await h.command('sheet.publish',{accountId:'cedar',name:'Summer collection',season:`Summer ${year}`,display:'both',shipStart:`${year}-06-01`,shipEnd:`${year}-06-30`,skus});
+ const prepare=(s,reference,lines)=>h.command('order.prepare',{accountId:'cedar',lineSheetId:s.id,lineSheetRevision:s.revision,reference,lines},buyers.cedar);
+ const ids=[];
+ for(let i=0;i<50;i++){const o=await prepare(sheet,`SPRING-${i+1}`,[{sku:skus[0],quantity:i%3+1},{sku:skus[1],quantity:2},{sku:skus[2],quantity:i%2+1}]);await h.command('order.submit',{orderId:o.id},buyers.cedar);ids.push(o.id)}
+ for(const reference of ['SUMMER-1','SUMMER-2']){const o=await prepare(summer,reference,[{sku:skus[0],quantity:5}]);await h.command('order.submit',{orderId:o.id},buyers.cedar)}
+ await prepare(sheet,'SPRING-DRAFT',[{sku:skus[0],quantity:9}]);
+ const choice=await h.api('/api/barrow/confirmations/selection',{season});
+ assert.equal(choice.season,season);assert.deepEqual(choice.orders.map(o=>o.orderId),ids);assert.ok(choice.orders.every(o=>o.season===season&&o.confirmations.length===1));
+ await h.api('/api/barrow/confirmations/selection',{season},{...buyers.wren,status:404});
+ const confirmations=choice.orders.map(o=>({orderId:o.orderId,number:o.confirmations.at(-1).number}));
+ const exported=async body=>{const response=await h.request('/api/barrow/confirmations/export.csv',{method:'POST',body});assert.equal(response.status,200);return csvRows(await response.text())};
+ const lines=await exported({confirmations});
+ assert.equal(lines.rows.length,150);assert.equal(new Set(lines.rows.map(r=>r.order)).size,50);assert.ok(lines.rows.every(r=>r.season===season&&!r.po.startsWith('SUMMER')));
+ const totals=await exported({confirmations,shape:'totals'}),expected=new Map();
+ for(const r of lines.rows)expected.set([r.style,r.color,r.size].join('|'),(expected.get([r.style,r.color,r.size].join('|'))??0)+Number(r.base_quantity));
+ assert.deepEqual(totals.rows.map(r=>[[r.style,r.color,r.size].join('|'),Number(r.base_quantity)]),[...expected]);
+ assert.deepEqual([...expected.values()],[99,100,75]);
+ assert.ok(totals.rows.every(r=>r.order_count==='50'&&r.line_count==='50'&&r.sources.split(' ').length===50&&r.base_unit==='each'));
+ assert.deepEqual(new Set(totals.rows[0].sources.split(' ')),new Set(lines.rows.map(r=>r.confirmation)));
+ await h.api('/api/barrow/confirmations/export.csv',{confirmations,shape:'pivot'},{status:400});
 });

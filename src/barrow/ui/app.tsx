@@ -1,3 +1,4 @@
+import { ConfirmationSettings } from './confirmation-settings'
 import { LineSheets } from './line-sheets'
 import { AccountErasure } from './account-erasure'
 import {RepPerformance} from './rep-performance'
@@ -157,6 +158,7 @@ export function BarrowApp() {
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
           {activeTab === 'Line sheets' && <LineSheets accounts={state.accounts} merchant={Boolean(legacySupplier||staff?.role==='sales-manager')} version={state} onPrepared={()=>{void reload();setTab('Orders')}}/>}
+          {activeTab === 'Line sheets' && legacySupplier && <ConfirmationSettings />}
           {activeTab === 'Accounts' && <Accounts canCreate={!staff||staff.accounts==='all'} canInvite={legacySupplier} version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Accounts' && (legacySupplier||staff?.role==='sales-manager'&&staff.accounts==='all') && <RepAssignments version={state} run={run} busy={busy}/>}
           {activeTab === 'Accounts' && legacySupplier && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.accounts} />}

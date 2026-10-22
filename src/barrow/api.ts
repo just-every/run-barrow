@@ -29,6 +29,9 @@ import { quoteMailWebhook } from './quote-mail-events'
 import { quoteMailCommand, dispatchQuoteMail } from './quote-mail'
 import { readRetention, retentionCommand } from './retention'
 import { readConfirmations, confirmationResponse } from './confirmations'
+import { confirmationEmails } from './confirmation-mail'
+import { readSellerIdentity, saveSellerIdentity } from './seller-identity'
+import { readVariantAttributes, saveVariantAttributes } from './variant-attributes'
 import { substitutionCommand } from './substitutions'
 import { listCommercialAudit,exportCommercialAudit } from './commercial-audit'
 import { runtimeBindings, type Bindings } from '../auth.server'
@@ -130,6 +133,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/commissions' && request.method==='GET')return json(await commissionReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/commissions.csv' && request.method==='GET')return await commissionCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/confirmation-layouts' && request.method==='GET')return json(await readConfirmationLayouts(env.DB,actor))
+  if(path==='/api/barrow/seller-identity' && request.method==='GET')return json(await readSellerIdentity(env.DB,actor))
+  if(path==='/api/barrow/variant-attributes' && request.method==='GET')return json(await readVariantAttributes(env.DB,actor))
   if(path==='/api/barrow/confirmations/selection' && request.method==='POST')return json(await confirmationChoices(env.DB,actor,await boundedJson(request,20000)))
   if(path==='/api/barrow/confirmations/export.csv' && request.method==='POST')return await bulkConfirmationResponse(env.DB,actor,await boundedJson(request,20000))
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
@@ -198,7 +203,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent) fail('FORBIDDEN','A person must download order confirmations.',403)
    const order=await readOrder(env.DB,actor,confirmation[1])
    if(url.searchParams.has('layout'))requireSupplier(actor)
-   return confirmation[2] ? await confirmationResponse(env.DB,order,Number(confirmation[2]),confirmation[3] as 'csv'|'pdf',url.searchParams.get('layout')??undefined) : json({confirmations:await readConfirmations(env.DB,order.id)})
+   return confirmation[2] ? await confirmationResponse(env.DB,order,Number(confirmation[2]),confirmation[3] as 'csv'|'pdf',url.searchParams.get('layout')??undefined) : json({confirmations:await readConfirmations(env.DB,order.id),emails:await confirmationEmails(env.DB,order.id)})
   }
   const document=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/document$/.exec(path)
   if(document && request.method==='GET') return await documentResponse(env,actor,await readOrder(env.DB,actor,document[1]))
@@ -253,9 +258,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='retention.erase-account'||body.type==='retention.revoke-access')result=await executeAccountErasure(env,actor,body.payload,body.type==='retention.revoke-access'?'revoke':'erase')
    else if(['retention.settings','retention.request','retention.erase-document','retention.erase-application'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
+   else if(body.type==='seller.identity')result=await saveSellerIdentity(env.DB,actor,body.payload)
+   else if(body.type==='variant.attributes')result=await saveVariantAttributes(env.DB,actor,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)

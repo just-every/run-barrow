@@ -7,7 +7,7 @@ const states: Record<string, string> = {
  'order.confirmation':'Order confirmation recorded',
  'substitution.offered':'Substitution offered for buyer review', 'substitution.declined':'Substitution declined by buyer', 'substitution.accepted':'Exact substitution accepted by buyer', 'substitution.replacement':'Replacement linked to accepted substitution',
  'order.prepared': 'Draft prepared', 'order.document-attached': 'PO document attached', 'order.superseded': 'Replaced by a newer draft',
- 'order.submitted': 'Submitted: approval pending', 'order.submitted-release': 'Submitted as a numbered PO release: approval pending',
+ 'order.submitted': 'Submitted: approval pending', 'order.revised': 'Revised by the buyer before acceptance: approval pending', 'order.submitted-release': 'Submitted as a numbered PO release: approval pending',
  'order.approved': 'Accepted by the supplier', 'order.reserved': 'Allocated: every unit reserved', 'order.shortfall': 'Backordered: stock shortfall',
  'order.release-requested': 'Cancellation requested: stock release pending', 'order.released': 'Cancelled: stock released',
 }

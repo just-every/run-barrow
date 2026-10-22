@@ -1,6 +1,7 @@
 import { companySubmission } from './company-purchase'
 import { requireCompanyRight } from './company-policy'
 import { confirmationStatements } from './confirmations'
+import { emailLatestConfirmation } from './confirmation-mail'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { activeAccountGuard } from './account-profile'
@@ -55,5 +56,7 @@ export async function substitutionCommand(env:Bindings,actor:Actor,type:string,p
  let replacement:Order={id,revision,accountId:order.accountId,accountRevision:current.selected.revision,customerName:current.selected.value.name,pierCustomerId:current.selected.value.pierCustomerId,pierOrigin:order.pierOrigin,reference:order.reference,requestedDate:order.requestedDate,cancelAfter:order.cancelAfter,instructions:order.instructions,deliveryLocation:order.deliveryLocation,billTo:order.billTo,shipTo:order.shipTo,document:order.document,lines:latest.lines.map(({fromSku,fromUnit,fromLine,...line})=>({...line,substitutedFrom:{orderId:order.id,line:fromLine,sku:fromSku,unit:fromUnit}})),totalCents:latest.totalCents,currency:'USD',termsDays:current.selected.value.termsDays,delivery,freightQuotes:latest.freightQuotes,preparedBy:latest.proposedBy,preparedAt:latest.proposedAt,submittedBy:actor.id,status:'submitted',fromSubstitution:{orderId:order.id,number:latest.number}}
  const submission=await companySubmission(env,actor,replacement);replacement=submission.order
  const accepted:Substitution={...latest,status:'accepted',decidedBy:actor.id,decidedAt:at,replacementId:id}
- return store(env,actor,order,[...offers.slice(0,-1),accepted],'substitution.accepted',`Buyer accepted exact offer ${latest.number}; replacement ${id}; original stock must be released first.`,[submission.guard,activeAccountGuard(env.DB,current.selected),shippingGuard(env.DB,delivery),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,order.accountId,JSON.stringify(replacement),revision),...(submission.waiting?[]:await confirmationStatements(env.DB,actor,replacement,'submitted')),...(order.document?[carryDocument(env,order.id,id)]:[]),audit(env.DB,actor,id,'substitution.replacement',{accountId:order.accountId,orderId:id,revision,source:'substitution.accept',reason:`Replacement for ${order.id}, exact accepted offer ${latest.number}; no stock effect yet.`})])
+ const stored=await store(env,actor,order,[...offers.slice(0,-1),accepted],'substitution.accepted',`Buyer accepted exact offer ${latest.number}; replacement ${id}; original stock must be released first.`,[submission.guard,activeAccountGuard(env.DB,current.selected),shippingGuard(env.DB,delivery),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,order.accountId,JSON.stringify(replacement),revision),...(submission.waiting?[]:await confirmationStatements(env.DB,actor,replacement,'submitted')),...(order.document?[carryDocument(env,order.id,id)]:[]),audit(env.DB,actor,id,'substitution.replacement',{accountId:order.accountId,orderId:id,revision,source:'substitution.accept',reason:`Replacement for ${order.id}, exact accepted offer ${latest.number}; no stock effect yet.`})])
+ if(!submission.waiting)await emailLatestConfirmation(env,id)
+ return stored
 }

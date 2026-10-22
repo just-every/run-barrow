@@ -13,6 +13,13 @@ export function purchaseDetails(p: any, today: string) {
  const instructions = p.instructions ? text(p.instructions, 'Instructions', 1000) : undefined
  return { ...(requestedDate ? { requestedDate } : {}), ...(cancelAfter ? { cancelAfter } : {}), ...(instructions ? { instructions } : {}) }
 }
+/** ORD-014: a line may carry its own ship window (requested delivery and cancel-after dates); lines without one follow the order's. */
+export function lineWindow(line: any, today: string) {
+ const { requestedDate, cancelAfter } = purchaseDetails({ requestedDate: line?.requestedDate, cancelAfter: line?.cancelAfter }, today)
+ return { ...(requestedDate ? { requestedDate } : {}), ...(cancelAfter ? { cancelAfter } : {}) }
+}
+/** Pier records one promise date per order: the earliest requested date of the order or any of its line windows. */
+export const promiseDate = (order: Order) => [order.requestedDate, ...order.lines.map(line => line.requestedDate)].filter((date): date is string => Boolean(date)).sort()[0]
 /** A buyer SKU alias is the buyer's own code for a line, kept as written; it never selects the supplier SKU. */
 export const buyerSku = (line: any) => line?.buyerSku ? { buyerSku: text(line.buyerSku, 'Buyer SKU', 60) } : {}
 /** POs match within one trade account after trimming, collapsing spaces and ignoring case. */
