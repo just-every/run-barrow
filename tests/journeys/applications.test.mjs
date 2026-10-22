@@ -1,7 +1,7 @@
 // Manual clause browser journey: actual built Worker, real D1/Pier, fake only at the paid mail edge.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import { installation, stock } from '../api/harness.mjs';
 import { verifiedApplication } from '../api/application-fixture.mjs';
 import {captureWidths,signedContext} from './browser-helpers.mjs';
@@ -67,7 +67,7 @@ test('owner grants functional application review and finance document access, re
   await form.getByLabel('Staff name',{exact:true}).fill(person.name);await form.getByLabel('Exact staff email',{exact:true}).fill(person.email);await form.getByLabel('Functional role',{exact:true}).selectOption(person.role);
   if(person.role==='sales-manager')await form.getByRole('checkbox',{name:'All trade accounts, including future accounts',exact:true}).check();
   await form.getByRole('checkbox',{name:person.entitlement,exact:true}).check();await form.getByLabel('Reason for this access change',{exact:true}).fill('Owner authorized this functional application responsibility.');
-  await captureWidths(owner,`application-grant-${person.role}`);await form.getByRole('button',{name:'Send native staff invitation',exact:true}).click();
+  await captureWidths(owner,`application-grant-${person.role}`);await form.getByRole('button',{name:'Send native staff invitation',exact:true}).click();await expect(form.getByLabel('Exact staff email',{exact:true})).toHaveValue('');
   const message=h.mail.requests.findLast(row=>row.message.to.includes(person.email)).message;
   const url=new URL(message.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)[0]);
   const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000}});t.after(()=>context.close());const page=await context.newPage();await page.goto(h.origin+url.pathname+url.search);await page.getByRole('button',{name:'Confirm',exact:true}).click();await page.waitForURL(h.origin+'/app');
