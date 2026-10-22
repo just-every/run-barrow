@@ -1,3 +1,4 @@
+import { journalSource } from './barrow/erasure-journal'
 import type { Bindings } from './auth.server'
 import type { Order } from './barrow/model'
 import { demoCustomers, demoOrders, demoPrice, demoPriceUpdate, demoProducts, demoItemId, demoCustomerId, demoPierOrigin, demoSku } from './demo-data'
@@ -6,6 +7,7 @@ import { demoCustomers, demoOrders, demoPrice, demoPriceUpdate, demoProducts, de
 export async function seedDemo(env: Bindings, { ownerEmail, now }: { ownerEmail: string; now: Date }) {
   const owner = await env.DB.prepare('SELECT id FROM oa_operators WHERE email=?').bind(ownerEmail).first<{ id: string }>()
   if (!owner) return
+  await journalSource(env)
   const statements = [env.DB.prepare('INSERT OR IGNORE INTO oa_first_run VALUES(1,?,?)').bind(owner.id, now.getTime())]
   const priceLists = new Map(demoCustomers.map(customer => [customer.id, demoProducts.map(product => ({ sku: product.sku, unitCents: demoPrice(customer, product), minQty: 1 }))]))
   for (const customer of demoCustomers) {

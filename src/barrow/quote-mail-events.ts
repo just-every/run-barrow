@@ -1,6 +1,6 @@
 // AUTO-003: Base owns signature checks, receipt identity and event ordering.
 import type { Bindings } from '../auth.server'
-import { createDeliveryEventIntake, createD1EventStore } from './quote-mail-base.mjs'
+import { verifyWebhook, createDeliveryEventIntake, createD1EventStore } from './quote-mail-base.mjs'
 import { recordMailFailure } from './quote-mail-tasks'
 import { observeMailConfiguration } from './quote-mail-config'
 import { commercialAuditEvent } from './audit-event'
@@ -12,9 +12,24 @@ export async function quoteMailWebhook(request:Request,env:Bindings) {
   if(!reader)return new Response(null,{status:400})
   for(;;){const next=await reader.read();if(next.done)break;size+=next.value.length;if(size>1024*1024){await reader.cancel();return new Response(null,{status:413})}parts.push(next.value)}
   const rawBody=new Uint8Array(size);let offset=0;for(const part of parts){rawBody.set(part,offset);offset+=part.length}
-  const intake=createDeliveryEventIntake({provider:'resend',key:env.MAIL_WEBHOOK_SECRET,tenantId:env.MAIL_EVENT_TENANT,eventNamespace:'quotes',toleranceSeconds:300,store:createD1EventStore({db:env.DB}),authorize:async(event:any)=>{
+  // Verify with unmodified Base code, then discard late events for an erased
+  // delivery. Neither the old address nor the payload may be stored again.
+  if(await verifyWebhook({provider:'resend',rawBody,headers:request.headers,key:env.MAIL_WEBHOOK_SECRET,now:Date.now(),toleranceSeconds:300})) {
+   const payload=JSON.parse(new TextDecoder().decode(rawBody)),id=payload?.data?.email_id
+   if(typeof id==='string'&&await env.DB.prepare("SELECT 1 FROM bw_quote_mail WHERE provider_message_id=? AND recipient IS NULL AND summary='[Erased notice]' AND restored=1").bind(id).first())return Response.json({recorded:false,ignored:true})
+  }
+  let admitted:any
+  // Base still owns the event transaction. This product guard shares that
+  // transaction, so erasure racing authorization cannot resurrect a payload.
+  const guardedDb={prepare:env.DB.prepare.bind(env.DB),batch:async(statements:D1PreparedStatement[])=>{
+   if(!admitted)throw new Error('Delivery event not authorized')
+   const guard=env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM json_each(?) r WHERE NOT EXISTS(SELECT 1 FROM bw_quote_mail m WHERE m.provider_message_id=? AND m.recipient=r.value AND m.summary<>'[Erased notice]')) THEN 1 ELSE 0 END").bind(JSON.stringify(admitted.recipients),admitted.providerMessageId)
+   const results=await env.DB.batch([guard,...statements,env.DB.prepare('DELETE FROM bw_guard')]);return results.slice(1,-1)
+  }}
+  const intake=createDeliveryEventIntake({provider:'resend',key:env.MAIL_WEBHOOK_SECRET,tenantId:env.MAIL_EVENT_TENANT,eventNamespace:'quotes',toleranceSeconds:300,store:createD1EventStore({db:guardedDb as any}),authorize:async(event:any)=>{
    if(event.tenantId!==env.MAIL_EVENT_TENANT)return false
    for(const recipient of event.recipients)if(!await env.DB.prepare('SELECT id FROM bw_quote_mail WHERE provider_message_id=? AND recipient=?').bind(event.providerMessageId,recipient).first())return false
+   admitted=event
    return true
   }})
   await intake.ingestWebhook({rawBody,headers:request.headers})

@@ -15,6 +15,7 @@ export interface Bindings {
  RER_OWNER_CLAIM_ISSUER?: string
  RER_OWNER_CLAIM_INSTALLATION_ID?: string
  RER_OWNER_CLAIM_PUBLIC_KEYS?: string
+ ERASURE_JOURNAL?: R2Bucket
  DB: D1Database
  PIER_ORIGIN?: string
  PIER_SESSION?: string
@@ -82,6 +83,9 @@ async function handleAuthResponse(request: Request, original: Bindings): Promise
 }
 
 export async function authResponse(request: Request, original: Bindings): Promise<Response | null> {
+ const { erasureRestoreResponse } = await import('./barrow/erasure-journal')
+ const fenced = await erasureRestoreResponse(original)
+ if(fenced&&new URL(request.url).pathname!=='/auth/owner-signin')return fenced
  const response = await handleAuthResponse(request, original)
  return response ? rejectedResponse(request, response) : null
 }

@@ -1,3 +1,4 @@
+import { prepareLegacyErasure } from './legacy-erasure-journal'
 import { applicationAccess } from './application-access'
 import { readStaffGrant, staffGuard } from './staff-policy'
 import { operatorMail } from '../mail.server.mjs'
@@ -281,6 +282,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   env.DB.prepare("UPDATE oa_operators SET email=?,display_name=?,status='inactive' WHERE id=? AND role='member'").bind(email, former, member.userId))
  const portability = await createPortability({ db: env.DB, policy: portabilityPolicy })
  const checkpoint = [...await portability.invalidateTransfersStatements(), ...await portability.redactionStatements()].map(toD1Sql).map(statement => env.DB.prepare(statement.sql).bind(...(statement.params ?? [])))
- await commit(env.DB, actor, [...statements, ...checkpoint, audit(env.DB, actor, member.id, 'company.user-erased', { accountId: member.accountId, revision, source: 'company.erase', reason })])
+ const journal=await prepareLegacyErasure(env,actor,'company-user',member.accountId,{userId:member.userId,email:member.email,name:member.name,reason},{id:revision,memberId:member.id,userId:member.userId,erasedAt:at,erasedBy:actor.id,commercialHistory:'preserved under the seven-year financial floor'})
+ await journal.run(()=>commit(env.DB, actor, [...statements, ...checkpoint, env.DB.prepare(journal.statement.sql).bind(...journal.statement.params!), audit(env.DB, actor, member.id, 'company.user-erased', { accountId: member.accountId, revision, source: 'company.erase', reason })]))
  return { id: member.id, userId: member.userId, name: former, erasedAt: at, revision, commercialHistory: 'preserved under the seven-year financial floor' }
 }

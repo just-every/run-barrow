@@ -10,7 +10,9 @@
       "binding": "DB"
     }
   ],
-  "crons": ["0 * * * *"],
+  "crons": [
+    "0 * * * *"
+  ],
   "originVar": "AUTH_ORIGIN",
   "vars": {
     "AUTH_LOCAL": "false",
@@ -18,8 +20,16 @@
     "MAIL_FROM": "auth@example.invalid"
   },
   "secrets": [
-    {"binding":"MAIL_EVENT_TENANT","environment":"MAIL_EVENT_TENANT","optional":true},
-    {"binding":"MAIL_WEBHOOK_SECRET","environment":"MAIL_WEBHOOK_SECRET","optional":true},
+    {
+      "binding": "MAIL_EVENT_TENANT",
+      "environment": "MAIL_EVENT_TENANT",
+      "optional": true
+    },
+    {
+      "binding": "MAIL_WEBHOOK_SECRET",
+      "environment": "MAIL_WEBHOOK_SECRET",
+      "optional": true
+    },
     {
       "binding": "OWNER_EMAIL",
       "environment": "OWNER_EMAIL"
@@ -50,5 +60,10 @@
   "platforms": [
     "workers",
     "container"
+  ],
+  "r2": [
+    {
+      "binding": "ERASURE_JOURNAL"
+    }
   ]
 }

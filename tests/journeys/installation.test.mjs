@@ -71,6 +71,7 @@ test('BASE-001 / RPT-006: fresh native setup, Lobby and app work without Pier; C
   const unavailable = await first.context.request.get(running.origin + '/api/barrow/catalogue?accountId=cedar');
   assert.equal(unavailable.status(), 503); assert.equal((await unavailable.json()).error.code, 'PIER_UNAVAILABLE');
  }
+ const independentJournal=await api(first.context,running,'/api/barrow/erasure-journal');
  await first.context.close(); await running.stop(); running = null;
  const output = join(directory, 'barrow.rer'); await rer(root, ['export', '--output', output]);
  const manifest = JSON.parse((await readFile(output, 'utf8')).split('\n')[0]);
@@ -78,6 +79,10 @@ test('BASE-001 / RPT-006: fresh native setup, Lobby and app work without Pier; C
  const restoredRoot = await freshCheckout(directory, 'restored');
  // The documented restore first prepares an empty checkout, then native dev sets up its new local owner.
  await rer(restoredRoot, ['install']);
+ running=await start(restoredRoot);
+ const prepared=await signIn(browser,running);
+ await api(prepared.context,running,'/api/barrow/erasure-journal',{bundle:independentJournal,confirm:'JOURNAL',reason:'Owner attached the complete current source journal before importing the database archive.'});
+ await prepared.context.close();await running.stop();running=null;
  await rer(restoredRoot, ['import', '--input', output, '--yes']);
  running = await start(restoredRoot);
  const restored = await signIn(browser, running);

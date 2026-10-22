@@ -16,6 +16,8 @@ function containsExact(value: Json, identifier: string): boolean {
 export async function retireAccountImportCustody(db: D1Database, actor: ImportActor, input: {
   accountId: string;
   email: string;
+  emails?: string[];
+  retainedEmail?: string;
   nativeStatements: D1Sql[];
   checkpoint: D1Sql[];
 }) {
@@ -25,12 +27,26 @@ export async function retireAccountImportCustody(db: D1Database, actor: ImportAc
   if (email !== email.toLowerCase() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) importError('ACCOUNT_EMAIL', 'Supply the account’s exact lowercase email.');
   if (!Array.isArray(input.nativeStatements) || !input.nativeStatements.length || !Array.isArray(input.checkpoint) || !input.checkpoint.length)
     importError('IMPORT_ERASURE_FENCE', 'Native erasure SQL and the portability redaction checkpoint are required.');
+  const emails = [...new Set([email, ...(input.emails ?? [])])];
+  const context = accountImportContext(db, actor);
+  if (input.retainedEmail) {
+    // Erase import custody while retaining the commercial account tombstone.
+    // Only this exact non-routable, closed tombstone counts as absent to the kit.
+    const targets = context.storage.targets, read = targets.read.bind(targets), matches = targets.matches.bind(targets);
+    targets.read = async (...args) => {
+      const row = await read(...args);
+      return row?.targetId === input.accountId && (row.value as any)?.email === input.retainedEmail && (row.value as any)?.lifecycle === 'closed' ? undefined : row;
+    };
+    targets.matches = (row, destination, kind, id) => !row && id === input.accountId
+      ? {sql: "NOT EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND (json_extract(value_json,'$.email')<>? OR json_extract(value_json,'$.lifecycle')<>'closed'))", params: [id,input.retainedEmail]}
+      : matches(row,destination,kind,id);
+  }
   return retireD1ImportCustody({
     target: { kind: 'account', id: input.accountId },
-    values: [email],
+    values: emails,
     related: {
-      source: record => containsExact(record.payload, email),
-      original: bytes => accountCSVHoldsEmail(bytes, email),
+      source: record => emails.some(value => containsExact(record.payload, value)),
+      original: bytes => emails.some(value => accountCSVHoldsEmail(bytes, value)),
     },
-  }, input.nativeStatements, accountImportContext(db, actor), input.checkpoint);
+  }, input.nativeStatements, context, input.checkpoint);
 }

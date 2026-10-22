@@ -11,7 +11,7 @@ import { pierSource } from '../pier-source.mjs';
 export async function installation({pier=false,bindings={},https,built=false}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
- const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],loader:{'.css':'text','.svg':'text'}});
+ const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
  const messages=[],mail={deliveries:[],requests:[],reject:false,failStatus:undefined},idempotency=new Map();
  // Fake only the external mail boundary; Pier remains the real pinned Worker.
@@ -30,7 +30,7 @@ export async function installation({pier=false,bindings={},https,built=false}={}
   return new Response(await response.arrayBuffer(),{status:response.status,headers:Object.fromEntries(response.headers)});
  };
  let origin='http://localhost';
- const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),modules:true,script:bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
+ const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),modules:true,script:bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['ERASURE_JOURNAL'],bindings:{AUTH_LOCAL:'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:pier?'development':'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},...(!pier?{outboundService:mailEdge}:{})}),resourcePersistencePath:directory});
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
@@ -95,13 +95,16 @@ export async function stock(pier,quantity='24') {
  return {item,location,supplier,customer};
 }
 export const accountValue=(customerId,email='buyer@example.test')=>({name:'Cedar Street Pantry',email,pierCustomerId:customerId,termsDays:30,minimumCents:10000,prices:[{sku:'OAT-1',unitCents:6500,minQty:2}]});
+const archiveSources=new WeakMap();
 export async function archive(h) {
  const {id}=await h.api('/api/barrow/portability/exports',{});
  let status;do{status=await h.api(`/api/barrow/portability/exports/${id}/advance`,{})}while(status.phase!=='complete');
  const response=await h.request(`/api/barrow/portability/exports/${id}/download`);assert.equal(response.status,200);
- return (await response.text()).trim().split('\n').map(line=>JSON.parse(line));
+ const lines=(await response.text()).trim().split('\n').map(line=>JSON.parse(line));archiveSources.set(lines,h);return lines;
 }
-export async function restore(h,lines,{status=200,laterJournal}={}) {
+export async function restore(h,lines,{status=200,laterJournal,journalSource=archiveSources.get(lines)}={}) {
+ // Attaching the source bucket is separate from importing the database archive.
+ if(journalSource){const bundle=await journalSource.api('/api/barrow/erasure-journal');await h.api('/api/barrow/erasure-journal',{bundle,confirm:'JOURNAL',reason:'Owner attached the source installation’s complete current independent journal before restore.'})}
  const {id}=await h.api('/api/barrow/portability/imports',{manifest:lines[0],confirmed:true});
  for(const part of lines.filter(x=>x.kind==='part')) await h.api(`/api/barrow/portability/imports/${id}/parts/${part.index}`,part,{method:'PUT'});
  return h.api(`/api/barrow/portability/imports/${id}/finalize`,{contentHash:lines.at(-1).contentHash,archiveHash:lines.at(-1).archiveHash,...(laterJournal?{laterJournal}:{})},{status});

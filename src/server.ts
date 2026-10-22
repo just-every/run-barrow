@@ -1,3 +1,4 @@
+import { reconcileErasureJournal } from './barrow/erasure-journal'
 import { purgeUnverified } from './barrow/application-records'
 import { dispatchReports } from './barrow/report-delivery'
 import { dispatchQuoteMail } from './barrow/quote-mail'
@@ -29,7 +30,7 @@ function noTransform(response: Response): Response {
 }
 
 export default withDemo({
-  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await escalateApprovals(runtimeBindings(env))})()) },
+  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await reconcileErasureJournal(runtimeBindings(env));await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await escalateApprovals(runtimeBindings(env))})()) },
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
