@@ -13,7 +13,7 @@ import { textPdf } from './pdf'
 export type Sheet = {id:string;revision:string;accountId:string;name:string;season:string;display:PriceDisplay;state:'published'|'revoked';publishedAt:string;publishedBy:string;bookRevision:string;currency:'USD'|'CAD';shipStart:string;shipEnd:string;items:Awaited<ReturnType<typeof catalogue>>['items'];packs:{id:string;name:string;kind:'run'|'assortment';lines:{sku:string;quantity:number}[]}[]}
 function merchant(actor:Actor) {
  requirePerson(actor)
- if(!['owner','admin'].includes(actor.role)||actor.staff)fail('FORBIDDEN','Only the supplier owner or admin may publish or revoke line sheets.',403)
+ if(!['owner','admin'].includes(actor.role)&&actor.staff?.role!=='sales-manager')fail('FORBIDDEN','Only the supplier owner, admin or scoped sales manager may publish or revoke line sheets.',403)
 }
 async function stored(env:Bindings,actor:Actor,id:string,includeRevoked=false):Promise<Sheet> {
  requirePerson(actor)

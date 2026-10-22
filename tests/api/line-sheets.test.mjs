@@ -1,9 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {activateStaff} from './harness.mjs';
 import {sheetFixture} from './line-sheet-fixture.mjs';
 
 test('recipient seasonal sheets retain exact variants, columns, ship windows and revision, and revocation closes every sheet door',async t=>{
  const f=await sheetFixture(t),{h,sheet,other,buyers}=f;
+ const policy=role=>({role,accounts:['cedar'],warehouses:[],reports:[],discountLimitCents:0,stockExceptionLimitCents:0});
+ const manager=await activateStaff(h,'merchandiser@example.test',policy('sales-manager')),rep=await activateStaff(h,'salesrep@example.test',policy('rep')),operations=await activateStaff(h,'warehouse@example.test',policy('operations'));
+ const book=await(await h.request('/api/barrow/price-book.csv?accountId=cedar',manager.who)).text();assert.ok(book.includes('USD'));
+ const scopedBook=await h.command('price-book.import',{accountId:'cedar',revision:f.cedar.revision,csv:book},manager.who);assert.equal(scopedBook.value.currency,'USD');
+ const publish={accountId:'cedar',name:'Scoped manager sheet',season:'Spring',display:'both',shipStart:`${new Date().getUTCFullYear()+1}-03-01`,shipEnd:`${new Date().getUTCFullYear()+1}-03-31`,skus:f.skus};
+ const managed=await h.command('sheet.publish',publish,manager.who);await h.command('sheet.revoke',{sheetId:managed.id,revision:managed.revision},manager.who);
+ await h.command('sheet.publish',{...publish,accountId:'wren'},{...manager.who,status:404});
+ for(const who of [rep.who,operations.who]){await h.command('sheet.publish',publish,{...who,status:403});await h.command('sheet.revoke',{sheetId:sheet.id,revision:sheet.revision},{...who,status:403});}
+ await h.api(`/api/barrow/line-sheets/${other.id}`,undefined,{...manager.who,status:404});
  const page=await h.api(`/api/barrow/line-sheets/${sheet.id}`,undefined,buyers.cedar);assert.equal(page.season,`Spring ${new Date().getUTCFullYear()+1}`);assert.equal(page.shipStart.slice(-5),'03-01');assert.equal(page.shipEnd.slice(-5),'03-31');assert.deepEqual(page.items.map(i=>i.sku),f.skus);assert.deepEqual(page.packs,f.packs);assert.equal(page.items[0].available,'100');assert.equal(page.items[0].barcode,'synthetic-barrow-1');
  for(const suffix of ['','.pdf','.csv']){
   await h.api(`/api/barrow/line-sheets/${sheet.id}${suffix}`,undefined,{...buyers.wren,status:404});await h.api(`/api/barrow/line-sheets/${other.id}${suffix}`,undefined,{...buyers.cedar,status:404});
@@ -47,7 +57,7 @@ test('line-sheet buyer opens and visible-item views appear independently in the 
  }
  await h.command('sheet.view',{sheetId:sheet.id,revision:sheet.revision,kind:'open',skus:[]});
  const report=await h.api('/api/barrow/reports/quotes');assert.equal(report.lineSheets.length,2);assert.deepEqual(report.lineSheets.map(r=>[r.opens,r.views,r.itemsViewed]),[[1,1,2],[1,1,2]]);assert.notEqual(report.lineSheets[0].buyerId,report.lineSheets[1].buyerId);assert.deepEqual(report.lineSheets[0].bySku,f.skus.slice(0,2).map(sku=>({sku,views:1})));
- const scoped=await h.api('/api/barrow/reports/quotes?accountId=cedar');assert.equal(scoped.lineSheets.length,1);assert.equal(scoped.lineSheets[0].accountId,'cedar');
+ const scoped=await h.api('/api/barrow/reports/quotes?accountId=cedar');assert.equal(scoped.lineSheets.length,1);assert.equal(scoped.lineSheets[0].accountId,'cedar');assert.equal(scoped.lineSheets[0].buyerEmail,'buyer@example.test');assert.equal(scoped.lineSheets[0].sheetName,'Spring collection');assert.deepEqual((await h.api('/api/barrow/reports/quotes?from=2000-01-01&to=2000-01-02')).lineSheets,[]);
  await h.api('/api/barrow/reports/quotes',undefined,{...buyers.cedar,status:403});
  await h.command('sheet.view',{sheetId:sheet.id,revision:sheet.revision,kind:'view',skus:['synthetic-barrow-hidden']},{...buyers.cedar,status:400});
 });

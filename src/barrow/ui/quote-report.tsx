@@ -36,7 +36,7 @@ export function QuoteReport() {
     {report && <>
       <p className="br-quiet-text">{report.definitions.period} Read {when(report.checkedAt)}{report.returnsSource === 'unavailable' ? ' · Pier unavailable: returns unknown' : ''}.</p>
       <Measures row={report.totals} currency={currency} />
-      <section aria-label="Line-sheet engagement"><h3>Line-sheet engagement per buyer</h3>{report.lineSheets.length===0?<p>No buyer activity in this period.</p>:report.lineSheets.map(row=><p key={`${row.sheetId}:${row.buyerId}`}>{row.accountId} · Buyer {row.buyerId} · Sheet {row.sheetId}: opens {row.opens}, views {row.views}, items viewed {row.itemsViewed}. {row.bySku.map(item=>`${item.sku}: ${item.views}`).join('; ')}</p>)}</section>
+      <section aria-label="Line-sheet engagement"><h3>Line-sheet engagement per buyer</h3>{report.lineSheets.length===0?<p>No buyer activity in this period.</p>:report.lineSheets.map(row=><p key={`${row.sheetId}:${row.buyerId}`}>{row.accountName} · {row.buyerName??'Former buyer'}{row.buyerEmail?` (${row.buyerEmail})`:''} · {row.sheetName??'Archived line sheet'}: opens {row.opens}, views {row.views}, items viewed {row.itemsViewed}. {row.bySku.map(item=>`${item.sku}: ${item.views}`).join('; ')}</p>)}</section>
       {report[view].map(row => <article className="br-card br-stack" key={row.name}><h3>{row.name}</h3><Measures row={row} currency={currency} /></article>)}
       <details><summary>How each figure is counted</summary><dl>{Object.entries(report.definitions).map(([name, text]) => <div key={name}><dt>{name}</dt><dd>{text}</dd></div>)}</dl></details>
       {report.notRecorded.map(item => <p className="br-quiet-text" key={item.measure}>{item.measure}: not recorded. {item.note}</p>)}

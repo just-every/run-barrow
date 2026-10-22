@@ -43,7 +43,9 @@ export async function prepareAccountSave(env:Bindings,actor:Actor,p:any) {
   const candidates=reviewing?directory.filter(row=>row.id!==id&&duplicateCompany(row.value,value)):[]
   const reviews=validateDuplicateReviews(p.duplicateReviews,candidates)
   const snapshot=accountDirectorySnapshot(directory)
-  const guard=env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${directoryPredicate}) THEN 1 ELSE 0 END`).bind(JSON.stringify(snapshot),snapshot.length)
+  // Identity changes need the reviewed directory; price/profile-only edits fence this account.
+  // A scoped manager's directory is intentionally incomplete and cannot stand in for the whole table.
+  const guard=reviewing?env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${directoryPredicate}) THEN 1 ELSE 0 END`).bind(JSON.stringify(snapshot),snapshot.length):env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(id,prior.revision)
   const statement=prior ? env.DB.prepare('UPDATE bw_accounts SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(value),revision,id,prior.revision) : env.DB.prepare('INSERT INTO bw_accounts VALUES(?,?,?)').bind(id,JSON.stringify(value),revision)
   const reason=p.reason===undefined?'Supplier saved the trade account profile and commercial terms.':text(p.reason,'Change reason',240)
   const context={accountId:id,revision,source:'account.save',reason}

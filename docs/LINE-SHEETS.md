@@ -1,6 +1,6 @@
 # Seasonal line sheets and retail prices
 
-Open **Line sheets** in the installed app. The supplier owner or admin publishes a separate share for each trade account. Its signed-in purchasers and currently authorized supplier staff can read it; knowing a link never grants another account's prices. Revoking the share closes its page, PDF, order form, activity and new-order doors. Existing orders and their immutable confirmations remain commercial history.
+Open **Line sheets** in the installed app. The supplier owner, admin or a currently scoped sales manager publishes a separate share for each trade account. Its signed-in purchasers and currently authorized supplier staff can read it; knowing a link never grants another account's prices. Revoking the share closes its page, PDF, order form, activity and new-order doors. Existing orders and their immutable confirmations remain commercial history.
 
 Each account has one active USD or CAD price book. **Accounts → Edit account** edits wholesale prices, optional per-variant MSRP in integer minor units, the ISO currency, and separate confirmation PDF and order CSV price preferences. Leave an MSRP entry out to record it as absent. In **Line sheets → Import recipient price book**, paste this CSV (blank MSRP means absent):
 

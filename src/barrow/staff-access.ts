@@ -41,6 +41,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&/^report-runs\/[A-Za-z0-9_-]+\.json$/.test(relative))return
  if(method==='GET'&&/^reports\/(sales|finance|quotes|fulfillment|commissions|rep-performance)(\.csv)?$/.test(relative))return // report computes whole-filter entitlement before reading
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
+ if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
  if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
@@ -56,6 +57,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 }
 
 const commandRoles:Record<string,string[]>={
+ 'price-book.import':['sales-manager'],'sheet.publish':['sales-manager'],'sheet.revoke':['sales-manager'],
  'account.save':['sales-manager'], 'terms.assign':['sales-manager'], 'terms.publish':['sales-manager'], 'commission.settings':['sales-manager'],
  'order.prepare':selling,'order.reorder':selling,'order.reorder-preview':selling,'order.submit':selling,'order.attach':selling,
  'sheet.view':selling,'sheet.preview':selling,
@@ -82,7 +84,7 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
  if(['terms.publish','commission.settings','rep.assign','rep.cover','rep.end','rep.transfer'].includes(type)&&grant.accounts!=='all')return denied(env,actor,type)
  if(['order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
  let accountId=typeof p.accountId==='string'?p.accountId:undefined
- for(const [key,table] of [['orderId','bw_orders'],['quoteId','bw_quotes'],['listId','bw_lists'],['id','bw_followups']] as const){
+ for(const [key,table] of [['orderId','bw_orders'],['quoteId','bw_quotes'],['listId','bw_lists'],['sheetId','bw_line_sheets'],['id','bw_followups']] as const){
   if(typeof p[key]!=='string'||key==='id'&&!type.startsWith('followup.'))continue
   const row=await env.DB.prepare(`SELECT account_id FROM ${table} WHERE id=?`).bind(p[key]).first<{account_id:string}>()
   if(row){if(accountId&&accountId!==row.account_id)fail('NOT_FOUND','Resource not found.',404);accountId=row.account_id}
