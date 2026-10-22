@@ -23,3 +23,5 @@ The corresponding authenticated HTTP doors are `POST /api/barrow/confirmations/s
 Named layouts, including their default and column order, are managed in the confirmation controls and retained in archives. Bulk per-line CSV is available; season records/filtering, matrix shapes and grouped style/color/size production totals remain unimplemented. ORD-014 remains partial.
 
 PRI-008 records optional variant MSRP and separate confirmation-PDF/order-CSV price display preferences with the prepared order. Each confirmation freezes them. Wholesale-only omits MSRP and margin; retail-only omits wholesale unit/line price columns; both includes exact MSRP and gross margin. Every order total remains wholesale. See [line sheets and retail prices](LINE-SHEETS.md).
+
+For orders with recorded PRI-008 display preferences, monetary CSV exports retain an explicit ISO `currency` column even when a named layout omits it. This also applies to bulk price handoffs; chosen metadata columns keep their order.

@@ -76,6 +76,13 @@ test('MSRP books import and edit exact USD/CAD cents and preserve configured she
   const csv=csvRows(await (await h.request(path+'.csv',who)).text()),document=await (await h.request(path+'.pdf',who)).text();assert.equal(csv.rows[0].unit_cents,String(base));assert.equal(csv.rows[0].order_total_cents,String(base*3));assert.equal(csv.rows[0].currency,code);assert.ok(document.includes(`${code} ${(base*3/100).toFixed(2)}`));
   if(display==='both'){assert.equal(csv.rows[0].msrp_cents,String(base*2));assert.equal(csv.rows[0].margin_bps,'5000');assert.ok(document.includes('MSRP'));assert.ok(document.includes('Margin 50.00%'));}
   else {assert.ok(!csv.header.includes('msrp_cents'));assert.ok(!csv.header.includes('margin_bps'));assert.ok(!document.includes('MSRP'));assert.ok(!document.includes('Margin'));}
+  if(display==='both'){
+   const before=await h.api('/api/barrow/confirmation-layouts');
+   const sparse=await h.command('confirmation-layout.save',{revision:before.revision,name:'Sparse price handoff',columns:['sku','unit_cents'],makeDefault:true});
+   const handoff=csvRows(await(await h.request(path+'.csv',who)).text());assert.equal(handoff.rows[0].currency,code);assert.equal(handoff.rows[0].msrp_cents,String(base*2));assert.equal(handoff.rows[0].unit_cents,String(base));
+   const bulk=await h.request('/api/barrow/confirmations/export.csv',{method:'POST',body:{confirmations:[{orderId:order.id,number:1}],layout:sparse.defaultId}});assert.equal(bulk.status,200);assert.equal(csvRows(await bulk.text()).rows[0].currency,code);
+   await h.command('confirmation-layout.default',{revision:sparse.revision,id:before.defaultId});
+  }
  }
  // Edited optional MSRP is exact and absent values stay absent; old published documents keep their revision.
  const edited=await h.command('account.save',{id:cedar.id,revision:cedar.revision,value:{...cedar.value,prices:cedar.value.prices.map((p,i)=>i===0?{...p,msrpCents:3001}:p)}});

@@ -32,3 +32,5 @@ On a phone, enter variant quantities or pack counts, then **Preview sheet cart**
 **Data → Quote conversion → Line-sheet engagement per buyer** shows authenticated buyer opens, visible-item view observations and SKU observations for the report period. Supplier previews do not count. Currency selection keeps quote/order money in one recorded currency, without conversion. Campaign sending, lookbooks, product-media storage and currency-converted reports belong to their own contract clauses.
 
 CAD vertical cart forms label their `unitPrice` with an explicit `currency` column; USD forms retain the existing `unitPriceUsd` column. Both upload through the same exact-quantity preview. Existing USD delivery methods are refused for CAD quotes and orders; they are never relabeled or converted implicitly.
+
+For orders with recorded PRI-008 display preferences, monetary CSV exports retain an explicit ISO `currency` column even when a named layout omits it. This also applies to bulk price handoffs; chosen metadata columns keep their order.

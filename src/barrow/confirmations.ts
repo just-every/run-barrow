@@ -47,12 +47,16 @@ export function confirmationCsvRows(record: Confirmation, selected: readonly Con
  const values=s.lines.map(line => [`${s.id}-C${record.number}`,record.stage,record.at,s.id,s.orderRevision,s.accountId,s.customerName,s.reference,address(s.billTo),address(s.shipTo),s.requestedDate,s.cancelAfter,s.termsDays,s.currency ?? 'AUD',line.sku,line.name,line.quantity,line.unit,line.baseQuantity ?? line.quantity,line.baseUnit,line.unitCents,line.lineCents ?? line.quantity * line.unitCents,s.delivery?.totalCents ?? 0,s.totalCents,absent,line.msrpCents,marginBps(line.unitCents,line.msrpCents)])
  return values.map(row=>selected.map(column=>row[confirmationColumns.indexOf(column)]))
 }
+export function withConfirmationCurrency(columns:ConfirmationColumn[]):ConfirmationColumn[] {
+ const monetary=['unit_cents','line_cents','msrp_cents','shipping_cents','order_total_cents']
+ return columns.some(column=>monetary.includes(column))&&!columns.includes('currency')?[...columns,'currency']:columns
+}
 export function displayedConfirmationColumns(record:Confirmation,selected:readonly ConfirmationColumn[]) {
  const mode=record.snapshot.priceDisplay?.orderCsv??'wholesale'
  const columns=selected.filter(c=>mode!=='retail'||!['unit_cents','line_cents'].includes(c)).filter(c=>mode==='both'||c!=='margin_bps').filter(c=>mode!=='wholesale'||c!=='msrp_cents')
  if(mode!=='wholesale'&&!columns.includes('msrp_cents'))columns.push('msrp_cents')
  if(mode==='both'&&!columns.includes('margin_bps'))columns.push('margin_bps')
- return columns
+ return record.snapshot.priceDisplay?withConfirmationCurrency(columns):columns
 }
 export function confirmationCsv(record: Confirmation, selected: readonly ConfirmationColumn[] = confirmationColumns) {
  const columns=displayedConfirmationColumns(record,selected)

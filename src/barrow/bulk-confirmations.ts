@@ -1,7 +1,7 @@
 import { companyOrderScope } from './company-access'
 // ORD-014: combine explicitly selected immutable revisions, never the current order lines.
 import { fail, integer, requirePerson, requireSupplier, supplier, text, type Actor } from './model'
-import { confirmationCsvRows, displayedConfirmationColumns, type Confirmation } from './confirmations'
+import { confirmationCsvRows, displayedConfirmationColumns, withConfirmationCurrency, type Confirmation } from './confirmations'
 import { selectedConfirmationColumns, type ConfirmationColumn } from './confirmation-layouts'
 import { csvText } from './cart-csv'
 
@@ -55,6 +55,7 @@ export async function bulkConfirmationResponse(db:D1Database,actor:Actor,p:any) 
   if(!record.snapshot.lines.length)fail('NO_LINES','A selected confirmation has no recorded lines; it cannot be represented in a per-line export.')
   return record
  })
- const visible=columns.filter(column=>records.every(record=>displayedConfirmationColumns(record,columns).includes(column)))
+ const common=columns.filter(column=>records.every(record=>displayedConfirmationColumns(record,columns).includes(column)))
+ const visible=records.some(record=>record.snapshot.priceDisplay)?withConfirmationCurrency(common):common
  return new Response(csvText([visible,...records.flatMap(record=>confirmationCsvRows(record,visible))]),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-confirmations.csv"'}})
 }
