@@ -1,7 +1,7 @@
 /** ct scope-review-56 §E: account erasure keeps the commercial account and
  * financial attribution. Only the current owner may review/authorize it. */
 import type { Bindings } from '../auth.server'
-import { digest } from './access'
+import { digest } from './digest'
 import { fail, text, type Actor } from './model'
 import { retireAccountImportCustody } from './imports/erasure'
 import { createPortability } from '@runeditrun/rer/modules/portability'

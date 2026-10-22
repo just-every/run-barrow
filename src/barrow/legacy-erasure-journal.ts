@@ -56,7 +56,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   // Retire the source originals and provenance as well as the native account.
   const {retireAccountImportCustody}=await import('./imports/erasure')
   for(const table of ['bw_retention_requests','bw_company_invites','bw_company_delegations','bw_approval_notices','bw_visits','bw_company_route_versions','bw_company_routes','bw_company_members','bw_company_legacy_accounts','bw_lists','bw_locations','bw_terms_assignments','bw_followups'])put(`DELETE FROM ${table} WHERE account_id=?`,accountId)
-  const {applicationAccountErasure}=await import('./application-custody'),{quoteMailErasureStatements}=await import('./quote-mail-custody')
+  const {applicationAccountErasure}=await import('./application-erasure-statements'),{quoteMailErasureStatements}=await import('./quote-mail-custody')
   statements.push(...applicationAccountErasure(accountId),...quoteMailErasureStatements(accountId));put('DELETE FROM bw_accounts WHERE id=?',accountId)
   statements.push(...replayReceipt(operation),journalRow(operation,fingerprint))
   const portability=await createPortability({db:env.DB,policy:portabilityPolicy}),checkpoint=[...await portability.invalidateTransfersStatements(),...await portability.redactionStatements()].map(toD1Sql)

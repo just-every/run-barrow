@@ -23,13 +23,8 @@ export async function applicationRetention(env:Bindings,days:number|null) {
   return {id:row.id,accountId:row.account_id,revision:row.revision,name:JSON.parse(row.value_json).name,state:row.state,expiresAt:expiry===null?null:new Date(expiry).toISOString(),held,eligible:['declined','withdrawn'].includes(row.state)&&!held&&expiry!==null&&Date.now()>expiry,reason:row.state==='approved'?'Approved application follows account erasure; submitted orders retain certificates under the seven-year floor.':held?'Legal hold':expiry===null?'No recorded retention age':'Explicit owner review required'}
  }))
 }
-export const applicationAccountErasure=(accountId:string)=>[
- {sql:'DELETE FROM bw_application_documents WHERE application_id IN (SELECT id FROM bw_applications WHERE account_id=?)',params:[accountId]},
- {sql:'DELETE FROM bw_application_history WHERE application_id IN (SELECT id FROM bw_applications WHERE account_id=?)',params:[accountId]},
- {sql:'DELETE FROM bw_application_sessions WHERE application_id IN (SELECT id FROM bw_applications WHERE account_id=?)',params:[accountId]},
- {sql:'DELETE FROM bw_application_codes WHERE application_id IN (SELECT id FROM bw_applications WHERE account_id=?)',params:[accountId]},
- {sql:'DELETE FROM bw_applications WHERE account_id=?',params:[accountId]},
-]
+export { applicationAccountErasure } from './application-erasure-statements'
+
 export async function eraseApplication(env:Bindings,actor:Actor,p:any,policy:{days:any;revision:string|null}) {
  if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the owner may erase a reviewed application.',403)
  const reason=text(p.reason,'Erasure reason',1000),rows=await applicationRetention(env,policy.days.applicationRecords??null),row=rows.find(row=>row.id===p.id)
