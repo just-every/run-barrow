@@ -184,7 +184,7 @@ test('ORD-014: a seasonal matrix order with two ship windows is confirmed with s
  const download=async(number,who)=>{
   const pdf=await h.request(`${path}/${number}.pdf`,who),csv=await h.request(`${path}/${number}.csv`,who);assert.equal(pdf.status,200);assert.equal(csv.status,200);
   const text=Buffer.from(await pdf.arrayBuffer()).toString('latin1');
-  for(const value of ['Seller: Mill House Apparel LLC',`Season: Spring ${year}`,`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size 3XL',`Ship window: ${w2[0]} | Cancel after: ${w2[1]}`,'Sales terms: Wholesale terms 2027','Terms accepted by the buyer in the portal',`Product image sha256 ${imageSha}`,'/Subtype /Image /Width 4 /Height 6 /ColorSpace /DeviceRGB',jpeg.toString('latin1')])assert.ok(text.includes(value),value);
+  for(const value of ['Seller: Mill House Apparel LLC',`Season: Spring ${year}`,`Ship windows: ${w1[0]} to cancel ${w1[1]}; ${w2[0]} to cancel ${w2[1]}`,'Style TEE-BLUE | Color Blue | Size 3XL',`Ship window: ${w2[0]} | Cancel after: ${w2[1]}`,'Sales terms: Wholesale terms 2027','Terms accepted by the buyer in the portal',`Image sha256 ${imageSha}`,'/Subtype /Image /Width 4 /Height 6 /ColorSpace /DeviceRGB',jpeg.toString('latin1')])assert.ok(text.includes(value),value);
   assert.ok(!text.includes('GPS-1234'));
   return {pdf:text,csv:await csv.text()};
  };
