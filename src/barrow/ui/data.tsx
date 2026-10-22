@@ -1,4 +1,5 @@
 import { ScheduledReports } from './scheduled-reports'
+import { RepPerformance } from './rep-performance'
 import { Commissions } from './commissions'
 import { useEffect, useState } from 'react'
 import type { Account, RunCommand } from './types'
@@ -42,6 +43,7 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
     <SalesReport />
     <FinanceReport />
     <Commissions />
+    <RepPerformance version={accounts} busy={busy} run={run}/>
     <Followups />
     <ShippingSettings />
     <DiagnosticsCard />

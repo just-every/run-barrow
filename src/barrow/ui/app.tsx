@@ -1,3 +1,4 @@
+import {RepPerformance} from './rep-performance'
 import {CommissionSettings} from './commission-settings'
 import {StaffMembers} from './staff-members'
 import {RepAssignments} from './rep-assignments'
@@ -164,6 +165,7 @@ export function BarrowApp() {
           {activeTab === 'Reports'&&staff?.role==='sales-manager'&&staff.accounts==='all'&&<CommissionSettings onSaved={()=>void reload()}/>}
           {activeTab === 'Reports'&&staff?.role==='rep'&&<RepAssignments version={state} run={run} busy={busy}/>}
           {activeTab === 'Reports'&&staff&&<StaffWorkspace actor={state.actor} accounts={state.accounts} orders={state.orders} people={state.people} run={run} busy={busy} version={state} onOpen={order=>openPad(order.accountId,order.id)}/>}
+          {activeTab === 'Reports' && staff?.reports.includes('commissions') && (staff.role==='rep'||staff.role==='sales-manager'&&staff.accounts==='all') && <RepPerformance version={state} busy={busy} run={run}/>}
           {activeTab === 'Follow-ups'&&staff&&<Followups/>}
           {activeTab === 'Company' && companyAdmin && <CompanyUsers accounts={state.accounts} version={state} busy={busy} run={run} supplier={false}/>}
           {activeTab === 'Company' && companyAdmin && <CompanyRoutes accounts={state.accounts} version={state} busy={busy} run={run}/>}

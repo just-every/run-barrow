@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { installation, stock, accountValue, archive, restore } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore, activateStaff } from './harness.mjs';
 
 const day = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
 const rule = (more = {}) => ({ id: 'spring', rep: 'avery', from: day(-1), rateBps: 1000, basis: 'acceptance', splits: [{ rep: 'avery', shareBps: 6000 }, { rep: 'blair', shareBps: 4000 }], ...more });
@@ -113,4 +113,84 @@ test('REP-004: policy validation, current revisions, effective precedence, mixed
  const noRule = await h.api('/api/barrow/reports/commissions');
  const unmatched=noRule.rows.filter(row=>row.orderId!==mixed.id&&row.orderId!==cancelled.id);
  assert.ok(unmatched.length>0&&unmatched.every(row=>row.ruleId===null&&row.netCents===null));
+});
+
+
+test('rep performance: real assignment transfer and return preserve both private statements, activity goals, source metrics and reconciled manager payroll', async t=>{
+ const {h,pier,account,buyer,ship,receive}=await fixture(t);
+ const staffPolicy=(role,extra={})=>({role,accounts:[],warehouses:[],reports:['commissions'],discountLimitCents:0,stockExceptionLimitCents:0,...extra});
+ const a=await activateStaff(h,'avery@example.test',staffPolicy('rep',{commissionRep:'avery'}));
+ const b=await activateStaff(h,'blair@example.test',staffPolicy('rep',{commissionRep:'blair'}));
+ const manager=await activateStaff(h,'morgan@example.test',staffPolicy('sales-manager',{accounts:'all',warehouses:'all'}));
+ const assignment=await h.command('rep.assign',{userId:a.id,kind:'account',target:account.id,reason:'Avery owns this sales book.'},manager.who);
+ let settings=await h.command('commission.settings',{revision:null,rules:[rule({basis:'shipment'})],reason:'Approved shipment basis and split.'},manager.who);
+ const prepareAndPlace=async(who,reference,quantity)=>{
+  const draft=await h.command('order.prepare',{accountId:account.id,reference,lines:[{sku:'OAT-1',quantity}]},who);
+  await h.command('order.submit',{orderId:draft.id},buyer);
+  return h.command('order.approve',{orderId:draft.id});
+ };
+ const original=await prepareAndPlace(a.who,'Avery original shipment',4),shipment=await ship(original,4);
+ const targetInput={userId:a.id,from:day(-1),to:day(1),completedVisits:2,newAccounts:1,revision:null,reason:'Prioritize two completed showroom visits and one new company.'};
+ for(const who of [a.who,b.who,manager.who,buyer])await h.command('rep.target.save',targetInput,{...who,status:403});
+ const goalAdmin={as:await h.signIn('director@example.test','admin')};
+ const mailBeforeGoals=h.mail.requests.length;
+ let goal=await h.command('rep.target.save',targetInput);
+ await h.command('rep.target.save',targetInput,{status:409});
+ goal=await h.command('rep.target.save',{...targetInput,revision:goal.revision,completedVisits:3,reason:'Administrator revised this activity plan.'},goalAdmin);
+ assert.equal(h.mail.requests.length,mailBeforeGoals);
+ const targetExport=await h.api('/api/barrow/export.json');assert.equal(targetExport.reptargets[0].revision,goal.revision);assert.equal(targetExport.manifest.counts.reptargets,1);
+ assert.equal((await h.api('/api/barrow/export.json',undefined,buyer)).reptargets,undefined);
+ await h.api('/api/barrow/export/reptargets.csv',undefined,{...manager.who,status:403});
+ let visit=await h.command('visit.schedule',{accountId:account.id,kind:'showroom',date:day(0),time:'10:30',agenda:'Show the spring collection.'},a.who);
+ visit=await h.command('visit.record',{id:visit.id,revision:visit.revision,note:'Buyer reviewed the full range.',status:'completed'},a.who);
+ let quote=await h.command('quote.request',{accountId:account.id,lines:[{sku:'OAT-1',quantity:2}]},a.who);
+ quote=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:day(1),lines:[{sku:'OAT-1',quantity:2}],reason:'Current agreed prices.'},a.who);
+ await h.command('quote.accept',{quoteId:quote.id,revision:quote.revision,number:1},buyer);
+ const period=`from=${day(-1)}&to=${day(1)}`;
+ const before=await h.api('/api/barrow/reports/rep-performance?'+period,undefined,manager.who);
+ const aBefore=before.rows.find(row=>row.userId===a.id);
+ assert.equal(aBefore.workload.primaryAccounts,1);assert.equal(aBefore.visits.completed,1);assert.equal(aBefore.accounts.new,1);
+ assert.deepEqual(aBefore.quotes.acceptanceRate,{numerator:1,denominator:1,bps:10000});
+ assert.ok(aBefore.sources.some(source=>source.id===visit.id&&source.kind==='visit'));
+ assert.ok(aBefore.sources.some(source=>source.id===quote.id&&source.kind==='quote'));
+ assert.equal(before.targets.find(row=>row.userId===a.id).completedVisits,3);assert.equal(before.canEditTargets,false);
+ const own=await h.api('/api/barrow/reports/rep-performance?'+period,undefined,a.who);
+ assert.ok(own.rows.every(row=>row.userId===a.id||row.userId===null&&row.rep==='avery'));
+ assert.ok(own.targets.every(row=>row.userId===a.id));assert.equal(own.reps.length,0);
+ for(const suffix of ['', '.csv']){
+  await h.api('/api/barrow/reports/rep-performance'+suffix+'?'+period+'&userId='+b.id,undefined,{...a.who,status:403});
+  await h.api('/api/barrow/reports/rep-performance'+suffix+'?'+period+'&rep=blair',undefined,{...a.who,status:403});
+  for(const who of [buyer,{as:''}])assert.equal((await h.request('/api/barrow/reports/rep-performance'+suffix+'?'+period,who)).status,who.as===''?401:403);
+ }
+ await h.command('rep.transfer',{id:assignment.id,revision:assignment.revision,toUserId:b.id,reason:'Transfer future access and attribution to Blair.'},manager.who);
+ settings=await h.command('commission.settings',{revision:settings.revision,rules:[rule({rep:'blair',basis:'shipment',splits:[{rep:'blair',shareBps:10000}]})],reason:'Blair owns new shipment commissions.'},manager.who);
+ const next=await prepareAndPlace(b.who,'Blair after transfer',2);await ship(next,2);
+ const returned=await receive(shipment,1);
+ const statements=await h.api('/api/barrow/reports/commissions',undefined,manager.who);
+ const old=statements.rows.filter(row=>row.orderId===original.id),fresh=statements.rows.filter(row=>row.orderId===next.id);
+ assert.deepEqual(cents(old),[['avery',1560,390,1170],['blair',1040,260,780]]);
+ assert.deepEqual(cents(fresh),[['blair',1300,0,1300]]);
+ assert.ok(old.every(row=>row.returnIds.includes(returned.id)&&row.shipmentIds.includes(shipment.id)&&row.ruleRevision!==settings.revision));
+ const payroll=statements.totals.reduce((sum,row)=>sum+row.netCents,0);
+ assert.equal(payroll,statements.rows.reduce((sum,row)=>sum+row.netCents,0));assert.equal(payroll,3250);
+ for(const label of ['avery','blair']){
+  const response=await h.request('/api/barrow/reports/commissions.csv?rep='+label,manager.who),csv=await response.text();
+  assert.equal(response.status,200);assert.ok(csv.includes(original.id));assert.ok(csv.includes(returned.id));
+ }
+ const bStatement=await h.api('/api/barrow/reports/commissions',undefined,b.who);assert.ok(bStatement.rows.every(row=>row.rep==='blair'));assert.equal(bStatement.totals[0].netCents,2080);
+ await h.api('/api/barrow/reports/commissions?rep=avery',undefined,{...b.who,status:403});
+ await h.api('/api/barrow/reports/commissions?accountId=cedar',undefined,{...a.who,status:403});
+ assert.deepEqual((await h.api('/api/barrow/reports/commissions',undefined,a.who)).rows,[]);
+ const after=await h.api('/api/barrow/reports/rep-performance?'+period,undefined,manager.who);
+ assert.equal(after.rows.find(row=>row.userId===a.id).workload.primaryAccounts,0);assert.equal(after.rows.find(row=>row.userId===b.id).workload.primaryAccounts,1);
+ const ownAfter=await h.api('/api/barrow/reports/rep-performance?'+period,undefined,a.who);
+ assert.ok(ownAfter.rows.every(row=>row.sources.length===0));assert.equal(ownAfter.targets[0].revision,goal.revision);
+ const csv=await(await h.request('/api/barrow/reports/rep-performance.csv?'+period,manager.who)).text();assert.ok(csv.includes(visit.id)&&csv.includes(quote.id)&&csv.includes(goal.id));
+ assert.ok((await h.api('/api/barrow/audit?search=rep.target.save')).events.some(event=>event.revision===goal.revision&&event.reason.includes('No compensation effect')));
+ const archived=await archive(h);
+ const restored=await installation();t.after(()=>restored.close());await restore(restored,archived);
+ const restoredGoals=await restored.request('/api/barrow/export/reptargets.csv');
+ assert.equal(restoredGoals.status,200);assert.ok((await restoredGoals.text()).includes(goal.revision));
+ await h.command('staff.revoke',{userId:b.id,revision:b.grant.revision,reason:'End performance and compensation access.'});
+ assert.equal((await h.request('/api/barrow/reports/rep-performance?'+period,b.who)).status,403);
 });

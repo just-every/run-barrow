@@ -1,3 +1,5 @@
+import { repPerformance, repPerformanceCsv } from './rep-performance'
+import { saveRepTarget } from './rep-targets'
 import { readStaffGrant,readStaffMembers,staffCommand } from './staff-members'
 import { readRepAssignments,repAssignmentCommand } from './rep-assignments'
 import { readCompanyRoutes,companyRouteCommand } from './company-routes'
@@ -99,6 +101,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const reportRun=/^\/api\/barrow\/report-runs\/([a-zA-Z0-9_-]+)\.json$/.exec(path)
   if(reportRun && request.method==='GET')return await reportDownload(env,actor,reportRun[1])
   if(path==='/api/barrow/commissions' && request.method==='GET')return json(await readCommissionRules(env.DB,actor))
+  if(path==='/api/barrow/reports/rep-performance' && request.method==='GET')return json(await repPerformance(env,actor,url.searchParams))
+  if(path==='/api/barrow/reports/rep-performance.csv' && request.method==='GET')return await repPerformanceCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/commissions' && request.method==='GET')return json(await commissionReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/commissions.csv' && request.method==='GET')return await commissionCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/confirmation-layouts' && request.method==='GET')return json(await readConfirmationLayouts(env.DB,actor))
@@ -203,6 +207,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})
    if(['staff.invite','staff.update','staff.revoke'].includes(body.type))return json({result:await staffCommand(request,env,actor,body.type,body.payload)})
    if(['rep.assign','rep.cover','rep.end','rep.transfer'].includes(body.type))return json({result:await repAssignmentCommand(env,actor,body.type,body.payload)})
    if(['company.route.save','company.delegate','company.undelegate'].includes(body.type))return json({result:await companyRouteCommand(env,actor,body.type,body.payload)})

@@ -39,7 +39,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  }
  if(method==='GET'&&['state','company/invitations','usage-terms','report-schedules','audit','audit.csv'].includes(relative))return
  if(method==='GET'&&/^report-runs\/[A-Za-z0-9_-]+\.json$/.test(relative))return
- if(method==='GET'&&/^reports\/(sales|finance|quotes|fulfillment|commissions)(\.csv)?$/.test(relative))return // report computes whole-filter entitlement before reading
+ if(method==='GET'&&/^reports\/(sales|finance|quotes|fulfillment|commissions|rep-performance)(\.csv)?$/.test(relative))return // report computes whole-filter entitlement before reading
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return

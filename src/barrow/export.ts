@@ -14,10 +14,11 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['applications', 'applicationdocuments', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['reptargets', 'applications', 'applicationdocuments', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
+ reptargets:['id','userId','from','to','timeZone','completedVisits','newAccounts','revision','reason','createdBy','createdAt','updatedBy','updatedAt'],
  applications:['id','accountId','revision','state','name','dba','ein','noEin','contactName','email','phone','annualVolumeUsd','requestedTermsDays','locations','consent','createdAt','updatedAt'],
  applicationdocuments:['id','applicationId','name','type','bytes','sha256','time','path'],
  accounts: ['id', 'revision', 'name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'currency', 'city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences'],
@@ -66,7 +67,9 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const quotedeliveries=supplier(actor)&&!actor.staff?(await env.DB.prepare('SELECT id,quote_id,account_id,recipient_id,recipient,status,reason,provider_message_id,attempts,created_at,updated_at,task_id FROM bw_quote_mail ORDER BY rowid').all<Record<string,unknown>>()).results:undefined
  const terms = await termsExport(env.DB, actor, ids, orders)
  const applicationRecords=await applicationExport(env.DB,actor,ids)
+ const reptargets=supplier(actor)&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_rep_targets ORDER BY from_on,to_on,user_id,id').all<any>()).results.map(row=>({id:row.id,userId:row.user_id,from:row.from_on,to:row.to_on,timeZone:row.time_zone,completedVisits:row.completed_visits,newAccounts:row.new_accounts,revision:row.revision,reason:row.reason,createdBy:row.created_by,createdAt:row.created_at,updatedBy:row.updated_by,updatedAt:row.updated_at})):undefined
  const records = {
+  ...(reptargets?{reptargets}:{}),
   ...applicationRecords,
   ...terms,
   ...(quotedeliveries?{quotedeliveries}:{}),

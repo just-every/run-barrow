@@ -15,3 +15,14 @@ export async function signedContext(browser,h,cookie=h.cookie) {
  await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:h.origin,httpOnly:true,secure:true,sameSite:'Strict'})));
  return context;
 }
+
+/** Capture the clause's own card at desktop/phone widths without unrelated Data panels. */
+export async function captureRegionWidths(page,region,name) {
+ await mkdir(directory,{recursive:true});
+ for(const width of [1440,390]) {
+  await page.setViewportSize({width,height:1000});await region.scrollIntoViewIfNeeded();
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${name} ${width}: horizontal overflow`);
+  await region.screenshot({path:`${directory}/${name}-${width}.png`,animations:'disabled'});
+ }
+ await page.setViewportSize({width:1440,height:1000});
+}
