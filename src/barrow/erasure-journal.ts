@@ -4,7 +4,7 @@
  * An intent without either its atomic D1 receipt or R2 completion marker is
  * indeterminate, so serving stops. It is never guessed to have failed. */
 import type { Bindings } from '../auth.server'
-import { digest } from './access'
+import { digest } from './digest'
 import type { ErasureOperation } from './account-erasure'
 import type { LegacyErasure } from './legacy-erasure-journal'
 type JournalOperation = ErasureOperation | LegacyErasure

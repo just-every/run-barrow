@@ -3,7 +3,8 @@ import { companyRightsGuard } from './company-policy'
 import { operatorAuth, type Bindings } from '../auth.server'
 import { commercialAuditEvent, type AuditContext } from './audit-event'
 import { fail, type Actor } from './model'
-export async function digest(value: string) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,'0')).join('') }
+export { digest } from './digest'
+import { digest } from './digest'
 export async function current(request: Request, env: Bindings): Promise<Actor> {
  const authorization = request.headers.get('authorization')
  if (authorization) {
