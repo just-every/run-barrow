@@ -17,4 +17,4 @@ try{const prior=await lstat(target);if(!prior.isFile()||prior.isSymbolicLink())t
 text=text.split('\n').filter(line=>!/^PIER_(ORIGIN|SESSION)=/.test(line)).join('\n').replace(/\n*$/,'\n');
 const next=target+'.new.'+randomUUID();
 try{await writeFile(next,text+`PIER_ORIGIN=${JSON.stringify(origin)}\nPIER_SESSION=${JSON.stringify(cookie)}\n`,{mode:0o600,flag:'wx'});await rename(next,target)}finally{await rm(next,{force:true})}
-console.log('Pier supplier connection saved privately. Restart Barrow to use it; the next authenticated API request records configuration or rotation without its value. Revoke the replaced session in Pier.');
+console.log('Pier supplier connection saved privately. Restart Barrow to use it; the next connection check records configuration or rotation without its value. Revoke the replaced session in Pier.');

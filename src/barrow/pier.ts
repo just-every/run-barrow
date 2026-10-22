@@ -1,3 +1,4 @@
+import { observePierConfiguration } from './connection-security'
 import { demoEffect } from '../modules/demo/index.mjs'
 import { demoPierOrigin } from '../demo-data'
 import { demoPierState, demoReservation, demoPierOrder, demoRelease } from './demo-pier'
@@ -21,6 +22,7 @@ function origin(env: Bindings) {
  return url.origin
 }
 async function call(env: Bindings,path: string,body?: unknown) {
+ await observePierConfiguration(env)
  const base=origin(env)
  let response: Response
  try { response=await fetch(base+path,{method:body?'POST':'GET',redirect:'manual',signal:AbortSignal.timeout(12000),headers:{cookie:env.PIER_SESSION!,origin:base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}) }
@@ -31,7 +33,7 @@ async function call(env: Bindings,path: string,body?: unknown) {
  return data
 }
 export const pierOrigin = (env: Bindings) => demoEffect(() => env.PIER_ORIGIN && env.PIER_SESSION ? origin(env) : undefined, demoPierOrigin)
-export const pierConfigured = (env: Bindings) => demoEffect(() => Boolean(env.PIER_ORIGIN && env.PIER_SESSION), true)
+export const pierConfigured = (env: Bindings) => demoEffect(async () => { await observePierConfiguration(env); return Boolean(env.PIER_ORIGIN && env.PIER_SESSION) }, true)
 export const pierState = (env: Bindings) => demoEffect(() => call(env,'/api/pier/state'), demoPierState)
 export async function catalogue(env: Bindings,account: Account) {
  const state=await pierState(env)

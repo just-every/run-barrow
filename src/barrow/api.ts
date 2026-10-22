@@ -1,5 +1,4 @@
 import { requestLimit } from './request-limits'
-import { observePierConfiguration } from './connection-security'
 import { erasureRestoreResponse, requireArchiveJournal, exportIndependentJournal, attachIndependentJournal, initializeIndependentJournal } from './erasure-journal'
 import { previewAccountErasure, executeAccountErasure } from './account-erasure'
 import { repPerformance, repPerformanceCsv } from './rep-performance'
@@ -95,7 +94,6 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
   })
-  await observePierConfiguration(env)
   actor.staff=await readStaffGrant(env.DB,actor)
   await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
