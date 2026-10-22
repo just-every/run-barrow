@@ -367,14 +367,14 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Judged from the code and tests at commit `034687f` (21 October 2026). ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance/shipment/physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 retains its explicit remaining points below.
+Judged from the code and tests at commit `034687f` (21 October 2026). ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance/shipment/physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged.
 
 
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 48 | 22 | 63 | 133 |
-| All | 54 | 22 | 63 | 139 |
+| Target and push further | 49 | 21 | 63 | 133 |
+| All | 55 | 21 | 63 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
