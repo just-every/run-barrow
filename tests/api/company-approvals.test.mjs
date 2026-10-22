@@ -229,8 +229,10 @@ test('AUTO-002: a $6,000 cart needing buyer and finance approval notifies curren
  await escalate(); await escalate();
  assert.deepEqual(await roles(late), [[waiting.id, 1, 'delegate']]);
  await h.command('company.undelegate', { accountId: 'cedar', id: later.id, revision: later.revision, reason: 'No longer needed.' }, admin);
+ assert.deepEqual(await notices(late), [], 'an ended delegation hides its notice at once');
  await escalate();
- assert.deepEqual(await notices(late), [], 'an ended delegation ends its notice');
+ assert.deepEqual(await notices(late), []);
+ assert.equal((await h.db.prepare('SELECT COUNT(*) AS open FROM bw_approval_notices WHERE recipient_id=? AND closed_at IS NULL').bind(late.id).first()).open, 0, 'and the next run closes it');
 
  // 2. The delegate approves step 1: its notices close and Finance is notified for step 2.
  const stepOne = await h.command('order.company-approve', { orderId: waiting.id, revision: waiting.revision, reason: 'Buyer approval as delegate.' }, deputy);

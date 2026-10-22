@@ -8,6 +8,7 @@
 import { commercialAuditEvent } from './audit-event'
 import { companyLocationAllowed, parseCompanyMember } from './company-policy'
 import { fail, requirePerson, supplierDate, type Actor, type Order } from './model'
+import { now } from './clock'
 
 export type NoticeRole = 'approver' | 'delegate' | 'escalation'
 type Recipient = { userId: string; role: NoticeRole; delegatedFrom?: string; cause: string }
@@ -73,9 +74,13 @@ export async function readApprovalNotices(db: D1Database, actor: Actor) {
  if (actor.staff || actor.role !== 'member') fail('FORBIDDEN', 'Approval notices belong to company approvers.', 403)
  const rows = (await db.prepare(`SELECT n.*,o.value_json,(SELECT m.display_name FROM bw_company_members m WHERE m.user_id=n.delegated_from AND m.account_id=n.account_id AND m.erased_at IS NULL) AS delegator
   FROM bw_approval_notices n JOIN bw_orders o ON o.id=n.order_id WHERE n.recipient_id=? AND n.closed_at IS NULL ORDER BY n.created_at,n.id`).bind(actor.id).all<any>()).results
+ // Shown only while the reader can still decide that very step: a removed member, an ended delegation or a lost
+ // right hides the notice at once, before the next run closes it.
+ const at = await now(), current = new Map<string, Awaited<ReturnType<typeof approvalRecipients>>>()
+ for (const row of rows) if (!current.has(row.order_id)) current.set(row.order_id, await approvalRecipients(db, JSON.parse(row.value_json), at))
  const notices = rows.filter(row => {
-  const order = JSON.parse(row.value_json) as Order
-  return order.status === 'awaiting-company-approval' && order.companyRequestedAt === row.request_key && (order.approvalRoute ? order.approvalRoute.decided.length + 1 : 1) === row.step
+  const order = JSON.parse(row.value_json) as Order, live = current.get(row.order_id)
+  return order.companyRequestedAt === row.request_key && !!live && live.step === row.step && live.recipients.some(recipient => recipient.userId === actor.id)
  }).map(row => { const order = JSON.parse(row.value_json) as Order; return { id: row.id as string, orderId: row.order_id as string, reference: order.reference, totalCents: order.totalCents, step: row.step as number, role: row.role as NoticeRole, ...(row.delegated_from ? { standingInFor: (row.delegator ?? 'a former approver') as string } : {}), cause: row.cause as string, createdAt: row.created_at as string } })
  return { notices, note: 'Each notice names the step that waits for you. It closes when that step is decided, the request is released, withdrawn, voided or revised, or you can no longer decide it. Barrow sends these in the app only.' }
 }
