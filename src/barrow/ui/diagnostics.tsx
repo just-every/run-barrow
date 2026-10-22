@@ -21,6 +21,7 @@ export function DiagnosticsCard() {
     {value && <>
       <p>Pier: {value.pier.state === 'ok' ? 'answered' : value.pier.state === 'failed' ? `did not answer — ${value.pier.message}` : 'not configured'} · checked {when(value.pier.checkedAt)}{value.pier.origin ? ` · ${value.pier.origin}` : ''}</p>
       {value.handoffs.length === 0 ? <p className="br-quiet-text">No outstanding stock handoffs.</p> : <ul className="br-stack">{value.handoffs.map(item => <li key={item.correlationId}><strong>{orderNumber(item.orderId)}</strong> · {item.customer} · {item.state} since {when(item.since)} · owner {item.owner}<br /><code>{item.correlationId}</code> · Next: {item.action} on this order in Orders.</li>)}</ul>}
+      <p>Outbound webhook handoffs: {value.webhooks.unresolved} unresolved · {value.webhooks.deadLetters} dead letters. {value.webhooks.note}</p>
       <p className="br-quiet-text">{value.notifications.note}</p>
       {value.notifications.deliveries.length > 0 && <ul>{value.notifications.deliveries.map((delivery: any) => <li key={delivery.id}><a href={`/api/barrow/quotes/${delivery.quote_id}`}>{delivery.quote_id}</a> · {delivery.recipient} · <code>{delivery.id}</code> · {delivery.label} · {delivery.ageSeconds}s old · owner {delivery.ownerName} · {delivery.attempts} attempt{delivery.attempts === 1 ? '' : 's'}{delivery.task_id && <> · <a href={delivery.taskPath ?? '/app'}>Open contact task</a></>}</li>)}</ul>}
     </>}

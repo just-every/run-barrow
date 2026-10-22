@@ -1,3 +1,4 @@
+import { recordWebhookIntake } from './webhook-incoming'
 // AUTO-003: Base owns signature checks, receipt identity and event ordering.
 import type { Bindings } from '../auth.server'
 import { verifyWebhook, createDeliveryEventIntake, createD1EventStore } from './quote-mail-base.mjs'
@@ -32,7 +33,8 @@ export async function quoteMailWebhook(request:Request,env:Bindings) {
    admitted=event
    return true
   }})
-  await intake.ingestWebhook({rawBody,headers:request.headers})
+  const outcomes=await intake.ingestWebhook({rawBody,headers:request.headers})
+  await recordWebhookIntake(env,'quotes',Date.parse(JSON.parse(new TextDecoder().decode(rawBody)).created_at),outcomes)
   await observeMailConfiguration(env)
   await reconcileMailEvents(env)
   return Response.json({recorded:true})

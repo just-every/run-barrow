@@ -54,6 +54,14 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
  assert.equal((await webhook('bounced')).status,200);
  // Replay the identical authenticated provider event, with its original bytes and signature.
  assert.equal((await webhook('bounced')).status,200);
+ // INT-013: a later-arriving older nonterminal provider state cannot undo a bounce or open another task.
+ const olderBody=JSON.stringify({type:'email.sent',created_at:new Date(Date.now()-60000).toISOString(),data:{email_id:sent.id,to:['buyer@example.test']}}),olderAt=String(Math.floor(Date.now()/1000));
+ const olderSignature=createHmac('sha256',key).update(`synthetic-barrow-older.${olderAt}.${olderBody}`).digest('base64');
+ assert.equal((await h.raw('/api/barrow/quote-mail/webhook',{method:'POST',headers:{'svix-id':'synthetic-barrow-older','svix-timestamp':olderAt,'svix-signature':'v1,'+olderSignature},body:olderBody})).status,200);
+ const incoming=(await h.api('/api/barrow/webhooks')).incoming;
+ assert.equal(incoming.find(row=>row.event_id==='bounced').duplicate_count,1);
+ assert.match(incoming.find(row=>row.event_id==='synthetic-barrow-older').result,/out of order/);
+ assert.equal((await h.api('/api/barrow/diagnostics')).notifications.deliveries.find(row=>row.id===sent.key).status,'bounced');
  const changed={type:'email.complained',created_at:new Date().toISOString(),data:{email_id:sent.id,to:['buyer@example.test']}},changedBody=JSON.stringify(changed),changedAt=String(Math.floor(Date.now()/1000));
  const changedSignature=createHmac('sha256',key).update(`bounced.${changedAt}.${changedBody}`).digest('base64');
  assert.equal((await h.raw('/api/barrow/quote-mail/webhook',{method:'POST',headers:{'svix-id':'bounced','svix-timestamp':changedAt,'svix-signature':'v1,'+changedSignature},body:changedBody})).status,400);

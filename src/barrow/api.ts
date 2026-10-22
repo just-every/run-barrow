@@ -1,3 +1,4 @@
+import { readWebhooks,webhookCommand,webhookHistory } from './webhooks'
 import { importPriceBook, priceBookCsv } from './price-books'
 import { listSheets, readSheet, sheetDownload, sheetCommand } from './line-sheets'
 import { requestLimit } from './request-limits'
@@ -169,6 +170,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/followups' && request.method==='GET') return json(await readFollowups(env,actor,url.searchParams))
   if(path==='/api/barrow/approval-notices' && request.method==='GET') return json(await readApprovalNotices(env.DB,actor))
   if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
+  if(path==='/api/barrow/webhooks.json' && request.method==='GET')return new Response(JSON.stringify(await webhookHistory(env,actor)),{headers:{'content-type':'application/json','content-disposition':'attachment; filename="barrow-webhooks.json"','cache-control':'no-store','x-content-type-options':'nosniff'}})
+  if(path==='/api/barrow/webhooks' && request.method==='GET')return json(await readWebhooks(env,actor))
   if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
   if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
@@ -240,6 +243,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
    if(body.type==='price-book.import')return json({result:await importPriceBook(env,actor,body.payload)})
    if(['sheet.publish','sheet.revoke','sheet.view','sheet.preview'].includes(body.type))return json({result:await sheetCommand(env,actor,body.type,body.payload)})
    if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})

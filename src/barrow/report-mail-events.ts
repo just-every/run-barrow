@@ -1,3 +1,4 @@
+import { recordWebhookIntake } from './webhook-incoming'
 import type { Bindings } from '../auth.server'
 import { createDeliveryEventIntake, createD1EventStore } from './quote-mail-base.mjs'
 import { reportAudit } from './report-access'
@@ -16,7 +17,8 @@ export async function reportMailWebhook(request: Request, env: Bindings) {
    for(const recipient of event.recipients)if(!await env.DB.prepare('SELECT id FROM bw_report_deliveries WHERE provider_message_id=? AND recipient=?').bind(event.providerMessageId,recipient).first())return false
    return true
   }})
-  await intake.ingestWebhook({rawBody,headers:request.headers})
+  const outcomes=await intake.ingestWebhook({rawBody,headers:request.headers})
+  await recordWebhookIntake(env,'reports',Date.parse(JSON.parse(new TextDecoder().decode(rawBody)).created_at),outcomes)
   const rows=(await env.DB.prepare(`SELECT d.id,d.operator_id,d.status,e.status AS event_status,e.event_id FROM bw_report_deliveries d JOIN rer_mail_event_states e
    ON e.provider='resend' AND e.tenant_id=? AND e.event_namespace='reports' AND e.provider_message_id=d.provider_message_id AND e.recipient=d.recipient`).bind(env.MAIL_EVENT_TENANT).all<any>()).results
   for(const row of rows) {

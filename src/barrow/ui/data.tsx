@@ -1,3 +1,4 @@
+import { Webhooks } from './webhooks'
 import { ScheduledReports } from './scheduled-reports'
 import { RepPerformance } from './rep-performance'
 import { Commissions } from './commissions'
@@ -47,6 +48,7 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
     <Followups />
     <ShippingSettings />
     <DiagnosticsCard />
+    <Webhooks />
     <AgentCredential />
     <div className="br-card br-stack"><h2>Erase an unused trade account</h2><p>Erasure removes this Barrow account and its retained import custody, and immediately removes the customer’s portal access. Accounts with orders cannot be erased because their commercial history must be preserved.</p>
       <Notice>Sign-in identity, records held in Pier, and previously exported files or backups remain. Handle these separately if they also need erasure.</Notice>

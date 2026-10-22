@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { resolve,join } from 'node:path';
 import assert from 'node:assert/strict';
 import { pierSource } from '../pier-source.mjs';
-export async function installation({pier=false,bindings={},https,built=false,captureLogs=false}={}) {
+export async function installation({pier=false,bindings={},https,built=false,captureLogs=false,networkEdge}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
@@ -26,6 +26,7 @@ export async function installation({pier=false,bindings={},https,built=false,cap
    if(deliveryKey&&idempotency.has(deliveryKey))return Response.json({id:idempotency.get(deliveryKey)});
    const id=randomUUID();if(deliveryKey)idempotency.set(deliveryKey,id);mail.deliveries.push({id,message,key:deliveryKey});return Response.json({id});
   }
+  if(networkEdge){const response=await networkEdge(request);if(response)return response}
   // Node fetch supplies its own framing when forwarding the workerd request.
   const headers=Object.fromEntries([...request.headers].filter(([name])=>!['connection','transfer-encoding','content-length','host','expect'].includes(name)));
   const response=await fetch(request.url,{method:request.method,headers,...(['GET','HEAD'].includes(request.method)?{}:{body:await request.arrayBuffer()})});
