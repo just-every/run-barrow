@@ -224,6 +224,7 @@ test('ORD-014: a seasonal matrix order with two ship windows is confirmed with s
  order=await h.command('order.approve',{orderId:order.id});
  await h.command('order.revise',{orderId:order.id,revision:order.revision,changes:[{line:0,quantity:2}],...accept},{...buyers.cedar,status:409});
  const promise=(await f.pier.api('/api/pier/state')).orders.find(o=>o.id===order.pierOrderId).promiseDate;assert.equal(promise,w1[0]);
+ assert.deepEqual((await h.api(`/api/barrow/orders/${order.id}/timeline`,undefined,buyers.cedar)).entries.filter(e=>e.confirmation).map(e=>[e.confirmation,e.state]),[[1,'Order confirmation recorded'],[2,'Order confirmation recorded'],[3,'Order confirmation recorded']]);
  const sent=h.mail.requests.map(r=>r.message).filter(m=>m.subject.startsWith(`Order confirmation ${order.id}`));
  assert.deepEqual(sent.map(m=>[m.to,m.subject]),[[['buyer@example.test'],`Order confirmation ${order.id}-C1 (submitted)`],[['buyer@example.test'],`Order confirmation ${order.id}-C2 (revised)`],[['buyer@example.test'],`Order confirmation ${order.id}-C3 (accepted)`]]);
  const link=sent[1].text.match(/https?:\/\/\S+\/confirmations\/2\.pdf/)[0];assert.ok(sent[1].html.includes(link));assert.ok(!sent[1].text.includes('3603')&&!sent[1].text.includes('TEE-BLUE'));
