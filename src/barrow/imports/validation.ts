@@ -3,12 +3,14 @@ import { validatePricing, type Pricing } from '../pricing';
 import { quantityMicro, formatMicro, type UnitDefinition } from '../units';
 
 export type AccountValue = {
+  currency?: 'USD' | 'CAD';
+  priceDisplay?: { confirmation: 'wholesale'|'retail'|'both'; orderCsv: 'wholesale'|'retail'|'both' };
   name: string;
   email: string;
   pierCustomerId: string;
   termsDays: number;
   minimumCents: number;
-  prices: { sku: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: UnitDefinition[]; pricing?: Pricing }[];
+  prices: { sku: string; msrpCents?: number; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: UnitDefinition[]; pricing?: Pricing }[];
   city?: string;
   state?: string;
   lifecycle?: 'active' | 'on-hold' | 'closed';
@@ -68,7 +70,7 @@ export function validatePriceUnits(input: unknown): UnitDefinition[] {
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
-  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses'];
+  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses', 'currency', 'priceDisplay'];
   if (Object.keys(value).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !(key in value)))
     importError('ACCOUNT_VALUE', 'Use exactly the documented account fields.');
   const name = boundedText(value.name, 'name');
@@ -84,7 +86,7 @@ export function validateAccountValue(input: unknown): AccountValue {
   const prices = value.prices.map((entry: unknown) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) importError('ACCOUNT_PRICE', 'Every price must be an object.');
     const price = entry as Record<string, unknown>;
-    if (Object.keys(price).some(key => !['sku', 'unitCents', 'minQty', 'casePack', 'increment', 'units', 'pricing'].includes(key)) || !['sku', 'unitCents', 'minQty'].every(key => key in price))
+    if (Object.keys(price).some(key => !['sku', 'unitCents', 'minQty', 'casePack', 'increment', 'units', 'pricing', 'msrpCents'].includes(key)) || !['sku', 'unitCents', 'minQty'].every(key => key in price))
       importError('ACCOUNT_PRICE', 'Each price requires sku, unitCents and minQty, with optional casePack, increment and units.');
     const sku = boundedText(price.sku, 'sku', 100);
     if (seen.has(sku)) importError('ACCOUNT_PRICE_DUPLICATE', 'Each account may have only one price per SKU.');
@@ -94,7 +96,7 @@ export function validateAccountValue(input: unknown): AccountValue {
     if (Object.values(rules).some(value => value > 10000)) importError('ACCOUNT_PRICE_RULE', 'casePack and increment must be at most 10000 base units.');
     const minQty = nonnegativeInteger(price.minQty, 'minQty', 1);
     if (firstValid({ minQty, ...rules }) === undefined) importError('ACCOUNT_PRICE_RULE', `${sku}: no quantity satisfies this minimum, case pack and increment together.`);
-    return { ...('pricing' in price ? {pricing:validatePricing(price.pricing)}:{}), sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty, ...rules, ...('units' in price ? { units: validatePriceUnits(price.units) } : {}) };
+    return { ...(price.msrpCents!==undefined ? {msrpCents:nonnegativeInteger(price.msrpCents,'msrpCents')}:{}), ...('pricing' in price ? {pricing:validatePricing(price.pricing)}:{}), sku, unitCents: nonnegativeInteger(price.unitCents, 'unitCents'), minQty, ...rules, ...('units' in price ? { units: validatePriceUnits(price.units) } : {}) };
   });
   // The stockist's town, shown beside its name ("Columbia, SC"); both parts are optional.
   const town = Object.fromEntries(['city', 'state', 'channel', 'territory', 'assignedRep'].filter(key => value[key] !== undefined).map(key => [key, boundedText(value[key], key, key === 'state' ? 40 : key === 'assignedRep' ? 160 : 80)]));
@@ -118,6 +120,15 @@ export function validateAccountValue(input: unknown): AccountValue {
   if (value.providerReferences !== undefined) {
     if (!value.providerReferences || typeof value.providerReferences !== 'object' || Array.isArray(value.providerReferences) || Object.keys(value.providerReferences).length > 30) importError('ACCOUNT_REFERENCES', 'Supply an object with at most 30 provider references.');
     profile.providerReferences = Object.fromEntries(Object.entries(value.providerReferences).map(([key, reference]) => [stableId(key, 'provider'), boundedText(reference, 'provider reference')]));
+  }
+  if(value.currency!==undefined) {
+    if(!['USD','CAD'].includes(value.currency as string))importError('ACCOUNT_CURRENCY','Choose USD or CAD; no currency conversion is inferred.');
+    profile.currency=value.currency as 'USD'|'CAD';
+  }
+  if(value.priceDisplay!==undefined) {
+    const settings=value.priceDisplay as Record<string,unknown>;
+    if(!settings||typeof settings!=='object'||Array.isArray(settings)||Object.keys(settings).some(k=>!['confirmation','orderCsv'].includes(k))||!['wholesale','retail','both'].includes(settings.confirmation as string)||!['wholesale','retail','both'].includes(settings.orderCsv as string))importError('ACCOUNT_DISPLAY','Choose wholesale, retail or both for confirmation and orderCsv.');
+    profile.priceDisplay=settings as AccountValue['priceDisplay'];
   }
   return { name, email, pierCustomerId, termsDays, minimumCents, prices, ...town, ...profile };
 }

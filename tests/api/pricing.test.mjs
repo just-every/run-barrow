@@ -56,3 +56,34 @@ test('PRI-002 / PRI-007: dated volume/graduated breaks, account/group precedence
  const grant=await h.api('/api/barrow/agent-token',{});const agent={as:'',headers:{authorization:`Bearer ${grant.token}`}};const agentDraft=await h.command('order.prepare',{accountId:account.id,lines:[{sku:'OAT-1',quantity:3,unitCents:1}]},agent);assert.equal(agentDraft.totalCents,999);assert.ok(agentDraft.preparedBy.startsWith('agent:'));
  await h.command('account.save',{id:account.id,revision:account.revision,value:account.value},{as:'',headers:{authorization:`Bearer ${grant.token}`},status:403});
 });
+
+test('MSRP books import and edit exact USD/CAD cents and preserve configured sheet, PDF and order document prices without changing wholesale totals',async t=>{
+ const {sheetFixture,csvRows}=await import('./line-sheet-fixture.mjs');
+ const f=await sheetFixture(t),{h,cedar,wren,sheet,other,buyers}=f;
+ for(const [a,s,who,code,base,display] of [[cedar,sheet,buyers.cedar,'USD',1201,'both'],[wren,other,buyers.wren,'CAD',1303,'wholesale']]){
+  const book=csvRows(await (await h.request(`/api/barrow/price-book.csv?accountId=${a.id}`)).text());assert.equal(book.rows.length,3);assert.equal(book.rows[0].currency,code);assert.equal(book.rows[0].unitCents,String(base));assert.equal(book.rows[0].msrpCents,String(base*2));assert.equal(book.rows[1].msrpCents,'');
+  await h.api(`/api/barrow/price-book.csv?accountId=${a.id}`,undefined,{...who,status:403});
+  const page=await h.api(`/api/barrow/line-sheets/${s.id}`,undefined,who);assert.equal(page.currency,code);assert.equal(page.items[0].unitCents,base);
+  const pdf=await (await h.request(`/api/barrow/line-sheets/${s.id}.pdf`,who)).text();assert.ok(pdf.includes(`Wholesale ${code} ${Math.trunc(base/100)}.${String(base%100).padStart(2,'0')}`));
+  if(display==='both'){assert.equal(page.items[0].msrpCents,base*2);assert.equal(page.items[0].marginBps,5000);assert.equal(page.items[1].msrpCents,null);assert.equal(page.items[1].marginBps,null);assert.ok(pdf.includes('Margin 50.00%'));assert.ok(pdf.includes('MSRP absent'));}
+  else {assert.equal('msrpCents'in page.items[0],false);assert.equal('marginBps'in page.items[0],false);assert.ok(!pdf.includes('MSRP'));assert.ok(!pdf.includes('Margin'));}
+  const cart=await f.preview(s,{lines:[{sku:f.skus[0],quantity:3}]},who);assert.equal(cart.totalCents,base*3);
+  let order=await f.prepare(s,cart,who);assert.equal(order.totalCents,base*3);assert.equal(order.currency,code);assert.equal(order.lines[0].msrpCents,base*2);
+  order=await h.command('order.submit',{orderId:order.id},who);
+  const path=`/api/barrow/orders/${order.id}/confirmations/1`;
+  const csv=csvRows(await (await h.request(path+'.csv',who)).text()),document=await (await h.request(path+'.pdf',who)).text();assert.equal(csv.rows[0].unit_cents,String(base));assert.equal(csv.rows[0].order_total_cents,String(base*3));assert.equal(csv.rows[0].currency,code);assert.ok(document.includes(`${code} ${(base*3/100).toFixed(2)}`));
+  if(display==='both'){assert.equal(csv.rows[0].msrp_cents,String(base*2));assert.equal(csv.rows[0].margin_bps,'5000');assert.ok(document.includes('MSRP'));assert.ok(document.includes('Margin 50.00%'));}
+  else {assert.ok(!csv.header.includes('msrp_cents'));assert.ok(!csv.header.includes('margin_bps'));assert.ok(!document.includes('MSRP'));assert.ok(!document.includes('Margin'));}
+ }
+ // Edited optional MSRP is exact and absent values stay absent; old published documents keep their revision.
+ const edited=await h.command('account.save',{id:cedar.id,revision:cedar.revision,value:{...cedar.value,prices:cedar.value.prices.map((p,i)=>i===0?{...p,msrpCents:3001}:p)}});
+ assert.equal(edited.value.prices[0].msrpCents,3001);assert.equal(edited.value.prices[1].msrpCents,undefined);
+ const newSheet=await f.publish(edited,'both'),newPage=await h.api(`/api/barrow/line-sheets/${newSheet.id}`,undefined,buyers.cedar);assert.equal(newPage.items[0].marginBps,5998);
+ const old=await h.api(`/api/barrow/line-sheets/${sheet.id}`,undefined,buyers.cedar);assert.equal(old.items[0].msrpCents,2402);
+ await f.prepare(sheet,{cart:[{sku:f.skus[0],quantity:1}]},buyers.cedar).then(()=>assert.fail('stale published book admitted')).catch(e=>assert.match(e.message,/recipient book or sheet changed/));
+ const retailAccount=await h.command('account.save',{id:edited.id,revision:edited.revision,value:{...edited.value,priceDisplay:{confirmation:'retail',orderCsv:'retail'}}});
+ const retail=await f.publish(retailAccount,'retail'),retailPage=await h.api(`/api/barrow/line-sheets/${retail.id}`,undefined,buyers.cedar);assert.equal('unitCents'in retailPage.items[0],false);assert.equal(retailPage.items[0].msrpCents,3001);
+ const retailPdf=await(await h.request(`/api/barrow/line-sheets/${retail.id}.pdf`,buyers.cedar)).text();assert.ok(retailPdf.includes('MSRP USD 30.01'));assert.ok(!retailPdf.includes('Wholesale USD'));assert.ok(!retailPdf.includes('Margin'));
+ const cart=await f.preview(retail,{lines:[{sku:f.skus[0],quantity:1}]});const draft=await f.prepare(retail,cart);await h.command('order.submit',{orderId:draft.id},buyers.cedar);
+ const path=`/api/barrow/orders/${draft.id}/confirmations/1`,csv=csvRows(await(await h.request(path+'.csv',buyers.cedar)).text()),pdf=await(await h.request(path+'.pdf',buyers.cedar)).text();assert.ok(!csv.header.includes('unit_cents'));assert.ok(!csv.header.includes('line_cents'));assert.ok(!csv.header.includes('margin_bps'));assert.equal(csv.rows[0].msrp_cents,'3001');assert.equal(csv.rows[0].order_total_cents,'1201');assert.ok(pdf.includes('MSRP USD 30.01'));assert.ok(!pdf.includes('Wholesale USD'));assert.ok(!pdf.includes('Margin'));
+});

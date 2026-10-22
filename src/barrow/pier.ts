@@ -53,7 +53,7 @@ export async function catalogue(env: Bindings,account: Account) {
   sellingUnits(offer)
   return [offer]
  })
- return {account,items,currency:'USD' as const,observedAt:(await now()).toISOString()}
+ return {account,items,currency:account.value.currency??'USD',observedAt:(await now()).toISOString()}
 }
 /** STK-002: unreceived quantity on committed Pier POs for one item, by promise date (null when the PO gives none), earliest first. */
 function incoming(state:any,itemId:string) {

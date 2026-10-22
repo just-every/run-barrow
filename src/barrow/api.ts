@@ -1,3 +1,5 @@
+import { importPriceBook, priceBookCsv } from './price-books'
+import { listSheets, readSheet, sheetDownload, sheetCommand } from './line-sheets'
 import { requestLimit } from './request-limits'
 import { erasureRestoreResponse, requireArchiveJournal, exportIndependentJournal, attachIndependentJournal, initializeIndependentJournal } from './erasure-journal'
 import { previewAccountErasure, executeAccountErasure } from './account-erasure'
@@ -136,6 +138,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(termsDocument && request.method==='GET') return await termsDocumentResponse(env,actor,decodeURIComponent(termsDocument[1]),Number(termsDocument[2]))
   const termsSignature=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/terms-signature$/.exec(path)
   if(termsSignature && request.method==='GET') return await termsSignatureResponse(env,actor,await readOrder(env.DB,actor,termsSignature[1]))
+  if(path==='/api/barrow/line-sheets'&&request.method==='GET')return json(await listSheets(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/price-book.csv'&&request.method==='GET')return await priceBookCsv(env,actor,url.searchParams.get('accountId')??'')
+  const sheetRoute=/^\/api\/barrow\/line-sheets\/([a-f0-9-]+)(?:\.(pdf|csv))?$/.exec(path)
+  if(sheetRoute&&request.method==='GET')return sheetRoute[2]?await sheetDownload(env,actor,sheetRoute[1],sheetRoute[2] as 'pdf'|'csv'):json(await readSheet(env,actor,sheetRoute[1]))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const directory=await accountPage(env.DB,actor,new URLSearchParams())
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
@@ -229,6 +235,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(body.type==='price-book.import')return json({result:await importPriceBook(env,actor,body.payload)})
+   if(['sheet.publish','sheet.revoke','sheet.view','sheet.preview'].includes(body.type))return json({result:await sheetCommand(env,actor,body.type,body.payload)})
    if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})
    if(['staff.invite','staff.update','staff.revoke'].includes(body.type))return json({result:await staffCommand(request,env,actor,body.type,body.payload)})
    if(['rep.assign','rep.cover','rep.end','rep.transfer'].includes(body.type))return json({result:await repAssignmentCommand(env,actor,body.type,body.payload)})

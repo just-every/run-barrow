@@ -13,7 +13,7 @@ import { quantityProblem } from '../quantity-rules'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
 import type { Account, Catalogue, Order, RunCommand } from './types'
 import { useLocations } from './locations'
-import { byAgent, clock, money, terms, town, when } from './types'
+import { byAgent, clock, money as formatMoney, terms, town, when } from './types'
 
 interface Props {
   account: Account; accounts: Account[]; supplier: boolean; canPurchase?:boolean; draft?: Order; draftCount: number; commandError?: string; run: RunCommand; busy: boolean
@@ -22,6 +22,8 @@ interface Props {
 
 // The rep's order pad: one account, a large style card beside the size matrix, and the running total always in view.
 export function OrderPad({ account, accounts, supplier, canPurchase=true, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
+  const currency=account.value.currency??'USD'
+  const money=(cents:number,code=currency as 'USD'|'AUD'|'CAD')=>formatMoney(cents,code)
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
   const [unitOrder,setUnitOrder] = useState(false)
   const [importing,setImporting] = useState(false)
@@ -64,13 +66,13 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   }, [draft?.id, account.id])
 
   const items = catalogue?.items ?? []
-  const { rows, columns } = useMemo(() => groupStyles(items), [catalogue])
+  const { rows, columns } = useMemo(() => groupStyles(items,currency), [catalogue])
   const currentAccount = catalogue?.account ?? account
   const draftCurrency = draft?.currency ?? 'AUD'
   const changes: Record<string, PriceChange> = {}
   for (const line of draft?.lines ?? []) {
     const item = items.find(value => value.sku === line.sku)
-    if (item && (item.unitCents !== line.unitCents || draftCurrency !== 'USD')) changes[line.sku] = { from: line.unitCents, to: item.unitCents, currency: draftCurrency }
+    if (item && (item.unitCents !== line.unitCents || draftCurrency !== currency)) changes[line.sku] = { from: line.unitCents, to: item.unitCents, currency: draftCurrency }
   }
   const missing = (draft?.lines ?? []).filter(line => catalogue && !items.some(item => item.sku === line.sku))
   const chosen = items.filter(item => quantityOf(quantities[item.sku]) > 0)
@@ -126,7 +128,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
     setQuantities(current => { const next = { ...current }; for (const size of row.sizes) delete next[row.cells[size].sku]; return next })
   }
   const padCart: CartLine[] = chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) }))
-  const draftTotal = draft && draftCurrency === 'USD' && catalogue && Object.keys(changes).length ? total - draft.totalCents : 0
+  const draftTotal = draft && draftCurrency === currency && catalogue && Object.keys(changes).length ? total - draft.totalCents : 0
 
   if(unitDraft && draft) return <UnitDraft key={draft.id} account={account} draft={draft} catalogue={catalogue} loading={loading} error={error || commandError} busy={busy} run={run} onNew={()=>onDraft('')} onPrepared={onPrepared} />
 

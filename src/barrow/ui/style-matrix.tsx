@@ -3,10 +3,10 @@ import { Flat } from './flat'
 import { quantityOf, rowCents, rowUnits, type StyleRow } from './styles'
 import type { CatalogueItem } from './types'
 import { quantityProblem } from '../quantity-rules'
-import { money, when } from './types'
+import { money as formatMoney, when } from './types'
 
 /** A draft line whose agreed price moved after the draft was written. */
-export interface PriceChange { from: number; to: number; currency: 'USD' | 'AUD' }
+export interface PriceChange { from: number; to: number; currency: 'USD' | 'AUD' | 'CAD' }
 
 export function cellProblem(item: CatalogueItem, value: string | undefined) {
   if (!value) return ''
@@ -26,6 +26,7 @@ interface Props {
 
 // Styles down, sizes across, then Units and Line $. A price that moved since the draft is settled inside its own row.
 export function StyleMatrix({ rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
+  const money=(cents:number,code:'USD'|'AUD'|'CAD'=rows[0]?.currency??'USD')=>formatMoney(cents,code)
   return <div className="br-matrix-wrap"><table className="br-matrix" style={{ ['--br-sizes' as string]: columns.length }}>
     <caption className="br-sr-only">Order quantities by style and size</caption>
     <thead><tr><th scope="col" className="br-col-style">Style</th><th scope="col" className="br-col-price">Price</th>{columns.map(size => <th scope="col" key={size} className="br-col-size">{size}</th>)}<th scope="col" className="br-col-units">Units</th><th scope="col" className="br-col-line">Line $</th></tr></thead>

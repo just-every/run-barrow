@@ -1,3 +1,4 @@
+import { priceLabels, marginBps } from './price-display'
 import { confirmationColumns, selectedConfirmationColumns, type ConfirmationColumn } from './confirmation-layouts'
 // ORD-014: immutable commercial snapshots, written with the submission/acceptance transaction.
 import type { Actor, Order } from './model'
@@ -10,13 +11,13 @@ import { termsText, type TermsAcceptance } from './sales-terms'
 
 type Stage = 'submitted' | 'accepted'
 export type Confirmation = { number: number; stage: Stage; at: string; snapshot: Snapshot }
-type Snapshot = Pick<Order, 'id' | 'accountId' | 'customerName' | 'reference' | 'poRelease' | 'requestedDate' | 'cancelAfter' | 'instructions' | 'deliveryLocation' | 'billTo' | 'shipTo' | 'lines' | 'totalCents' | 'currency' | 'termsDays' | 'quote' | 'delivery'> & { orderRevision: string; termsAcceptance?: TermsAcceptance & { body: string } }
+type Snapshot = Pick<Order, 'id' | 'accountId' | 'customerName' | 'reference' | 'poRelease' | 'requestedDate' | 'cancelAfter' | 'instructions' | 'deliveryLocation' | 'billTo' | 'shipTo' | 'lines' | 'totalCents' | 'currency' | 'termsDays' | 'quote' | 'delivery' | 'priceDisplay'> & { orderRevision: string; termsAcceptance?: TermsAcceptance & { body: string } }
 
 export async function confirmationStatements(db: D1Database, actor: Actor, order: Order, stage: Stage) {
  const at = (await now()).toISOString()
  const { id, accountId, customerName, reference, poRelease, requestedDate, cancelAfter, instructions, deliveryLocation, billTo, shipTo, lines, totalCents, termsDays, quote, delivery } = order
  const termsAcceptance = order.termsAcceptance ? { ...order.termsAcceptance, body: await termsText(db, order.termsAcceptance) } : undefined
- const snapshot: Snapshot = { id, accountId, customerName, reference, poRelease, requestedDate, cancelAfter, instructions, deliveryLocation, billTo, shipTo, lines, totalCents, currency: order.currency ?? 'AUD', termsDays, quote, delivery, orderRevision: order.revision, ...(termsAcceptance ? { termsAcceptance } : {}) }
+ const snapshot: Snapshot = { id, accountId, customerName, reference, poRelease, requestedDate, cancelAfter, instructions, deliveryLocation, billTo, shipTo, lines, totalCents, currency: order.currency ?? 'AUD', termsDays, quote, delivery, orderRevision: order.revision, ...(order.priceDisplay?{priceDisplay:order.priceDisplay}:{}), ...(termsAcceptance ? { termsAcceptance } : {}) }
  return [
   db.prepare('INSERT INTO bw_confirmations(order_id,number,stage,created_at,value_json) SELECT ?,COALESCE(MAX(number),0)+1,?,?,? FROM bw_confirmations WHERE order_id=?').bind(id, stage, at, JSON.stringify(snapshot), id),
   audit(db, actor, id, 'order.confirmation', { accountId, orderId: id, revision: order.revision, source: 'order.confirmation', reason: `Recorded immutable ${stage} order confirmation.` }),
@@ -27,7 +28,7 @@ export async function readConfirmations(db: D1Database, orderId: string): Promis
  return rows.results.map(row => ({ number: row.number, stage: row.stage, at: row.created_at, snapshot: JSON.parse(row.value_json) }))
 }
 const address = (value: Order['shipTo']) => value ? [value.name, value.line1, value.line2, value.city, value.state, value.zip].filter(Boolean).join(', ') : 'Not recorded'
-const absent = 'Seller legal identity, product images and MSRP are not recorded in this confirmation; sales terms appear only where the assigned terms were accepted at submission. No confirmation email delivery is recorded. Tax is not calculated.'
+const absent = 'Seller legal identity and product images are not recorded in this confirmation; sales terms appear only where the assigned terms were accepted at submission. No confirmation email delivery is recorded. Tax is not calculated.'
 const termsLines = (record: Confirmation) => {
  const t = record.snapshot.termsAcceptance
  if (!t) return []
@@ -38,16 +39,24 @@ const amount = (cents: number, currency: string) => `${currency} ${Math.trunc(ce
 const wrap = (text: string): string[] => text.split(/\r?\n/).flatMap(part => part.match(/.{1,82}(?:\s|$)|.{1,82}/g)?.map(line => line.trimEnd()) ?? [''])
 export function confirmationPdf(record: Confirmation) {
  const s = record.snapshot, currency = s.currency ?? 'AUD'
- const lines = [`Order confirmation ${s.id}-C${record.number}`, `${record.stage.toUpperCase()} | ${record.at}`, `Order revision: ${s.orderRevision}`, `Buyer: ${s.customerName} | Account: ${s.accountId}`, `PO: ${s.reference || 'Not recorded'}`, `Bill to: ${address(s.billTo)}`, `Ship to: ${address(s.shipTo)}`, `Requested delivery: ${s.requestedDate ?? 'Not recorded'} | Cancel after: ${s.cancelAfter ?? 'Not recorded'}`, `Payment terms: ${s.termsDays === 0 ? 'Due on receipt' : `Net ${s.termsDays} days`}`, '', ...s.lines.flatMap(line => [`${line.sku} | ${line.name}`, `${line.quantity} ${line.unit ?? 'units'} at ${amount(line.unitCents,currency)}; line ${amount(line.lineCents ?? line.quantity * line.unitCents,currency)}`, `Base quantity: ${line.baseQuantity ?? line.quantity} ${line.baseUnit ?? 'units'}${line.packContents ? ` | Pack: ${line.packContents}` : ''}`]), '', ...(s.delivery ? [`Delivery: ${s.delivery.name} | ${s.delivery.windowStart} to ${s.delivery.windowEnd}`, `Freight and handling: ${amount(s.delivery.totalCents ?? 0,currency)}`] : ['Delivery method and charge: not recorded']), `Order total: ${amount(s.totalCents,currency)}`, ...(s.instructions ? [`Instructions: ${s.instructions}`] : []), ...termsLines(record), '', absent]
+ const lines = [`Order confirmation ${s.id}-C${record.number}`, `${record.stage.toUpperCase()} | ${record.at}`, `Order revision: ${s.orderRevision}`, `Buyer: ${s.customerName} | Account: ${s.accountId}`, `PO: ${s.reference || 'Not recorded'}`, `Bill to: ${address(s.billTo)}`, `Ship to: ${address(s.shipTo)}`, `Requested delivery: ${s.requestedDate ?? 'Not recorded'} | Cancel after: ${s.cancelAfter ?? 'Not recorded'}`, `Payment terms: ${s.termsDays === 0 ? 'Due on receipt' : `Net ${s.termsDays} days`}`, '', ...s.lines.flatMap(line => [`${line.sku} | ${line.name}`, s.priceDisplay ? `${line.quantity} ${line.unit??'units'} | ${priceLabels(line,currency,s.priceDisplay.confirmation)}${s.priceDisplay.confirmation==='retail'?'':`; wholesale line ${amount(line.lineCents??line.quantity*line.unitCents,currency)}`}` : `${line.quantity} ${line.unit ?? 'units'} at ${amount(line.unitCents,currency)}; line ${amount(line.lineCents ?? line.quantity * line.unitCents,currency)}`, `Base quantity: ${line.baseQuantity ?? line.quantity} ${line.baseUnit ?? 'units'}${line.packContents ? ` | Pack: ${line.packContents}` : ''}`]), '', ...(s.delivery ? [`Delivery: ${s.delivery.name} | ${s.delivery.windowStart} to ${s.delivery.windowEnd}`, `Freight and handling: ${amount(s.delivery.totalCents ?? 0,currency)}`] : ['Delivery method and charge: not recorded']), `Order total: ${amount(s.totalCents,currency)}`, ...(s.instructions ? [`Instructions: ${s.instructions}`] : []), ...termsLines(record), '', absent]
  return textPdf(lines.flatMap(wrap))
 }
 export function confirmationCsvRows(record: Confirmation, selected: readonly ConfirmationColumn[]) {
  const s = record.snapshot
- const values=s.lines.map(line => [`${s.id}-C${record.number}`,record.stage,record.at,s.id,s.orderRevision,s.accountId,s.customerName,s.reference,address(s.billTo),address(s.shipTo),s.requestedDate,s.cancelAfter,s.termsDays,s.currency ?? 'AUD',line.sku,line.name,line.quantity,line.unit,line.baseQuantity ?? line.quantity,line.baseUnit,line.unitCents,line.lineCents ?? line.quantity * line.unitCents,s.delivery?.totalCents ?? 0,s.totalCents,absent])
+ const values=s.lines.map(line => [`${s.id}-C${record.number}`,record.stage,record.at,s.id,s.orderRevision,s.accountId,s.customerName,s.reference,address(s.billTo),address(s.shipTo),s.requestedDate,s.cancelAfter,s.termsDays,s.currency ?? 'AUD',line.sku,line.name,line.quantity,line.unit,line.baseQuantity ?? line.quantity,line.baseUnit,line.unitCents,line.lineCents ?? line.quantity * line.unitCents,s.delivery?.totalCents ?? 0,s.totalCents,absent,line.msrpCents,marginBps(line.unitCents,line.msrpCents)])
  return values.map(row=>selected.map(column=>row[confirmationColumns.indexOf(column)]))
 }
+export function displayedConfirmationColumns(record:Confirmation,selected:readonly ConfirmationColumn[]) {
+ const mode=record.snapshot.priceDisplay?.orderCsv??'wholesale'
+ const columns=selected.filter(c=>mode!=='retail'||!['unit_cents','line_cents'].includes(c)).filter(c=>mode==='both'||c!=='margin_bps').filter(c=>mode!=='wholesale'||c!=='msrp_cents')
+ if(mode!=='wholesale'&&!columns.includes('msrp_cents'))columns.push('msrp_cents')
+ if(mode==='both'&&!columns.includes('margin_bps'))columns.push('margin_bps')
+ return columns
+}
 export function confirmationCsv(record: Confirmation, selected: readonly ConfirmationColumn[] = confirmationColumns) {
- return csvText([[...selected],...confirmationCsvRows(record,selected)])
+ const columns=displayedConfirmationColumns(record,selected)
+ return csvText([[...columns],...confirmationCsvRows(record,columns)])
 }
 export async function confirmationResponse(db: D1Database, order: Order, number: number, format: 'csv'|'pdf', layoutId?:string) {
  const record = (await readConfirmations(db,order.id)).find(record => record.number === number)

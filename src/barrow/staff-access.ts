@@ -51,13 +51,14 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(selling.includes(role)&&method==='GET'&&/^statements\/[-a-zA-Z0-9._:]+?(?:\.(csv|pdf))?$/.test(relative))return // REP-001: balances of accounts held today; account() scopes the read
  if(method==='GET'&&/^sales-terms\/[^/]+\/[1-9]\d*\/document$/.test(relative))return
  if(method==='GET'&&(/^(invoices|statements)\//.test(relative)||/^export(?:\.json|\/[^/]+\.csv)$/.test(relative))&&(role==='finance'||selling.includes(role)&&relative==='export/followups.csv'))return
- if(selling.includes(role)&&method==='GET'&&(relative==='catalogue'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
+ if(selling.includes(role)&&method==='GET'&&(relative==='line-sheets'||/^line-sheets\/[a-f0-9-]+(\.(pdf|csv))?$/.test(relative)||relative==='catalogue'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
  return denied(env,actor,path)
 }
 
 const commandRoles:Record<string,string[]>={
  'account.save':['sales-manager'], 'terms.assign':['sales-manager'], 'terms.publish':['sales-manager'], 'commission.settings':['sales-manager'],
  'order.prepare':selling,'order.reorder':selling,'order.reorder-preview':selling,'order.submit':selling,'order.attach':selling,
+ 'sheet.view':selling,'sheet.preview':selling,
  'cart.preview':selling,'cart.form':selling,'list.save':selling,'list.duplicate':selling,'list.delete':selling,
  'quote.request':selling,'quote.propose':selling,'quote.approve':['sales-manager'],'quote.message':selling,'quote.read':selling,
  'shipping.select':selling,'shipping.quote':['sales-manager'],

@@ -47,13 +47,13 @@ export function Reorder({ order, run, busy, onClose }: {order:Order;run:RunComma
     <p><strong>{line.originalSku}{line.sku !== line.originalSku ? ` → ${line.sku}` : ''}</strong> · {line.quantity} {line.unit??'units'}{line.baseQuantity ? ` · ${line.baseQuantity} base units` : ''}</p>
     <p>Selling basis: {line.originalUnit??'not recorded'} → {line.unit??'unavailable'}.</p>
     <p>Conversion: {line.originalConversion} → {line.conversion??'Unknown'} base units per selling unit. Base quantity: {line.originalBaseQuantity} → {line.baseQuantity??'Unknown'} {line.baseUnit??'base units'}.</p>
-    <p>Unit price: {money(line.originalUnitCents,review.originalCurrency)} → {line.unitCents === null ? 'Unavailable' : money(line.unitCents)}</p>
+    <p>Unit price: {money(line.originalUnitCents,review.originalCurrency)} → {line.unitCents === null ? 'Unavailable' : money(line.unitCents,review.currency)}</p>
     <p>Minimum base units: {line.originalMinQty} → {line.minQty ?? 'Unknown'} · Available now: {line.available ?? 'Unknown'}</p>
-    {line.pricing && <p>{line.pricing.reason} · {money(line.pricing.lineCents)}</p>}
+    {line.pricing && <p>{line.pricing.reason} · {money(line.pricing.lineCents,review.currency)}</p>}
     <p>{line.differences.join('; ') || 'SKU, price and minimum unchanged.'}</p>
    </div>)}
-   <p>Payment terms: {terms(review.originalTermsDays)} → {terms(review.termsDays)}. Current order minimum: {money(review.minimumCents)}.</p>
-   <p>Selected original total: {money(review.lines.reduce((sum,line) => sum+line.originalLineCents,0),review.originalCurrency)}. New draft total: <strong>{money(review.totalCents)}</strong>.</p>
+   <p>Payment terms: {terms(review.originalTermsDays)} → {terms(review.termsDays)}. Current order minimum: {money(review.minimumCents,review.currency)}.</p>
+   <p>Selected original total: {money(review.lines.reduce((sum,line) => sum+line.originalLineCents,0),review.originalCurrency)}. New draft total: <strong>{money(review.totalCents,review.currency)}</strong>.</p>
    {review.blockers.length > 0 ? <Notice error>{review.blockers.map(message => <p key={message}>{message}</p>)}</Notice> : <>
     <label>New purchase order / reference<input value={reference} onChange={event => setReference(event.target.value)} maxLength={100} disabled={busy} /></label>
     <button type="button" className="br-secondary" aria-pressed={acknowledged} onClick={() => setAcknowledged(value => !value)} disabled={busy}>{acknowledged ? 'Acknowledged' : 'Acknowledge'} current SKU, currency, price, minimum, availability and terms differences</button>

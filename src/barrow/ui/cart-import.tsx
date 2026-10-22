@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react'
 import { Dialog } from './dialog'
 import { Notice } from './primitives'
 import { request, errorMessage } from './api'
-import { money } from './types'
+import { money as formatMoney } from './types'
 
 export interface CartLine { sku: string; unit?: string; quantity: number; buyerSku?: string }
 interface PreviewRow { ref: string; input: string; quantity: string; status: 'ok' | 'error' | 'blank' | 'left out'; message?: string }
 interface PreviewLine { key: string; sku: string; name: string; unit: string; quantity: string; rows: string[]; combined?: string; inCart?: string; lineCents?: number; problem?: string; choices?: string[] }
-interface Preview { layout: string; rows: PreviewRow[]; lines: PreviewLine[]; errors: number; blocked?: string; ready: boolean; mode?: 'merge' | 'replace'; cart?: CartLine[]; totalCents: number; minimumCents: number }
+interface Preview { currency:'USD'|'CAD'; layout: string; rows: PreviewRow[]; lines: PreviewLine[]; errors: number; blocked?: string; ready: boolean; mode?: 'merge' | 'replace'; cart?: CartLine[]; totalCents: number; minimumCents: number }
 
 const command = async <T,>(type: string, payload: Record<string, unknown>) => (await request<{ result: T }>('/api/barrow/commands', { type, payload })).result
 
@@ -18,6 +18,7 @@ export function CartImport({ accountId, cart, list, onApply, onClose }: { accoun
   const [skip, setSkip] = useState<string[]>([])
   const [set, setSet] = useState<Record<string, string>>({})
   const [preview, setPreview] = useState<Preview | null>(null)
+  const money=(cents:number)=>formatMoney(cents,preview?.currency??'USD')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [mode, setMode] = useState<'merge' | 'replace' | undefined>()

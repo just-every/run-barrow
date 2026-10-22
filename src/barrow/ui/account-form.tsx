@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { Account, RunCommand } from './types'
 import { validatePriceUnits, type AccountValue } from '../imports/validation'
+import { applyRetail, RetailSettings } from './retail-settings'
 import { applyPricing, PricingSettings } from './pricing-settings'
 import { Notice } from './primitives'
 import { profileFields } from './account-profile'
@@ -62,7 +63,7 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
         ...profileFields(data),
         name: String(data.get('name')).trim(), email: String(data.get('email')).trim().toLowerCase(),
         pierCustomerId: String(data.get('pierCustomerId')).trim(), termsDays: Number(data.get('termsDays')),
-        minimumCents: Number(data.get('minimumCents')), prices: applyPricing(parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),String(data.get('pricing')??'')),
+        minimumCents: Number(data.get('minimumCents')), currency: String(data.get('currency')) as 'USD'|'CAD', priceDisplay:{confirmation:String(data.get('confirmationDisplay')) as 'wholesale'|'retail'|'both',orderCsv:String(data.get('orderCsvDisplay')) as 'wholesale'|'retail'|'both'}, prices: applyRetail(applyPricing(parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),String(data.get('pricing')??'')),String(data.get('retail')??'')),
         ...Object.fromEntries(['city', 'state'].map(key => [key, String(data.get(key)).trim()]).filter(([, value]) => value)),
       }
       if (checking || checkError || hasNext || !reviewed) throw new Error('Review the possible duplicate companies before saving.')
@@ -91,6 +92,7 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
       <label className="br-full">Agreed prices<textarea name="prices" rows={6} defaultValue={account?.value.prices.map(price => [price.sku, price.unitCents, price.minQty, ...(price.casePack || price.increment ? [price.casePack ?? '', price.increment ?? ''] : [])].join(',').replace(/,$/, '')).join('\n')} placeholder="SKU,unitCents,minQty[,casePack[,increment]]" spellCheck={false} /><small>One row per SKU, with no header. For example: <span className="br-nowrap">JV-2214-S,4800,2</span> means $48.00 each, minimum quantity 2. Add a case pack and an increment in base units to require whole cases and steps above the minimum: <span className="br-nowrap">JV-2214-S,4800,12,6,12</span> allows 12, 24, 36… Only agreed SKUs appear in this account’s catalog.</small></label>
       <label className="br-full">Selling units (optional JSON)<textarea name="units" rows={8} defaultValue={configuredUnits(account?.value.prices ?? [])} placeholder={'[{"sku":"JV-2214-S","units":[{"code":"case","baseQuantity":"12","unitCents":48000,"packContents":"12 each per case"}]}]'} spellCheck={false} /><small>List each SKU with its selling units. Each unit needs a unique code, an exact baseQuantity conversion to Pier stock units, a unitCents price and a packContents description. Base quantities must be positive, at most 1000000 and have at most six decimal places. Use quantityKind "measured" for decimal quantities; case and pallet stay whole. Unit codes must differ from the stock unit. Leave blank to use the agreed prices without configured units.</small></label>
       <label className="br-full">Reason for change (optional)<input name="reason" maxLength={240} /><small>Recorded in the supplier audit with this revision. An override retains its approved reason when this field is empty.</small></label>
+      <RetailSettings account={account} />
       <PricingSettings prices={account?.value.prices??[]} />
     </fieldset>
     {checking && <p role="status">Checking possible duplicate companies…</p>}

@@ -2,6 +2,7 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_line_sheets')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),state:'revoked'})};
   if(table==='bw_staff_members')return {...row,state:'revoked'};
   if(table==='bw_rep_assignments'||table==='bw_company_delegations')return {...row,state:'ended'};
   if(table==='bw_company_members')return {...row,state:'removed'};

@@ -17,7 +17,7 @@ export function StyleCard({ row, observedAt }: { row?: StyleRow; observedAt: str
       <Flat name={row.name} code={row.key} />
       <div>
         <h2>{row.name}</h2>
-        <p className="br-style-price"><strong>{money(row.cents)}</strong>{row.note && <span> / {row.note}</span>}</p>
+        <p className="br-style-price"><strong>{money(row.cents,row.currency)}</strong>{row.note && <span> / {row.note}</span>}</p>
         <p className="br-style-sku">{row.key} · {first.unit}</p>
       </div>
     </div>

@@ -5,7 +5,7 @@ const format=(value:bigint)=>`${value/1000000n}${value%1000000n?'.'+(value%10000
 import { convertQuantity, quantityMicro, sellingUnits, type UnitDefinition } from './units'
 import { quantityProblem, quantityMessage } from './quantity-rules'
 
-type Offer = {sku:string;itemId:string;name:string;unit:string;unitCents:number;minQty:number;casePack?:number;increment?:number;available:string;units?:UnitDefinition[];pricing?:Pricing}
+type Offer = {msrpCents?:number;sku:string;itemId:string;name:string;unit:string;unitCents:number;minQty:number;casePack?:number;increment?:number;available:string;units?:UnitDefinition[];pricing?:Pricing}
 /** stock=false checks prices, units and quantity rules but not promiseable stock: a quote request or proposal promises nothing. */
 export function prepareLines(input:any[],offers:Offer[],date?:string,stock=true):Line[] {
  const seen=new Set<string>(),totals=new Map<string,bigint>()
@@ -23,7 +23,7 @@ export function prepareLines(input:any[],offers:Offer[],date?:string,stock=true)
   const base=decimal(baseQuantity)
   totals.set(sku,(totals.get(sku)??0n)+base)
   const priced=priceLine(line.quantity,unit.unitCents,unit.pricing,date)
-  return {sku,name:offer.name,itemId:offer.itemId,quantity,...priced,minQty:offer.minQty,unit:code,baseUnit:offer.unit,conversion:unit.baseQuantity,baseQuantity,packContents:unit.packContents}
+  return {...(code===offer.unit&&offer.msrpCents!==undefined?{msrpCents:offer.msrpCents}:{}),sku,name:offer.name,itemId:offer.itemId,quantity,...priced,minQty:offer.minQty,unit:code,baseUnit:offer.unit,conversion:unit.baseQuantity,baseQuantity,packContents:unit.packContents}
  })
  for(const [sku,quantity] of totals) {
   const offer=offers.find(offer=>offer.sku===sku)!

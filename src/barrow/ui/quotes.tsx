@@ -4,12 +4,12 @@ import { OrderTerms, type TermsChoice } from './sales-terms'
 import { QuoteShippingFields,AgreedQuoteDelivery } from './quote-shipping'
 import type { Delivery } from '../shipping-rules'
 import { Notice } from './primitives'
-import { day, money, orderNumber, when, type RunCommand } from './types'
+import { day, money as formatMoney, orderNumber, when, type RunCommand } from './types'
 import { QuoteConversation, QuoteNotices, RevisionHistoryList, type QuoteNotice, type ThreadEntry } from './quote-thread'
 
 interface QuoteLine { sku: string; name: string; unit?: string; quantity: number | string; unitCents: number; lineCents?: number; basisUnitCents?: number; basisLineCents?: number; discountBps?: number; negotiatedUnitCents?: number; pricing?: { reason: string } }
 interface Revision { delivery?:Delivery; number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedAt: string; proposedByEmail?: string; changes?: string[]; discounted: boolean; approved?: boolean; approval?: { reason: string; at: string } }
-export interface Quote { id: string; accountId: string; customerName: string; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedAt: string; note: string; request: QuoteLine[]; revisions: Revision[]; accepted?: { revision: number; at: string; orderId: string }; expired: boolean; revision: string; thread: ThreadEntry[]; notices: QuoteNotice[] }
+export interface Quote { currency:'USD'|'CAD'; id: string; accountId: string; customerName: string; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedAt: string; note: string; request: QuoteLine[]; revisions: Revision[]; accepted?: { revision: number; at: string; orderId: string }; expired: boolean; revision: string; thread: ThreadEntry[]; notices: QuoteNotice[] }
 
 const statusLabel = (quote: Quote) => quote.accepted ? `Accepted · order ${orderNumber(quote.accepted.orderId)}` : quote.expired ? 'Expired' : { requested: 'Requested', 'awaiting-approval': 'Discount awaiting approval', proposed: 'Ready to accept', accepted: 'Accepted' }[quote.status]
 // Exact dollars-and-cents text to integer cents; blank keeps the current price basis.
@@ -37,6 +37,7 @@ export function Quotes({ supplier, busy, run, version, canPurchase=true,canAppro
     <h2>Quotes</h2>
     {error && <Notice error>{error}</Notice>}
     {quotes?.map(quote => {
+      const currency=quote.currency??'USD';const money=(cents:number)=>formatMoney(cents,currency)
       const latest = quote.revisions.at(-1), lines = latest?.lines ?? quote.request
       return <article id={`quote-${quote.id}`} style={{scrollMarginTop: '7rem'}} key={quote.id} className="br-stack">
         <div className="br-order-meta"><span className="br-order-id">{quote.id}</span><span className="br-status">{statusLabel(quote)}</span>{quote.notices.length > 0 && <span className="br-status">{quote.notices.length} new</span>}</div>
@@ -87,7 +88,7 @@ function Proposal({ quote, lines, busy, run, onDone,canQuoteDelivery }: {canQuot
   return <form className="br-stack" aria-label={`Propose revision for ${quote.id}`} onSubmit={event => void propose(event)}>
     {rows.map((row, index) => <fieldset key={`${row.sku}-${row.unit ?? ''}`} className="br-actions"><legend>{row.sku}{row.unit && ` · ${row.unit}`}</legend>
       <label>Quantity<input inputMode="numeric" value={row.quantity} disabled={busy} onChange={event => setRows(current => current.map((value, at) => at === index ? { ...value, quantity: event.target.value } : value))} /></label>
-      <label>Quoted unit price (USD, blank for current price)<input inputMode="decimal" value={row.price} disabled={busy} onChange={event => setRows(current => current.map((value, at) => at === index ? { ...value, price: event.target.value } : value))} /></label>
+      <label>Quoted unit price ({quote.currency??'USD'}, blank for current price)<input inputMode="decimal" value={row.price} disabled={busy} onChange={event => setRows(current => current.map((value, at) => at === index ? { ...value, price: event.target.value } : value))} /></label>
     </fieldset>)}
     <label>Valid through (Eastern time, inclusive)<input type="date" required value={validUntil} disabled={busy} onChange={event => setValidUntil(event.target.value)} /></label>
     <label>Payment terms (days, blank for the account’s terms)<input inputMode="numeric" value={termsDays} disabled={busy} onChange={event => setTermsDays(event.target.value)} /></label>

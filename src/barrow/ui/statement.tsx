@@ -4,7 +4,7 @@ import { AccountPicker, Notice } from './primitives'
 import { money } from './types'
 import type { Account } from './types'
 
-interface Statement { customer: string; from: string | null; to: string; dates: string; note: string; sections: { currency: 'USD' | 'AUD'; openingCents: number; closingCents: number; invoices: { number: string; issuedAt: string; dueAt: string; orderId: string; reference: string; amountCents: number; invoicePath: string; orderPath: string }[] }[] }
+interface Statement { customer: string; from: string | null; to: string; dates: string; note: string; sections: { currency: 'USD' | 'AUD' | 'CAD'; openingCents: number; closingCents: number; invoices: { number: string; issuedAt: string; dueAt: string; orderId: string; reference: string; amountCents: number; invoicePath: string; orderPath: string }[] }[] }
 
 // PAY-007: the account statement from today's invoices, with the same figures as its CSV and PDF downloads.
 export function StatementCard({ accounts }: { accounts: Account[] }) {

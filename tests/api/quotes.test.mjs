@@ -305,7 +305,7 @@ test('RPT-002: quote response and acceptance, accepted value net of returns, aba
  // Every rate explains its denominator; capabilities that do not exist yet are named, not reported as zero.
  for (const key of ['period', 'responseRate', 'acceptanceRate', 'acceptedCents', 'returnedCents', 'abandonmentRate', 'reorderRate', 'cohort', 'rep', 'product']) assert.ok(report.definitions[key].length > 20, key);
  assert.match(report.definitions.acceptanceRate, /never revenue/);
- assert.deepEqual(report.notRecorded.map(item => item.note.match(/(PRI|CAT)-\d{3}/)[0]), ['PRI-005', 'CAT-003', 'CAT-011']);
+ assert.deepEqual(report.notRecorded.map(item => item.note.match(/(PRI|CAT)-\d{3}/)[0]), ['PRI-005', 'CAT-004', 'CAT-011']);
  assert.equal(report.timeZone, 'America/New_York');
  // Periods are inclusive reporting-zone days; an empty or inverted period is explicit.
  assert.equal((await h.api('/api/barrow/reports/quotes?from=2000-01-01&to=2000-01-31')).totals.quotes.requested, 0);

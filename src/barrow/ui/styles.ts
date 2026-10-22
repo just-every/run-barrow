@@ -7,17 +7,17 @@ export const sizeOrder = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL',
 export const oneSize = 'Qty'
 const sizedSku = new RegExp(`^(.+?)[-_ ](${sizeOrder.join('|')})$`, 'i')
 
-export interface StyleRow { key: string; name: string; cells: Record<string, CatalogueItem>; sizes: string[]; cents: number; note: string }
+export interface StyleRow { currency?:'USD'|'AUD'|'CAD'; key: string; name: string; cells: Record<string, CatalogueItem>; sizes: string[]; cents: number; note: string }
 
 const stripSize = (name: string, size: string) => name.replace(new RegExp(`\\s*[·,/(-]?\\s*${size}\\)?$`, 'i'), '').trim() || name
 
-export function groupStyles(items: CatalogueItem[]): { rows: StyleRow[]; columns: string[] } {
+export function groupStyles(items: CatalogueItem[],currency:'USD'|'AUD'|'CAD'='USD'): { rows: StyleRow[]; columns: string[] } {
   const rows = new Map<string, StyleRow>()
   for (const item of items) {
     const match = sizedSku.exec(item.sku)
     let key = match ? match[1] : item.sku, size = match ? match[2].toUpperCase() : oneSize
     if (rows.get(key)?.cells[size]) { key = item.sku; size = oneSize }
-    const row = rows.get(key) ?? { key, name: match ? stripSize(item.name, size) : item.name, cells: {}, sizes: [], cents: 0, note: '' }
+    const row = rows.get(key) ?? { currency,key, name: match ? stripSize(item.name, size) : item.name, cells: {}, sizes: [], cents: 0, note: '' }
     row.cells[size] = item
     rows.set(key, row)
   }
@@ -42,7 +42,7 @@ function priceNote(row: StyleRow) {
   }
   const minimums = new Set(row.sizes.map(size => row.cells[size].minQty))
   const minimum = minimums.size === 1 && !minimums.has(1) ? [`min. ${[...minimums][0]} each`] : []
-  return [...runs.map(run => `${run.from === run.to ? run.from : `${run.from}–${run.to}`} ${money(run.cents)}`), ...minimum].join(' · ')
+  return [...runs.map(run => `${run.from === run.to ? run.from : `${run.from}–${run.to}`} ${money(run.cents,row.currency)}`), ...minimum].join(' · ')
 }
 
 export const quantityOf = (value: string | undefined) => Number(value) || 0
@@ -51,7 +51,7 @@ export const rowCents = (row: StyleRow, quantities: Record<string, string>, pric
   row.sizes.reduce((sum, size) => sum + price(row.cells[size]) * quantityOf(quantities[row.cells[size].sku]), 0)
 
 /** An order's lines read back as styles: "S2 M4 L4 XL2", units, the prices paid and the style's total. */
-export function orderStyles(lines: Order['lines'], currency: 'USD' | 'AUD') {
+export function orderStyles(lines: Order['lines'], currency: 'USD' | 'AUD' | 'CAD') {
   if(lines.some(line=>line.unit && line.unit!==line.baseUnit)) return lines.map(line=>({
     key:JSON.stringify([line.sku,line.unit]),name:`${line.name} · ${line.unit??'units'}`,units:line.quantity,
     cents:line.lineCents??line.quantity*line.unitCents,sizes:`${line.quantity} ${line.unit??'units'} = ${line.baseQuantity??line.quantity} ${line.baseUnit??'base units'}`,

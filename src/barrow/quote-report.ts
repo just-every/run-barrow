@@ -58,13 +58,15 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  const at = await now(), checkedAt = at.toISOString(), zone = await reportZone(env.DB), reportDay = calendarDate(at, zone)
  const to = day(params.get('to'), 'To') ?? reportDay, from = day(params.get('from'), 'From') ?? shift(to, -89)
  if (from > to) fail('INPUT', 'From must not be after To.', 400)
+ const currency=params.get('currency')??'USD'
+ if(!['USD','CAD','AUD'].includes(currency))fail('INPUT','Choose a recorded ISO currency.',400)
  const list = await accounts(env.DB, actor), byId = new Map(list.map(row => [row.id, row]))
  const accountId = params.get('accountId') ?? ''
  const quotes = (await env.DB.prepare("SELECT value_json,revision FROM bw_quotes WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid").bind(accountId,accountId).all<any>()).results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Quote)
  const records = (await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid").bind(accountId,accountId).all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
  const all = new Map(records.map(order => [order.id, order]))
  const inPeriod = (iso: string) => { const date = calendarDate(new Date(iso), zone); return date >= from && date <= to }
- const periodQuotes = quotes.filter(quote => inPeriod(quote.requestedAt)), periodOrders = records.filter(order => order.status !== 'superseded' && inPeriod(order.preparedAt))
+ const periodQuotes = quotes.filter(quote => quote.currency===currency&&inPeriod(quote.requestedAt)), periodOrders = records.filter(order => (order.currency??'AUD')===currency&&order.status !== 'superseded' && inPeriod(order.preparedAt))
  // Returns are Pier's: one read for every converted order. Unreachable Pier reports returns as unavailable, never zero.
  const returns = new Map<string, { itemId: string; quantity: string }[]>()
  let returnsSource: 'read' | 'unavailable' = 'read'
@@ -77,6 +79,8 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
    returns.set(order.id, (state.returns ?? []).filter((row: any) => shipped.has(row.shipmentId)))
   }
  } catch { returnsSource = 'unavailable' }
+ const sheetEvents=(await env.DB.prepare("SELECT sheet_id,account_id,actor_id,kind,skus_json,created_at FROM bw_sheet_events WHERE account_id IN (SELECT value FROM json_each(?)) AND (?='' OR account_id=?) ORDER BY created_at").bind(JSON.stringify(list.map(a=>a.id)),accountId,accountId).all<{sheet_id:string;account_id:string;actor_id:string;kind:string;skus_json:string;created_at:string}>()).results.filter(row=>inPeriod(row.created_at))
+ const lineSheets=[...new Set(sheetEvents.map(e=>JSON.stringify([e.sheet_id,e.account_id,e.actor_id])))].map(key=>{const [sheetId,accountId,buyerId]=JSON.parse(key),events=sheetEvents.filter(e=>e.sheet_id===sheetId&&e.account_id===accountId&&e.actor_id===buyerId),items=events.filter(e=>e.kind==='view').flatMap(e=>JSON.parse(e.skus_json) as string[]);return {sheetId,accountId,buyerId,opens:events.filter(e=>e.kind==='open').length,views:events.filter(e=>e.kind==='view').length,itemsViewed:items.length,bySku:[...new Set(items)].map(sku=>({sku,views:items.filter(i=>i===sku).length}))}})
  const today = supplierDate(at), cutoff = shift(reportDay, -abandonedAfterDays)
  const run = (quotesIn: Quote[], ordersIn: Order[], sku?: string) => {
   const row = measure(quotesIn, ordersIn, all, returns, today, cutoff, zone, sku)
@@ -93,10 +97,11 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  const cohort = (accountId: string) => firsts.get(accountId) ?? 'No placed order'
  const skus = [...new Set([...periodQuotes.flatMap(quote => (quote.revisions.at(-1)?.lines ?? quote.request).map(line => line.sku)), ...periodOrders.flatMap(order => order.lines.map(line => line.sku))])].sort()
  return {
-  checkedAt, from, to, timeZone: zone, currency: 'USD', returnsSource,
+  lineSheets, checkedAt, from, to, timeZone: zone, currency, returnsSource,
   totals: run(periodQuotes, periodOrders), byRep: group(rep), byCohort: group(cohort), byProduct: skus.map(sku => ({ name: sku, ...run(periodQuotes, periodOrders, sku) })),
   definitions: {
-   period: `Quotes count by request date and orders by preparation date, inclusive calendar days ${from} to ${to} in ${zone}.`,
+   lineSheets: 'Authenticated buyer opens count opening a shared sheet; views count visible-item observations; items viewed counts SKU observations per buyer. Supplier previews are excluded; revoked shares admit no further observations.',
+   period: `Quotes count by request date and orders by preparation date, in ${currency} only (no conversion), inclusive calendar days ${from} to ${to} in ${zone}.`,
    responseRate: 'Quotes with at least one proposed revision ÷ quotes requested.',
    acceptanceRate: 'Accepted quotes ÷ quotes that had a revision the buyer could accept (no discount, or a recorded discount approval). A generated or proposed quote is never revenue.',
    acceptedCents: 'Line cents of the one order each accepted quote converted into, counted once; cancelled orders are excluded.',
@@ -110,7 +115,7 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
   },
   notRecorded: [
    { measure: 'Promotion results', note: 'Barrow has no promotions yet; PRI-005 adds promoted orders, their discounts and net of returns to this report.' },
-   { measure: 'Line-sheet and presentation engagement', note: 'Barrow has no line sheets or presentations yet; CAT-003 and CAT-004 add opens, views and items viewed per buyer.' },
+   { measure: 'Presentation engagement', note: 'CAT-004 adds presentation opens, views and items viewed per buyer.' },
    { measure: 'Campaign results', note: 'Barrow sends no campaigns yet; CAT-011 adds delivered, opened, viewed, ordered and order value per send, attributing only orders placed from its link or form.' },
   ],
  }

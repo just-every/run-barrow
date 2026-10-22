@@ -1,7 +1,7 @@
 // ORD-014: named per-line CSV layouts over immutable confirmation fields.
 import { audit, commit } from './access'
 import { fail, requireSupplier, text, type Actor } from './model'
-export const confirmationColumns = ['confirmation','stage','recorded_at','order','order_revision','account','buyer','po','bill_to','ship_to','requested_date','cancel_after','terms_days','currency','sku','description','quantity','unit','base_quantity','base_unit','unit_cents','line_cents','shipping_cents','order_total_cents','limitations'] as const
+export const confirmationColumns = ['confirmation','stage','recorded_at','order','order_revision','account','buyer','po','bill_to','ship_to','requested_date','cancel_after','terms_days','currency','sku','description','quantity','unit','base_quantity','base_unit','unit_cents','line_cents','shipping_cents','order_total_cents','limitations','msrp_cents','margin_bps'] as const
 export type ConfirmationColumn = typeof confirmationColumns[number]
 export type ConfirmationLayout = {id:string;name:string;columns:ConfirmationColumn[];shape:'per-line'}
 export type ConfirmationLayouts = {layouts:ConfirmationLayout[];defaultId:string;revision:string|null}
