@@ -31,14 +31,14 @@ export function LineSheets({accounts,merchant,version,onPrepared}:{accounts:Acco
  const rows=sheet?groupStyles(sheet.items.map(item=>({...item,unitCents:item.unitCents??0})) as CatalogueItem[],sheet.currency).rows:[]
  return <section className="br-stack" aria-label="Seasonal line sheets" ref={root}>
   {error&&<Notice error>{error}</Notice>}
-  <label>Line-sheet account<select value={accountId} onChange={e=>setAccount(e.target.value)} disabled={busy}>{accounts.map(a=><option key={a.id} value={a.id}>{a.value.name}</option>)}</select></label>
+  <label>Line-sheet account<select aria-label="Line-sheet account" value={accountId} onChange={e=>setAccount(e.target.value)} disabled={busy}>{accounts.map(a=><option key={a.id} value={a.id}>{a.value.name}</option>)}</select></label>
   {merchant&&accountId&&<>
    <details className="br-card"><summary>Import recipient price book</summary><form className="br-stack" onSubmit={e=>{e.preventDefault();const csv=String(new FormData(e.currentTarget).get('csv'));void action(async()=>{const account=await request<Account>(`/api/barrow/accounts/by-id/${encodeURIComponent(accountId)}`);await command('price-book.import',{accountId,revision:account.revision,csv});setRefresh(n=>n+1)})}}><label>Price book CSV<textarea name="csv" rows={6} required placeholder={'sku,currency,unitCents,msrpCents,minQty\nJV-2214-S,USD,4800,9600,1'}/></label><p>One currency per recipient book; USD and CAD books are separate. All rows replace this account’s agreed assortment. Blank MSRP means absent. Publish a new sheet after book edits.</p><button disabled={busy}>Import price book</button><a href={`/api/barrow/price-book.csv?accountId=${encodeURIComponent(accountId)}`}>Export price book CSV</a></form></details>
    <details className="br-card"><summary>Publish seasonal line sheet</summary><form className="br-form-grid" onSubmit={e=>void publish(e)}>
     <label>Sheet name<input name="name" required maxLength={100}/></label><label>Season<input name="season" required maxLength={80}/></label>
-    <label>Sheet prices<select name="display"><option value="both">Wholesale and MSRP with margin</option><option value="wholesale">Wholesale only</option><option value="retail">Retail only</option></select></label>
+    <label>Sheet prices<select aria-label="Sheet prices" name="display"><option value="both">Wholesale and MSRP with margin</option><option value="wholesale">Wholesale only</option><option value="retail">Retail only</option></select></label>
     <label>Ship start<input name="shipStart" type="date" required/></label><label>Ship end<input name="shipEnd" type="date" required/></label>
-    <label className="br-full">Variant SKUs<textarea name="skus" required rows={3}/><small>Exact eligible SKUs, separated by commas or whitespace.</small></label>
+    <label className="br-full">Variant SKUs<textarea aria-label="Variant SKUs" name="skus" required rows={3}/><small>Exact eligible SKUs, separated by commas or whitespace.</small></label>
     <label className="br-full">Size runs and fixed assortment packs (optional JSON)<textarea name="packs" rows={5} placeholder={'[{"id":"run","name":"Small to large","kind":"run","lines":[{"sku":"JV-2214-S","quantity":1},{"sku":"JV-2214-M","quantity":2}]}]'}/></label>
     <button disabled={busy}>Publish for this account</button><p>Only this account’s signed-in purchasers and its authorized supplier staff may open the share. Publishing freezes these prices, columns and revision; availability stays live.</p>
    </form></details>
