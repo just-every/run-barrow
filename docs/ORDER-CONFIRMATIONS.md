@@ -10,7 +10,7 @@ The same signed-in people who can read an order can list and download its confir
 
 Numbers increase per order. The snapshot keeps the exact order revision, buyer/account, PO, bill-to and ship-to, requested and cancel dates, payment terms, selling-unit lines and conversions, agreed currency and integer cents, delivery method/charge/window where recorded, and total. Later account, price, address, reservation or cancellation changes never rewrite it. Where the account's ORD-015 sales terms were accepted at submission, the snapshot also copies the accepted terms text and the acceptance record (version, how, who, when, printed name and signature digest), so a later terms version never changes it. Confirmation revisions link from the order timeline. Commercial JSON and `confirmations.csv` exports retain the snapshots and download paths; owner archives retain the same records.
 
-Seller legal identity, product images, explicit style/color/size attributes, MSRP, commercial edit revisions, confirmation email delivery, matrix export layouts and grouped style/color/size production spreadsheets remain required by ORD-014. The clause stays partial. Downloads label absent facts; they do not infer them.
+Seller legal identity, product images, explicit style/color/size attributes, commercial edit revisions, confirmation email delivery, matrix export layouts and grouped style/color/size production spreadsheets remain required by ORD-014. The clause stays partial. Downloads label absent facts; they do not infer them.
 
 ## Bulk per-line CSV
 
@@ -21,3 +21,5 @@ Choose an existing named layout or use the installation default, then download o
 The corresponding authenticated HTTP doors are `POST /api/barrow/confirmations/selection` with `{ "orderIds": ["ORDER_ID"] }` and `POST /api/barrow/confirmations/export.csv` with `{ "confirmations": [{ "orderId": "ORDER_ID", "number": 1 }], "layout": "LAYOUT_ID" }`. Omit `layout` for the current default. Existing individual-confirmation account authority applies to every selected order; agents are refused, and explicit layout selection is supplier-only. Browser POSTs use the installation origin.
 
 Named layouts, including their default and column order, are managed in the confirmation controls and retained in archives. Bulk per-line CSV is available; season records/filtering, matrix shapes and grouped style/color/size production totals remain unimplemented. ORD-014 remains partial.
+
+PRI-008 records optional variant MSRP and separate confirmation-PDF/order-CSV price display preferences with the prepared order. Each confirmation freezes them. Wholesale-only omits MSRP and margin; retail-only omits wholesale unit/line price columns; both includes exact MSRP and gross margin. Every order total remains wholesale. See [line sheets and retail prices](LINE-SHEETS.md).

@@ -1,6 +1,6 @@
 # Selling units and exact quantities
 
-An account's agreed SKU price is the price of one stock unit reported by Pier. In **Accounts → Edit account → Selling units**, add optional selling-unit definitions for that account. A definition gives a code, the exact conversion to Pier stock units, the price in USD cents and a description of its pack contents:
+An account's agreed SKU price is the price of one stock unit reported by Pier. In **Accounts → Edit account → Selling units**, add optional selling-unit definitions for that account. A definition gives a code, the exact conversion to Pier stock units, the price in integer minor units of the account book’s USD or CAD currency and a description of its pack contents:
 
 ```json
 [{"sku":"TEE-1","units":[{"code":"case","baseQuantity":"12","unitCents":11000,"packContents":"12 tees per case"},{"code":"yard","baseQuantity":"0.9144","unitCents":333,"packContents":"0.9144 meters per yard","quantityKind":"measured"}]}]
