@@ -12,7 +12,7 @@ export function decimal(value: string): bigint {
  const [whole,fraction='']=value.split('.')
  return BigInt(whole)*SCALE+BigInt(fraction.padEnd(6,'0'))
 }
-function format(value: bigint) { return `${value/SCALE}${value%SCALE ? '.'+(value%SCALE).toString().padStart(6,'0').replace(/0+$/,'') : ''}` }
+export function format(value: bigint) { return `${value/SCALE}${value%SCALE ? '.'+(value%SCALE).toString().padStart(6,'0').replace(/0+$/,'') : ''}` }
 function origin(env: Bindings) {
  if(!env.PIER_ORIGIN || !env.PIER_SESSION) fail('PIER_UNAVAILABLE','Connect a Pier installation before browsing stock or approving orders.',503)
  let url: URL
@@ -105,6 +105,9 @@ export async function pierOrder(env: Bindings,order: Order) {
  if(!found || !Array.isArray(found.lines)) fail('PIER_ORDER','The recorded Pier order is missing. Check the stock desk.')
  return found
 }
+/** REP-005: a visit's sample request travels to Pier as one sales order under its durable visit identity, so a retry
+ * replays Pier's first outcome; Pier stays the only stock ledger and its reservation result is the acknowledgment. */
+export const handOffSamples = (env: Bindings,visitId: string,customerId: string,lines: { itemId: string; quantity: string }[]) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-sample-${visitId}`,type:'order.create',payload:{customerId,lines}}).then(value=>value.result), () => ({ id: `pier-sample-${visitId}`, reference: `SO-SAMPLE-${visitId.slice(0, 8)}`, lines: lines.map(line => ({ itemId: line.itemId, quantity: line.quantity, reserved: line.quantity, cancelled: '0' })) }))
 /** One durable release identity per order; a retry repeats the identical command so Pier replays its first outcome. */
 export const releaseOrder = (env: Bindings,order: Order) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-release-${order.id}`,type:'order.cancel',payload:{orderId:order.pierOrderId,reason:order.release!.reason}}).then(value=>value.result), () => demoRelease(order))
 /** Released means Pier holds no reservation for the order and every unshipped unit is cancelled. */

@@ -36,6 +36,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
  if(method==='GET'&&relative==='locations')return
+ if(method==='GET'&&relative==='visits'&&(selling.includes(role)||role==='operations'))return // REP-005: scoped per account by the read itself
  if(method==='GET'&&relative==='sales-terms')return
  if(selling.includes(role)&&method==='GET'&&/^statements\/[-a-zA-Z0-9._:]+?(?:\.(csv|pdf))?$/.test(relative))return // REP-001: balances of accounts held today; account() scopes the read
  if(method==='GET'&&/^sales-terms\/[^/]+\/[1-9]\d*\/document$/.test(relative))return
@@ -54,6 +55,7 @@ const commandRoles:Record<string,string[]>={
  'substitution.preview':['sales-manager'],'substitution.propose':['sales-manager'],'substitution.execute':operating,
  'location.save':['sales-manager'],'location.archive':['sales-manager'],
  'rep.assign':['sales-manager'],'rep.cover':['sales-manager'],'rep.end':['sales-manager'],'rep.transfer':['sales-manager'],
+ 'visit.schedule':selling,'visit.record':selling,'visit.samples':selling,'visit.basket':selling,'visit.handoff':operating,
  'followup.refresh':['sales-manager','rep','operations','finance'],'followup.update':['sales-manager','rep','operations','finance'],
  'report.remove-recipient':['sales-manager','rep','operations','finance','analyst'],
 }
@@ -63,7 +65,7 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
  const grant=actor.staff
  if(!commandRoles[type]?.includes(grant.role))return denied(env,actor,type)
  if(['terms.publish','commission.settings','rep.assign','rep.cover','rep.end','rep.transfer'].includes(type)&&grant.accounts!=='all')return denied(env,actor,type)
- if(['order.approve','order.refresh','order.cancel','substitution.execute'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
+ if(['order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
  let accountId=typeof p.accountId==='string'?p.accountId:undefined
  for(const [key,table] of [['orderId','bw_orders'],['quoteId','bw_quotes'],['listId','bw_lists'],['id','bw_followups']] as const){
   if(typeof p[key]!=='string'||key==='id'&&!type.startsWith('followup.'))continue

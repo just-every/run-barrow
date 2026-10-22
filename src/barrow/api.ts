@@ -40,6 +40,7 @@ import { financeCsv, financeReport } from './finance-report'
 import { followupCommand, readFollowups } from './followups'
 import { readApprovalNotices } from './approval-notices'
 import { approvalEscalationCommand } from './approval-escalation'
+import { readVisits, visitCommand } from './visits'
 import { locationCommand, readLocations } from './locations'
 import { quoteAttachment, quoteCommand, quoteResponse, readQuotes } from './quotes'
 import { statementResponse } from './statements'
@@ -130,6 +131,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
   if(path==='/api/barrow/followups' && request.method==='GET') return json(await readFollowups(env,actor,url.searchParams))
   if(path==='/api/barrow/approval-notices' && request.method==='GET') return json(await readApprovalNotices(env.DB,actor))
+  if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
   if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
   if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
@@ -228,6 +230,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['list.save','list.duplicate','list.delete'].includes(body.type)) result=await listCommand(env.DB,actor,body.type,body.payload)
    else if(body.type==='quote-mail.dispatch') result=await quoteMailCommand(env,actor,body.type,body.payload)
    else if(body.type==='approval.escalate') result=await approvalEscalationCommand(env,actor)
+   else if(['visit.schedule','visit.record','visit.samples','visit.basket','visit.handoff'].includes(body.type)) result=await visitCommand(env,actor,body.type,body.payload)
    else if(['quote.request','quote.propose','quote.approve','quote.accept','quote.message','quote.read'].includes(body.type)) result=await quoteCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
    if(body.type.startsWith('quote.') && body.type!=='quote.read') await dispatchQuoteMail(env)
