@@ -8,12 +8,14 @@ import { current, audit, changed, commit } from './access'
 import { accountCommand, prepareAccountSave } from './accounts'
 import { applicationLocationStatements } from './application-locations'
 import { applicationDocumentReason } from './application-document-policy'
+import { readDocument } from './documents'
 import { fail, Problem, text, type Actor } from './model'
 import { applicationRow, applicationValue, applicationView, applicationEvent, applicationDuplicates, purgeUnverified, type ApplicationRow } from './application-records'
 import { applicationTaskStatements } from './application-followup'
 import { sendApplicationStatus } from './application-mail'
 import { formToken, spamCheck, applicationsOpen, sendApplicationCode, applicant, verifyApplication } from './application-auth'
 const json=(value:unknown,headers:Record<string,string>={})=>Response.json(value,{headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...headers}})
+const docStatement=(env:Bindings,id:string,doc:Awaited<ReturnType<typeof readDocument>>,at:string)=>env.DB.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),id,doc.name,doc.type,doc.size,doc.sha256,doc.contentBase64,at)
 const rowGuard=(env:Bindings,row:ApplicationRow)=>env.DB.prepare('UPDATE bw_applications SET revision=revision WHERE id=? AND revision=? AND state=?').bind(row.id,row.revision,row.state)
 async function applicationActor(request: Request, env: Bindings, ownDocument?: string) {
  const actor = await current(request, env).catch(error => {
@@ -36,15 +38,14 @@ export async function applicationResponse(request:Request,env:Bindings):Promise<
  if(!path.startsWith('/api/barrow/applications'))return null
  await purgeUnverified(env)
  if(!['GET','HEAD'].includes(request.method)&&request.headers.get('origin')!==env.AUTH_ORIGIN)fail('ORIGIN','Use this installation’s application page.',403)
- if(path==='/api/barrow/applications/form'&&request.method==='GET')return json({open:applicationsOpen(env),formToken:await formToken(env),supplier:'the supplier',documents:{available:false,reason:applicationDocumentReason},captchaSiteKey:env.TURNSTILE_SECRET?env.TURNSTILE_SITE_KEY??null:null,mail:env.MAIL_PROVIDER==='development'?'development, not delivered':'Verification email required'})
+ if(path==='/api/barrow/applications/form'&&request.method==='GET')return json({open:applicationsOpen(env),formToken:await formToken(env),supplier:'the supplier',documents:{intake:'quarantined',available:false,reason:applicationDocumentReason},captchaSiteKey:env.TURNSTILE_SECRET?env.TURNSTILE_SITE_KEY??null:null,mail:env.MAIL_PROVIDER==='development'?'development, not delivered':'Verification email required'})
  if(path==='/api/barrow/applications'&&request.method==='POST') {
   if(!applicationsOpen(env))fail('APPLICATIONS_CLOSED','Applications are closed: verification mail is not configured.',503)
-  const p=await boundedJson(request,7500000) as any
+  const p=await boundedJson(request,7500000) as any,rate=await spamCheck(request,env,p),value=applicationValue(p)
   if(p.documents!==undefined&&(!Array.isArray(p.documents)||p.documents.length>5))fail('DOCUMENT','Attach at most five application documents.',400)
-  if(p.documents?.length)fail('APPLICATION_DOCUMENTS_UNAVAILABLE',applicationDocumentReason,503)
-  const rate=await spamCheck(request,env,p),value=applicationValue(p)
+  const documents=await Promise.all((p.documents??[]).map((doc:any)=>readDocument(doc,'An application document','application document')))
   const id=crypto.randomUUID(),revision=crypto.randomUUID(),at=new Date().toISOString()
-  await env.DB.batch([rate,env.DB.prepare("INSERT INTO bw_application_intake VALUES(?,?,?,'unverified',NULL,?,?)").bind(id,JSON.stringify({...value,documents:[]}),revision,at,at)])
+  await env.DB.batch([rate,env.DB.prepare("INSERT INTO bw_application_intake VALUES(?,?,?,'unverified',NULL,?,?)").bind(id,JSON.stringify({...value,documents}),revision,at,at)])
   return json({id,state:'unverified',delivery:await sendApplicationCode(env,id,value.email)})
  }
  if(path==='/api/barrow/applications/code'&&request.method==='POST') {
@@ -77,13 +78,10 @@ export async function applicationResponse(request:Request,env:Bindings):Promise<
   const p=await boundedJson(request,1500000) as any,row=await applicant(request,env),revision=crypto.randomUUID(),at=new Date().toISOString()
   if(row.revision!==p.revision)fail('CHANGED','Refresh this application before responding.')
   if(!['submitted','information requested'].includes(row.state))fail('APPLICATION_STATE','This application already has a decision.')
-  if(p.action!=='withdraw') {
-   if(row.state!=='information requested')fail('APPLICATION_STATE','There is no open document request.')
-   fail('APPLICATION_DOCUMENTS_UNAVAILABLE',applicationDocumentReason,503)
-  }
-  const state='withdrawn',reason='Applicant withdrew the application.'
-  const task=await applicationTaskStatements(env.DB,row,'withdrawn',at,'applicant')
-  await env.DB.batch([rowGuard(env,row),changed(env.DB),env.DB.prepare('UPDATE bw_applications SET state=?,revision=?,updated_at=? WHERE id=?').bind(state,revision,at,row.id),...task,applicationEvent(env.DB,row.id,state,reason,'applicant',at),env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),row.id,'applicant','application.withdrawn',at,JSON.stringify({revision,source:'application.respond',reason})),env.DB.prepare('DELETE FROM bw_guard')])
+  const withdraw=p.action==='withdraw',doc=withdraw?null:row.state==='information requested'?await readDocument(p.document,'An application document','application document'):fail('APPLICATION_STATE','There is no open document request.')
+  const state=withdraw?'withdrawn':'submitted',reason=withdraw?'Applicant withdrew the application.':'Applicant supplied the requested document; held in quarantine, not malware-screened.'
+  const task=await applicationTaskStatements(env.DB,row,withdraw?'withdrawn':'answered',at,'applicant')
+  await env.DB.batch([rowGuard(env,row),changed(env.DB),env.DB.prepare('UPDATE bw_applications SET state=?,revision=?,updated_at=? WHERE id=?').bind(state,revision,at,row.id),...(doc?[docStatement(env,row.id,doc,at)]:[]),...task,applicationEvent(env.DB,row.id,state,reason,'applicant',at),env.DB.prepare('INSERT INTO bw_audit VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),row.id,'applicant',doc?'application.document-added':'application.withdrawn',at,JSON.stringify({revision,source:'application.respond',reason})),env.DB.prepare('DELETE FROM bw_guard')])
   return json(await applicationView(env.DB,await applicationRow(env.DB,row.id)))
  }
  const actor=await applicationActor(request,env)

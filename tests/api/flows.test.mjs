@@ -213,7 +213,7 @@ test('trade applicant verification, duplicate-reviewed decisions, quarantined ce
  const h=await installation({https:true,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  const pdf={name:'resale certificate.pdf',contentBase64:Buffer.from('%PDF-1.4 synthetic-barrow-1').toString('base64')};
  const location={name:'Cedar downtown',line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'};
- const input={name:'Cedar Street Pantry',ein:'12-3456789',contactName:'River Buyer',email:'applicant@example.test',phone:'803 555 0101',annualVolumeUsd:90000,locations:[location,{...location,name:'Cedar north',line1:'202 Main Street'}],documents:[],consent:true,website:''};
+ const input={name:'Cedar Street Pantry',ein:'12-3456789',contactName:'River Buyer',email:'applicant@example.test',phone:'803 555 0101',annualVolumeUsd:90000,locations:[location,{...location,name:'Cedar north',line1:'202 Main Street'}],documents:[pdf,{...pdf,name:'business certificate.pdf'}],consent:true,website:''};
  const form=await h.api('/api/barrow/applications/form',undefined,{as:''});assert.equal(form.open,true);
  await h.api('/api/barrow/applications',{...input,formToken:form.formToken},{as:'',status:400});
  assert.equal((await h.db.prepare('SELECT COUNT(*) AS count FROM bw_application_intake').first()).count,0);
@@ -240,19 +240,18 @@ test('trade applicant verification, duplicate-reviewed decisions, quarantined ce
  assert.equal(await h.db.prepare('SELECT id FROM bw_application_intake WHERE id=?').bind(failures.id).first(),null);
  const applicant=await verify(pending.id,input.email);
  const {existingApplicationDocument}=await import('./application-fixture.mjs');
- await existingApplicationDocument(h,pending.id,'resale certificate.pdf');await existingApplicationDocument(h,pending.id,'business certificate.pdf');
- let mine=await h.api('/api/barrow/applications/mine',undefined,applicant);assert.equal(mine.state,'submitted');assert.equal(mine.documents.length,2);
+ await existingApplicationDocument(h,pending.id,'historical certificate.pdf');
+ let mine=await h.api('/api/barrow/applications/mine',undefined,applicant);assert.equal(mine.state,'submitted');assert.equal(mine.documents.length,3);
  assert.equal((await h.api('/api/barrow/state')).accounts.length,0);
  assert.equal((await h.request('/api/barrow/state',applicant)).status,401);
  let row=(await h.api('/api/barrow/applications')).applications.find(r=>r.id===pending.id);
- const submittedRevision=row.revision;
  row=await h.command('application.request-information',{id:row.id,revision:row.revision,reason:'Please attach the missing state certificate.',duplicateReviews:[]});
  mine=await h.api('/api/barrow/applications/mine',undefined,applicant);assert.equal(mine.state,'information requested');assert.ok(mine.history.some(v=>v.reason.includes('missing state certificate')));
- await h.api('/api/barrow/applications/respond',{revision:mine.revision,document:{name:'unsafe.txt',contentBase64:Buffer.from('text').toString('base64')}},{...applicant,status:503});
- const refused=await h.api('/api/barrow/applications/respond',{revision:mine.revision,document:{...pdf,name:'missing state certificate.pdf'}},{...applicant,status:503});assert.equal(refused.error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');
- assert.deepEqual(await h.api('/api/barrow/applications/mine',undefined,applicant),mine,'refusing the document preserves the open request and all metadata');
- await h.api('/api/barrow/applications/respond',{revision:submittedRevision,document:pdf},{...applicant,status:409});
- const doc=await h.request(mine.documents[0].path,applicant);assert.equal(doc.status,503);assert.equal((await doc.json()).error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');assert.equal(mine.documents[0].available,false);assert.match(mine.documentLabels,/Not malware-screened/);
+ await h.api('/api/barrow/applications/respond',{revision:mine.revision,document:{name:'unsafe.txt',contentBase64:Buffer.from('text').toString('base64')}},{...applicant,status:400});
+ mine=await h.api('/api/barrow/applications/respond',{revision:mine.revision,document:{...pdf,name:'missing state certificate.pdf'}},applicant);assert.equal(mine.documents.length,4);assert.equal(mine.state,'submitted');
+ assert.ok(mine.documents.every(d=>d.available===false&&d.screening==='not malware-screened'));
+ await h.api('/api/barrow/applications/respond',{revision:mine.revision,document:pdf},{...applicant,status:409});
+ const doc=await h.request(mine.documents[0].path,applicant);assert.equal(doc.status,503);assert.equal((await doc.json()).error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');assert.match(mine.documentLabels,/Not malware-screened/);
  assert.equal((await h.request(mine.documents[0].path,{as:''})).status,401);
  const grant=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${grant.token}`}};
  assert.equal((await h.request(mine.documents[0].path,agent)).status,403);
@@ -263,7 +262,7 @@ test('trade applicant verification, duplicate-reviewed decisions, quarantined ce
  assert.equal((await h.api('/api/barrow/applications/mine',undefined,declined)).state,'declined');
  assert.equal((await h.request(mine.documents[0].path,declined)).status,401);
  row=(await h.api('/api/barrow/applications')).applications.find(r=>r.id===pending.id);
- row=await h.command('application.approve',{id:row.id,revision:row.revision,reason:'Trade requirements reviewed; approve without accepting the requested certificate.',duplicateReviews:[],account:{pierCustomerId:products.customer.id,termsDays:30,minimumCents:0,prices:[{sku:'OAT-1',unitCents:6500,minQty:2}]}});
+ row=await h.command('application.approve',{id:row.id,revision:row.revision,reason:'Trade requirements met; approve while supplied certificates remain quarantined.',duplicateReviews:[],account:{pierCustomerId:products.customer.id,termsDays:30,minimumCents:0,prices:[{sku:'OAT-1',unitCents:6500,minQty:2}]}});
  assert.equal(row.invitationRequestedTo,input.email);assert.equal(row.state,'approved');
  assert.equal((await h.api('/api/barrow/applications/mine',undefined,applicant)).state,'approved');
  const invitation=h.mail.requests.findLast(r=>r.message.to.includes(input.email)&&r.message.subject!=='Verify your trade application').message;
@@ -288,7 +287,7 @@ test('trade applicant verification, duplicate-reviewed decisions, quarantined ce
  await h.command('usage.accept',{version:first.version,sha256:first.sha256,accepted:true},{...buyer,status:409});
  await h.command('usage.accept',{version:second.version,sha256:second.sha256,accepted:true},buyer);
  const usage=await h.api('/api/barrow/usage-terms',undefined,buyer);assert.equal(usage.accepted.version,second.version);assert.ok(usage.accepted.accepted_at);assert.equal(usage.accepted.sha256,second.sha256);
- const exported=await h.api('/api/barrow/export.json');assert.equal(exported.applications.length,2);assert.equal(exported.applicationdocuments.filter(d=>d.applicationId===row.id).length,2);assert.ok(exported.applicationdocuments.every(d=>d.available===false&&d.screening==='not malware-screened'));
+ const exported=await h.api('/api/barrow/export.json');assert.equal(exported.applications.length,2);assert.equal(exported.applicationdocuments.filter(d=>d.applicationId===row.id).length,4);assert.ok(exported.applicationdocuments.every(d=>d.available===false&&d.screening==='not malware-screened'));
  const own=await h.api('/api/barrow/export.json',undefined,buyer);assert.deepEqual(own.applications.map(v=>v.id),[row.id]);assert.ok(!JSON.stringify(own).includes('declined@example.test'));
  const commercialDraft=await h.command('order.prepare',{accountId:row.accountId,lines:[{sku:'OAT-1',quantity:2}]},buyer);await h.command('order.submit',{orderId:commercialDraft.id},buyer);await h.command('account.erase',{accountId:row.accountId,confirm:'ERASE'},{status:409});assert.equal((await h.request(mine.documents[0].path,applicant)).status,503);
  const policy=await h.command('retention.settings',{revision:null,days:{poDocuments:null,media:null,messages:null,commercialHistory:null,applicationRecords:1},reason:'Review declined applications after one day.'});
@@ -301,9 +300,12 @@ test('trade applicant verification, duplicate-reviewed decisions, quarantined ce
  assert.equal((await h.request('/api/barrow/applications/mine',declined)).status,401);
  const after=await archive(h);assert.ok(!JSON.stringify(after).includes('declined@example.test'));
  const target=await installation();t.after(()=>target.close());await restore(target,before,{status:400,laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal}});
- await restore(target,after);
- const restored=(await target.api('/api/barrow/applications')).applications.find(v=>v.id===row.id);assert.deepEqual(restored.documents,mine.documents);assert.match(restored.documentLabels,/Not malware-screened/);
- const quarantined=await target.api(mine.documents[0].path,undefined,{status:503});assert.equal(quarantined.error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');
+ // A refused stale import remains active; use a separate installation for a successful current restore.
+ await target.close();
+ const restoredTarget=await installation();t.after(()=>restoredTarget.close());await restore(restoredTarget,after);
+ const restored=(await restoredTarget.api('/api/barrow/applications')).applications.find(v=>v.id===row.id);assert.deepEqual(restored.documents,mine.documents);assert.match(restored.documentLabels,/Not malware-screened/);
+ for(const document of restored.documents){const held=await restoredTarget.api(document.path,undefined,{status:503});assert.equal(held.error.code,'APPLICATION_DOCUMENTS_UNAVAILABLE');}
+ for(const content of [pdf.contentBase64,Buffer.from(pdf.contentBase64,'base64').toString()])assert.equal(JSON.stringify(h.mail.requests).includes(content),false);
  assert.ok(JSON.stringify(await h.api('/api/barrow/audit?search=application')).includes('application.approved'));
  await h.configure({MAIL_API_KEY:''});await h.api('/api/barrow/applications',{...input,formToken:form.formToken},{as:'',status:503});
 });

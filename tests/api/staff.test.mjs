@@ -272,7 +272,7 @@ test('functional application reviewers: all-account managers decide, finance rea
  const h=await installation({https:true});t.after(()=>h.close());
  await h.command('account.save',{id:'cedar',value:accountValue('synthetic-barrow-302')});
  const {verifiedApplication}=await import('./application-fixture.mjs');
- const {application:submitted,applicant,bytes}=await verifiedApplication(h,{existingDocument:true});
+ const {application:submitted,applicant,bytes}=await verifiedApplication(h);
  const grantPerson=async(email,grantPolicy)=>{
   const who={as:await h.signIn(email)};
   const grant=await h.command('staff.invite',{email,name:'Functional reviewer',policy:grantPolicy,reason});

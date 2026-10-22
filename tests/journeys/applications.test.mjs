@@ -21,7 +21,7 @@ test('native trade application, review, private status, usage acceptance and ret
  await form.getByLabel('Company legal name').fill('Cedar Street Pantry');await form.getByLabel('EIN, never a Social Security number').fill('12-3456789');await form.getByLabel('Contact name').fill('River Buyer');await form.getByLabel('Contact email').fill('applicant@example.test');await form.getByLabel('Contact phone').fill('803 555 0101');await form.getByLabel('Expected annual volume in whole USD').fill('90000');
  const address=async index=>{for(const [label,value] of Object.entries({'Location name':index?'Cedar North':'Cedar Downtown','Address line 1':index?'202 Main Street':'101 Main Street',City:'Columbia','US state':'SC','ZIP code':'29201'}))await form.getByLabel(label,{exact:true}).nth(index).fill(value)};
  await address(0);await form.getByRole('button',{name:'Add requested location'}).click();await address(1);
- await expect(form.getByLabel('Resale certificates',{exact:false})).toBeDisabled();
+ await form.getByLabel('Resale certificates',{exact:false}).setInputFiles([{name:'resale.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 synthetic-barrow-1')},{name:'business.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 synthetic-barrow-2')}]);
  assert.equal(await form.locator('[name=website]').isVisible(),false);
  await form.getByRole('checkbox',{name:'Your details and documents go only to the supplier'}).check();await captureWidths(page,'application-form');
  await page.waitForTimeout(3100);await form.getByRole('button',{name:'Submit and request verification code'}).click();await page.getByRole('status').filter({hasText:'Verification accepted'}).waitFor();
@@ -31,9 +31,9 @@ test('native trade application, review, private status, usage acceptance and ret
  await staff.getByRole('button',{name:'Accounts',exact:true}).click();const queue=staff.getByRole('region',{name:'Trade applications'});await queue.getByLabel('Application',{exact:false}).selectOption({label:'Cedar Street Pantry · submitted'});await queue.getByRole('heading',{name:'Cedar Street Pantry · submitted'}).waitFor();await captureWidths(staff,'application-review');
  await queue.getByLabel('Decision reason (shown to applicant)').fill('Please attach the missing state certificate.');await queue.getByRole('button',{name:'Request missing certificate'}).click();await queue.getByRole('heading',{name:'Cedar Street Pantry · information requested'}).waitFor();
  await page.reload();await page.getByText('Status: information requested',{exact:true}).waitFor();await captureWidths(page,'application-information-request');
- assert.equal(await page.getByRole('button',{name:'Answer information request'}).count(),0);
- assert.equal((await h.api('/api/barrow/applications')).applications[0].documents.length,0);
- await staff.reload();await staff.getByRole('button',{name:'Accounts',exact:true}).click();await queue.getByLabel('Application',{exact:false}).selectOption({label:'Cedar Street Pantry · information requested'});await queue.getByLabel('Decision reason (shown to applicant)').fill('Trade requirements reviewed; approve without accepting the requested certificate.');await queue.getByText('Approve and invite buyer',{exact:true}).click();
+ await page.getByLabel('Requested certificate',{exact:false}).setInputFiles({name:'state.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 synthetic-barrow-3')});await page.getByRole('button',{name:'Answer information request'}).click();await page.getByText('Status: submitted',{exact:true}).waitFor();
+ const uploaded=(await h.api('/api/barrow/applications')).applications[0];assert.equal(uploaded.documents.length,3);assert.ok(uploaded.documents.every(d=>d.available===false));
+ await staff.reload();await staff.getByRole('button',{name:'Accounts',exact:true}).click();await queue.getByLabel('Application',{exact:false}).selectOption({label:'Cedar Street Pantry · submitted'});await queue.getByLabel('Decision reason (shown to applicant)').fill('Trade requirements met; approve while supplied certificates remain quarantined.');await queue.getByText('Approve and invite buyer',{exact:true}).click();
  for(const [label,value] of Object.entries({'Exact Pier customer ID':products.customer.id,'Approved SKU (optional)':'OAT-1','Unit price USD cents':'6500','Minimum quantity':'2'}))await queue.getByLabel(label,{exact:true}).fill(value);
  await queue.getByRole('button',{name:'Approve application and request invitation'}).click();await queue.getByRole('heading',{name:'Cedar Street Pantry · approved'}).waitFor();await captureWidths(staff,'application-approved-review');
  await page.reload();await page.getByText('Status: approved',{exact:true}).waitFor();await captureWidths(page,'application-approved-status');
@@ -58,7 +58,7 @@ test('native trade application, review, private status, usage acceptance and ret
 
 test('owner grants functional application review and finance document access, reviewers use their own doors, and revocation closes them at desktop and phone', async t=>{
  const h=await installation({built:true,https:true});t.after(()=>h.close());
- const {application,bytes}=await verifiedApplication(h,{existingDocument:true});
+ const {application,bytes}=await verifiedApplication(h);
  const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const ownerContext=await signedContext(browser,h);t.after(()=>ownerContext.close());const owner=await ownerContext.newPage();await owner.goto(h.origin+'/app');
  if(new URL(owner.url()).pathname==='/setup'){await owner.getByLabel('Your name').fill('Supplier owner');await owner.getByRole('checkbox').check();await owner.getByRole('button',{name:'Finish setup',exact:true}).click()}
