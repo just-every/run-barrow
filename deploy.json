@@ -55,6 +55,11 @@
       "binding": "PIER_SESSION",
       "environment": "PIER_SESSION",
       "optional": true
+    },
+    {
+      "binding": "BARROW_SFTP_SECRETS",
+      "environment": "BARROW_SFTP_SECRETS",
+      "optional": true
     }
   ],
   "platforms": [

@@ -1,3 +1,4 @@
+import { DeltaCutoverReview } from './delta-cutover'
 import { ConfirmationSettings } from './confirmation-settings'
 import { LineSheets } from './line-sheets'
 import { AccountErasure } from './account-erasure'
@@ -185,7 +186,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
-          {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<CutoverReview />}<MoveIn reload={reload} /></>}
+          {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} /></>}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}

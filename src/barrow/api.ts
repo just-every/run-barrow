@@ -1,3 +1,5 @@
+import {createDelta,compareDelta,signoffDelta,readDelta,listDeltas,rollbackDelta} from './imports/delta-session'
+import {runDeltaFeed} from './feeds/session'
 import {agentProposalCommand,listAgentProposals} from './agent-proposals'
 import {createProposalGrant,readProposalGrant,revokeProposalGrant,grantGuard} from './proposal-grants'
 import { readWebhooks,webhookCommand,webhookHistory } from './webhooks'
@@ -69,6 +71,7 @@ import { invoiceCsv } from './invoice'
 import { Problem,fail,requireSupplier,supplier,text } from './model'
 import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport,type PierSkus } from './imports'
 import { previewCutover,applyCutover,listCutovers,readCutover,undoCutover } from './imports/cutover-service'
+import { probeSftp } from './feeds/probe'
 /** MOVE-007: read-only SKU check of the connected Pier catalog; null when Pier cannot be read. */
 async function pierSkus(env:Bindings):Promise<PierSkus> {
  try { const state=await pierState(env); return Array.isArray(state?.items)?new Set(state.items.filter((item:any)=>!item.archived).map((item:any)=>String(item.sku))):null }
@@ -239,6 +242,22 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
   if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
+  if(path==='/api/barrow/feeds/probe'&&request.method==='POST')return json(await probeSftp(env,actor,await boundedJson(request,10000)))
+  if(path==='/api/barrow/cutover/deltas') {
+   if(request.method==='GET')return json(await listDeltas(env,actor))
+   if(request.method==='POST')return json(await createDelta(env,actor,await boundedJson(request,3000000)))
+  }
+  const delta=/^\/api\/barrow\/cutover\/deltas\/([a-f0-9-]+)(?:\/(compare|signoff|rollback|feed\/(?:rehearse|run)))?$/.exec(path)
+  if(delta) {
+   if(request.method==='GET'&&!delta[2])return json(await readDelta(env,actor,delta[1]))
+   if(request.method==='POST') {
+    const input=await boundedJson(request,3000000)
+    if(delta[2]==='compare')return json(await compareDelta(env,actor,delta[1],input))
+    if(delta[2]==='signoff')return json(await signoffDelta(env,actor,delta[1],input))
+    if(delta[2]==='rollback')return json(await rollbackDelta(env,actor,delta[1],input))
+    if(delta[2]?.startsWith('feed/'))return json(await runDeltaFeed(env,actor,delta[1],delta[2]==='feed/rehearse'?'rehearse':'run',input))
+   }
+  }
   if(path.startsWith('/api/barrow/cutover')) {
    if(path==='/api/barrow/cutover'&&request.method==='GET')return json(await listCutovers(env,actor))
    if(path==='/api/barrow/cutover/preview'&&request.method==='POST')return json(await previewCutover(env,actor,await boundedJson(request,3000000)))

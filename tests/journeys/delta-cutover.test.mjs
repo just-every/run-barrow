@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {chromium,expect} from '@playwright/test';
+import {deltaFixture} from '../api/delta-fixture.mjs';
+import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
+
+test('owner reviews delta citations and scoped feed rehearsal, signs cutoff, delivers a new order and preserves shipment dependencies on rollback at desktop and phone',async t=>{
+ const f=await deltaFixture(t,{built:true,https:true}),{h}=f;
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const context=await signedContext(browser,h);t.after(()=>context.close());const page=await context.newPage();await page.goto(h.origin+'/app');
+ if(new URL(page.url()).pathname==='/setup'){await page.getByLabel('Your name').fill('Supplier owner');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Finish setup',exact:true}).click()}
+ await page.getByRole('button',{name:'Move in',exact:true}).click();const region=page.getByRole('region',{name:'Delta cutover and feed rehearsal',exact:true});
+ const card=name=>region.locator('.br-card').filter({has:page.getByRole('heading',{name,exact:true})});
+ const reason=region.getByLabel('Reason and disposition for the next action',{exact:false});
+ const compareConsent=region.getByLabel('I authorize scoped native read-only comparison',{exact:false});
+ const upload=async(name,value,mime)=>{await region.getByLabel(name,{exact:false}).setInputFiles({name:value.name,mimeType:mime,buffer:Buffer.from(value.base64??value.csv,value.base64?'base64':'utf8')});await region.getByText('Retained selection: '+value.name,{exact:true}).waitFor()};
+ await upload('Baseline workbook',f.baseline.workbook,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+ await upload('Ledger export (UTF-8 CSV',f.baseline.ledger,'text/csv');
+ await region.getByLabel('Existing account IDs, separated by commas',{exact:false}).fill('cedar, birch');await region.getByLabel('Stable mapping run ID').fill(f.baseline.runId);await region.getByLabel('Incumbent responsible system').fill(f.baseline.sourceSystem);
+ await reason.fill(f.baseline.reason);await compareConsent.check();await region.getByLabel('Pause new order entry for these accounts',{exact:false}).check();
+ await captureRegionWidths(page,card('Baseline and account scope'),'delta-baseline');
+ await region.getByRole('button',{name:'Create baseline and pause scoped order entry',exact:true}).click();
+ await region.getByRole('heading',{name:'Source changes and reconciliation',exact:true}).waitFor();
+ await upload('Delta workbook',f.delta.workbook,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+ async function compareSource(){await reason.fill(f.delta.reason);await compareConsent.check();await region.getByRole('button',{name:/^(Recompare corrected source and mappings|Compare full source delta)$/}).click();await expect(reason).toHaveValue('')}
+ await compareSource();
+ for(const key of ['accounts:source-a','accounts:source-b'])await region.getByLabel('Target for '+key,{exact:true}).selectOption(f.mappings[key]);
+ await compareSource();
+ for(const [key,value] of Object.entries(f.mappings)){const select=region.getByLabel('Target for '+key,{exact:true});if(await select.inputValue()!==value)await select.selectOption(value)}
+ if(await region.getByText('The displayed comparison is stale.',{exact:false}).count())await compareSource();
+ const changedRow=region.getByRole('row').filter({hasText:'orders:order-a'}).filter({has:page.getByText('changed',{exact:true})});await expect(changedRow).toContainText('quantity');
+ await captureRegionWidths(page,card('Source changes and reconciliation'),'delta-edited-source');
+ const feed=card('SFTP feed rehearsal and delivery');await reason.fill('Owner authorizes reading the scoped merchant ERP source files.');
+ for(const [label,key] of [['SFTP host','host'],['SFTP username','username'],['Server credential reference','secretId'],['Pinned host key (SHA256 fingerprint)','hostKey'],['Import directory','importDirectory'],['Order export directory','exportDirectory'],['Acknowledgment directory','ackDirectory']])await feed.getByLabel(label,{exact:true}).fill(String(f.config.connection[key]));
+ await feed.getByLabel('SFTP port',{exact:true}).fill(String(f.config.connection.port));await feed.getByLabel('Download layout',{exact:true}).selectOption(f.config.layoutId);
+ await feed.getByLabel('I authorize SFTP reads from this server',{exact:false}).check();await feed.getByRole('button',{name:'Rehearse feed and save configuration',exact:true}).click();
+ await expect(feed).toContainText('Accepted rehearsal rows: 1 products, 1 ATS evidence, 2 customers. Unresolved errors: 0.');assert.deepEqual(await f.files(),[]);
+ await captureRegionWidths(page,feed,'delta-isolated-feed');
+ await reason.fill('Owner reviewed all differences, missing releases and source responsibilities, and approves the source case packs and increments.');await region.getByRole('button',{name:'Set cutoff to now',exact:true}).click();await region.getByLabel('I approve this exact source and feed fingerprint',{exact:false}).check();
+ await captureRegionWidths(page,card('Cutoff and source authority sign-off'),'delta-cutoff-signoff');
+ await region.getByRole('button',{name:'Sign off cutoff and source authorities',exact:true}).click();await expect(region.getByText('Signed off by ',{exact:false})).toBeVisible();
+ let order=await h.command('order.prepare',{accountId:'cedar',reference:'PO-AFTER-OWNER-CUTOFF',lines:[{sku:'OAT-1',quantity:6}]},{as:f.buyer});await h.command('order.submit',{orderId:order.id},{as:f.buyer});order=await h.command('order.approve',{orderId:order.id});
+ await reason.fill('Owner explicitly authorizes delivery of the new accepted order.');await feed.getByLabel('I authorize the signed-off feed’s order export',{exact:false}).check();await feed.getByRole('button',{name:'Run post-cutoff export and acknowledgments',exact:true}).click();
+ await expect(reason).toHaveValue('');const session=(await h.api('/api/barrow/cutover/deltas')).sessions[0],delivery=session.feed.deliveries[0];assert.equal(delivery.orderId,order.id);assert.equal(delivery.state,'sent');assert.equal((await f.files()).length,1);
+ await feed.getByText('Order delivery and acknowledgment journal',{exact:true}).click();await expect(feed).toContainText(order.id);await captureRegionWidths(page,feed,'delta-new-order-delivery');
+ await f.ack(delivery.filename+'.ack.json',{identity:delivery.id,orderId:order.id,orderRevision:delivery.orderRevision,status:'processed'});
+ await reason.fill('Owner reconciles the processed ERP acknowledgment.');await feed.getByLabel('I authorize the signed-off feed’s order export',{exact:false}).check();await feed.getByRole('button',{name:'Run post-cutoff export and acknowledgments',exact:true}).click();await expect(reason).toHaveValue('');
+ const upstream=(await f.pier.api('/api/pier/state')).orders.find(row=>row.id===order.pierOrderId);await f.pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'synthetic-barrow-10',lines:[{orderLineId:upstream.lines[0].id,quantity:'1'}]});
+ const current=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:current.id,revision:current.revision,value:{...current.value,termsDays:45}});
+ await reason.fill('Owner stops bridge exports and preserves the dependent shipment and later native edit.');await region.getByLabel('I explicitly resume native Pier-only order entry',{exact:false}).check();await region.getByRole('button',{name:'Roll back bridge and resume native order entry',exact:true}).click();await expect(reason).toHaveValue('');
+ const rollback=card('Rollback and retained dispositions');await rollback.getByText('Read rollback dispositions and preserved dependencies',{exact:true}).click();await expect(rollback).toContainText('preserved-commercial-dependency');await expect(rollback).toContainText('blocked');await captureRegionWidths(page,rollback,'delta-preserved-rollback');
+ assert.equal((await h.api('/api/barrow/accounts/by-id/cedar')).value.termsDays,45);assert.equal((await h.api('/api/barrow/orders/'+order.id)).pierOrderId,order.pierOrderId);
+ assert.deepEqual(await page.locator('button').evaluateAll(buttons=>buttons.filter(button=>!button.textContent?.trim()).map(button=>button.getAttribute('aria-label'))),[]);
+});

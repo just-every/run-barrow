@@ -11,7 +11,7 @@ import { pierSource } from '../pier-source.mjs';
 export async function installation({pier=false,bindings={},https,built=false,captureLogs=false,networkEdge}={}) {
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
- const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
+ const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
  const logs=[];class CapturedLog extends Log {log(message){logs.push(String(message))}}
  const logger=captureLogs?new CapturedLog(LogLevel.DEBUG):undefined;

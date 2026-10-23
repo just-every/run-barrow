@@ -19,6 +19,7 @@ export interface Bindings {
  DB: D1Database
  PIER_ORIGIN?: string
  PIER_SESSION?: string
+ BARROW_SFTP_SECRETS?: string
  /** Built browser files; hosted deploys run the Worker first (staticAssetResponse). */
  ASSETS?: Fetcher
  RER_DEPLOY_SOURCE?: string

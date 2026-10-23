@@ -2,6 +2,7 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_delta_cutovers')return {...row,...(['rehearsal','signedoff'].includes(row.state)?{state:'inactive'}:{}),io_token:null,io_until:0};
   if(table==='bw_cutover_imports'&&row.state==='active')return {...row,state:'undone'}; // Restored cutover evidence is retained history, never an activation.
   if(table==='bw_agent_proposals'){const value=JSON.parse(row.value_json);return {...row,state:'superseded',value_json:JSON.stringify({...value,state:'superseded'})}};
   if(table==='bw_webhook_deliveries')return {...row,lease_until:0,...(['queued','retrying','sending'].includes(row.state)?{state:'dead-letter',last_result:'Restored history is inactive; external acceptance not acknowledged'}:{})};

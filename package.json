@@ -32,6 +32,7 @@
   "dependencies": {
     "@tanstack/react-router": "1.170.41",
     "@tanstack/react-start": "1.168.60",
+    "edgeport": "1.0.6",
     "fflate": "0.8.3",
     "hono": "4.13.7",
     "react": "19.2.8",
@@ -50,6 +51,7 @@
     "esbuild": "0.28.1",
     "marked": "18.1.1",
     "miniflare": "5.20260907.0-alpha",
+    "ssh2": "1.17.0",
     "typescript": "5.9.3",
     "vite": "8.2.2",
     "wrangler": "4.129.1",
