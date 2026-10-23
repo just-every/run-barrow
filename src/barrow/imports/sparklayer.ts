@@ -12,18 +12,21 @@ export function parseSparkLayer(input:SparkInput):PlatformSource {
  const tenant=text(input?.tenant,'Source tenant',100),authority=input?.authority,scope=input?.scope
  if(!authority||!['shopify','woocommerce','supplied'].includes(authority.system)||!authority.customers||!authority.products)fail('IMPORT_AUTHORITY','Select the backing store and supply explicit customer and product ID mappings.',400)
  if(!scope||!Array.isArray(scope.filters)||scope.filters.some(f=>typeof f!=='string'||f.length>200)||scope.filters.length>30||typeof scope.fullTenant!=='boolean')fail('IMPORT_SCOPE','Declare export dates, filters and whether the source covers the full tenant.',400)
- for(const date of [scope.from,scope.to])if(date!==null&&(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||new Date(date).toISOString().slice(0,10)!==date))fail('IMPORT_SCOPE','Export dates must be ISO calendar dates or null.',400)
+ for(const date of [scope.from,scope.to])if(date!==null&&(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date))fail('IMPORT_SCOPE','Export dates must be ISO calendar dates or null.',400)
  if(scope.from&&scope.to&&scope.from>scope.to)fail('IMPORT_SCOPE','Export start must precede its end.',400)
  if(!input.activity||!['summary','detailed'].includes(input.activity.mode))fail('IMPORT_MODE','Select summary or detailed activity.',400)
  const columns={...activityColumns,...input.activity.columns},documents=new Map<string,HistoryDocument>()
  const resolve=(map:Record<string,string>,key:string,label:string)=>Object.hasOwn(map,key)&&typeof map[key]==='string'&&map[key]?map[key]:fail('IMPORT_MAPPING',`Unmapped ${label} ${key}; supply an explicit backing-store mapping.`,400)
  for(const {row,fields} of platformCsv(input.activity)) {
+  for(const [key,column] of Object.entries(input.activity.columns??{}))if(!Object.hasOwn(activityColumns,key)||typeof column!=='string'||!Object.hasOwn(fields,column))fail('IMPORT_COLUMNS',`Explicit activity mapping ${key} requires an existing source header.`,400)
   const field=(key:keyof typeof columns,required=false)=>{const value=fields[columns[key]]??'';return required?text(value,`${input.activity.name} row ${row} ${columns[key]}`,200):value}
   const id=field('id',true),accountId=resolve(authority.customers,field('customerId',true),'customer'),rawType=field('type',true).toLowerCase()
   if(!['order','quote'].includes(rawType))fail('IMPORT_TYPE',`Row ${row}: select an order or quote; no purchase type is silently changed.`,400)
   const currency=field('currency',true)
   if(!/^[A-Z]{3}$/.test(currency))fail('IMPORT_CURRENCY','Supply an explicit three-letter source currency.',400)
-  const header={id,accountId,type:rawType as 'order'|'quote',currency,totalCents:sourceMoney(field('total',true),'Document total'),shippingCents:sourceMoney(field('shipping')||'0','Shipping'),status:field('status'),tracking:field('tracking'),date:field('date')}
+  const date=field('date')
+  if(date&&(!/^\d{4}-\d{2}-\d{2}/.test(date)||!Number.isFinite(Date.parse(date))||scope.from&&date.slice(0,10)<scope.from||scope.to&&date.slice(0,10)>scope.to))fail('IMPORT_SCOPE',`Row ${row} falls outside the declared export dates or has an invalid date.`,400)
+  const header={id,accountId,type:rawType as 'order'|'quote',currency,totalCents:sourceMoney(field('total',true),'Document total'),shippingCents:sourceMoney(field('shipping')||'0','Shipping'),status:field('status'),tracking:field('tracking'),date}
   const key=`${rawType}:${id}`,previous=documents.get(key)
   if(previous&&JSON.stringify({...previous,lines:undefined,originals:undefined})!==JSON.stringify(header))fail('IMPORT_JOIN',`Conflicting repeated header ${id}.`,400)
   if(previous&&input.activity.mode==='summary')fail('IMPORT_DUPLICATE',`Summary repeats ${id}.`,400)
@@ -47,6 +50,7 @@ export function parseSparkLayer(input:SparkInput):PlatformSource {
   const rows=platformCsv(file),seen=new Set<string>()
   if(!rows.length||rows.length>100)fail('IMPORT_LIST','A list holds one to 100 lines.',400)
   const lines=rows.map(({fields})=>{
+   for(const [key,column] of Object.entries(file.columns??{}))if(!['sku','quantity'].includes(key)||typeof column!=='string'||!Object.hasOwn(fields,column))fail('IMPORT_COLUMNS',`Explicit list mapping ${key} requires an existing source header.`,400)
    const sku=resolve(authority.products,fields[columns.sku],'list product')
    if(seen.has(sku))fail('IMPORT_DUPLICATE','Resolve duplicate SKUs in the source list.',400)
    seen.add(sku);return {sku,quantity:String(sourceQuantity(fields[columns.quantity],'List quantity'))}
