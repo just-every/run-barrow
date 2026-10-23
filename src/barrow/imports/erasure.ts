@@ -48,5 +48,10 @@ export async function retireAccountImportCustody(db: D1Database, actor: ImportAc
       source: record => emails.some(value => containsExact(record.payload, value)),
       original: bytes => emails.some(value => accountCSVHoldsEmail(bytes, value)),
     },
-  }, input.nativeStatements, context, input.checkpoint);
+  }, [...input.nativeStatements,
+    {sql:"UPDATE bw_platform_imports SET source_json='{}',report_json='{}' WHERE EXISTS(SELECT 1 FROM json_each(scope_json) WHERE value=?)",params:[input.accountId]},
+    {sql:'DELETE FROM bw_import_history WHERE account_id=?',params:[input.accountId]},
+    {sql:'DELETE FROM bw_import_invitations WHERE account_id=?',params:[input.accountId]},
+    {sql:'DELETE FROM bw_import_lists WHERE account_id=?',params:[input.accountId]},
+  ], context, input.checkpoint);
 }

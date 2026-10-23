@@ -1,4 +1,6 @@
 import { refreshCatalogIndex, searchCatalog } from './catalog-search'
+import {inviteWizUser} from './imports/wizcommerce-invitations'
+import {previewPlatform,applyPlatform,readPlatform} from './imports/platform-history'
 import {createDelta,compareDelta,signoffDelta,readDelta,listDeltas,rollbackDelta} from './imports/delta-session'
 import {runDeltaFeed} from './feeds/session'
 import {agentProposalCommand,listAgentProposals} from './agent-proposals'
@@ -268,6 +270,13 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(match&&request.method==='GET'&&!match[2])return json(await readCutover(env,actor,match[1]))
    if(match&&request.method==='POST'&&match[2])return json(await undoCutover(env,actor,match[1]))
   }
+  if(path==='/api/barrow/imports/wizcommerce/invite'&&request.method==='POST')return json(await inviteWizUser(request,env,actor,await boundedJson(request,10000)))
+  if(path==='/api/barrow/imports/wizcommerce'&&request.method==='GET')return json(await readPlatform(env,actor))
+  if(path==='/api/barrow/imports/wizcommerce/preview'&&request.method==='POST')return json(await previewPlatform(env,actor,await boundedJson(request,2000000),'wizcommerce'))
+  if(path==='/api/barrow/imports/wizcommerce/apply'&&request.method==='POST')return json(await applyPlatform(env,actor,await boundedJson(request,2000000),'wizcommerce'))
+  if(path==='/api/barrow/imports/sparklayer'&&request.method==='GET')return json(await readPlatform(env,actor))
+  if(path==='/api/barrow/imports/sparklayer/preview'&&request.method==='POST')return json(await previewPlatform(env,actor,await boundedJson(request,2000000)))
+  if(path==='/api/barrow/imports/sparklayer/apply'&&request.method==='POST')return json(await applyPlatform(env,actor,await boundedJson(request,2000000)))
   if(path.startsWith('/api/barrow/imports')) {
    requireSupplier(actor)
    if(path==='/api/barrow/imports'&&request.method==='GET') return json({jobs:await listAccountImports(env.DB,actor)})
