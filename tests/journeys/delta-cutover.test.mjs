@@ -32,7 +32,7 @@ test('owner reviews delta citations and scoped feed rehearsal, signs cutoff, del
  await captureRegionWidths(page,card('Source changes and reconciliation'),'delta-edited-source');
  const feed=card('SFTP feed rehearsal and delivery');await reason.fill('Owner authorizes reading the scoped merchant ERP source files.');
  for(const [label,key] of [['SFTP host','host'],['SFTP username','username'],['Server credential reference','secretId'],['Pinned host key (SHA256 fingerprint)','hostKey'],['Import directory','importDirectory'],['Order export directory','exportDirectory'],['Acknowledgment directory','ackDirectory']])await feed.getByLabel(label,{exact:true}).fill(String(f.config.connection[key]));
- await feed.getByLabel('SFTP port',{exact:true}).fill(String(f.config.connection.port));await feed.getByLabel('Download layout',{exact:true}).selectOption(f.config.layoutId);
+ await feed.getByLabel('SFTP port',{exact:true}).fill(String(f.config.connection.port));await feed.getByLabel('Download layout',{exact:false}).selectOption(f.config.layoutId);
  await f.write('products.csv','sku,name,unit,casePack,increment\nOAT-1,Toasted oat granola,case,6,2\nBAD-1,Invalid case,case,no,2\n');
  await feed.getByLabel('I authorize SFTP reads from this server',{exact:false}).check();await feed.getByRole('button',{name:'Rehearse feed and save configuration',exact:true}).click();
  await expect(feed).toContainText('Unresolved errors: 1.');await expect(feed).toContainText('Row 3:');await captureRegionWidths(page,feed,'delta-owned-feed-error');
