@@ -1,3 +1,4 @@
+import { readLists } from './lists'
 import { applicationAccess } from './application-access'
 import { staffTaskAllowed } from './staff-access'
 import { requireCompanyRight } from './company-policy'
@@ -14,10 +15,13 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
+ sourcehistory:['id','system','tenant','source_id','document_type','account_id','value_json','content_hash','import_id'],
+ sourceimports:['id','fingerprint','system','tenant','scope_json','source_json','report_json','actor_id','created_at'],
+ lists:['id','accountId','name','shared','createdBy','createdAt','updatedBy','updatedAt','lines','revision'],
  deltafeeds:['session_id','revision','snapshot_json','created_at'],
  deltas:['id','state','revision','fingerprint','source_system','scope_json','source_json','report_json','feed_json','authorities_json','cutoff_at','excluded_order_ids_json','native_watermark_json','created_by','created_at','updated_at','signedoff_by','signedoff_at','reason'],
  deltasources:['session_id','revision','source_json','report_json','created_at'],
@@ -76,7 +80,11 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const deltas=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_cutovers ORDER BY created_at,id').all<any>()).results.map(({io_token,io_until,...row})=>row):undefined
  const deltasources=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_sources ORDER BY created_at,session_id,revision').all<any>()).results:undefined
  const deltafeeds=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_feed_runs ORDER BY created_at,session_id,revision').all<any>()).results:undefined
+ const sourcehistory=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_import_history ORDER BY id').all<any>()).results:undefined
+ const sourceimports=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_platform_imports ORDER BY id').all<any>()).results:undefined
+ const lists=financeOnly?[]:(await Promise.all(ids.map(async id=>{if(!supplier(actor)){try{await requireCompanyRight(env.DB,actor,id,'purchasing')}catch{return []}}return readLists(env.DB,actor,id)}))).flat().map(({mine,creatorName,...row})=>({...row,lines:json(row.lines)}))
  const records = {
+  lists,...(sourcehistory?{sourcehistory,sourceimports}:{}),
   ...(deltas?{deltas,deltasources,deltafeeds}:{}),
   ...(cutovers?{cutovers}:{}),
   ...(reptargets?{reptargets}:{}),

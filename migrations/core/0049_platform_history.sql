@@ -1,0 +1,4 @@
+-- Reviewed incumbent history is inert. Native lists keep only desired quantities.
+CREATE TABLE bw_platform_imports(id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL UNIQUE, system TEXT NOT NULL, tenant TEXT NOT NULL, scope_json TEXT NOT NULL, source_json TEXT NOT NULL, report_json TEXT NOT NULL, actor_id TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE bw_import_history(id TEXT PRIMARY KEY, system TEXT NOT NULL, tenant TEXT NOT NULL, source_id TEXT NOT NULL, document_type TEXT NOT NULL, account_id TEXT NOT NULL, value_json TEXT NOT NULL, content_hash TEXT NOT NULL, import_id TEXT NOT NULL, UNIQUE(system,tenant,source_id,document_type));
+CREATE TABLE bw_import_lists(system TEXT NOT NULL, tenant TEXT NOT NULL, source_id TEXT NOT NULL, list_id TEXT NOT NULL, content_hash TEXT NOT NULL, account_id TEXT NOT NULL, PRIMARY KEY(system,tenant,source_id));
