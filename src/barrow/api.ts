@@ -68,6 +68,7 @@ import { catalogue, pierConfigured, pierState } from './pier'
 import { invoiceCsv } from './invoice'
 import { Problem,fail,requireSupplier,supplier,text } from './model'
 import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport,type PierSkus } from './imports'
+import { previewCutover,applyCutover,listCutovers,readCutover,undoCutover } from './imports/cutover-service'
 /** MOVE-007: read-only SKU check of the connected Pier catalog; null when Pier cannot be read. */
 async function pierSkus(env:Bindings):Promise<PierSkus> {
  try { const state=await pierState(env); return Array.isArray(state?.items)?new Set(state.items.filter((item:any)=>!item.archived).map((item:any)=>String(item.sku))):null }
@@ -238,6 +239,14 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
   if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
+  if(path.startsWith('/api/barrow/cutover')) {
+   if(path==='/api/barrow/cutover'&&request.method==='GET')return json(await listCutovers(env,actor))
+   if(path==='/api/barrow/cutover/preview'&&request.method==='POST')return json(await previewCutover(env,actor,await boundedJson(request,3000000)))
+   if(path==='/api/barrow/cutover/apply'&&request.method==='POST')return json(await applyCutover(env,actor,await boundedJson(request,3000000)))
+   const match=/^\/api\/barrow\/cutover\/([a-f0-9-]+)(\/undo)?$/.exec(path)
+   if(match&&request.method==='GET'&&!match[2])return json(await readCutover(env,actor,match[1]))
+   if(match&&request.method==='POST'&&match[2])return json(await undoCutover(env,actor,match[1]))
+  }
   if(path.startsWith('/api/barrow/imports')) {
    requireSupplier(actor)
    if(path==='/api/barrow/imports'&&request.method==='GET') return json({jobs:await listAccountImports(env.DB,actor)})

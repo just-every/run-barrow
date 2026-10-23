@@ -1,0 +1,31 @@
+# Incumbent cutover source format
+
+The cutover source reader accepts an actual `.xlsx` workbook and a UTF-8 invoice ledger `.csv`. It returns source records, explicit column mapping proposals, missing categories, and both original artifacts with SHA-256 hashes of their exact bytes. It does not activate accounts, post ledger balances, reserve stock, submit orders, or contact providers. The review and approval workflow must reconcile this evidence before applying any change.
+
+Supply `workbook: {name, base64}`, `ledger: {name, csv}`, a stable `runId`, and `scope`, an array of native target account IDs whose records the caller will reconcile. The reader always parses every supplied source category: `accounts`, `variants`, `prices`, `locations`, `orders`, `releases`, `receivables`. Target scope and mapping authorization belong to the reconciliation workflow. Missing or empty sheets are reported in `missing`, rather than treated as evidence of zero activity. A missing reference category prevents its identity join from being checked and must block complete cutover approval; a supplied category with a broken reference is refused.
+
+The first worksheet row and first CSV row contain headers. Sheet and header matching ignores case and surrounding whitespace, and collapses repeated internal whitespace. Other spellings require a fresh export using one of the listed names. Supplying both aliases for the same sheet or column is ambiguous and refused.
+
+| Category | Sheet names | Required headers | Optional headers |
+| --- | --- | --- | --- |
+| accounts | Accounts; Customers | Customer ID / Account ID; Company Name / Customer Name | — |
+| variants | Products; Variants | Product ID / Variant ID; SKU / Product SKU | Product Name / Name |
+| prices | Prices; Price Book; Price Books | Price ID; Customer ID / Account ID; SKU / Product SKU; Currency / Currency Code; Unit Price / Price | — |
+| locations | Locations; Ship To Locations | Location ID / Ship To ID; Customer ID / Account ID; Location Name / Ship To Name | — |
+| orders | Orders; Open Orders | Order ID; Customer ID / Account ID; Currency / Currency Code; Order Total / Total | PO Number / PO Reference; Release Count / Expected Releases; Quantity / Qty |
+| releases | Releases; Order Releases | Release ID; Order ID; Customer ID / Account ID; Currency / Currency Code; Release Total / Total | Release Number / Release No; Quantity / Qty |
+| receivables | CSV ledger, cited as Invoices | Invoice ID / Invoice Number; Customer ID / Account ID; Order ID; Currency / Currency Code; Balance / Outstanding Balance | — |
+
+Semicolons separate columns; slashes list accepted aliases. Unknown worksheet tabs remain in the retained workbook. Additional columns on recognized sheets or in the ledger are retained as inert `originalFields` on each record, including their original headers and values. They are not interpreted as instructions or application settings. Blank data rows are ignored; headers are required even for empty categories.
+
+IDs contain letters, digits, dots, underscores, colons or dashes, start with a letter or digit, and are at most 100 characters. Customer and order references must join by these IDs, never by company name. Different customers may have identical company names. Products must have distinct SKUs. Releases and invoices must match their order's customer and currency. Duplicate source IDs within a category, absent referenced records in supplied categories and ambiguous aliases are refused.
+
+Dollar fields use plain decimal notation, for example `1250.05`, with no grouping separators or currency symbols and at most two decimal places. Signed amounts are preserved, including ledger credits. Currencies are uppercase three-letter codes. Quantities, release numbers and expected release counts are exact nonnegative whole numbers. Numeric XLSX cells are read as their original decimal XML text; dollar values are converted with integer arithmetic and must fit JavaScript's safe integer cents range. Scientific notation, excessive decimal precision, fractional quantities, date/boolean cells and unsafe values are refused. Export formatted IDs as text to preserve leading zeros.
+
+An optional `mappings` object belongs to the reconciliation workflow. Keys such as `accounts:CUST-014` and `orders:ORD-2026-108` assign native target IDs, which may include slash-delimited price IDs. Empty unresolved mappings and `retain-history` dispositions are handled by that workflow. The reader leaves this object for the caller; it does not apply these mappings. The parser never changes source `id`, `accountId` or `orderId`: joins, citations and source totals remain tied to the original exports after mapping corrections. Column proposals are deterministic in category and documented field order, and each records `kind`, `sheet`, target `field` and original `column` header.
+
+Every record cites its original artifact filename, exact-byte SHA-256, sheet and one-based row. XLSX citations use worksheet row numbers; CSV citations use the physical starting line, including when a quoted extra field spans multiple lines. Original CSV bytes, including BOM and line endings, remain unchanged in retained base64.
+
+Limits are 1 MiB of raw workbook bytes (up to 1,398,104 base64 characters), 1 MiB of UTF-8 ledger data, 5000 combined nonblank data rows, 256 columns, 512 ZIP entries, and 8 MiB expanded workbook content. Sparse worksheet addresses are bounded before parsing. Only ordinary, unencrypted, single-part XLSX ZIP archives are accepted. The reader inspects XML before parsing and refuses formula cells, including formulas with cached values, XML entity declarations, macros, embedded objects and external relationships. Export values rather than formulas. The reader never executes macros, formulas or additional source fields.
+
+`Release Count` is an expectation from the source order, not a generated release. A reconciliation report must compare that count with actual joined release rows and name missing releases with the order's citation. The parser does not invent a missing release, balance, account, variant or source artifact.

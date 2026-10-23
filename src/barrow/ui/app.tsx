@@ -24,6 +24,7 @@ import { SalesTerms } from './sales-terms'
 import { DraftWorkspace } from './draft-workspace'
 import { Orders } from './orders'
 import { MoveIn } from './move-in'
+import { CutoverReview } from './cutover'
 import { CommercialAudit } from './commercial-audit'
 import { DataTools } from './data'
 import { ExportLinks } from './export-links'
@@ -184,7 +185,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
-          {activeTab === 'Move in' && supplier && <MoveIn reload={reload} />}
+          {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<CutoverReview />}<MoveIn reload={reload} /></>}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}

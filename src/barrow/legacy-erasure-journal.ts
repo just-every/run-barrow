@@ -1,3 +1,4 @@
+import { cutoverErasure } from './imports/cutover-custody'
 /** Outside-D1 protection for the erasure doors that predate account redaction. */
 import type { Bindings } from '../auth.server'
 import type { Actor } from './model'
@@ -53,6 +54,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put('UPDATE bw_quote_entries SET author_email=?,body=replace(body,?,?) WHERE author_id=?',email,p.email,email,id)
  }
  if(kind==='unused-account') {
+  statements.push(cutoverErasure(accountId))
   // Retire the source originals and provenance as well as the native account.
   const {retireAccountImportCustody}=await import('./imports/erasure')
   put('DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',accountId)
