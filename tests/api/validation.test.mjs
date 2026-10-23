@@ -142,3 +142,16 @@ test('all Barrow API doors enforce an atomic per-IP fixed-window limit without r
  assert.equal((await h.request('/api/barrow/state',{headers:{'CF-Connecting-IP':ip}})).status,200);
  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM bw_request_rates').first()).n,1);
 });
+
+test('the five-per-hour trade application limit holds when one address submits many applications at once', async t=>{
+ const h=await installation();t.after(()=>h.close());const ip='192.0.2.46';
+ const form=await h.api('/api/barrow/applications/form',undefined,{as:''});await new Promise(resolve=>setTimeout(resolve,3050));
+ const input={name:'Synthetic applicant',noEin:true,contactName:'Synthetic buyer',email:'synthetic-barrow-230@example.test',phone:'803 555 0101',annualVolumeUsd:1000,locations:[{name:'Store',line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'}],consent:true,formToken:form.formToken};
+ const submit=()=>h.request('/api/barrow/applications',{method:'POST',as:'',headers:{'CF-Connecting-IP':ip},body:input});
+ const results=await Promise.all(Array.from({length:8},submit));
+ assert.deepEqual(results.map(row=>row.status).sort(),[200,200,200,200,200,429,429,429]);
+ assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM bw_application_intake').first()).n,5);
+ assert.equal(h.mail.requests.filter(row=>row.message.subject==='Verify your trade application').length,5);
+ const refused=await submit();assert.equal(refused.status,429);assert.equal((await refused.json()).error.code,'SPAM_CHECK');
+ assert.equal((await h.request('/api/barrow/applications',{method:'POST',as:'',headers:{'CF-Connecting-IP':'192.0.2.47'},body:input})).status,200);
+});

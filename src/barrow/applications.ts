@@ -41,11 +41,11 @@ export async function applicationResponse(request:Request,env:Bindings):Promise<
  if(path==='/api/barrow/applications/form'&&request.method==='GET')return json({open:applicationsOpen(env),formToken:await formToken(env),supplier:'the supplier',documents:{intake:'quarantined',available:false,reason:applicationDocumentReason},captchaSiteKey:env.TURNSTILE_SECRET?env.TURNSTILE_SITE_KEY??null:null,mail:env.MAIL_PROVIDER==='development'?'development, not delivered':'Verification email required'})
  if(path==='/api/barrow/applications'&&request.method==='POST') {
   if(!applicationsOpen(env))fail('APPLICATIONS_CLOSED','Applications are closed: verification mail is not configured.',503)
-  const p=await boundedJson(request,7500000) as any,rate=await spamCheck(request,env,p),value=applicationValue(p)
+  const p=await boundedJson(request,7500000) as any,store=await spamCheck(request,env,p),value=applicationValue(p)
   if(p.documents!==undefined&&(!Array.isArray(p.documents)||p.documents.length>5))fail('DOCUMENT','Attach at most five application documents.',400)
   const documents=await Promise.all((p.documents??[]).map((doc:any)=>readDocument(doc,'An application document','application document')))
   const id=crypto.randomUUID(),revision=crypto.randomUUID(),at=new Date().toISOString()
-  await env.DB.batch([rate,env.DB.prepare("INSERT INTO bw_application_intake VALUES(?,?,?,'unverified',NULL,?,?)").bind(id,JSON.stringify({...value,documents}),revision,at,at)])
+  await store(env.DB.prepare("INSERT INTO bw_application_intake VALUES(?,?,?,'unverified',NULL,?,?)").bind(id,JSON.stringify({...value,documents}),revision,at,at))
   return json({id,state:'unverified',delivery:await sendApplicationCode(env,id,value.email)})
  }
  if(path==='/api/barrow/applications/code'&&request.method==='POST') {

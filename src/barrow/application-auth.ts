@@ -23,9 +23,13 @@ export async function spamCheck(request:Request,env:Bindings,p:any) {
  }
  if(p.consent!==true)fail('CONSENT','Consent to application review is required.',400)
  const digest=await signature(env,`intake:${Math.floor(Date.now()/3600000)}:${request.headers.get('CF-Connecting-IP')??'unknown'}`)
- const rate=await env.DB.prepare('SELECT count FROM bw_application_rates WHERE digest=? AND expires_at>?').bind(digest,Date.now()).first<{count:number}>()
- if((rate?.count??0)>=5)fail('SPAM_CHECK','Spam checks limit applications to five per hour. Try later.',429)
- return env.DB.prepare('INSERT INTO bw_application_rates VALUES(?,1,?) ON CONFLICT(digest) DO UPDATE SET count=count+1').bind(digest,Date.now()+3600000)
+ const limited=async()=>{if(((await env.DB.prepare('SELECT count FROM bw_application_rates WHERE digest=? AND expires_at>?').bind(digest,Date.now()).first<{count:number}>())?.count??0)>=5)fail('SPAM_CHECK','Spam checks limit applications to five per hour. Try later.',429)}
+ await limited()
+ // Stores the intake with its hourly slot in one batch: once five are taken the upsert changes no row, the guard refuses and nothing is stored.
+ return async(intake:D1PreparedStatement)=>{
+  try{await env.DB.batch([env.DB.prepare('INSERT INTO bw_application_rates VALUES(?,1,?) ON CONFLICT(digest) DO UPDATE SET count=count+1 WHERE count<5').bind(digest,Date.now()+3600000),env.DB.prepare('INSERT INTO bw_guard VALUES(changes())'),intake,env.DB.prepare('DELETE FROM bw_guard')])}
+  catch(error){await limited();throw error}
+ }
 }
 export const applicationsOpen=(env:Bindings)=>!!env.MAIL_FROM&&((env.MAIL_PROVIDER==='development'&&env.AUTH_LOCAL==='true')||(env.MAIL_PROVIDER==='resend'&&!!env.MAIL_API_KEY))
 export async function sendApplicationCode(env:Bindings,id:string,email:string) {
