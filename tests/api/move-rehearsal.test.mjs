@@ -74,7 +74,7 @@ test('native cutover agent cites workbook and ledger mappings, reconciles missin
  assert.equal(source.source.citation.artifact,'ledger.csv');assert.equal(source.source.citation.row,2);
  assert.equal(corrected.totals.find(row=>row.kind==='receivables'&&row.currency==='USD').sourceQuantity,null);
  assert.equal(source.source.amountCents,10000);assert.ok(source.differences.some(value=>value.includes('10000, target 13000')));
- assert.equal(corrected.proposals.find(row=>row.source.kind==='orders').source.citation.sheet,'Orders');
+ assert.equal(corrected.proposals.find(row=>row.source.kind==='orders').source.citation.sheet,'Order/Quote');
  assert.deepEqual(corrected.totals.filter(row=>row.kind==='receivables').map(row=>[row.currency,row.sourceCents,row.targetCents,row.differenceCents]),[['CAD',14000,0,14000],['USD',10000,13000,-3000]]);
  assert.equal(corrected.provenance.costCents,0);assert.equal(corrected.provenance.contactCount,0);
  const accepted=f.approve(corrected);

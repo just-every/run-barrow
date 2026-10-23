@@ -31,7 +31,7 @@ const layouts: Layout[] = [
   { kind: 'variants', sheets: ['Products', 'Variants'], columns: [column('id', ['Product ID', 'Variant ID'], 'id'), column('sku', ['SKU', 'Product SKU']), column('name', ['Product Name', 'Name'], undefined, true)] },
   { kind: 'prices', sheets: ['Prices', 'Price Book', 'Price Books'], columns: [column('id', ['Price ID'], 'id'), account, column('sku', ['SKU', 'Product SKU']), currency, column('amountCents', ['Unit Price', 'Price'], 'money')] },
   { kind: 'locations', sheets: ['Locations', 'Ship To Locations'], columns: [column('id', ['Location ID', 'Ship To ID'], 'id'), account, column('name', ['Location Name', 'Ship To Name'])] },
-  { kind: 'orders', sheets: ['Orders', 'Open Orders'], columns: [column('id', ['Order ID'], 'id'), account, currency, column('amountCents', ['Order Total', 'Total'], 'money'), column('poNumber', ['PO Number', 'PO Reference'], undefined, true), column('releaseCount', ['Release Count', 'Expected Releases'], 'integer', true), quantity] },
+  { kind: 'orders', sheets: ['Orders', 'Open Orders', 'Order/Quote'], columns: [column('id', ['Order ID', 'Document System ID'], 'id'), account, currency, column('amountCents', ['Order Total', 'Total', 'Total Order Value'], 'money'), column('documentType', ['Type'], undefined, true), column('poNumber', ['PO Number', 'PO Reference', 'Customer PO'], undefined, true), column('releaseCount', ['Release Count', 'Expected Releases'], 'integer', true), quantity] },
   { kind: 'releases', sheets: ['Releases', 'Order Releases'], columns: [column('id', ['Release ID'], 'id'), column('orderId', ['Order ID'], 'id'), account, currency, column('amountCents', ['Release Total', 'Total'], 'money'), column('releaseNumber', ['Release Number', 'Release No'], 'integer', true), quantity] },
   { kind: 'receivables', sheets: ['Invoices'], columns: [column('id', ['Invoice ID', 'Invoice Number'], 'id'), account, column('orderId', ['Order ID'], 'id'), currency, column('amountCents', ['Balance', 'Outstanding Balance'], 'money')] },
 ];
@@ -141,6 +141,7 @@ export async function parseCutoverSource(input: CutoverInput) {
         record[spec.field] = spec.type === 'money' ? money(value, label) : spec.type === 'integer' ? integer(value, label) : spec.type === 'id' ? identity(value, label) : text(value, label, spec.field === 'sku' ? 100 : 500);
         if (spec.type === 'currency' && !/^[A-Z]{3}$/.test(record[spec.field] as string)) fail('CURRENCY', `${label} requires an uppercase three-letter currency code.`);
       }
+      if(record.kind==='orders'&&record.documentType!==undefined&&record.documentType!=='Order')fail('DOCUMENT_TYPE', `${sheet} row ${row.row} is not an Order. Keep quotes in a separate retained source export; never map them as accepted orders.`);
       const key = `${record.kind}:${record.id}`;
       if (sourceKeys.has(key)) fail('DUPLICATE', `${sheet} row ${row.row} repeats a source ID.`);
       sourceKeys.add(key); records.push(record); count++;
