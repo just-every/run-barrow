@@ -89,7 +89,7 @@ export async function createProposalGrant(env: Bindings, actor: Actor, p: Create
   allowedSubstitutes, state: 'active', revision, expiresAt, costLimitCents, spentCostCents: 0, contactLimit, spentContacts: 0,
   reason, createdAt: new Date(at).toISOString(), revokedAt: null, revocationReason: null }
  await commit(env.DB, actor, [activeAccountGuard(env.DB, selected),
-  env.DB.prepare('INSERT INTO bw_agent_tokens(id,digest,actor_id,actor_version,expires_at,scope_kind) VALUES(?,?,?,?,?,'proposal')').bind(id, await digest(token), actor.id, actor.version, expiresAt),
+  env.DB.prepare("INSERT INTO bw_agent_tokens(id,digest,actor_id,actor_version,expires_at,scope_kind) VALUES(?,?,?,?,?,'proposal')").bind(id, await digest(token), actor.id, actor.version, expiresAt),
   env.DB.prepare(`INSERT INTO bw_agent_proposal_grants(id,token_id,authorizer_id,authorizer_version,account_id,account_revision,allowed_substitutes,state,revision,cost_limit_cents,contact_limit,consent_reason,created_at,expires_at)
    VALUES(?,?,?,?,?,?,?,'active',?,?,?,?,?,?)`).bind(id, id, actor.id, actor.version, accountId, selected.revision, JSON.stringify(allowedSubstitutes), revision, costLimitCents, contactLimit, reason, at, expiresAt),
   audit(env.DB, actor, id, 'agent.proposal-granted', { accountId, revision, source: 'agent-proposal.grant', reason: `${reason} Cost cap reserves self-reported external run costs; Barrow model-call cost is zero. No automatic stock or outbound rights.` }),

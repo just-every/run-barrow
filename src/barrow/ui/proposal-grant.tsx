@@ -90,7 +90,7 @@ export function ProposalGrant({ accountId }: { accountId: string }) {
   return <section className="br-card br-stack" aria-label="External agent proposal grants">
     <h3>Let an external agent propose replacements</h3>
     <p>Choose one account and its allowed substitute SKUs. This credential permits proposal submission only. A signed-in manager reviews each exact basket before offering it; buyer acceptance and separate human execution are required.</p>
-    <p className="br-quiet-text">Barrow makes no model calls and spends zero on model inference. External agents report their own costs. The reported-cost cap controls proposal admission in Barrow; it cannot control inference purchased independently by an external agent. Contacts consume one allowance for a buyer offer and up to two for replacement execution.</p>
+    <p className="br-quiet-text">Barrow makes no model calls and spends zero on model inference. External agents report their own costs. The reported-cost cap controls proposal admission in Barrow; it cannot control inference purchased independently by an external agent. Three contact allowances are reserved before an offer, including its potential confirmation emails; unused allowances are not refunded.</p>
     {!accountId && <p>Choose a trade account to review or create its proposal grants.</p>}
     {error && <Notice error>{error}</Notice>}{notice && <Notice>{notice}</Notice>}
     <form className="br-stack" onSubmit={event => { event.preventDefault(); void create() }}>
