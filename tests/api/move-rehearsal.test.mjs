@@ -68,6 +68,7 @@ test('native cutover agent cites workbook and ledger mappings, reconciles missin
  assert.equal((await h.api('/api/barrow/cutover')).imports.length,0);
  assert.deepEqual(await native(),before);
  const corrected=await h.api('/api/barrow/cutover/preview',{...input,mappings:f.mappings});
+ assert.deepEqual([...new Set(corrected.proposals.map(row=>row.source.kind))].sort(),['accounts','locations','orders','prices','receivables','releases','variants']);
  assert.equal(corrected.canApply,true);
  const source=corrected.proposals.find(row=>row.source.kind==='receivables'&&row.source.currency==='USD');
  assert.equal(source.source.citation.artifact,'ledger.csv');assert.equal(source.source.citation.row,2);

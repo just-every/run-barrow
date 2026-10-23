@@ -168,7 +168,7 @@ export function CutoverReview() {
             return <tr key={key}>
               <th scope="row">{key}{source.name && <small>{source.name}</small>}{source.accountId && <small>Source account: {source.accountId}</small>}<JsonDetail value={source} label={`Original source fields for ${key}`} /></th>
               <td>{source.citation.artifact}<small>{source.citation.sheet}, row {source.citation.row}</small><small style={{ overflowWrap: 'anywhere' }}>SHA-256: {source.citation.sha256}</small></td>
-              <td><label>Target for {key}<select value={mappings[key] ?? ''} disabled={busy || sourceChanged || activated || accountChanged} onChange={event => correctMapping(key, event.target.value)}>
+              <td><label>Target for {key}<select aria-label={`Target for ${key}`} value={mappings[key] ?? ''} disabled={busy || sourceChanged || activated || accountChanged} onChange={event => correctMapping(key, event.target.value)}>
                 <option value="">Unresolved — choose a target</option>
                 {source.kind !== 'accounts' && <option value="retain-history">Retain source history only</option>}
                 {proposal.candidates.map(candidate => <option key={String(candidate.id)} value={String(candidate.id)}>{[candidate.name, candidate.sku, candidate.id, candidate.accountId ? `account ${candidate.accountId}` : ''].filter(Boolean).join(' · ')}</option>)}
