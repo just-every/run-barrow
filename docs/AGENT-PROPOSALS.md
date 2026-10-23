@@ -47,9 +47,9 @@ provenance, sources, approvals and safe refusal reasons remain inspectable.
 Document bytes, prose instructions, prices and permissions are not agent tool
 arguments. Strict typed fields and native source reads control effects. A PO
 attachment contributes only its recorded SHA-256; the agent cannot make Barrow
-read or execute document instructions. No document or account data is sent to a
-model provider by Barrow. Any external inference processor is the owner’s
-separate custody.
+read or execute document instructions. Barrow makes no model-provider call. The external agent can read the one
+account the owner explicitly granted, and it and any inference processor have
+separate custody. Scoped credentials cannot download PO bytes.
 
 ## HTTP doors
 
