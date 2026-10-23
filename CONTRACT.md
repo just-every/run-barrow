@@ -373,8 +373,8 @@ Judged from the code and tests at commit `034687f` (21 October 2026). ORD-015 co
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 52 | 22 | 59 | 133 |
-| All | 58 | 22 | 59 | 139 |
+| Target and push further | 52 | 23 | 58 | 133 |
+| All | 58 | 23 | 58 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
