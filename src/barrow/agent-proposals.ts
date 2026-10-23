@@ -46,7 +46,15 @@ async function submit(env: Bindings, actor: Actor, p: any) {
 /** Manager-reviewed offer/execute transitions are atomic with their proposal
  * ledger. Untrusted bearer callers never gain a human stock or contact door. */
 export async function agentProposalCommand(env: Bindings, actor: Actor, type: string, p: any) {
- if (type==='proposal.submit') return submit(env,actor,p)
+ if (type==='proposal.submit') {
+  try{return await submit(env,actor,p)}catch(error){
+   const grant=actor.agent&&actor.grantId?await readProposalGrant(env.DB,actor.grantId):null
+   let refusal=error
+   if(!(error instanceof Problem)&&grant&&Number.isSafeInteger(p.reportedCostCents)&&grant.spentCostCents>grant.costLimitCents-p.reportedCostCents)refusal=new Problem('PROPOSAL_BUDGET','The account’s reported-cost allowance cannot admit this proposal.')
+   if(grant&&refusal instanceof Problem)await commit(env.DB,actor,[audit(env.DB,actor,grant.id,'proposal.input-refused',{accountId:grant.accountId,revision:grant.revision,source:'proposal.submit',reason:`${refusal.code}: structured proposal admission refused; no document instructions, stock effect or outreach were admitted.`})])
+   throw refusal
+  }
+ }
  requirePerson(actor);proposalManager(actor)
  const proposal=await readProposal(env,actor,text(p.id,'Proposal'),integer(p.number,'Proposal number',1))
  if (p.revision!==proposal.revision) fail('PROPOSAL_STALE','Refresh the exact proposal revision before deciding it.')
@@ -55,6 +63,7 @@ export async function agentProposalCommand(env: Bindings, actor: Actor, type: st
   if (type!=='proposal.offer'&&type!=='proposal.execute') fail('COMMAND','Unknown proposal command.',404)
   const grant=await proposalGrant(env,proposal),order=await readOrder(env.DB,actor,proposal.orderId)
   if (type==='proposal.offer') {
+   if(grant.spentContacts>grant.contactLimit-3)fail('PROPOSAL_BUDGET','The account contact allowance cannot admit this complete reviewed offer and its potential confirmation emails.')
    if (proposal.state!=='proposed'||proposal.source.orderRevision!==order.revision) fail('PROPOSAL_STALE','The original order or proposal changed. Withdraw it and review a new revision.')
    const candidate=integer(p.candidate,'Candidate',0,proposal.candidates.length-1),basket=proposal.candidates[candidate]
    proposalManager(actor,basket.totalCents,Math.abs(Math.min(0,basket.merchandiseDifferenceCents)))

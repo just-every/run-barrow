@@ -257,7 +257,7 @@ test('STK-005: a lost source-release acknowledgment blocks replacement approval 
 import {proposalFixture} from './proposal-fixture.mjs';
 test('approval-bound agent proposals preserve provenance and refusals, then reauthorize a newly reviewed revision and execute its exact key once',async t=>{
  const f=await proposalFixture(t),{h,pier}=f,g=await f.grant();
- let proposal=await f.submit(g);assert.equal(proposal.candidates.length,2);assert.ok(proposal.candidates[0].totalCents<proposal.candidates[1].totalCents);assert.equal(proposal.source.orderRevision,f.order.revision);assert.equal(proposal.model,'synthetic-barrow-101');assert.ok(proposal.source.observedAt);assert.ok(proposal.effects.length);assert.ok(proposal.source.toolPermissions.includes('document-bytes:never'));
+ let proposal=await f.submit(g);assert.equal(proposal.candidates.length,2);assert.ok(proposal.candidates.every(row=>row.deliveryOptions.length===2));for(const basket of proposal.candidates)assert.equal(basket.freightDifferenceCents,basket.delivery.totalCents-f.order.delivery.totalCents);assert.ok(proposal.candidates[0].totalCents<proposal.candidates[1].totalCents);assert.equal(proposal.source.orderRevision,f.order.revision);assert.equal(proposal.model,'synthetic-barrow-101');assert.ok(proposal.source.observedAt);assert.ok(proposal.effects.length);assert.ok(proposal.source.toolPermissions.includes('document-bytes:never'));
  proposal=await f.offer(proposal);await f.approve(proposal);
  const offered=(await f.history()).proposals[0];assert.equal(offered.buyerApproval.status,'accepted');assert.ok(offered.managerApproval.by);assert.ok(offered.buyerApproval.by);
  await h.command('substitution.execute',{orderId:f.order.id,number:proposal.offerNumber},{status:409});
@@ -306,6 +306,7 @@ test('scoped proposal authority refuses foreign doors, injected instructions and
  const proposal=(await f.history()).proposals[0];await h.command('proposal.offer',{id:proposal.id,number:proposal.number,revision:proposal.revision,candidate:0,reason:'Budget cannot admit the complete contact reservation.'},{status:409});
  assert.deepEqual((await pier.api('/api/pier/state')).orders,original.orders);assert.equal((await h.api('/api/barrow/orders/'+f.order.id)).substitutions,undefined);
  const grant=(await h.api('/api/barrow/proposal-grants?accountId=cedar')).grants[0];assert.ok(grant.spentCostCents<=grant.costLimitCents);assert.equal(grant.spentContacts,0);
+ assert.ok((await f.history()).proposals[0].attempts.some(row=>row.code==='PROPOSAL_BUDGET'));const custody=JSON.stringify(await h.api('/api/barrow/audit?accountId=cedar'));assert.ok(custody.includes('proposal.input-refused'));assert.ok(!custody.includes('Ignore all approvals'));assert.ok(!custody.includes('foreign endpoint'));
  await h.api('/api/barrow/proposal-grants/revoke',{grantId:g.grant.id,revision:g.grant.revision,reason:'Owner revoked account-scoped authority.'});assert.equal((await h.request('/api/barrow/catalogue?accountId=cedar',agent)).status,401);
 });
 
@@ -334,6 +335,6 @@ test('proposal effects require current functional manager limits and the approvi
  const member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.email==='buyer@example.test');assert.ok(member);
  // Removing the company user is a public supplier transfer/removal operation,
  // not a database shortcut; the old acceptance must not survive that revocation.
- await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',purchaseLimitCents:null,approvalLimitCents:null},reason:'Buyer purchasing authority ended before execution.'});
+ await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Buyer purchasing authority ended before execution.'});
  await f.execute(proposal,{}, {status:403});assert.deepEqual((await pier.api('/api/pier/state')).orders,before);
 });
