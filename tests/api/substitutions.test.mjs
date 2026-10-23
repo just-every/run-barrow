@@ -338,4 +338,9 @@ test('proposal effects require current functional manager limits and the approvi
  // not a database shortcut; the old acceptance must not survive that revocation.
  await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Buyer purchasing authority ended before execution.'});
  await f.execute(proposal,{}, {status:403});assert.deepEqual((await pier.api('/api/pier/state')).orders,before);
+ const prior=await f.withdraw(proposal),current=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.id===member.id);
+ await h.command('company.update',{accountId:'cedar',memberId:current.id,revision:current.revision,policy:{rights:['administrator','purchaser'],locations:'all',perOrderLimitCents:1,approvalLimitCents:null},reason:'The buyer may request purchases but a distinct company approver must release this amount.'});
+ proposal=await f.submit(g,{id:prior.id,number:prior.number,revision:prior.revision});proposal=await f.offer(proposal);const pending=await f.approve(proposal),replacement=pending.substitutions.at(-1).replacementId;
+ assert.equal((await h.api('/api/barrow/orders/'+replacement)).status,'awaiting-company-approval');
+ await f.execute(proposal,{}, {status:409});assert.deepEqual((await pier.api('/api/pier/state')).orders,before,'A pending company decision must preserve the original reservation.');assert.equal((await f.history()).proposals.at(-1).state,'offered');
 });
