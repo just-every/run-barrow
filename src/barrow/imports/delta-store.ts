@@ -50,4 +50,6 @@ export async function deltaCommit(env:Bindings,actor:Actor,statements:D1Prepared
   throw error
  }
 }
-export const deltaAudit = (env:Bindings,actor:Actor,id:string,action:string,revision:string,reason:string) => audit(env.DB,actor,id,action,{revision,source:`cutover.${action}`,reason})
+export const deltaAudit = (env:Bindings,actor:Actor,id:string,action:string,revision:string,reason:string,accountId?:string) => audit(env.DB,actor,id,action,{accountId,revision,source:`cutover.${action}`,reason})
+
+export const deltaScopeAudits=(env:Bindings,actor:Actor,id:string,action:string,revision:string,reason:string,scope:string[])=>scope.map(accountId=>deltaAudit(env,actor,id,action,revision,reason,accountId))

@@ -2,7 +2,7 @@ import {rollbackDeltaUnits} from './delta-units'
 import type { Bindings } from '../../auth.server'
 import { fail, type Actor } from '../model'
 import { now } from '../clock'
-import { sha256, deltaRow, deltaView, deltaRevision, deltaReason, deltaFence, deltaCommit, deltaAudit } from './delta-store'
+import { sha256, deltaRow, deltaView, deltaRevision, deltaReason, deltaFence, deltaCommit, deltaAudit, deltaScopeAudits } from './delta-store'
 
 export async function rollbackDelta(env:Bindings,actor:Actor,id:string,input:{revision:string;reason:string;consent:boolean;resumeNativeOnly:boolean}) {
  const row=await deltaRow(env,actor,id)
@@ -33,8 +33,8 @@ export async function rollbackDelta(env:Bindings,actor:Actor,id:string,input:{re
  const rollback={at,by:actor.id,reason,resumeNativeOnly:true,exportsPaused:true,dispositions}
  await deltaCommit(env,actor,[deltaFence(env,row),guard,accountGuard,...units.guards,...units.statements,
   env.DB.prepare("UPDATE bw_delta_cutovers SET state='rolledback',revision=?,report_json=?,updated_at=?,reason=? WHERE id=?").bind(revision,JSON.stringify({...report,rollback}),at,reason,id),
-  deltaAudit(env,actor,id,'delta.rolledback',revision,reason),
-  ...units.dispositions.filter(item=>item.disposition==='reversed').map(item=>deltaAudit(env,actor,item.id,'delta.units-reversed',revision,reason)),
+  ...deltaScopeAudits(env,actor,id,'delta.rolledback',revision,reason,JSON.parse(row.scope_json)),
+  ...units.dispositions.filter(item=>item.disposition==='reversed').map(item=>deltaAudit(env,actor,item.id,'delta.units-reversed',revision,reason,item.id)),
  ])
  return deltaView({...row,state:'rolledback',revision,report_json:JSON.stringify({...report,rollback}),updated_at:at,reason})
 }

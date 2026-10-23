@@ -2,7 +2,7 @@ import type { Bindings } from '../../auth.server'
 import type { Actor } from '../model'
 import { fail } from '../model'
 import { now } from '../clock'
-import { canonicalJson, deltaRow, deltaView, deltaRevision, deltaReason, deltaFingerprint, deltaFence, deltaCommit, deltaAudit } from './delta-store'
+import { canonicalJson, deltaRow, deltaView, deltaRevision, deltaReason, deltaFingerprint, deltaFence, deltaCommit, deltaAudit, deltaScopeAudits } from './delta-store'
 
 function inspect(value:unknown,depth=0):void {
  if(depth>30)fail('DELTA_FEED','Feed snapshot nesting exceeds the supported limit.',400)
@@ -36,7 +36,7 @@ export async function updateDeltaFeed(env:Bindings,actor:Actor,id:string,snapsho
  const revision=crypto.randomUUID(),at=(await now()).toISOString(),fingerprint=deltaFingerprint(JSON.parse(row.source_json),JSON.parse(row.report_json),feed,row.source_system)
  await deltaCommit(env,actor,[deltaFence(env,row),
   env.DB.prepare('UPDATE bw_delta_cutovers SET revision=?,fingerprint=?,feed_json=?,updated_at=?,reason=? WHERE id=?').bind(revision,fingerprint,JSON.stringify(feed),at,reason,id),
-  deltaAudit(env,actor,id,'delta.feed-rehearsed',revision,reason),
+  ...deltaScopeAudits(env,actor,id,'delta.feed-rehearsed',revision,reason,JSON.parse(row.scope_json)),
  ])
  return deltaView({...row,revision,fingerprint,feed_json:JSON.stringify(feed),updated_at:at,reason})
 }

@@ -29,9 +29,9 @@ export function deltaTotals(previous:CutoverRecord[],next:CutoverRecord[]) {
  }
  return groups.map(group=>{
   const [kind,currency]=group.split('\u0000'),before=previous.filter(row=>row.kind===kind&&(row.currency??'')===currency),after=next.filter(row=>row.kind===kind&&(row.currency??'')===currency)
-  const beforeCents=exact(before.map(row=>row.amountCents??0)),afterCents=exact(after.map(row=>row.amountCents??0)),beforeQuantity=exact(before.map(row=>row.quantity??0)),afterQuantity=exact(after.map(row=>row.quantity??0))
+  const beforeCents=exact(before.map(row=>row.amountCents??0)),afterCents=exact(after.map(row=>row.amountCents??0)),beforeQuantity=before.some(row=>row.quantity===undefined)?null:exact(before.map(row=>row.quantity!)),afterQuantity=after.some(row=>row.quantity===undefined)?null:exact(after.map(row=>row.quantity!))
   return {kind,currency,beforeCount:before.length,afterCount:after.length,beforeCents,afterCents,beforeQuantity,afterQuantity,
-   differenceCents:exact([afterCents,-beforeCents]),quantityDifference:exact([afterQuantity,-beforeQuantity]),
+   differenceCents:exact([afterCents,-beforeCents]),quantityDifference:beforeQuantity===null||afterQuantity===null?null:exact([afterQuantity,-beforeQuantity]),
    citations:after.map(row=>({sourceKey:key(row),...row.citation}))}
  })
 }

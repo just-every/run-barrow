@@ -127,7 +127,7 @@ test('owner rehearses and reconciles a source delta, signs scoped authority and 
  const baselineFingerprint=session.fingerprint;
  session=await h.api(path+'/'+id+'/compare',{...f.delta,revision:session.revision});
  assert.notEqual(session.fingerprint,baselineFingerprint);
- const changed=session.report.changes.find(row=>row.sourceKey==='orders:order-a');assert.equal(changed.change,'changed');assert.equal(changed.before.quantity,2);assert.equal(changed.after.quantity,3);assert.equal(changed.after.citation.sheet,'Order/Quote');
+ const changed=session.report.changes.find(row=>row.sourceKey==='orders:order-a');assert.equal(changed.change,'changed');assert.equal(changed.before.quantity,2);assert.equal(changed.after.quantity,3);assert.equal(changed.after.citation.sheet,'Order/Quote');assert.equal(session.report.deltaTotals.find(row=>row.kind==='orders'&&row.currency==='USD').quantityDifference,1);assert.equal(session.report.deltaTotals.find(row=>row.kind==='receivables'&&row.currency==='USD').afterQuantity,null);
  await f.write('products.csv','sku,name,unit,casePack,increment\nOAT-1,Toasted oat granola,case,6,2\nBAD-1,Invalid case,case,no,2\n');
  session=await h.api(path+'/'+id+'/feed/rehearse',{revision:session.revision,config:f.config,consent:true,reason:'Review the actual ERP source files in isolation.'});
  assert.equal(session.feed.rehearsal.products,1);assert.equal(session.feed.rehearsal.unresolvedErrors,1);
@@ -174,7 +174,7 @@ test('owner rehearses and reconciles a source delta, signs scoped authority and 
  assert.ok(session.report.rollback.dispositions.some(row=>row.kind==='native-unit-mapping'&&row.id==='cedar'&&row.disposition==='blocked'));
  assert.equal((await h.api('/api/barrow/accounts/by-id/birch')).value.prices[0].casePack,undefined);
  const exported=await h.api('/api/barrow/export.json');assert.equal(exported.deltas.find(row=>row.id===id).state,'rolledback');assert.equal(exported.deltasources.filter(row=>row.session_id===id).length,2);assert.equal(JSON.stringify(exported.deltas).includes('synthetic-barrow-2'),false);
- const events=(await h.api('/api/barrow/audit')).events;assert.ok(events.some(row=>row.action==='delta.signedoff'));assert.ok(events.some(row=>row.action==='feed.export-reconciled'));
+ const events=(await h.api('/api/barrow/audit?accountId=cedar')).events;assert.ok(events.some(row=>row.action==='delta.signedoff'));assert.ok(events.some(row=>row.action==='feed.export-reconciled'));const auditCsv=await h.request('/api/barrow/audit.csv?accountId=cedar');assert.equal(auditCsv.status,200);assert.ok((await auditCsv.text()).includes('delta.signedoff'));await h.api('/api/barrow/audit',undefined,{as:f.buyer,status:403});
  await verifiedRequest(h,'cedar');const erasure=await erasurePreview(h);assert.equal(erasure.classes.find(row=>row.kind==='cutover source custody').count,1);await h.command('retention.erase-account',erasurePayload(erasure));
  const erased=await h.api(path+'/'+id);assert.equal(erased.state,'erased');assert.deepEqual(erased.source,{});assert.deepEqual(erased.feed,{});assert.deepEqual(erased.report,{});
  assert.ok((await h.api('/api/barrow/export.json')).deltasources.filter(row=>row.session_id===id).every(row=>row.source_json==='{}'&&row.report_json==='{}'));

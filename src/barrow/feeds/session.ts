@@ -39,7 +39,7 @@ export async function runDeltaFeed(env:Bindings,actor:Actor,id:string,kind:'rehe
   }
   const snapshot=await prepareExports(env.DB,JSON.parse(row.feed_json),{sessionId:id,cutoffAt:row.cutoff_at!,signedoffAt:row.signedoff_at!,excludedOrders:JSON.parse(row.excluded_order_ids_json),accountIds:JSON.parse(row.scope_json)})
   // Retain the immutable destination, identity, exact layout and bytes BEFORE any remote write.
-  await commit(env.DB,actor,[fence(),env.DB.prepare('UPDATE bw_delta_cutovers SET feed_json=? WHERE id=?').bind(JSON.stringify(snapshot),id),audit(env.DB,actor,id,'feed.export-prepared',{revision:row.revision,source:'cutover.feed.run',reason})])
+  await commit(env.DB,actor,[fence(),env.DB.prepare('UPDATE bw_delta_cutovers SET feed_json=? WHERE id=?').bind(JSON.stringify(snapshot),id),...JSON.parse(row.scope_json).map((accountId:string)=>audit(env.DB,actor,id,'feed.export-prepared',{accountId,revision:row.revision,source:'cutover.feed.run',reason}))])
   const claim=async(delivery:FeedDelivery)=>{
    await assertActive()
    const retained=(snapshot.deliveries??[]).find(item=>item.id===delivery.id)
@@ -49,7 +49,7 @@ export async function runDeltaFeed(env:Bindings,actor:Actor,id:string,kind:'rehe
   }
   const completed=await deliverExports(snapshot,env.BARROW_SFTP_SECRETS,{claim,assertActive},(await now()).toISOString())
   const revision=crypto.randomUUID(),at=(await now()).toISOString()
-  await commit(env.DB,actor,[fence(),env.DB.prepare('UPDATE bw_delta_cutovers SET feed_json=?,revision=?,updated_at=?,reason=? WHERE id=?').bind(JSON.stringify(completed),revision,at,reason,id),audit(env.DB,actor,id,'feed.export-reconciled',{revision,source:'cutover.feed.run',reason})])
+  await commit(env.DB,actor,[fence(),env.DB.prepare('UPDATE bw_delta_cutovers SET feed_json=?,revision=?,updated_at=?,reason=? WHERE id=?').bind(JSON.stringify(completed),revision,at,reason,id),...JSON.parse(row.scope_json).map((accountId:string)=>audit(env.DB,actor,id,'feed.export-reconciled',{accountId,revision,source:'cutover.feed.run',reason})),...completed.deliveries.map(delivery=>audit(env.DB,actor,delivery.orderId,'feed.delivery-reconciled',{orderId:delivery.orderId,revision:delivery.orderRevision,source:'cutover.feed.run',reason:`${delivery.state}: ${delivery.error??'Exact retained delivery reconciled'}`}))])
   return deltaView({...row,revision,feed_json:JSON.stringify(completed),updated_at:at,reason})
  } finally {await release()}
 }

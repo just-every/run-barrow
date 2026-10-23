@@ -7,7 +7,7 @@ import { parseCutoverSource, type CutoverInput } from './cutover-source'
 import { previewCutover } from './cutover-service'
 import { cutoverTargets } from './cutover-targets'
 import { deltaChanges, deltaSourceIdentity, deltaTotals } from './delta-report'
-import { canonicalJson, sha256, cutoverOwner, deltaReason, deltaSystem, deltaRevision, deltaRow, deltaView, deltaFingerprint, deltaFence, deltaCommit, deltaAudit, type DeltaInput, type DeltaRow } from './delta-store'
+import { canonicalJson, sha256, cutoverOwner, deltaReason, deltaSystem, deltaRevision, deltaRow, deltaView, deltaFingerprint, deltaFence, deltaCommit, deltaAudit, deltaScopeAudits, type DeltaInput, type DeltaRow } from './delta-store'
 export { updateDeltaFeed } from './delta-feed'
 export { rollbackDelta } from './delta-rollback'
 
@@ -38,7 +38,7 @@ export async function createDelta(env:Bindings,actor:Actor,input:DeltaInput&{fre
  await deltaCommit(env,actor,[overlap,
   env.DB.prepare("INSERT INTO bw_delta_cutovers(id,state,revision,fingerprint,source_system,scope_json,source_json,report_json,created_by,created_at,updated_at,reason) VALUES(?,'rehearsal',?,?,?,?,?,?,?,?,?,?)").bind(id,revision,fingerprint,sourceSystem,scope,JSON.stringify(prepared.source),JSON.stringify(prepared.report),actor.id,at,at,reason),
   env.DB.prepare('INSERT INTO bw_delta_sources(session_id,revision,source_json,report_json,created_at) VALUES(?,?,?,?,?)').bind(id,revision,JSON.stringify(prepared.source),JSON.stringify(prepared.report),at),
-  deltaAudit(env,actor,id,'delta.created',revision,reason),
+  ...deltaScopeAudits(env,actor,id,'delta.created',revision,reason,input.scope),
  ])
  return readDelta(env,actor,id)
 }
@@ -66,7 +66,7 @@ export async function compareDelta(env:Bindings,actor:Actor,id:string,input:Cuto
  await deltaCommit(env,actor,[deltaFence(env,row),
   env.DB.prepare("UPDATE bw_delta_cutovers SET revision=?,fingerprint=?,source_json=?,report_json=?,feed_json='{}',updated_at=?,reason=? WHERE id=?").bind(revision,fingerprint,JSON.stringify(prepared.source),JSON.stringify(prepared.report),at,reason,id),
   env.DB.prepare('INSERT INTO bw_delta_sources(session_id,revision,source_json,report_json,created_at) VALUES(?,?,?,?,?)').bind(id,revision,JSON.stringify(prepared.source),JSON.stringify(prepared.report),at),
-  deltaAudit(env,actor,id,'delta.compared',revision,reason),
+  ...deltaScopeAudits(env,actor,id,'delta.compared',revision,reason,JSON.parse(row.scope_json)),
  ])
  return readDelta(env,actor,id)
 }
@@ -102,8 +102,8 @@ export async function signoffDelta(env:Bindings,actor:Actor,id:string,input:Delt
  const revision=crypto.randomUUID()
  await deltaCommit(env,actor,[deltaFence(env,row),...native.guards,allOrdersFence,...units.guards,...units.statements,
   env.DB.prepare("UPDATE bw_delta_cutovers SET state='signedoff',revision=?,authorities_json=?,cutoff_at=?,excluded_order_ids_json=?,native_watermark_json=?,signedoff_by=?,signedoff_at=?,updated_at=?,reason=? WHERE id=?").bind(revision,JSON.stringify(authorities),input.cutoffAt,JSON.stringify(excludedOrderIds),JSON.stringify(watermark),actor.id,at,at,reason,id),
-  deltaAudit(env,actor,id,'delta.signedoff',revision,reason),
-  ...units.changes.map(change=>deltaAudit(env,actor,change[0],'delta.units-applied',change[3],`Owner approved source case packs and increments at cutoff ${id}: ${reason}`)),
+  ...deltaScopeAudits(env,actor,id,'delta.signedoff',revision,reason,JSON.parse(row.scope_json)),
+  ...units.changes.map(change=>deltaAudit(env,actor,change[0],'delta.units-applied',change[3],`Owner approved source case packs and increments at cutoff ${id}: ${reason}`,change[0])),
  ])
  return readDelta(env,actor,id)
 }
