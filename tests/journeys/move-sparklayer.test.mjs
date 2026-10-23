@@ -16,7 +16,7 @@ test('owner uses an imported SparkLayer list at current prices and explicitly sh
  await captureRegionWidths(page,dialog,'sparklayer-imported-private-list');
  await dialog.getByRole('button',{name:'Share with this account',exact:true}).click();await expect(dialog).toContainText('Shared with this account');await captureRegionWidths(page,dialog,'sparklayer-explicit-shared-list');
  await dialog.getByRole('button',{name:'Add Store replenishment to cart',exact:true}).click();
- const cart=page.getByRole('dialog',{name:'Add Store replenishment to cart',exact:true});await expect(cart).toContainText('$280.00');await captureRegionWidths(page,cart,'sparklayer-current-price-preview');
+ const cart=page.getByRole('dialog',{name:'Add Store replenishment to cart',exact:true});await expect(cart).toContainText(/USD\s+280\.00/);await captureRegionWidths(page,cart,'sparklayer-current-price-preview');
  // The clause's dialogs use visible words for every control; no icon-only control needs a tooltip.
  assert.deepEqual(await cart.locator('button').evaluateAll(buttons=>buttons.filter(b=>!b.textContent?.trim()).map(b=>b.getAttribute('aria-label'))),[]);
  await cart.getByRole('button',{name:'Replace cart',exact:true}).click();await expect(cart).toHaveCount(0);
