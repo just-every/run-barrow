@@ -22,7 +22,13 @@ export async function captureRegionWidths(page,region,name) {
  for(const width of [1440,390]) {
   await page.setViewportSize({width,height:1000});await region.scrollIntoViewIfNeeded();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,`${name} ${width}: horizontal overflow`);
-  await region.screenshot({path:`${directory}/${name}-${width}.png`,animations:'disabled'});
+  // Keep the real sticky navigation above the clipped card, rather than
+  // letting locator.screenshot scroll a tall card underneath that header.
+  const inset=await page.locator('header').first().evaluate(element=>element.getBoundingClientRect().height).catch(()=>0);
+  await page.evaluate(amount=>scrollBy(0,-amount),inset+12);
+  const box=await region.boundingBox(),scroll=await page.evaluate(()=>({x:scrollX,y:scrollY}));
+  assert.ok(box,`${name}: visible card`);
+  await page.screenshot({path:`${directory}/${name}-${width}.png`,clip:{x:box.x+scroll.x,y:box.y+scroll.y,width:box.width,height:box.height},animations:'disabled'});
  }
  await page.setViewportSize({width:1440,height:1000});
 }
