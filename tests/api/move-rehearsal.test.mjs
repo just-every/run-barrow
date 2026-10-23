@@ -116,6 +116,9 @@ test('native cutover agent cites workbook and ledger mappings, reconciles missin
 test('owner rehearses and reconciles a source delta, signs scoped authority and exports only new orders; rollback preserves a dependent shipment',async t=>{
  const {deltaFixture}=await import('./delta-fixture.mjs');const f=await deltaFixture(t,{compatiblePacks:false}),{h,pier}=f;
  const path='/api/barrow/cutover/deltas';
+ const quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},{as:f.buyer});
+ const offeredQuote=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:new Date(Date.now()+7*86400000).toISOString().slice(0,10),lines:[{sku:'OAT-1',quantity:2}]});
+ const offeredSubstitution=await h.command('substitution.propose',{orderId:f.order.id,orderRevision:f.order.revision,lines:[{fromSku:'OAT-1',sku:'OAT-1',quantity:2}],reason:'Owner offered a reviewed alternative basket before the migration hold.'});
  const effects=async()=>({native:await h.api('/api/barrow/orders/'+f.order.id),pier:(await pier.api('/api/pier/state')).orders,mail:h.mail.deliveries.length});
  const before=await effects();
  await h.api(path,{...f.baseline,freezeOrderEntry:false},{status:400});
@@ -124,6 +127,8 @@ test('owner rehearses and reconciles a source delta, signs scoped authority and 
  const prepare=()=>h.command('order.prepare',{accountId:'cedar',reference:'PO-POST-CUTOFF',lines:[{sku:'OAT-1',quantity:6}]},{as:f.buyer});
  await h.command('order.prepare',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},{as:f.buyer,status:409});
  await h.api(path+'/'+id+'/feed/run',{revision:session.revision,consent:true,reason:'No early export allowed.'},{status:409});
+ assert.equal((await h.command('quote.accept',{quoteId:quote.id,number:offeredQuote.revisions.at(-1).number},{as:f.buyer,status:409})).error.code,'CUTOVER_ENTRY_HELD');
+ assert.equal((await h.command('substitution.accept',{orderId:f.order.id,number:offeredSubstitution.substitutions.at(-1).number,acknowledged:true},{as:f.buyer,status:409})).error.code,'CUTOVER_ENTRY_HELD');
  const baselineFingerprint=session.fingerprint;
  session=await h.api(path+'/'+id+'/compare',{...f.delta,revision:session.revision});
  assert.notEqual(session.fingerprint,baselineFingerprint);
