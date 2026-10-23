@@ -36,6 +36,7 @@ export async function updateDeltaFeed(env:Bindings,actor:Actor,id:string,snapsho
  const revision=crypto.randomUUID(),at=(await now()).toISOString(),fingerprint=deltaFingerprint(JSON.parse(row.source_json),JSON.parse(row.report_json),feed,row.source_system)
  await deltaCommit(env,actor,[deltaFence(env,row),
   env.DB.prepare('UPDATE bw_delta_cutovers SET revision=?,fingerprint=?,feed_json=?,updated_at=?,reason=? WHERE id=?').bind(revision,fingerprint,JSON.stringify(feed),at,reason,id),
+  env.DB.prepare('INSERT INTO bw_delta_feed_runs(session_id,revision,snapshot_json,created_at) VALUES(?,?,?,?)').bind(id,revision,JSON.stringify(feed),at),
   ...deltaScopeAudits(env,actor,id,'delta.feed-rehearsed',revision,reason,JSON.parse(row.scope_json)),
  ])
  return deltaView({...row,revision,fingerprint,feed_json:JSON.stringify(feed),updated_at:at,reason})

@@ -14,10 +14,11 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
+ deltafeeds:['session_id','revision','snapshot_json','created_at'],
  deltas:['id','state','revision','fingerprint','source_system','scope_json','source_json','report_json','feed_json','authorities_json','cutoff_at','excluded_order_ids_json','native_watermark_json','created_by','created_at','updated_at','signedoff_by','signedoff_at','reason'],
  deltasources:['session_id','revision','source_json','report_json','created_at'],
  cutovers:['id','fingerprint','scope_json','state','native_fingerprint','source_json','report_json','approved_by','approved_at','reason','undone_by','undone_at'],
@@ -74,8 +75,9 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const cutovers=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_cutover_imports ORDER BY approved_at,id').all<any>()).results:undefined
  const deltas=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_cutovers ORDER BY created_at,id').all<any>()).results.map(({io_token,io_until,...row})=>row):undefined
  const deltasources=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_sources ORDER BY created_at,session_id,revision').all<any>()).results:undefined
+ const deltafeeds=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_feed_runs ORDER BY created_at,session_id,revision').all<any>()).results:undefined
  const records = {
-  ...(deltas?{deltas,deltasources}:{}),
+  ...(deltas?{deltas,deltasources,deltafeeds}:{}),
   ...(cutovers?{cutovers}:{}),
   ...(reptargets?{reptargets}:{}),
   ...applicationRecords,

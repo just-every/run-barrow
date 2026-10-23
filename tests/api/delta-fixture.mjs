@@ -3,9 +3,10 @@ import {join} from 'node:path';
 import {cutoverFixture,cutoverWorkbook} from './cutover-fixture.mjs';
 import {sftpFixture} from './sftp-fixture.mjs';
 
-export async function deltaFixture(t,options={}) {
+export async function deltaFixture(t,{compatiblePacks=true,...options}={}) {
  const f=await cutoverFixture(t,options),sftp=await sftpFixture(t),{h}=f;
  await h.configure({BARROW_SFTP_SECRETS:sftp.secrets});
+ if(compatiblePacks){const native=await h.api('/api/barrow/accounts/by-id/birch');await h.command('account.save',{id:native.id,revision:native.revision,value:{...native.value,prices:native.value.prices.map(price=>({...price,minQty:2}))}})}
  const mapping={products:{sku:'sku',name:'name',unit:'unit',casePack:'casePack',increment:'increment'},customers:{accountId:'accountId',name:'name'},ats:{sku:'sku',warehouse:'warehouse',available:'available',observedAt:'observedAt'}};
  const write=(name,value)=>writeFile(join(sftp.directory,'imports',name),value);
  await write('products.csv','sku,name,unit,casePack,increment\nOAT-1,Toasted oat granola,case,6,2\n');

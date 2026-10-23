@@ -114,7 +114,7 @@ test('native cutover agent cites workbook and ledger mappings, reconciles missin
 });
 
 test('owner rehearses and reconciles a source delta, signs scoped authority and exports only new orders; rollback preserves a dependent shipment',async t=>{
- const {deltaFixture}=await import('./delta-fixture.mjs');const f=await deltaFixture(t),{h,pier}=f;
+ const {deltaFixture}=await import('./delta-fixture.mjs');const f=await deltaFixture(t,{compatiblePacks:false}),{h,pier}=f;
  const path='/api/barrow/cutover/deltas';
  const effects=async()=>({native:await h.api('/api/barrow/orders/'+f.order.id),pier:(await pier.api('/api/pier/state')).orders,mail:h.mail.deliveries.length});
  const before=await effects();
@@ -141,6 +141,11 @@ test('owner rehearses and reconciles a source delta, signs scoped authority and 
  const replay=await h.api(path+'/'+id+'/feed/rehearse',{revision:session.revision,config:f.config,consent:true,reason:'Replay identical files without duplicating the isolated rows.'});assert.equal(replay.revision,session.revision);assert.equal(replay.feed.rehearsal.files.length,session.feed.rehearsal.files.length);
  await h.api(path+'/'+id+'/signoff',{...signoff(),authorities:{}},{status:400});
  const admin={as:await h.signIn('synthetic-barrow-8@example.test','admin')};await h.api(path,undefined,{...admin,status:403});await h.api(path,undefined,{as:f.buyer,status:403});
+ assert.equal((await h.api(path+'/'+id+'/signoff',signoff(),{status:409})).error.code,'ACCOUNT_PRICE_RULE');
+ const nativeBirch=await h.api('/api/barrow/accounts/by-id/birch');await h.command('account.save',{id:nativeBirch.id,revision:nativeBirch.revision,value:{...nativeBirch.value,prices:nativeBirch.value.prices.map(price=>({...price,minQty:2}))}});
+ await h.api(path+'/'+id+'/signoff',signoff(),{status:409});
+ session=await h.api(path+'/'+id+'/compare',{...f.delta,revision:session.revision,reason:'Owner explicitly corrected the native minimum; reapprove the changed native comparison.'});
+ session=await h.api(path+'/'+id+'/feed/rehearse',{revision:session.revision,config:f.config,consent:true,reason:'Rehearse the real source files again against the corrected native minimum.'});
  session=await h.api(path+'/'+id+'/signoff',signoff());assert.equal(session.state,'signedoff');assert.ok(session.excludedOrderIds.includes(f.order.id));assert.deepEqual(session.authorities,f.authorities);
  assert.equal((await h.api('/api/barrow/accounts/by-id/cedar')).value.prices[0].casePack,6);
  await h.command('order.prepare',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},{as:f.buyer,status:409});
@@ -173,9 +178,10 @@ test('owner rehearses and reconciles a source delta, signs scoped authority and 
  await h.api(path+'/'+id+'/feed/run',{revision:session.revision,consent:true,reason:'Rolled-back delivery stays stopped.'},{status:409});assert.deepEqual(await f.files(),names);
  assert.ok(session.report.rollback.dispositions.some(row=>row.kind==='native-unit-mapping'&&row.id==='cedar'&&row.disposition==='blocked'));
  assert.equal((await h.api('/api/barrow/accounts/by-id/birch')).value.prices[0].casePack,undefined);
- const exported=await h.api('/api/barrow/export.json');assert.equal(exported.deltas.find(row=>row.id===id).state,'rolledback');assert.equal(exported.deltasources.filter(row=>row.session_id===id).length,2);assert.equal(JSON.stringify(exported.deltas).includes('synthetic-barrow-2'),false);
+ const exported=await h.api('/api/barrow/export.json');assert.equal(exported.deltas.find(row=>row.id===id).state,'rolledback');assert.ok(exported.deltasources.filter(row=>row.session_id===id).some(row=>JSON.parse(row.source_json).records.find(record=>record.kind==='orders'&&record.id==='order-a').quantity===2));assert.ok(exported.deltafeeds.filter(row=>row.session_id===id).some(row=>JSON.parse(row.snapshot_json).rehearsal.unresolvedErrors===1));assert.equal(JSON.stringify(exported.deltas).includes('synthetic-barrow-2'),false);
  const events=(await h.api('/api/barrow/audit?accountId=cedar')).events;assert.ok(events.some(row=>row.action==='delta.signedoff'));assert.ok(events.some(row=>row.action==='feed.export-reconciled'));const auditCsv=await h.request('/api/barrow/audit.csv?accountId=cedar');assert.equal(auditCsv.status,200);assert.ok((await auditCsv.text()).includes('delta.signedoff'));await h.api('/api/barrow/audit',undefined,{as:f.buyer,status:403});
  await verifiedRequest(h,'cedar');const erasure=await erasurePreview(h);assert.equal(erasure.classes.find(row=>row.kind==='cutover source custody').count,1);await h.command('retention.erase-account',erasurePayload(erasure));
  const erased=await h.api(path+'/'+id);assert.equal(erased.state,'erased');assert.deepEqual(erased.source,{});assert.deepEqual(erased.feed,{});assert.deepEqual(erased.report,{});
+ assert.ok((await h.api('/api/barrow/export.json')).deltafeeds.filter(row=>row.session_id===id).every(row=>row.snapshot_json==='{}'));
  assert.ok((await h.api('/api/barrow/export.json')).deltasources.filter(row=>row.session_id===id).every(row=>row.source_json==='{}'&&row.report_json==='{}'));
 });

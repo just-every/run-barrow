@@ -5,6 +5,7 @@ export function deltaErasure(accountId:string) {
  const scope='EXISTS(SELECT 1 FROM json_each(scope_json) WHERE value=?)'
  return [
   {sql:`INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_delta_cutovers WHERE ${scope} AND io_until>?) THEN 1 ELSE 0 END`,params:[accountId,Date.now()]},
+  {sql:`UPDATE bw_delta_feed_runs SET snapshot_json='{}' WHERE session_id IN (SELECT id FROM bw_delta_cutovers WHERE ${scope})`,params:[accountId]},
   {sql:`UPDATE bw_delta_sources SET source_json='{}',report_json='{}' WHERE session_id IN (SELECT id FROM bw_delta_cutovers WHERE ${scope})`,params:[accountId]},
   {sql:`UPDATE bw_delta_cutovers SET state='erased',revision=lower(hex(randomblob(16))),source_system='[Erased]',source_json='{}',report_json='{}',feed_json='{}',authorities_json='{}',native_watermark_json='{}',reason='[Erased delta source custody]' WHERE ${scope}`,params:[accountId]},
  ]

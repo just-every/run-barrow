@@ -340,6 +340,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   }
   return json({error:{code:'NOT_FOUND',message:'Unknown endpoint.'}},404)
  } catch(error:any) {
+  if(String(error?.message).includes('DELTA_IO_HELD'))return json({error:{code:'CUTOVER_IO_BUSY',message:'A cutover destination run is using this exact order snapshot. Retry after it completes.'}},409)
   if(error?.message==='NATIVE_EDIT_CONFLICT') return json({error:{code:'NATIVE_EDIT_CONFLICT',message:'A native account edit was made after import. Undo stopped and preserved that edit.'}},409)
   if(error instanceof Problem) return json({error:{code:error.code,message:error.message}},error.status)
   // Import diagnostics contain product-authored messages; database/provider errors never escape.

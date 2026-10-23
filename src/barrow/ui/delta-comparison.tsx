@@ -55,7 +55,7 @@ export function DeltaComparison({
             <small style={{ overflowWrap: 'anywhere' }}>{row.citation.sha256}</small>
           </th>
           <td><label>Target for {key}
-            <select value={mappings[key] ?? ''} disabled={busy || !rehearsal || parentChanged || filesChanged} onChange={event => onCorrection(row, event.target.value)}>
+            <select aria-label={`Target for ${key}`} value={mappings[key] ?? ''} disabled={busy || !rehearsal || parentChanged || filesChanged} onChange={event => onCorrection(row, event.target.value)}>
               <option value="">Unresolved</option>
               {row.kind !== 'accounts' && <option value="retain-history">Retain history only</option>}
               {proposal.candidates.map(candidate => <option key={String(candidate.id)} value={String(candidate.id)}>{[candidate.name, candidate.sku, candidate.id].filter(Boolean).join(' · ')}</option>)}

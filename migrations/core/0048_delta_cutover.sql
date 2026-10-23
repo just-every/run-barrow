@@ -28,3 +28,11 @@ CREATE TABLE bw_delta_sources (
  PRIMARY KEY(session_id,revision)
 );
 CREATE INDEX bw_delta_state ON bw_delta_cutovers(state,created_at);
+
+CREATE TABLE bw_delta_feed_runs (
+ session_id TEXT NOT NULL REFERENCES bw_delta_cutovers(id),
+ revision TEXT NOT NULL,
+ snapshot_json TEXT NOT NULL,
+ created_at TEXT NOT NULL,
+ PRIMARY KEY(session_id,revision)
+);
