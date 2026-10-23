@@ -1,3 +1,4 @@
+import { refreshCatalogIndex, searchCatalog } from './catalog-search'
 import {createDelta,compareDelta,signoffDelta,readDelta,listDeltas,rollbackDelta} from './imports/delta-session'
 import {runDeltaFeed} from './feeds/session'
 import {agentProposalCommand,listAgentProposals} from './agent-proposals'
@@ -219,6 +220,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(quote && request.method==='GET') return json(await quoteResponse(env.DB,actor,quote[1]))
   const attachment=/^\/api\/barrow\/quotes\/(Q-\d{1,9})\/attachments\/([-a-f0-9]{36})$/.exec(path)
   if(attachment && request.method==='GET') return await quoteAttachment(env,actor,attachment[1],attachment[2])
+  if(path==='/api/barrow/catalogue/search' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await searchCatalog(env,actor,url.searchParams))}
   if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,await account(env.DB,actor,id)))}
   const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
   if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
@@ -297,6 +299,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
    if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
+   if(body.type==='catalog.refresh')return json({result:await refreshCatalogIndex(env,actor,body.payload)})
    if(body.type==='price-book.import')return json({result:await importPriceBook(env,actor,body.payload)})
    if(['sheet.publish','sheet.revoke','sheet.view','sheet.preview'].includes(body.type))return json({result:await sheetCommand(env,actor,body.type,body.payload)})
    if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})

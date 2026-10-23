@@ -42,11 +42,16 @@ export async function catalogue(env: Bindings,account: Account) {
  const bins=new Map<string,string>(state.locations.filter((l:any)=>l.kind==='bin').map((l:any)=>[l.id,typeof l.warehouse==='string'&&l.warehouse?l.warehouse:'Unnamed warehouse']))
  const allowed=account.value.warehouses?.length?new Set(account.value.warehouses):undefined
  const unconfirmed=await unconfirmedReleases(env,state)
+ const activeItems=new Map<string,any>(state.items.filter((item:any)=>!item.archived).map((item:any)=>[item.sku,item]))
+ const stockByItem=new Map<string,Map<string,bigint>>()
+ for(const position of state.positions) if(position.status==='sellable'&&bins.has(position.locationId)) {
+  const warehouses=stockByItem.get(position.itemId)??new Map<string,bigint>(),warehouse=bins.get(position.locationId)!
+  warehouses.set(warehouse,(warehouses.get(warehouse)??0n)+decimal(position.available));stockByItem.set(position.itemId,warehouses)
+ }
  const items=account.value.prices.flatMap(price=>{
-  const item=state.items.find((i:any)=>i.sku===price.sku && !i.archived)
+  const item=activeItems.get(price.sku)
   if(!item) return []
-  const byWarehouse=new Map<string,bigint>()
-  for(const p of state.positions) if(p.itemId===item.id && p.status==='sellable' && bins.has(p.locationId)) byWarehouse.set(bins.get(p.locationId)!,(byWarehouse.get(bins.get(p.locationId)!)??0n)+decimal(p.available))
+  const byWarehouse=stockByItem.get(item.id)??new Map<string,bigint>()
   const sellable=[...byWarehouse].filter(([name])=>!allowed||allowed.has(name)).reduce((n,[,quantity])=>n+quantity,0n)
   const held=unconfirmed.get(item.id)??0n,available=sellable>held?sellable-held:0n
   const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{}),warehouses:[...byWarehouse].sort(([a],[b])=>a.localeCompare(b)).map(([warehouse,quantity])=>({warehouse,available:format(quantity),promised:!allowed||allowed.has(warehouse)})),incoming:incoming(state,item.id)}
