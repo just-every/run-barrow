@@ -188,7 +188,7 @@ export function BarrowApp() {
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}
-          {activeTab === 'Data' && supplier && <DataTools accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
+          {activeTab === 'Data' && supplier && <DataTools owner={state.actor.role==='owner'} accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
         </>}
       </section></HydrationUnit>
     </main>

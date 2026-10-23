@@ -9,7 +9,7 @@ export async function current(request: Request, env: Bindings): Promise<Actor> {
  const authorization = request.headers.get('authorization')
  if (authorization) {
   if(!authorization.startsWith('Bearer ')) fail('AUTH','Use a current session or Barrow agent credential.',401)
-  const grant = await env.DB.prepare(`SELECT t.id AS grantId,o.id,o.email,o.role,o.version FROM bw_agent_tokens t JOIN oa_operators o ON o.id=t.actor_id WHERE t.digest=? AND t.expires_at>? AND o.status='active' AND o.version=t.actor_version AND o.role IN ('owner','admin')`).bind(await digest(authorization.slice(7)),Date.now()).first<any>()
+  const grant = await env.DB.prepare(`SELECT t.id AS grantId,t.scope_kind AS agentScope,o.id,o.email,o.role,o.version FROM bw_agent_tokens t JOIN oa_operators o ON o.id=t.actor_id WHERE t.digest=? AND t.expires_at>? AND o.status='active' AND o.version=t.actor_version AND o.role IN ('owner','admin')`).bind(await digest(authorization.slice(7)),Date.now()).first<any>()
   if (!grant) fail('AUTH','Agent credential expired or revoked.',401)
   return {...grant,agent:true}
  }

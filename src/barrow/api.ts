@@ -1,3 +1,5 @@
+import {agentProposalCommand,listAgentProposals} from './agent-proposals'
+import {createProposalGrant,readProposalGrant,revokeProposalGrant,grantGuard} from './proposal-grants'
 import { readWebhooks,webhookCommand,webhookHistory } from './webhooks'
 import { importPriceBook, priceBookCsv } from './price-books'
 import { listSheets, readSheet, sheetDownload, sheetCommand } from './line-sheets'
@@ -100,6 +102,15 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
   })
+  const proposalScope=actor.agent&&actor.grantId?await readProposalGrant(env.DB,actor.grantId):null
+  if(actor.agentScope==='proposal'&&!proposalScope)fail('AUTH','The scoped proposal grant is unavailable. A new explicit owner grant is required.',401)
+  if(proposalScope) {
+   try{await env.DB.batch([grantGuard(env.DB,proposalScope),env.DB.prepare('DELETE FROM bw_guard')])}catch{fail('AUTH','This account-scoped proposal grant is no longer current.',401)}
+   const scopedOrder=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
+   if(request.method==='GET'&&path==='/api/barrow/catalogue') {if(url.searchParams.get('accountId')!==proposalScope.accountId)fail('FORBIDDEN','This credential covers one account only.',403)}
+   else if(request.method==='GET'&&scopedOrder) {if((await readOrder(env.DB,actor,scopedOrder[1])).accountId!==proposalScope.accountId)fail('NOT_FOUND','Order not found.',404)}
+   else if(!(request.method==='POST'&&path==='/api/barrow/commands'))fail('FORBIDDEN','This credential may read its account catalogue/orders and submit structured proposals only.',403)
+  }
   actor.staff=await readStaffGrant(env.DB,actor)
   await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
@@ -124,6 +135,18 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    }
    return (await createPortabilityHandler({db:env.DB,policy:portabilityPolicy,appOrigin:env.AUTH_ORIGIN,basePath:'/api/barrow/portability',authorize:async()=>actor.id}))(request)
   }
+  if(path==='/api/barrow/proposal-grants') {
+   if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner manages scoped proposal grants.',403)
+   if(request.method==='POST')return json(await createProposalGrant(env,actor,await boundedJson(request,50000) as any))
+   if(request.method==='GET'){
+    const id=url.searchParams.get('accountId')??'';await account(env.DB,actor,id)
+    const rows=(await env.DB.prepare('SELECT id FROM bw_agent_proposal_grants WHERE account_id=? ORDER BY created_at DESC').bind(id).all<{id:string}>()).results
+    return json({grants:await Promise.all(rows.map(row=>readProposalGrant(env.DB,row.id)))})
+   }
+  }
+  if(path==='/api/barrow/proposal-grants/revoke'&&request.method==='POST')return json(await revokeProposalGrant(env,actor,await boundedJson(request,10000) as any))
+  const proposalHistory=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/agent-proposals$/.exec(path)
+  if(proposalHistory&&request.method==='GET')return json(await listAgentProposals(env,actor,proposalHistory[1]))
   if(path==='/api/barrow/rep-assignments'&&request.method==='GET')return json(await readRepAssignments(env,actor))
   if(path==='/api/barrow/report-schedules' && request.method==='GET')return json(await readReportSchedules(env,actor))
   const reportRun=/^\/api\/barrow\/report-runs\/([a-zA-Z0-9_-]+)\.json$/.exec(path)
@@ -227,7 +250,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/agent-token' && request.method==='POST') {
    requireSupplier(actor)
    const token=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join(''),id=crypto.randomUUID(),expiresAt=Date.now()+7*86400000
-   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_agent_tokens VALUES(?,?,?,?,?)').bind(id,await digest(token),actor.id,actor.version,expiresAt),audit(env.DB,actor,id,'agent.granted',{revision:id,source:'agent-token.create',reason:'Supplier granted seven-day catalog-read and draft-only agent authority.'})])
+   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_agent_tokens(id,digest,actor_id,actor_version,expires_at) VALUES(?,?,?,?,?)').bind(id,await digest(token),actor.id,actor.version,expiresAt),audit(env.DB,actor,id,'agent.granted',{revision:id,source:'agent-token.create',reason:'Supplier granted seven-day catalog-read and draft-only agent authority.'})])
    return json({token,expiresAt})
   }
   if(path==='/api/barrow/agent-token/revoke'&&request.method==='POST') {
@@ -239,10 +262,12 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    // A command carries at most one 1 MB PO document as base64.
    const body=await boundedJson(request,1500000) as any
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
-   if(actor.agent && !['order.prepare','cart.preview','cart.form'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
+   if(proposalScope&&body.type!=='proposal.submit')fail('PERSON_REQUIRED','This scoped credential can submit proposals only; people approve every effect.',403)
+   if(actor.agent && !['order.prepare','cart.preview','cart.form','proposal.submit'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
    if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
    if(body.type==='price-book.import')return json({result:await importPriceBook(env,actor,body.payload)})
    if(['sheet.publish','sheet.revoke','sheet.view','sheet.preview'].includes(body.type))return json({result:await sheetCommand(env,actor,body.type,body.payload)})

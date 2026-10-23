@@ -2,6 +2,7 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_agent_proposals'){const value=JSON.parse(row.value_json);return {...row,state:'superseded',value_json:JSON.stringify({...value,state:'superseded'})}};
   if(table==='bw_webhook_deliveries')return {...row,lease_until:0,...(['queued','retrying','sending'].includes(row.state)?{state:'dead-letter',last_result:'Restored history is inactive; external acceptance not acknowledged'}:{})};
   if(table==='bw_line_sheets')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),state:'revoked'})};
   if(table==='bw_staff_members')return {...row,state:'revoked'};
@@ -13,7 +14,7 @@ export const portabilityPolicy = {
   if(table==='bw_quote_mail')return {...row,status:['queued','sending','rate_limited','uncertain'].includes(row.status)?'uncertain':row.status,restored:1,lease_until:0};
   return row;
  },
- excludeTables: ['bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
+ excludeTables: ['bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
  requiredConfiguration: ['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
 };
 

@@ -16,7 +16,7 @@ type PersonalValue={value:string;replacement:string}
 export type ErasureOperation={version:1;sourceIdentity:string;id:string;accountId:string;actorId:string;at:string;reason:string;mode:'erase'|'revoke';exclusions:Exclusion[];deleteOrderIds:string[];people:{id:string;email:string;name:string;subjects:string[]}[];accountEmail:string;personal?:PersonalValue[];receipt:any}
 type Item={id:string;kind:string;action:string;reason:string;floorUntil:string|null}
 const sql=(sql:string,...params:any[]):Sql=>({sql,params})
-const tables=['bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
+const tables=['bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
 function owner(actor:Actor){if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may review account erasure.',403)}
 export function financialFloor(order:any):string|null {
  if(['draft','superseded'].includes(order.status))return null
@@ -112,6 +112,12 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
    sql("UPDATE bw_company_members SET email=?,email_key=?,display_name='Erased buyer',erased_at=? WHERE user_id=?",placeholder(uid),placeholder(uid),at,uid),
   ])
  }
+ add('access','proposal-access:'+accountId,'revoke account proposal grants','Account-scoped agent authority ends even under a hold',[
+  sql('DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',accountId),
+  sql("UPDATE bw_agent_proposal_grants SET state='revoked',revision=?,revoked_at=?,revocation_reason='Owner-reviewed account access revocation' WHERE account_id=?",op.id,at,accountId),
+ ])
+ for(const row of r.bw_agent_proposals.filter(row=>row.account_id===accountId))add('agent proposals','proposal:'+row.id+':'+row.number,'remove','Unexecuted proposal text and review details are outside the commercial floor; order snapshots and opaque audit attribution remain',[sql('DELETE FROM bw_agent_proposals WHERE id=? AND number=?',row.id,row.number)])
+ for(const table of ['bw_agent_proposal_grants','bw_agent_proposal_attempts'])for(const row of r[table].filter(row=>row.account_id===accountId))add('agent proposal custody',table+':'+row.id,'remove','Remove scoped consent and proposal diagnostics with personal account data',[sql(`DELETE FROM ${table} WHERE id=?`,row.id)])
  add('identity','account:'+accountId,'close and deidentify email','Keep the company, terms, prices, Pier customer ID and account ID',[
   sql("UPDATE bw_accounts SET value_json=json_set(value_json,'$.email',?,'$.lifecycle','closed'),revision=? WHERE id=?",marker,op.id,accountId),
   sql('INSERT OR IGNORE INTO bw_company_legacy_accounts(account_id) SELECT id FROM bw_accounts WHERE id=?',accountId),

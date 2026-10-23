@@ -1,3 +1,4 @@
+import { linkedReplacementGuard } from './proposal-approval'
 import { readStaffGrant,staffAccountAllowed } from './staff-policy'
 import { companySubmission } from './company-purchase'
 import { companyOrderRead } from './company-access'
@@ -200,6 +201,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  }
  if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
  if(type==='order.approve') {
+  await linkedReplacementGuard(env,actor,order)
   if(order.fromSubstitution) {
    const original=await readOrder(env.DB,actor,order.fromSubstitution.orderId),offer=original.substitutions?.find(offer=>offer.number===order.fromSubstitution!.number)
    if(original.status!=='cancelled'||!original.release?.confirmedAt||offer?.status!=='accepted'||offer.replacementId!==order.id)fail('SUBSTITUTION_RELEASE','Confirm the original stock release before reserving the accepted replacement.')

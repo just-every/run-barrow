@@ -1,3 +1,4 @@
+import { ProposalGrant } from './proposal-grant'
 import { Webhooks } from './webhooks'
 import { ScheduledReports } from './scheduled-reports'
 import { RepPerformance } from './rep-performance'
@@ -18,7 +19,7 @@ import { FinanceReport } from './finance-report'
 import { ShippingSettings } from './shipping-settings'
 import { Followups } from './followups'
 
-export function DataTools({ accounts, freshness, busy, run }: { accounts: Account[]; freshness: number | null; busy: boolean; run: RunCommand }) {
+export function DataTools({ accounts, freshness, busy, run, owner=false }: { owner?:boolean; accounts: Account[]; freshness: number | null; busy: boolean; run: RunCommand }) {
   const [accountId, setAccountId] = useState('')
   const [confirming, setConfirming] = useState(false)
   const [confirmation, setConfirmation] = useState('')
@@ -50,6 +51,7 @@ export function DataTools({ accounts, freshness, busy, run }: { accounts: Accoun
     <DiagnosticsCard />
     <Webhooks />
     <AgentCredential />
+    {owner&&<section className="br-card br-stack" aria-label="Account-scoped proposal authority"><h2>Approve an agent’s substitution scope</h2><AccountPicker accounts={accounts} value={accountId} onChange={setAccountId}/><ProposalGrant accountId={accountId}/></section>}
     <div className="br-card br-stack"><h2>Erase an unused trade account</h2><p>Erasure removes this Barrow account and its retained import custody, and immediately removes the customer’s portal access. Accounts with orders cannot be erased because their commercial history must be preserved.</p>
       <Notice>Sign-in identity, records held in Pier, and previously exported files or backups remain. Handle these separately if they also need erasure.</Notice>
       {accountError&&<Notice error>{accountError}</Notice>}

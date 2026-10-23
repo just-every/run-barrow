@@ -42,6 +42,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&/^reports\/(sales|finance|quotes|fulfillment|commissions|rep-performance)(\.csv)?$/.test(relative))return // report computes whole-filter entitlement before reading
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
+ if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
  if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
@@ -57,6 +58,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 }
 
 const commandRoles:Record<string,string[]>={
+ 'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
  'price-book.import':['sales-manager'],'sheet.publish':['sales-manager'],'sheet.revoke':['sales-manager'],
  'account.save':['sales-manager'], 'terms.assign':['sales-manager'], 'terms.publish':['sales-manager'], 'commission.settings':['sales-manager'],
  'order.prepare':selling,'order.reorder':selling,'order.reorder-preview':selling,'order.submit':selling,'order.attach':selling,
