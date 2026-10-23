@@ -1,3 +1,4 @@
+import {digest} from './digest'
 import type { Bindings } from '../auth.server'
 import type { Actor, Order } from './model'
 import { fail, Problem } from './model'
@@ -19,4 +20,11 @@ export async function linkedReplacementGuard(env: Bindings, actor: Actor, order:
  const proposal=await readProposal(env,actor,order.agentProposal.id,order.agentProposal.number)
  await proposalGrant(env,proposal)
  if(proposal.state!=='executing'||proposal.replacementId!==order.id)fail('PROPOSAL_APPROVAL','Execute this replacement through its exact approved proposal. Direct approval cannot bypass its source, grant or budget guards.')
+}
+
+/** Workflow revisions may record a company decision; the reviewed commercial
+ * basket, document, destination and agreed values must not change with them. */
+export async function proposalReplacementBasis(order:Order) {
+ const fields=['accountId','accountRevision','customerName','reference','poRelease','requestedDate','cancelAfter','instructions','document','deliveryLocation','lines','totalCents','currency','termsDays','delivery','freightQuotes','billTo','shipTo','quote','lineSheet','season','termsAcceptance','priceDisplay','pierCustomerId','pierOrigin'] as const
+ return digest(JSON.stringify(Object.fromEntries(fields.map(key=>[key,order[key]]))))
 }

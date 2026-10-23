@@ -1,3 +1,4 @@
+import {proposalReplacementBasis} from './proposal-approval'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { account } from './accounts'
@@ -81,6 +82,9 @@ export async function agentProposalCommand(env: Bindings, actor: Actor, type: st
   proposalManager(actor,basket.totalCents,Math.abs(Math.min(0,basket.merchandiseDifferenceCents)))
   if (!offer||offer.number!==proposal.offerNumber||offer.agentProposal?.id!==proposal.id||offer.agentProposal.number!==proposal.number||offer.status!=='accepted'||!offer.decidedBy||!offer.replacementId)
    fail('PROPOSAL_APPROVAL','The account buyer must accept this exact manager-reviewed offer.')
+  const replacementOrder=await readOrder(env.DB,actor,offer.replacementId)
+  if(!offer.replacementBasis||await proposalReplacementBasis(replacementOrder)!==offer.replacementBasis)fail('PROPOSAL_STALE','The replacement’s reviewed commercial basket changed after acceptance. Withdraw it and review a new proposal before releasing any stock.')
+  if(proposal.state==='offered'&&replacementOrder.status!=='submitted')fail('PROPOSAL_APPROVAL','Complete the replacement’s company purchase approval before releasing the original stock reservation.')
   const manager=proposal.managerApproval&&await env.DB.prepare("SELECT id,email,role,version FROM oa_operators WHERE id=? AND status='active'").bind(proposal.managerApproval.by).first<any>()
   if(!proposal.managerApproval||!manager||manager.version!==proposal.managerApproval.version)fail('PROPOSAL_APPROVAL','The recorded manager approval is no longer current.')
   const managerActor={...manager,agent:false,staff:await readStaffGrant(env.DB,{...manager,agent:false})}

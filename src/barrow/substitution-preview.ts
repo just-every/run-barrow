@@ -8,7 +8,7 @@ import { prepareLines } from './unit-lines'
 import { deliveryOptions, deliveryTotal, freightQuote, selectDelivery } from './shipping'
 import type { Delivery, FreightQuote } from './shipping-rules'
 export type SubstitutionLine = Line & { fromSku: string; fromUnit?: string; fromLine: number }
-export type Substitution = { number:number; status:'offered'|'declined'|'accepted'|'withdrawn'; agentProposal?:import('./proposal-approval').ProposalLink; withdrawnBy?:string;withdrawnAt?:string;withdrawalReason?:string; reason:string; proposedBy:string; proposedAt:string; accountRevision:string; lines:SubstitutionLine[]; totalCents:number; delivery?:Delivery; freightQuotes?:FreightQuote[]; taxNote:string; decidedBy?:string;decidedVersion?:number; decidedAt?:string; declineReason?:string; replacementId?:string }
+export type Substitution = { number:number; status:'offered'|'declined'|'accepted'|'withdrawn'; agentProposal?:import('./proposal-approval').ProposalLink; withdrawnBy?:string;withdrawnAt?:string;withdrawalReason?:string; reason:string; proposedBy:string; proposedAt:string; accountRevision:string; lines:SubstitutionLine[]; totalCents:number; delivery?:Delivery; freightQuotes?:FreightQuote[]; taxNote:string; decidedBy?:string;decidedVersion?:number; decidedAt?:string; declineReason?:string; replacementBasis?:string;replacementId?:string }
 export const taxNote='Tax is not recorded or calculated by this installation. No tax difference has been verified.'
 const format=(n:bigint)=>`${n/1000000n}${n%1000000n?'.'+(n%1000000n).toString().padStart(6,'0').replace(/0+$/,''):''}`
 export async function substitutionContext(env:Bindings,actor:Actor,order:Order,input:any[],quotes?:FreightQuote[]) {

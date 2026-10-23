@@ -344,3 +344,10 @@ test('proposal effects require current functional manager limits and the approvi
  assert.equal((await h.api('/api/barrow/orders/'+replacement)).status,'awaiting-company-approval');
  await f.execute(proposal,{}, {status:409});assert.deepEqual((await pier.api('/api/pier/state')).orders,before,'A pending company decision must preserve the original reservation.');assert.equal((await f.history()).proposals.at(-1).state,'offered');
 });
+
+test('a changed replacement basket invalidates its agent approval before any original stock release',async t=>{
+ const f=await proposalFixture(t,{withoutDelivery:true}),g=await f.grant();let proposal=await f.submit(g);proposal=await f.offer(proposal);const accepted=await f.approve(proposal),replacementId=accepted.substitutions.at(-1).replacementId;
+ const before=(await f.pier.api('/api/pier/state')).orders,replacement=await f.h.api('/api/barrow/orders/'+replacementId);
+ await f.h.command('order.revise',{orderId:replacement.id,revision:replacement.revision,changes:[{line:0,quantity:replacement.lines[0].quantity-1}]},f.buyer);
+ await f.execute(proposal,{}, {status:409});assert.deepEqual((await f.pier.api('/api/pier/state')).orders,before);assert.equal((await f.history()).proposals.at(-1).state,'offered');assert.ok((await f.history()).proposals.at(-1).attempts.some(row=>row.code==='PROPOSAL_STALE'));
+});

@@ -10,18 +10,20 @@ export async function proposalFixture(t,options={}) {
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0,prices:[{sku:'OAT-1',unitCents:6500,minQty:1},{sku:'MAPLE-1',unitCents:4400,minQty:1},{sku:'HONEY-1',unitCents:3100,minQty:1}]}});
  const buyer={as:await h.signIn(account.value.email)};
  await h.command('location.save',{accountId:account.id,kind:'ship-to',value:{name:'Cedar store',line1:'25 Broadway',city:'New York',state:'NY',zip:'10004'}});
+ if(!options.withoutDelivery){
  const shipping=await h.api('/api/barrow/shipping/settings');
  const methods=[{id:'pickup',name:'Warehouse pickup',kind:'pickup',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:0,handlingCents:0,freeOverCents:null,transitMinDays:0,transitMaxDays:1,quoteRequired:false},{id:'ground',name:'Ground delivery',kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1000,handlingCents:100,freeOverCents:null,transitMinDays:2,transitMaxDays:4,quoteRequired:false}];
  await h.command('shipping.settings',{revision:shipping.revision,methods});
+ }
 
  let order=await h.command('order.prepare',{accountId:account.id,reference:'PO-SPRING-1042',lines:[{sku:'OAT-1',quantity:8}]},buyer);
- const delivery=(await h.api('/api/barrow/shipping/options?orderId='+order.id,undefined,buyer)).options.find(row=>row.methodId==='pickup');await h.command('shipping.select',{orderId:order.id,...delivery},buyer);
+ if(!options.withoutDelivery){const delivery=(await h.api('/api/barrow/shipping/options?orderId='+order.id,undefined,buyer)).options.find(row=>row.methodId==='pickup');await h.command('shipping.select',{orderId:order.id,...delivery},buyer);}
  await h.command('order.submit',{orderId:order.id,deliveryAcknowledged:true},buyer);order=await h.command('order.approve',{orderId:order.id});
  account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:account.value.prices.filter(price=>price.sku!=='OAT-1')}});
  const grantInput={accountId:account.id,costLimitCents:10,contactLimit:9,approvedSubstitutes:[{fromSku:'OAT-1',skus:['MAPLE-1','HONEY-1']}],consent:true,reason:'Owner reviewed this account, approved replacement assortment and limited proposal tools and contacts.'};
  const grant=async(more={})=>h.api('/api/barrow/proposal-grants',{...grantInput,...more});
  const agent=g=>({as:'',headers:{authorization:`Bearer ${g.token}`}});
- const candidates=[{methodId:'pickup',lines:[{fromSku:'OAT-1',sku:'MAPLE-1',quantity:8}]},{methodId:'ground',lines:[{fromSku:'OAT-1',sku:'HONEY-1',quantity:8}]}];
+ const candidates=[{...(options.withoutDelivery?{}:{methodId:'pickup'}),lines:[{fromSku:'OAT-1',sku:'MAPLE-1',quantity:8}]},{...(options.withoutDelivery?{}:{methodId:'ground'}),lines:[{fromSku:'OAT-1',sku:'HONEY-1',quantity:8}]}];
  const submit=(g,more={})=>h.command('proposal.submit',{orderId:order.id,model:'synthetic-barrow-101',runId:'synthetic-barrow-102',reportedCostCents:2,candidates,...more},agent(g));
  const offer=p=>h.command('proposal.offer',{id:p.id,number:p.number,revision:p.revision,candidate:0,reason:'Manager reviewed exact units, prices, fulfillment difference and unverified tax; offer this basket to the buyer.'});
  const approve=p=>h.command('substitution.accept',{orderId:order.id,number:p.offerNumber,acknowledged:true},buyer);

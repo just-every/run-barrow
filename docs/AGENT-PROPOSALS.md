@@ -28,7 +28,9 @@ In **Orders → Agent substitution proposals**, a manager reviews one exact bask
 and records a reason. Functional managers need the account, all warehouse rights,
 and sufficient commercial and stock exception limits. The buyer then accepts or
 declines through the normal substitution review. A signed-in manager separately
-executes the accepted basket. Current grant, manager and buyer authority, source
+executes the accepted basket. Any required company approval finishes before the original stock is released.
+The accepted replacement’s commercial basis must still match its review.
+Current grant, manager and buyer authority, source
 prices, inventory, units and delivery are checked again. A direct substitution
 execution or replacement approval cannot bypass the proposal’s guards.
 
