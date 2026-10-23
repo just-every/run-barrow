@@ -73,7 +73,7 @@ export async function agentProposalCommand(env: Bindings, actor: Actor, type: st
   if (!offer||offer.number!==proposal.offerNumber||offer.agentProposal?.id!==proposal.id||offer.agentProposal.number!==proposal.number||offer.status!=='accepted'||!offer.decidedBy||!offer.replacementId)
    fail('PROPOSAL_APPROVAL','The account buyer must accept this exact manager-reviewed offer.')
   const manager=proposal.managerApproval&&await env.DB.prepare("SELECT id,email,role,version FROM oa_operators WHERE id=? AND status='active'").bind(proposal.managerApproval.by).first<any>()
-  if(!manager||manager.version!==proposal.managerApproval?.version)fail('PROPOSAL_APPROVAL','The recorded manager approval is no longer current.')
+  if(!proposal.managerApproval||!manager||manager.version!==proposal.managerApproval.version)fail('PROPOSAL_APPROVAL','The recorded manager approval is no longer current.')
   const managerActor={...manager,agent:false,staff:await readStaffGrant(env.DB,{...manager,agent:false})}
   proposalManager(managerActor,basket.totalCents,Math.abs(Math.min(0,basket.merchandiseDifferenceCents)))
   if(managerActor.staff?.revision!==proposal.managerApproval.staffRevision)fail('PROPOSAL_APPROVAL','The manager grant changed; a new review is required.')
