@@ -181,7 +181,7 @@ export function CutoverReview() {
         {report.issues.length > 0 && <Notice><strong>Review issues</strong><ul>{report.issues.map((issue, index) => <li key={index}>{issue}</li>)}</ul></Notice>}
         {report.missing.length > 0 && <Notice error><strong>Missing source categories</strong><ul>{report.missing.map((missing, index) => <li key={index}>{missing}</li>)}</ul></Notice>}
         <JsonDetail value={report.unmatched} label={`Unmatched native records (${report.unmatched.length})`} />
-        <JsonDetail value={report.fields} label="Source field coverage" />
+        <JsonDetail value={report.fields} label="Source field coverage" /><p>Operational fulfillment releases are not recorded by Barrow yet (ORD-009). Source releases can be retained as history only. Receivables compare with invoiced totals, not verified unpaid balances.</p>
         <JsonDetail value={report.provenance} label="Comparison tools, scope and provenance" />
         <label>Reviewed fingerprint<input value={report.fingerprint} readOnly className="br-mono" /></label>
         {!report.canApply && <p>Activation is blocked. Resolve the identities and provide missing source categories, then compare again. A disposition cannot bypass these requirements.</p>}

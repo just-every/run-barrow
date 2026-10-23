@@ -48,8 +48,8 @@ export async function cutoverTargets(env: Bindings, actor: Actor, scope: string[
   const order=JSON.parse(row.value_json),currency=order.currency??'AUD',base={accountId:row.account_id,currency,amountCents:order.totalCents,quantity:Number(format(order.lines.reduce((n:bigint,line:any)=>n+decimal(String(line.quantity)),0n))),revision:row.revision}
   if(['submitted','reserving','shortfall','approved','releasing'].includes(order.status)) {
    targets.push({...base,kind:'orders',id:row.id,name:order.reference,citation:`orders/${row.id}`})
-   // A numbered PO release is an order. Never synthesize an ORD-009 split.
-   if(order.poRelease)targets.push({...base,kind:'releases',id:row.id,orderId:row.id,releaseNumber:order.poRelease.number,citation:`orders/${row.id}/poRelease`})
+   // PO-reference reuse authorizations are not fulfillment releases. ORD-009
+   // has no operational release records yet; report source releases as retained history.
   }
   if(order.status==='approved'&&order.invoice)targets.push({...base,kind:'receivables',id:order.invoice.number,orderId:row.id,citation:`invoices/${row.id}`})
  }

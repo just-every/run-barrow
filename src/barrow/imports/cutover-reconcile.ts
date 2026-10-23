@@ -69,6 +69,7 @@ export function reconcileCutover(source:{records:CutoverRecord[];fields:unknown;
  const unresolved=issues.filter(issue=>!issue.startsWith('Missing release coverage:'))
  return {fingerprint:sha256(canonicalJson({model:'barrow-native-mapping-rules-v1',artifacts:source.artifacts.map(({name,sha256})=>({name,sha256})),mappings,scope:[...input.scope].sort(),runId:input.runId,nativeFingerprint})),nativeFingerprint,mappings,proposals,totals,unmatched,issues,missing:source.missing,fields:source.fields,
   canApply:unresolved.length===0&&source.missing.length===0,
+  nativeAvailability:{releases:'retained-history-only',receivables:'invoiced-totals-only'},
   provenance:{model:'barrow-native-mapping-rules-v1',runId:input.runId,tools:['read supplied exports','read explicitly scoped native records','read scoped Pier variants'],costCents:0,contactCount:0,effects:['retain approved cutover history'],authority:'Source accounting system remains ledger authority'},
   balanceNote:'Ledger balances are supplied source history. Barrow amounts are invoiced totals, not verified unpaid receivables. Differences and missing releases require explicit owner disposition; no payment, reservation, invoice issue or outreach is performed.'}
 }
