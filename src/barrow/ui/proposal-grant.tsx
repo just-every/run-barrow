@@ -13,10 +13,10 @@ function GrantHistory({ grant, busy, revoke }: { grant: Grant; busy: boolean; re
   return <article className="br-card br-stack" style={{ overflowWrap: 'anywhere' }}>
     <h4>Proposal grant · {grant.state}{grant.state === 'active' && grant.expiresAt <= Date.now() ? ' · expired' : ''}</h4>
     <dl className="br-facts br-facts-wrap">
-      <div><dt>Account</dt><dd>{grant.accountId}</dd></div>
-      <div><dt>Reported external cost used / limit</dt><dd>{money(grant.spentCostCents)} / {money(grant.costLimitCents)}</dd></div>
-      <div><dt>Contacts used / limit</dt><dd>{grant.spentContacts} / {grant.contactLimit}</dd></div>
-      <div><dt>Expires</dt><dd>{expires(grant.expiresAt)}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Account</dt><dd>{grant.accountId}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Reported external cost used / limit</dt><dd>{money(grant.spentCostCents)} / {money(grant.costLimitCents)}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Contacts used / limit</dt><dd>{grant.spentContacts} / {grant.contactLimit}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Expires</dt><dd>{expires(grant.expiresAt)}</dd></div>
     </dl>
     <p>Allowed replacements: {grant.allowedSubstitutes.map(scope => `${scope.fromSku} → ${scope.skus.join(', ')}`).join('; ')}.</p>
     <details className="br-details"><summary>Grant history</summary>
@@ -104,7 +104,7 @@ export function ProposalGrant({ accountId }: { accountId: string }) {
           <label>Buyer contact limit<input required type="number" min="0" step="1" inputMode="numeric" value={contacts} onChange={event => setContacts(event.target.value)} /></label>
         </div>
         <label>Owner’s reason for granting this permission<textarea required maxLength={1000} value={reason} onChange={event => setReason(event.target.value)} /></label>
-        <label><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} />I authorize external proposal submission for account {accountId || '(choose an account)'}, only {fromSku.trim() || '(original SKU)'} → {skus.join(', ') || '(replacement SKUs)'}, with a reported external cost cap of {wholeNonnegative(cost) ? money(Number(cost)) : '(set a cap)'} and {wholeNonnegative(contacts) ? contacts : '(set a limit)'} buyer contacts. Offers and execution remain separately reviewed human actions.</label>
+        <label><input type="checkbox" style={{width:20,minHeight:20,verticalAlign:"middle",marginRight:8}} checked={consent} onChange={event => setConsent(event.target.checked)} />I authorize external proposal submission for account {accountId || '(choose an account)'}, only {fromSku.trim() || '(original SKU)'} → {skus.join(', ') || '(replacement SKUs)'}, with a reported external cost cap of {wholeNonnegative(cost) ? money(Number(cost)) : '(set a cap)'} and {wholeNonnegative(contacts) ? contacts : '(set a limit)'} buyer contacts. Offers and execution remain separately reviewed human actions.</label>
         <div className="br-actions"><button disabled={!valid || busy}>Create private proposal credential</button></div>
       </fieldset>
     </form>

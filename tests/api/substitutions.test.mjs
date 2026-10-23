@@ -319,3 +319,21 @@ test('inventory changes invalidate a proposed basket; a buyer declines one revie
  const updated=await f.withdraw(proposal);proposal=await f.submit(g,{id:updated.id,number:updated.number,revision:updated.revision,candidates:[f.candidates[0]]});proposal=await f.offer(proposal);await f.approve(proposal);
  const accepted=(await f.history()).proposals.at(-1);assert.equal(accepted.buyerApproval.status,'accepted');assert.equal((await f.h.api('/api/barrow/orders/'+f.order.id)).status,'approved');
 });
+
+test('proposal effects require current functional manager limits and the approving buyer’s still-active purchasing authority',async t=>{
+ const f=await proposalFixture(t),{h,pier}=f,{activateStaff}=await import('./harness.mjs');
+ const policy={role:'sales-manager',accounts:['cedar'],warehouses:'all',reports:[],discountLimitCents:0,stockExceptionLimitCents:100000};
+ const manager=await activateStaff(h,'synthetic-barrow-130@example.test',policy),g=await f.grant();let proposal=await f.submit(g);
+ await h.command('proposal.offer',{id:proposal.id,number:proposal.number,revision:proposal.revision,candidate:0,reason:'This price reduction exceeds the manager’s granted exception limit.'},{...manager.who,status:403});
+ const allowed=await h.command('staff.update',{userId:manager.id,revision:manager.grant.revision,policy:{...policy,discountLimitCents:100000},reason:'Owner granted the exact commercial exception amount.'});
+ proposal=await h.command('proposal.offer',{id:proposal.id,number:proposal.number,revision:proposal.revision,candidate:0,reason:'Manager reviewed the precise current basket within the owner-granted limits.'},manager.who);await f.approve(proposal);
+ const before=(await pier.api('/api/pier/state')).orders;
+ await h.command('staff.revoke',{userId:manager.id,revision:allowed.revision,reason:'The manager’s authority ended before external execution.'});
+ await f.execute(proposal,{}, {status:403});assert.deepEqual((await pier.api('/api/pier/state')).orders,before);
+ const withdrawn=await f.withdraw(proposal);proposal=await f.submit(g,{id:withdrawn.id,number:withdrawn.number,revision:withdrawn.revision});proposal=await f.offer(proposal);await f.approve(proposal);
+ const member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.email==='buyer@example.test');assert.ok(member);
+ // Removing the company user is a public supplier transfer/removal operation,
+ // not a database shortcut; the old acceptance must not survive that revocation.
+ await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',purchaseLimitCents:null,approvalLimitCents:null},reason:'Buyer purchasing authority ended before execution.'});
+ await f.execute(proposal,{}, {status:403});assert.deepEqual((await pier.api('/api/pier/state')).orders,before);
+});

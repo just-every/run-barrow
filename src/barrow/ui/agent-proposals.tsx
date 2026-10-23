@@ -28,11 +28,11 @@ function CandidateBasket({ candidate, order }: { candidate: ProposalCandidate; o
       </li>
     })}</ul>
     <dl className="br-facts br-facts-wrap">
-      <div><dt>Original order total</dt><dd>{money(order.totalCents)}</dd></div>
-      <div><dt>Replacement total, excluding tax</dt><dd>{money(candidate.totalCents)}</dd></div>
-      <div><dt>Total difference, excluding tax</dt><dd>{difference(candidate.totalCents - order.totalCents)}{candidate.freightDifferenceCents === null && ' · freight difference unverified'}</dd></div>
-      <div><dt>Merchandise difference</dt><dd>{difference(candidate.merchandiseDifferenceCents)}</dd></div>
-      <div><dt>Freight difference</dt><dd>{candidate.freightDifferenceCents === null ? 'Unknown; no verified freight comparison' : difference(candidate.freightDifferenceCents)}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Original order total</dt><dd>{money(order.totalCents)}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Replacement total, excluding tax</dt><dd>{money(candidate.totalCents)}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Total difference, excluding tax</dt><dd>{difference(candidate.totalCents - order.totalCents)}{candidate.freightDifferenceCents === null && ' · freight difference unverified'}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Merchandise difference</dt><dd>{difference(candidate.merchandiseDifferenceCents)}</dd></div>
+      <div><dt style={{whiteSpace:'normal'}}>Freight difference</dt><dd>{candidate.freightDifferenceCents === null ? 'Unknown; no verified freight comparison' : difference(candidate.freightDifferenceCents)}</dd></div>
     </dl>
     {candidate.delivery ? <p>Delivery: {candidate.delivery.name} · {candidate.delivery.warehouse || 'warehouse not recorded'} · {candidate.delivery.totalCents === null ? 'charge unknown' : money(candidate.delivery.totalCents)} · {day(candidate.delivery.windowStart)}–{day(candidate.delivery.windowEnd)}.</p> : <p>Delivery method and charge are not recorded.</p>}
     <p>{candidate.taxNote} Tax difference is unknown.</p>
@@ -58,15 +58,15 @@ function ProposalReview({ proposal, order, latest, busy, act }: {
     {proposal.replacementId && <p>Replacement order: {proposal.replacementId}{proposal.completedAt && ` · completed ${when(proposal.completedAt)}`}.</p>}
     <details className="br-details"><summary>Source evidence and permitted tools</summary>
       <dl className="br-facts br-facts-wrap">
-        <div><dt>Proposal ID and revision</dt><dd>{proposal.id} · {proposal.revision}</dd></div>
-        <div><dt>Source order revision</dt><dd>{proposal.source.orderRevision}</dd></div>
-        <div><dt>Source account revision</dt><dd>{proposal.source.accountRevision}</dd></div>
-        <div><dt>PO document SHA-256</dt><dd>{proposal.source.documentSha256 ?? 'No document hash recorded'}</dd></div>
-        <div><dt>Source fingerprint</dt><dd>{proposal.source.fingerprint}</dd></div>
-        <div><dt>Observed</dt><dd>{when(proposal.source.observedAt)}</dd></div>
-        <div><dt>Tool permissions</dt><dd>{proposal.source.toolPermissions.join(', ') || 'None recorded'}</dd></div>
-        <div><dt>Grant</dt><dd>{proposal.grantId}</dd></div>
-        <div><dt>Execution key</dt><dd>{proposal.executionKey ?? 'Not assigned'}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Proposal ID and revision</dt><dd>{proposal.id} · {proposal.revision}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Source order revision</dt><dd>{proposal.source.orderRevision}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Source account revision</dt><dd>{proposal.source.accountRevision}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>PO document SHA-256</dt><dd>{proposal.source.documentSha256 ?? 'No document hash recorded'}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Source fingerprint</dt><dd>{proposal.source.fingerprint}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Observed</dt><dd>{when(proposal.source.observedAt)}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Tool permissions</dt><dd>{proposal.source.toolPermissions.join(', ') || 'None recorded'}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Grant</dt><dd>{proposal.grantId}</dd></div>
+        <div><dt style={{whiteSpace:'normal'}}>Execution key</dt><dd>{proposal.executionKey ?? 'Not assigned'}</dd></div>
       </dl>
       <p>Model, run and inference cost are reported by the external agent.</p>
     </details>
@@ -86,7 +86,7 @@ function ProposalReview({ proposal, order, latest, busy, act }: {
     }}>
       <p>{selected === null ? 'Review a complete candidate basket and select it to prepare a buyer offer.' : `Selected: candidate ${selected + 1}, rank ${proposal.candidates[selected].rank}, ${money(proposal.candidates[selected].totalCents)} excluding tax.`}</p>
       <label>Manager’s reason for this exact offer<textarea required maxLength={240} disabled={busy} value={reason} onChange={event => setReason(event.target.value)} /></label>
-      <label><input type="checkbox" disabled={busy || selected === null} checked={reviewed} onChange={event => setReviewed(event.target.checked)} />I reviewed this selected basket’s quantities, selling units, prices, delivery and unknown tax difference. Record my signed-in approval and offer it to the buyer.</label>
+      <label><input type="checkbox" style={{width:20,minHeight:20,verticalAlign:"middle",marginRight:8}} disabled={busy || selected === null} checked={reviewed} onChange={event => setReviewed(event.target.checked)} />I reviewed this selected basket’s quantities, selling units, prices, delivery and unknown tax difference. Record my signed-in approval and offer it to the buyer.</label>
       <div className="br-actions"><button disabled={busy || selected === null || !reviewed || !reason.trim() || proposal.grantActive !== true}>Offer selected candidate to buyer</button></div>
     </form>}
     {canExecute && <div className="br-stack"><p>The buyer accepted the offered basket. Execution releases the original reservation and creates the approved replacement using this recorded execution key.</p><div className="br-actions"><button disabled={busy} onClick={() => void act('proposal.execute', { id: proposal.id, number: proposal.number, revision: proposal.revision, idempotencyKey: proposal.executionKey })}>{proposal.state==='executing'?'Retry approved replacement':'Execute buyer-approved replacement'}</button></div></div>}
