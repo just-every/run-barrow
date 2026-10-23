@@ -74,3 +74,38 @@ test('DATA-001: owner and buyer export open JSON/CSV commercial records that rec
  assert.ok(archived.includes('legacy-aud'));
  for (const secret of [token, pier.cookie]) assert.ok(!archived.includes(secret));
 });
+
+test('a company finance viewer exports only invoiced orders, never drafts, quotes or agreed prices', async t => {
+ const pier = await installation({ pier: true }); t.after(() => pier.close());
+ const products = await stock(pier, '20');
+ const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
+ await h.command('account.save', { id: 'cedar', value: { ...accountValue(products.customer.id), prices: [{ sku: 'OAT-1', unitCents: 6500, minQty: 2 }] } });
+ const buyer = { as: await h.signIn('buyer@example.test') };
+ await h.command('company.invite', { accountId: 'cedar', email: 'finance@example.test', name: 'Company Finance', policy: { rights: ['finance'], locations: 'all', perOrderLimitCents: null, approvalLimitCents: null }, reason: 'Administrator assigned the finance viewer right.' }, buyer);
+ const finance = { as: await h.signIn('finance@example.test', 'existing') };
+ const invitation = new URL(h.mail.requests.findLast(row => row.message.subject === 'Your company buyer invitation' && row.message.to.includes('finance@example.test')).message.text.match(/https?:\/\/[^\s<>]+\/app\?[^\s<>]+/)[0]);
+ await h.command('company.accept', { invitationId: invitation.searchParams.get('companyInvitation'), token: invitation.searchParams.get('companyToken') }, finance);
+ const invoiced = await h.command('order.prepare', { accountId: 'cedar', reference: 'PO-1', lines: [{ sku: 'OAT-1', quantity: 2 }] }, buyer);
+ await h.command('order.submit', { orderId: invoiced.id }, buyer);
+ assert.ok((await h.command('order.approve', { orderId: invoiced.id })).invoice);
+ const draft = await h.command('order.prepare', { accountId: 'cedar', reference: 'PO-2', lines: [{ sku: 'OAT-1', quantity: 3 }] }, buyer);
+ const quote = await h.command('quote.request', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 4 }] }, buyer);
+ await h.command('quote.propose', { quoteId: quote.id, revision: quote.revision, validUntil: new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date()), lines: [{ sku: 'OAT-1', quantity: 4, unitCents: 6100 }] });
+ await h.command('quote.message', { quoteId: quote.id, body: 'Buyer-visible revision is ready.' });
+ // The finance viewer reads the invoice, while the draft and the quote stay closed to them.
+ assert.equal((await h.request(`/api/barrow/invoices/${invoiced.id}.csv`, finance)).status, 200);
+ assert.equal((await h.request(`/api/barrow/orders/${draft.id}`, finance)).status, 403);
+ assert.equal((await h.request(`/api/barrow/quotes/${quote.id}`, finance)).status, 404);
+ const exported = await h.api('/api/barrow/export.json', undefined, finance);
+ assert.deepEqual(exported.manifest.accountIds, ['cedar']);
+ assert.deepEqual(exported.orders.map(order => order.id), [invoiced.id]);
+ assert.deepEqual(exported.invoices.map(invoice => invoice.orderId), [invoiced.id]);
+ assert.ok(exported.lines.every(line => line.orderId === invoiced.id));
+ for (const kind of ['quotes', 'quotelines', 'quotemessages', 'prices']) assert.deepEqual(exported[kind], [], kind);
+ for (const kind of ['orders', 'lines', 'quotes', 'quotelines', 'quotemessages', 'prices']) {
+  const csv = await h.request(`/api/barrow/export/${kind}.csv`, finance);
+  assert.equal(csv.status, 200, kind);
+  const text = await csv.text();
+  for (const hidden of [draft.id, quote.id, '6100']) assert.ok(!text.includes(hidden), `${kind}.csv discloses ${hidden}`);
+ }
+});

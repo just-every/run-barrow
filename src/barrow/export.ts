@@ -56,7 +56,8 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const selected = await accounts(env.DB, actor), ids = selected.map(account => account.id)
  if(!supplier(actor))for(const id of ids)await requireCompanyRight(env.DB,actor,id,'finance')
  const rows = ids.length ? (await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid').bind(JSON.stringify(ids)).all<{ value_json: string; revision: string }>()).results : []
- const financeOnly=actor.staff?.role==='finance'
+ // A company finance viewer without purchasing rights exports what their readers show: invoiced orders, no quotes or prices.
+ const financeOnly=actor.staff?.role==='finance'||!supplier(actor)&&!actor.company?.rights.some(right=>right==='purchaser'||right==='approver')
  const orders = rows.filter(row=>!financeOnly||Boolean(JSON.parse(row.value_json).invoice)).map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Order & { pierOrigin?: string })
  const quotes = !financeOnly&&ids.length ? (await env.DB.prepare('SELECT value_json,revision FROM bw_quotes WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid').bind(JSON.stringify(ids)).all<{ value_json: string; revision: string }>()).results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Quote) : []
  // A requested quote has no proposal yet; its total is the cart at the prices of the request.
