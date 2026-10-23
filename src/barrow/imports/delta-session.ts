@@ -15,6 +15,7 @@ async function prepare(env:Bindings,actor:Actor,input:CutoverInput,previous:Retu
  cutoverOwner(actor)
  const [source,comparison]=await Promise.all([parseCutoverSource(input),previewCutover(env,actor,input)])
  const dataset={...source,input:{scope:[...input.scope].sort(),runId:input.runId,mappings:input.mappings??{}}}
+ if(new TextEncoder().encode(JSON.stringify(dataset)).byteLength>1_800_000)fail('DELTA_CUSTODY_LIMIT','The complete retained source exceeds this session’s storage limit. Split the account scope and export files before starting.',413)
  return {source:dataset,report:{comparison,changes:deltaChanges(previous?.records??[],source.records),deltaTotals:deltaTotals(previous?.records??[],source.records),sourceIdentity:deltaSourceIdentity(source.records),previousSourceIdentity:previous?.records?deltaSourceIdentity(previous.records):null,historyOnly:true}}
 }
 

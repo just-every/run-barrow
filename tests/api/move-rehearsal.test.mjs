@@ -149,7 +149,7 @@ test('owner rehearses and reconciles a source delta, signs scoped authority and 
  let order=await prepare();await h.command('order.submit',{orderId:order.id},{as:f.buyer});order=await h.command('order.approve',{orderId:order.id});
  const blockedWrite=f.sftp.pauseWrites();t.after(()=>f.sftp.resumeWrites());
  const sending=h.request(path+'/'+id+'/feed/run',{method:'POST',body:{revision:session.revision,consent:true,reason:'Deliver the first post-cutoff accepted order to the pinned ERP directory.'}});
- await blockedWrite;
+ await Promise.race([blockedWrite,sending.then(()=>{throw Error('The destination run completed before its retained write.')}),new Promise((_,reject)=>{const timer=setTimeout(()=>reject(Error('The destination did not reach its retained write.')),15000);timer.unref()})]);
  try {
   await h.api(path+'/'+id+'/rollback',{revision:session.revision,consent:true,resumeNativeOnly:true,reason:'An in-flight destination write must finish before rollback.'},{status:409});
   await h.command('order.cancel',{orderId:order.id,reason:'Do not race a retained external file snapshot.'},{status:409});

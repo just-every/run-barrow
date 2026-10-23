@@ -3,7 +3,7 @@ import type { SftpConfig } from './types'
 const invalid = () => new Problem('SFTP_CONFIG', 'The SFTP connection settings are invalid.', 400)
 
 export function safePath(path: string): string {
- if (typeof path !== 'string' || !path || path.length > 1024 || /[\0\\]/.test(path)) throw invalid()
+ if (typeof path !== 'string' || !path.startsWith('/') || path.length > 1024 || /[\0\\]/.test(path)) throw invalid()
  const segments = path.split('/')
  if (segments.some(segment => segment === '.' || segment === '..')) throw invalid()
  if (segments.slice(1, -1).some(segment => !segment)) throw invalid()
@@ -16,7 +16,11 @@ export function settings(config: SftpConfig): string[] {
   || typeof config.username !== 'string' || !config.username || config.username.length > 256 || /\0/.test(config.username)
   || typeof config.secretId !== 'string' || !config.secretId || config.secretId.length > 160
   || typeof config.hostKey !== 'string' || !/^SHA256:[A-Za-z0-9+/]{43}=?$/.test(config.hostKey)) throw invalid()
- return [config.importDirectory, config.exportDirectory, config.ackDirectory].map(safePath)
+ const keys=['host','port','username','secretId','hostKey','importDirectory','exportDirectory','ackDirectory']
+ if(Object.keys(config).some(key=>!keys.includes(key)))throw invalid()
+ const roots=[config.importDirectory, config.exportDirectory, config.ackDirectory].map(safePath)
+ if(roots.some((root,index)=>roots.some((other,otherIndex)=>index!==otherIndex&&(root===other||root==='/'||other.startsWith(root+'/')))))throw invalid()
+ return roots
 }
 
 /** Only this function sees the server-held BARROW_SFTP_SECRETS binding. */

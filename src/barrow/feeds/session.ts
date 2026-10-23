@@ -26,7 +26,7 @@ export async function runDeltaFeed(env:Bindings,actor:Actor,id:string,kind:'rehe
  catch(error) {if((error as Error).message.includes('CHECK constraint'))fail('FEED_BUSY','The session changed or already has a destination run in progress. Reload it before retrying.');throw error}
  const fence=()=>env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_delta_cutovers WHERE id=? AND revision=? AND state=? AND io_token=? AND io_until>?) THEN 1 ELSE 0 END').bind(id,row.revision,row.state,token,Date.now())
  const assertActive=async()=>{
-  try {await commit(env.DB,actor,[fence()])}
+  try {await commit(env.DB,actor,[fence(),env.DB.prepare('UPDATE bw_delta_cutovers SET io_until=? WHERE id=? AND io_token=?').bind(Date.now()+LEASE_MS,id,token)])}
   catch {fail('FEED_PAUSED','This destination run lost its session or owner authority. No further file may be written.')}
  }
  const release=()=>env.DB.prepare('UPDATE bw_delta_cutovers SET io_token=NULL,io_until=0 WHERE id=? AND io_token=?').bind(id,token).run()
