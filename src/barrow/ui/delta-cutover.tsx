@@ -1,3 +1,4 @@
+import {DeltaRollback,type RollbackJournal} from './delta-rollback'
 import { useEffect, useRef, useState } from 'react'
 import type { CutoverInput, CutoverRecord } from '../imports/cutover-source'
 import { request, errorMessage } from './api'
@@ -9,7 +10,7 @@ import { DeltaComparison, type DeltaComparisonReport, type DeltaSourceChange } f
 type DeltaSession = {
   id:string;state:string;revision:string;fingerprint:string;sourceSystem:string;scope:string[];cutoffAt:string|null;authorities:Record<string,string>
   source:{records?:CutoverRecord[];artifacts?:{name:string;base64:string;sha256:string}[];input?:{runId:string}}
-  report:{comparison?:DeltaComparisonReport;changes?:DeltaSourceChange[];rollback?:unknown}
+  report:{comparison?:DeltaComparisonReport;changes?:DeltaSourceChange[];rollback?:RollbackJournal}
   feed:DeltaFeedView;reason:string;signedoffBy:string|null;signedoffAt:string|null;excludedOrderIds:string[]
 }
 const root = '/api/barrow/cutover/deltas'
@@ -109,10 +110,7 @@ export function DeltaCutoverReview() {
         {signedoff&&<p>Signed off by {session.signedoffBy} at {session.signedoffAt}. New order entry opens at {session.cutoffAt}. Feed delivery still requires an explicit authorized run.</p>}
         <JsonDetail value={{authorities:session.authorities,excludedOrderIds:session.excludedOrderIds,reason:session.reason}} label="Read signed authority and exclusion journal"/>
       </div>
-      <div className="br-card br-stack"><h3>Rollback and retained dispositions</h3><p>Rollback stops bridge exports and resumes ordinary native order entry through Pier. It preserves original source evidence, declared external authority, later edits and orders with shipments or commercial dependencies. Rollback restores unchanged applied price-book settings where dependencies permit; later native edits and dependent commercial work remain preserved. A rolled-back session cannot be reactivated.</p>
-        {['rehearsal','signedoff','inactive'].includes(session.state)&&<><label><input type="checkbox" style={checkStyle} checked={resumeNative} disabled={busy} onChange={event=>setResumeNative(event.target.checked)}/>I explicitly resume native Pier-only order entry for this scope and stop the cutover bridge’s exports while retaining source history and external responsibility.</label><div className="br-actions"><button type="button" className="br-danger" disabled={busy||!resumeNative||!reason.trim()} onClick={()=>void act(()=>mutate('rollback',{revision:session.revision,reason:reason.trim(),resumeNativeOnly:true,consent:true}))}>Roll back bridge and resume native order entry</button></div></>}
-        <JsonDetail value={session.report.rollback} label="Read rollback dispositions and preserved dependencies"/>
-      </div>
+      <DeltaRollback state={session.state} journal={session.report.rollback} busy={busy} consent={resumeNative} onConsent={setResumeNative} reason={reason} onRollback={()=>void act(()=>mutate('rollback',{revision:session.revision,reason:reason.trim(),resumeNativeOnly:true,consent:true}))}/>
     </>}
   </section>
 }
