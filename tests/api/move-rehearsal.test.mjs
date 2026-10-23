@@ -1,7 +1,7 @@
 import {erasurePreview,erasurePayload,verifiedRequest} from './retention-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { installation, stock, accountValue } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore } from './harness.mjs';
 import { cutoverFixture,cutoverWorkbook } from './cutover-fixture.mjs';
 
 const header = 'accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty';
@@ -82,7 +82,8 @@ test('native cutover agent cites workbook and ledger mappings, reconciles missin
  await h.api('/api/barrow/cutover/preview',{...input,workbook:cutoverWorkbook({formula:true})},{status:400});
  await h.api('/api/barrow/cutover/preview',{...input,mappings:{...f.mappings,'prices:price-a':'birch/OAT-1'}},{status:400});
  for(const who of [admin,buyer,agent])for(const [path,body] of [['/api/barrow/cutover',undefined],['/api/barrow/cutover/preview',input],['/api/barrow/cutover/apply',accepted]])await h.api(path,body,{...who,status:403});
- const applied=await h.api('/api/barrow/cutover/apply',accepted);
+ const attempts=await Promise.all([h.api('/api/barrow/cutover/apply',accepted),h.api('/api/barrow/cutover/apply',accepted)]);
+ const applied=attempts[0];assert.equal(attempts[1].id,applied.id);
  assert.equal(applied.state,'active');assert.equal(applied.approved_by,(await h.api('/api/barrow/state')).actor.id);
  assert.deepEqual(applied.source.artifacts.map(row=>row.base64),[input.workbook.base64,Buffer.from(input.ledger.csv).toString('base64')]);
  assert.equal(applied.report.approvedMappings,true);assert.equal(applied.report.approvedBalances,true);
@@ -97,7 +98,11 @@ test('native cutover agent cites workbook and ledger mappings, reconciles missin
  const nextInput={...input,mappings:f.mappings,runId:'synthetic-barrow-37'};
  const next=await h.api('/api/barrow/cutover/preview',nextInput);
  const nextAccepted={...f.approve(next),...nextInput};const active=await h.api('/api/barrow/cutover/apply',nextAccepted);
+ const restored=await installation();t.after(()=>restored.close());await restore(restored,await archive(h));
+ assert.equal((await restored.api('/api/barrow/cutover/'+active.id)).state,'undone');
+ const staleInput={...nextInput,runId:'synthetic-barrow-38'},stale=await h.api('/api/barrow/cutover/preview',staleInput);
  await h.command('account.save',{id:'cedar',revision:f.cedar.revision,value:{...f.cedar.value,termsDays:45}});
+ await h.api('/api/barrow/cutover/apply',{...f.approve(stale),...staleInput},{status:409});
  const refusal=await h.api('/api/barrow/cutover/'+active.id+'/undo',{}, {status:409});assert.equal(refusal.error.code,'NATIVE_EDIT_CONFLICT');
  assert.equal((await h.api('/api/barrow/accounts/by-id/cedar')).value.termsDays,45);
  await verifiedRequest(h,'cedar');const erasure=await erasurePreview(h);
