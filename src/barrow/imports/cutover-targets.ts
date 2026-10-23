@@ -1,6 +1,6 @@
 import type { Bindings } from '../../auth.server'
 import { fail, type Actor } from '../model'
-import { pierState } from '../pier'
+import { pierState, decimal, format } from '../pier'
 import { canonicalJson, sha256 } from '../../modules/import-kit/src/d1/index'
 import type { CutoverRecord } from './cutover-source'
 
@@ -45,7 +45,7 @@ export async function cutoverTargets(env: Bindings, actor: Actor, scope: string[
   targets.push({kind:'locations',id:row.id,accountId:row.account_id,name:value.name,revision:row.revision,citation:`locations/${row.id}`})
  }
  for(const row of rows.orders) {
-  const order=JSON.parse(row.value_json),currency=order.currency??'AUD',base={accountId:row.account_id,currency,amountCents:order.totalCents,quantity:order.lines.reduce((n:number,line:any)=>n+line.quantity,0),revision:row.revision}
+  const order=JSON.parse(row.value_json),currency=order.currency??'AUD',base={accountId:row.account_id,currency,amountCents:order.totalCents,quantity:Number(format(order.lines.reduce((n:bigint,line:any)=>n+decimal(String(line.quantity)),0n))),revision:row.revision}
   if(['submitted','reserving','shortfall','approved','releasing'].includes(order.status)) {
    targets.push({...base,kind:'orders',id:row.id,name:order.reference,citation:`orders/${row.id}`})
    // A numbered PO release is an order. Never synthesize an ORD-009 split.

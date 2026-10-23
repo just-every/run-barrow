@@ -34,7 +34,7 @@ function ComparisonTotals({ report }: { report: CutoverReport }) {
     <caption>Source and scoped native totals, separated by category and currency. Amounts are exact cents.</caption>
     <thead><tr><th scope="col">Category</th><th scope="col">Currency</th><th scope="col">Source count</th><th scope="col">Native count</th><th scope="col">Source cents</th><th scope="col">Native cents</th><th scope="col">Difference cents</th><th scope="col">Source quantity</th><th scope="col">Native quantity</th><th scope="col">Quantity difference</th></tr></thead>
     <tbody>{report.totals.map(total => <tr key={`${total.kind}:${total.currency}`}>
-      <th scope="row">{total.kind}</th><td>{total.currency || 'Not applicable'}</td><td>{total.sourceCount}</td><td>{total.targetCount}</td><td>{total.sourceCents}</td><td>{total.targetCents}</td><td>{total.differenceCents}</td><td>{total.sourceQuantity}</td><td>{total.targetQuantity}</td><td>{total.sourceQuantity - total.targetQuantity}</td>
+      <th scope="row">{total.kind}</th><td>{total.currency || 'Not applicable'}</td><td>{total.sourceCount}</td><td>{total.targetCount}</td><td>{total.sourceCents}</td><td>{total.targetCents}</td><td>{total.differenceCents}</td><td>{total.sourceQuantity}</td><td>{total.targetQuantity}</td><td>{total.quantityDifference}</td>
     </tr>)}</tbody>
   </table></div>
 }

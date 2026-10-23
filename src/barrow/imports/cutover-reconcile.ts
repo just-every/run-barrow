@@ -3,6 +3,19 @@ import { fail } from '../model'
 import { cutoverKinds, type CutoverTarget } from './cutover-targets'
 import type { CutoverInput, CutoverRecord } from './cutover-source'
 
+// Native PRI-004 measured quantities may have six decimal places. Sum their
+// decimal representations exactly; integer-cent arithmetic remains separate.
+function quantityUnits(value:number) {
+ const match=/^(\d+)(?:\.(\d{1,6}))?$/.exec(String(value))
+ if(!match)fail('CUTOVER_QUANTITY','A native quantity cannot be compared at its recorded precision.',400)
+ return BigInt(match[1])*1000000n+BigInt((match[2]??'').padEnd(6,'0'))
+}
+function quantities(values:number[]) {
+ const units=values.reduce((n,value)=>n+quantityUnits(value),0n)
+ if(units>BigInt(Number.MAX_SAFE_INTEGER))fail('CUTOVER_QUANTITY','Quantity control totals exceed the exact six-decimal range.',400)
+ return Number(units)/1000000
+}
+
 export function reconcileCutover(source:{records:CutoverRecord[];fields:unknown;missing:string[];artifacts:{name:string;sha256:string}[]},targets:CutoverTarget[],input:CutoverInput,nativeFingerprint:string) {
  const mappings:Record<string,string>={},issues:string[]=[],seen=new Set<string>()
  const key=(row:CutoverRecord|CutoverTarget)=>`${row.kind}:${row.id}`
@@ -48,7 +61,8 @@ export function reconcileCutover(source:{records:CutoverRecord[];fields:unknown;
    const s=before.filter(row=>(row.currency??'')===currency),t=after.filter(row=>(row.currency??'')===currency)
    const sum=(values:number[])=>{const value=values.reduce((n,v)=>n+BigInt(v),0n);if(value>BigInt(Number.MAX_SAFE_INTEGER)||value<BigInt(Number.MIN_SAFE_INTEGER))fail('CUTOVER_TOTAL','Reconciled totals exceed the exact integer range.',400);return Number(value)}
    const sourceCents=sum(s.map(row=>row.amountCents??0)),targetCents=sum(t.map(row=>row.amountCents??0))
-   return {kind,currency,sourceCount:s.length,targetCount:t.length,sourceCents,targetCents,differenceCents:sum([sourceCents,-targetCents]),sourceQuantity:sum(s.map(row=>row.quantity??0)),targetQuantity:sum(t.map(row=>row.quantity??0))}
+   const sourceQuantity=quantities(s.map(row=>row.quantity??0)),targetQuantity=quantities(t.map(row=>row.quantity??0))
+   return {kind,currency,sourceCount:s.length,targetCount:t.length,sourceCents,targetCents,differenceCents:sum([sourceCents,-targetCents]),sourceQuantity,targetQuantity,quantityDifference:Number(quantityUnits(sourceQuantity)-quantityUnits(targetQuantity))/1000000}
   })
  })
  const unmatched=targets.filter(row=>!seen.has(key(row)))
