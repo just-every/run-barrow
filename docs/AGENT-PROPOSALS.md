@@ -6,7 +6,7 @@ original-to-replacement SKU mappings, units, quantities, current inventory,
 minimums and configured delivery options. It ranks eligible baskets by total
 price, lowest first, and records their merchandise and freight differences.
 Tax is unknown until a tax provider exists. Quoted orders and orders carrying
-sales-terms acceptance are refused by this proposal door; their acceptance
+sales-terms acceptance, and accounts with assigned sales terms, are refused by this proposal door; their acceptance
 cannot be silently replaced.
 
 In **Data → Approve an agent’s substitution scope**, the signed-in owner chooses

@@ -15,6 +15,7 @@ export async function linkedProposal(env: Bindings, actor: Actor, link: Proposal
 }
 export async function linkedReplacementGuard(env: Bindings, actor: Actor, order: Order) {
  if(!order.agentProposal)return
+ if(await env.DB.prepare('SELECT account_id FROM bw_terms_assignments WHERE account_id=?').bind(order.accountId).first())fail('PROPOSAL_TERMS','Assigned sales terms require a separately reviewed acceptance before any replacement handoff.')
  const proposal=await readProposal(env,actor,order.agentProposal.id,order.agentProposal.number)
  await proposalGrant(env,proposal)
  if(proposal.state!=='executing'||proposal.replacementId!==order.id)fail('PROPOSAL_APPROVAL','Execute this replacement through its exact approved proposal. Direct approval cannot bypass its source, grant or budget guards.')

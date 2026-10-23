@@ -38,6 +38,7 @@ export function proposalInput(p: any) {
 /** Only native commercial records and authenticated inventory facts are sources.
  * Document bytes and model-written instructions never enter the tool context. */
 export async function proposalFingerprint(env: Bindings, actor: Actor, order: Order) {
+ if(await env.DB.prepare('SELECT account_id FROM bw_terms_assignments WHERE account_id=?').bind(order.accountId).first())fail('PROPOSAL_TERMS','This account has assigned sales terms. This proposal door cannot replace or bypass a fresh terms acceptance.')
  const selected = await account(env.DB,actor,order.accountId),stock = await catalogue(env,selected),upstream = await pierOrder(env,order)
  const {substitutions,revision,reservation,release,status,...commercial} = order
  // Offer/acceptance record revisions are the workflow itself. Commercial data

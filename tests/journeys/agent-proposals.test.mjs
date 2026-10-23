@@ -23,7 +23,7 @@ test('owner scopes an external agent, manager and buyer review exact replacement
   const panel=page.getByRole('region',{name:'Agent substitution proposals',exact:true}).filter({hasText:'synthetic-barrow-101'});await panel.getByRole('heading',{name:/Proposal [12] ·/}).first().waitFor();return panel;
  }
  async function offer(panel,candidate=1) {
-  const latest=panel.getByRole('article').last();await latest.getByRole('button',{name:`Select candidate ${candidate} for buyer review`,exact:true}).click();await latest.getByLabel('Manager’s reason for this exact offer',{exact:true}).fill('Reviewed the original PO, current inventory, exact case prices and the unavailable tax comparison.');await latest.getByRole('checkbox').check();await captureRegionWidths(page,latest,'proposal-manager-review');await latest.getByRole('button',{name:'Offer selected candidate to buyer',exact:true}).click();
+  const latest=panel.getByRole('article').last();await latest.locator('summary').filter({hasText:`Candidate ${candidate} ·`}).click();await latest.getByRole('button',{name:`Select candidate ${candidate} for buyer review`,exact:true}).click();await latest.getByLabel('Manager’s reason for this exact offer',{exact:true}).fill('Reviewed the original PO, current inventory, exact case prices and the unavailable tax comparison.');await latest.getByRole('checkbox').check();await captureRegionWidths(page,latest,'proposal-manager-review');await latest.getByRole('button',{name:'Offer selected candidate to buyer',exact:true}).click();
   await expect(latest.getByRole('heading')).toContainText('offered');
  }
  let panel=await managerScreen();await offer(panel);proposal=(await f.history()).proposals.at(-1);

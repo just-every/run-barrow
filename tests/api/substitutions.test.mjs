@@ -308,6 +308,7 @@ test('scoped proposal authority refuses foreign doors, injected instructions and
  const grant=(await h.api('/api/barrow/proposal-grants?accountId=cedar')).grants[0];assert.ok(grant.spentCostCents<=grant.costLimitCents);assert.equal(grant.spentContacts,0);
  assert.ok((await f.history()).proposals[0].attempts.some(row=>row.code==='PROPOSAL_BUDGET'));const custody=JSON.stringify(await h.api('/api/barrow/audit?accountId=cedar'));assert.ok(custody.includes('proposal.input-refused'));assert.ok(!custody.includes('Ignore all approvals'));assert.ok(!custody.includes('foreign endpoint'));
  await h.api('/api/barrow/proposal-grants/revoke',{grantId:g.grant.id,revision:g.grant.revision,reason:'Owner revoked account-scoped authority.'});assert.equal((await h.request('/api/barrow/catalogue?accountId=cedar',agent)).status,401);
+ await h.command('terms.publish',{series:'Wholesale terms',title:'Current trade terms',body:'Buyer review and acceptance are required for every new order.'});await h.command('terms.assign',{accountId:'cedar',series:'Wholesale terms',requireAcceptance:true});const fresh=await f.grant();await h.command('proposal.submit',payload,{...f.agent(fresh),status:409});assert.deepEqual((await pier.api('/api/pier/state')).orders,original.orders);
 });
 
 test('inventory changes invalidate a proposed basket; a buyer declines one reviewed substitute and approves a fresh source-bound revision',async t=>{
