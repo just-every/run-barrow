@@ -28,7 +28,7 @@ export async function captureRegionWidths(page,region,name) {
   await page.evaluate(amount=>scrollBy(0,-amount),inset+12);
   const box=await region.boundingBox(),scroll=await page.evaluate(()=>({x:scrollX,y:scrollY}));
   assert.ok(box,`${name}: visible card`);
-  await page.screenshot({path:`${directory}/${name}-${width}.png`,clip:{x:box.x+scroll.x,y:box.y+scroll.y,width:box.width,height:box.height},animations:'disabled'});
+  await page.screenshot({path:`${directory}/${name}-${width}.png`,fullPage:true,clip:{x:box.x+scroll.x,y:box.y+scroll.y,width:box.width,height:box.height},animations:'disabled'});
  }
  await page.setViewportSize({width:1440,height:1000});
 }
