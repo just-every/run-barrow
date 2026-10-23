@@ -14,7 +14,7 @@ The signed-in owner opens **Move in → Delta cutover and feed rehearsal**. This
 
 Configure the optional private `BARROW_SFTP_SECRETS` binding during deployment. It is a JSON object keyed by the credential reference entered in the UI. Each value contains a `password`, or a PEM `privateKey` and optional `passphrase`. Credential material is read only by the connection boundary. Never put it in the feed settings, source file, browser form, audit reason or archive. A restore requires re-entering the private binding and explicit owner review; no connection can resume merely by restoring data.
 
-Connections require the owner-supplied server public-key fingerprint. The connector does not silently accept changed hosts. Connection errors are sanitized and transfers/listings have bounds and deadlines.
+Demo installations refuse merchant SFTP connections before credential lookup or network contact. Connections require the owner-supplied server public-key fingerprint. The connector does not silently accept changed hosts. Connection errors are sanitized and transfers/listings have bounds and deadlines.
 
 ## Native CSV layouts
 

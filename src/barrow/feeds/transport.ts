@@ -1,3 +1,4 @@
+import {demoEffect} from '../../modules/demo/index.mjs'
 import { connect as connectSftp, type SftpSession } from 'edgeport/sftp'
 import { connect as connectSsh, type SshChannelHandle, type SshSession } from 'edgeport/ssh'
 import { Problem } from '../model'
@@ -32,6 +33,7 @@ async function fingerprint(key: Uint8Array): Promise<string> {
 
 /** Native SSH/SFTP over cloudflare:sockets; no credential or remote error escapes this boundary. */
 export async function openSftp(config: SftpConfig, secrets: string | undefined): Promise<SftpConnection> {
+ await demoEffect(()=>undefined,()=>{throw new Problem('SFTP_DEMO','Merchant SFTP connections are disabled in demo installations.',409)})
  const roots = settings(config)
  const auth = credential(config.secretId, secrets)
  let ssh: SshSession | undefined

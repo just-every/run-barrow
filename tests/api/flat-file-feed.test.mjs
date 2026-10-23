@@ -21,4 +21,6 @@ test('owner tests a pinned merchant SFTP destination through the Worker; wrong h
  const {token}=await h.api('/api/barrow/agent-token',{});await h.api('/api/barrow/feeds/probe',input,{as:'',headers:{authorization:`Bearer ${token}`},status:403});
  const missing=await h.request('/api/barrow/feeds/probe',{method:'POST',body:{...input,config:{...source.config,secretId:'synthetic-barrow-5'}}});assert.ok(missing.status>=400);
  assert.equal((await h.api('/api/barrow/audit')).events.filter(row=>row.action==='feed.destination-tested').length,1);
+ const demo=await installation({bindings:{RER_DEMO:'1',BARROW_SFTP_SECRETS:source.secrets}});t.after(()=>demo.close());const beforeDemo=source.logins;
+ await demo.api('/api/barrow/feeds/probe',input,{status:409});assert.equal(source.logins,beforeDemo);
 });
