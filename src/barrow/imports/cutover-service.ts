@@ -46,6 +46,12 @@ export async function applyCutover(env:Bindings,actor:Actor,input:CutoverInput&{
    env.DB.prepare('DELETE FROM bw_guard'),
   ])
  }catch(error) {
+  // Two requests may finish the same approved fingerprint together. The UNIQUE
+  // fence rolls the losing batch back, including its audit; return the winner.
+  if((error as Error).message.includes('UNIQUE constraint failed: bw_cutover_imports.fingerprint')) {
+   const winner=await env.DB.prepare('SELECT id FROM bw_cutover_imports WHERE fingerprint=?').bind(input.fingerprint).first<{id:string}>()
+   if(winner)return readCutover(env,actor,winner.id)
+  }
   if((error as Error).message.includes('CHECK constraint'))fail('CUTOVER_CHANGED','Native records changed during approval. Refresh the comparison.')
   throw error
  }
