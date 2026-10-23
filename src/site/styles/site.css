@@ -1,5 +1,5 @@
 /* The run site's base: page, type, header, footer, the action row and the shared card parts.
-   Tokens come from public/rer-theme.css; sizes are set at 1440 wide (the desk's 1536 x 0.9375). */
+   Tokens come from public/rer-theme.css and public/fonts/fonts.css; sizes are set at 1440 wide (the desk's 1536 x 0.9375). */
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; scroll-padding-top: 24px; }
 body { margin: 0; background: var(--rer-page); color: var(--br-ink); font: 400 17px/1.5 var(--rer-font-body); font-feature-settings: 'tnum' 1, 'cv11' 1; -webkit-font-smoothing: antialiased; overflow-x: clip; }

@@ -1,5 +1,6 @@
-/* The app's shared pieces on the tokens in /rer-theme.css: type, buttons, quiet thin-bordered fields, white hairline
-   cards, chips and pills, notices, empty states and dialogs. Layout lives in shell.css, pad.css and lists.css. */
+/* The app's shared pieces on the tokens in /rer-theme.css and /fonts/fonts.css: type, buttons, quiet thin-bordered
+   fields, white hairline cards, chips and pills, notices, empty states and dialogs. Layout lives in shell.css, pad.css
+   and lists.css. */
 .barrow{box-sizing:border-box;color:var(--br-ink);font:400 15px/1.5 var(--rer-font-body);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 .barrow *{box-sizing:border-box}
 .barrow h1,.barrow h2,.barrow h3{margin:0;color:var(--br-ink);text-wrap:balance}

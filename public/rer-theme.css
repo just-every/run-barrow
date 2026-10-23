@@ -1,6 +1,8 @@
-@import url('/fonts/fonts.css');
-/* Barrow's tokens, defined once. The run site, the app, the installer and Base's documents
-   (sign-in, setup, the Lobby, /run, /contract and the not-found page) all read this file.
+/* Barrow's theme for Base: the --rer-* tokens and the faces. The installer, sign-in and its confirmation, /setup,
+   the development hand-off page, the Lobby, Base's /run, /contract and not-found pages, the run site and the app
+   read it. The installer reads it with Base's theme grammar (only :root --rer-* tokens with literal values, and
+   @font-face rules) and checks its color pairs, so Barrow's own tokens and the rules that dress Base's pages are in
+   public/fonts/fonts.css, linked with it.
    The look (design desk, 19 Oct 2026): crisp white, a heavy near-black ink serif with the
    hero's ultramarine for the last word, Inter for everything else with tabular figures,
    white hairline cards with soft shadows, saffron, denim, apricot and celadon from the mark,
@@ -8,7 +10,6 @@
 :root{
   --rer-font-body:Inter,'Helvetica Neue',Arial,sans-serif;
   --rer-font-heading:'Source Serif 4',Georgia,'Times New Roman',serif;
-  --rer-font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --rer-page:#ffffff;
   --rer-surface:#ffffff;
   --rer-text:#0d0d40;
@@ -19,73 +20,19 @@
   --rer-link:#1f3fe0;
   --rer-focus:#1f3fe0;
   --rer-radius:14px;
-  --rer-button-radius:12px;
-  --rer-code-background:#14173a;
-  --rer-code-text:#e9ebff;
-  --rer-wordmark-weight:700;
-  --rer-wordmark-tracking:-.015em;
   --rer-logo:url('/brand/mark.svg');
   /* Base's /contract page: done in green, partial in saffron, missing in quiet ink (not built yet, not an alarm). */
   --rer-done:#1a9a55;
   --rer-done-ink:#137a43;
-  --rer-on-done:#ffffff;
+  /* The done count prints in Barrow's ink, as Base prints partial's: white on the green is 3.62:1, below 4.5:1. */
+  --rer-on-done:#0d0d40;
   --rer-partial:#f7b21b;
   --rer-partial-ink:#8a5a00;
   --rer-missing:#8c91a8;
   --rer-missing-ink:#575c74;
-
-  --br-ink:#0d0d40;
-  --br-body:#4a4f68;
-  --br-soft:#6b7088;
-  --br-faint:#9a9fb4;
-  --br-ultramarine:#1f3fe0;
-  --br-ultramarine-page:#0b3bff;
-  --br-wash:#eef1fd;
-  --br-wash-strong:#dfe5fc;
-  --br-saffron:#f7b21b;
-  --br-saffron-sign:#fcd464;
-  --br-apricot:#f98e4e;
-  --br-denim:#3e6ea8;
-  --br-denim-map:#bcdcfc;
-  --br-celadon:#8fbf9f;
-  --br-celadon-ink:#4f8a63;
-  --br-cinnabar:#e8432a;
-  --br-pink:#ec3d8f;
-  --br-green:#1a9a55;
-  --br-green-ink:#137a43;
-  --br-green-tint:#e4f5ea;
-  --br-amber:#f2a516;
-  --br-amber-ink:#9a6200;
-  --br-red:#e5432f;
-  --br-rule:#e6e8ef;
-  --br-rule-strong:#d7dae6;
-  --br-row:#f5f6fa;
-  --br-canvas:#f8f9fc;
-  --br-amber-tint:#fffaeb;
-  --br-amber-line:#f4cf74;
-  --br-amber-pill:#fff0c4;
-  --br-red-tint:#fff4f1;
-  --br-shadow:0 1px 2px rgba(13,13,64,.05),0 10px 30px -12px rgba(13,13,64,.16);
-  --br-shadow-float:0 2px 4px rgba(13,13,64,.06),0 18px 40px -16px rgba(13,13,64,.22);
 }
-/* The shared frame supplies markup, security and behavior; only its theme changes. */
-html.rer-themed body{display:block;place-items:normal;padding:96px 20px 64px;font-size:16px;line-height:1.5;background:var(--br-canvas)}
-html.rer-themed main{margin:0 auto;padding:36px;max-width:480px;background:#fff;border:1px solid var(--br-rule);border-radius:16px;box-shadow:var(--br-shadow)}
-/* One wordmark face everywhere: "Barrow" in the sans, as the app's top bar sets it (Lobby, sign-in and setup included). */
-html.rer-themed .brand,html.rer-themed .rer-brand{font:var(--rer-wordmark-weight) 26px/1.2 var(--rer-font-body);letter-spacing:var(--rer-wordmark-tracking);margin-bottom:28px}
-.door-card .lockup .word{font-family:var(--rer-font-body)}
-main>p.brand{font-family:var(--rer-font-body);font-weight:var(--rer-wordmark-weight);letter-spacing:var(--rer-wordmark-tracking)}
-html.rer-themed .brand::before,html.rer-themed .rer-brand::before{width:34px;height:34px}
-html.rer-themed h1{font-family:var(--rer-font-heading);font-weight:800;font-size:40px;line-height:1.02;letter-spacing:-.025em;word-spacing:.04em;margin-bottom:18px}
-html.rer-themed button{border-radius:var(--rer-button-radius);font-weight:600;min-height:48px}
-html.rer-themed input:not([type=checkbox]):not([type=hidden]),html.rer-themed select,html.rer-themed textarea{border:1px solid var(--br-rule-strong);border-radius:10px;min-height:48px;transition:border-color .15s,box-shadow .15s}
-html.rer-themed input:not([type=checkbox]):not([type=hidden]):focus,html.rer-themed select:focus,html.rer-themed textarea:focus{outline:none;border-color:var(--br-ultramarine);box-shadow:0 0 0 3px rgba(31,63,224,.16)}
-html.rer-themed input[type=checkbox]{accent-color:var(--br-ultramarine)}
-html.rer-themed label,html.rer-themed dt{font-size:14px}
-html.rer-themed dl{padding:20px 0;border-block:1px solid var(--br-rule)}
-@media(max-width:700px){
-  html.rer-themed body{padding:48px 16px 48px;font-size:16px}
-  html.rer-themed main{padding:28px 20px}
-  html.rer-themed h1{font-size:34px}
-  html.rer-themed .brand,html.rer-themed .rer-brand{font-size:24px}
-}
+/* Source Serif 4, Inter, Kalam and JetBrains Mono: SIL Open Font License, self-hosted (public/fonts/README.md). */
+@font-face{font-family:'Source Serif 4';font-style:normal;font-weight:200 900;font-display:swap;src:url('/fonts/source-serif-4/source-serif-4-latin-standard-normal.woff2') format('woff2')}
+@font-face{font-family:Inter;font-style:normal;font-weight:100 900;font-display:swap;src:url('/fonts/inter/inter-latin-wght-normal.woff2') format('woff2')}
+@font-face{font-family:Kalam;font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/kalam/kalam-latin-700-normal.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:100 800;font-display:swap;src:url('/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2') format('woff2')}

@@ -20,7 +20,7 @@ export function documentHtml(head: PageHead, body: string, bodyClass: string, sc
     + `<meta property="og:image" content="${SHARE_IMAGE}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">`
     + '<link rel="icon" href="/favicon.ico" sizes="32x32"><link rel="icon" type="image/svg+xml" href="/favicon-32.svg"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
     + [...preload, ...(head.preload ?? [])].map(href => `<link rel="preload" href="${href}" as="${href.endsWith('.woff2') ? 'font' : 'image'}"${href.endsWith('.woff2') ? ' type="font/woff2" crossorigin' : ''}>`).join('')
-    + '<link rel="stylesheet" href="/rer-theme.css">' + head.styles.map(href => `<link rel="stylesheet" href="${escapeHtml(href)}">`).join('')
+    + '<link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/rer-theme.css">' + head.styles.map(href => `<link rel="stylesheet" href="${escapeHtml(href)}">`).join('')
     + `</head><body class="${bodyClass}"><a class="skip-link" href="#main">Skip to content</a>${glyphDefs}${bindText(body)}${script ? `<script>${script}</script>` : ''}</body></html>`
 }
 
