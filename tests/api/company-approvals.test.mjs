@@ -307,3 +307,40 @@ test('AUTO-002: a $6,000 cart needing buyer and finance approval notifies curren
  assert.match(overdue.reason, /Blocking: The account is on hold; a first approval is refused until it is active again/);
  assert.ok((await h.api('/api/barrow/audit?limit=500')).events.some(event => event.action === 'followup.escalated' && event.subjectId === overdue.id && /on hold/.test(event.reason)));
 });
+
+test('a company user limited to one ship-to reads only that store’s orders, PO documents and exports', async t => {
+ const pier = await installation({ pier: true }); t.after(() => pier.close());
+ const products = await stock(pier, '40');
+ const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
+ await h.command('account.save', { id: 'cedar', value: { ...accountValue(products.customer.id), minimumCents: 0, prices: [{ sku: 'OAT-1', unitCents: 4000, minQty: 1 }] } });
+ const admin = { as: await h.signIn('buyer@example.test') }, join = companyPeople(h, admin);
+ const downtown = await h.command('location.save', { accountId: 'cedar', kind: 'ship-to', value: { name: 'Downtown', line1: '101 Main Street', city: 'Columbia', state: 'SC', zip: '29201' } }, admin);
+ const north = await h.command('location.save', { accountId: 'cedar', kind: 'ship-to', value: { name: 'North store', line1: '202 Main Street', city: 'Columbia', state: 'SC', zip: '29201' } }, admin);
+ const purchaser = await join('purchaser@example.test', 'Downtown Purchaser', ['purchaser'], { locations: [downtown.id] });
+ const finance = await join('finance@example.test', 'Downtown Finance', ['finance'], { locations: [downtown.id] });
+ const pdf = Buffer.from('%PDF-1.7\nStore PO\n%%EOF\n').toString('base64');
+ const place = async (shipTo, reference) => {
+  const draft = await h.command('order.prepare', { accountId: 'cedar', shipToId: shipTo.id, reference, lines: [{ sku: 'OAT-1', quantity: 1 }] }, admin);
+  await h.command('order.attach', { orderId: draft.id, name: `${reference}.pdf`, contentBase64: pdf }, admin);
+  await h.command('order.submit', { orderId: draft.id }, admin);
+  return h.command('order.approve', { orderId: draft.id });
+ };
+ const own = await place(downtown, 'PO-DOWNTOWN'), other = await place(north, 'PO-NORTH');
+ const doors = order => [`/api/barrow/orders/${order.id}`, `/api/barrow/orders/${order.id}/document`, `/api/barrow/orders/${order.id}/confirmations`, `/api/barrow/orders/${order.id}/timeline`];
+ for (const path of doors(own)) assert.equal((await h.request(path, purchaser)).status, 200, path);
+ for (const path of doors(other)) assert.equal((await h.request(path, purchaser)).status, 403, path);
+ assert.equal((await h.request(`/api/barrow/invoices/${own.id}.csv`, finance)).status, 200);
+ assert.equal((await h.request(`/api/barrow/invoices/${other.id}.csv`, finance)).status, 403);
+ for (const who of [purchaser, finance]) {
+  const history = await h.api('/api/barrow/orders/history', undefined, who);
+  assert.deepEqual(history.orders.map(order => order.id), [own.id]);
+  assert.deepEqual(history.counts, { approved: 1 });
+  assert.deepEqual((await h.api('/api/barrow/orders/search', undefined, who)).rows.map(row => row.id), [own.id]);
+ }
+ const exported = await h.api('/api/barrow/export.json', undefined, finance);
+ assert.deepEqual(exported.orders.map(order => order.id), [own.id]);
+ assert.ok(!JSON.stringify(exported).includes('North store') && !JSON.stringify(exported).includes(other.id));
+ // The administrator, permitted at every location, still reads both stores.
+ assert.deepEqual((await h.api('/api/barrow/orders/history', undefined, admin)).orders.map(order => order.id).sort(), [own.id, other.id].sort());
+ assert.equal((await h.request(`/api/barrow/orders/${other.id}/document`, admin)).status, 200);
+});
