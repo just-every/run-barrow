@@ -30,11 +30,11 @@ function workbookBase64(file: File): Promise<string> {
 }
 
 function ComparisonTotals({ report }: { report: CutoverReport }) {
-  return <div className="br-table-wrap"><table>
+  return <div className="br-table-wrap"><table style={{ minWidth: 1050 }}>
     <caption>Source and scoped native totals, separated by category and currency. Amounts are exact cents.</caption>
     <thead><tr><th scope="col">Category</th><th scope="col">Currency</th><th scope="col">Source count</th><th scope="col">Native count</th><th scope="col">Source cents</th><th scope="col">Native cents</th><th scope="col">Difference cents</th><th scope="col">Source quantity</th><th scope="col">Native quantity</th><th scope="col">Quantity difference</th></tr></thead>
     <tbody>{report.totals.map(total => <tr key={`${total.kind}:${total.currency}`}>
-      <th scope="row">{total.kind}</th><td>{total.currency || 'Not applicable'}</td><td>{total.sourceCount}</td><td>{total.targetCount}</td><td>{total.sourceCents}</td><td>{total.targetCents}</td><td>{total.differenceCents}</td><td>{total.sourceQuantity}</td><td>{total.targetQuantity}</td><td>{total.quantityDifference}</td>
+      <th scope="row">{total.kind}</th><td>{total.currency || 'Not applicable'}</td><td>{total.sourceCount}</td><td>{total.targetCount}</td><td>{total.sourceCents}</td><td>{total.targetCents}</td><td>{total.differenceCents}</td><td>{total.sourceQuantity ?? 'Not supplied'}</td><td>{total.targetQuantity ?? 'Not supplied'}</td><td>{total.quantityDifference ?? 'Unknown'}</td>
     </tr>)}</tbody>
   </table></div>
 }
@@ -159,7 +159,7 @@ export function CutoverReview() {
         {dirty && <Notice>The displayed comparison is stale. {sourceChanged ? 'Compare the changed exports and scope.' : 'Recompare corrected mappings.'} Both owner signoffs must be given again after the comparison succeeds.</Notice>}
         <ComparisonTotals report={report} />
         <p>{report.balanceNote}</p>
-        <div className="br-table-wrap"><table>
+        <div className="br-table-wrap"><table style={{ minWidth: 1100 }}>
           <caption>Source identity mappings. A blank selection is unresolved. Non-account records may be retained as history only.</caption>
           <thead><tr><th scope="col">Source</th><th scope="col">Source citation</th><th scope="col">Reviewed target</th><th scope="col">Mapping basis</th><th scope="col">Differences</th></tr></thead>
           <tbody>{report.proposals.map(proposal => {
@@ -194,10 +194,10 @@ export function CutoverReview() {
     </div>
     <div className="br-card br-stack">
       <div className="br-heading-row"><h3>Cutover history</h3><button type="button" className="br-secondary" disabled={busy} onClick={() => void act(list)}>Refresh cutover journal</button></div>
-      {!historyLoaded ? <p>Cutover history has not loaded.</p> : !imports.length ? <p>No cutover activations recorded.</p> : <div className="br-table-wrap"><table>
+      {!historyLoaded ? <p>Cutover history has not loaded.</p> : !imports.length ? <p>No cutover activations recorded.</p> : <div className="br-table-wrap"><table style={{ minWidth: 760 }}>
         <caption>Retained cutover approvals and undo history</caption>
-        <thead><tr><th scope="col">Import</th><th scope="col">State</th><th scope="col">Owner approval</th><th scope="col">Disposition</th><th scope="col">Journal</th></tr></thead>
-        <tbody>{imports.map(row => <tr key={row.id}><th scope="row">{row.id}</th><td>{row.state}</td><td>{row.approved_by}<small>{row.approved_at}</small></td><td>{row.reason}</td><td><button type="button" className="br-secondary" disabled={busy} onClick={() => void act(async () => setJournal(await request<CutoverJournal>(`/api/barrow/cutover/${encodeURIComponent(row.id)}`)))}>View cutover</button></td></tr>)}</tbody>
+        <thead><tr><th scope="col">Import</th><th scope="col">State</th><th scope="col">Owner approval</th><th scope="col">Journal</th></tr></thead>
+        <tbody>{imports.map(row => <tr key={row.id}><th scope="row">{row.id}</th><td>{row.state}</td><td>{row.approved_by}<small>{row.approved_at}</small></td><td><button type="button" className="br-secondary" disabled={busy} onClick={() => void act(async () => setJournal(await request<CutoverJournal>(`/api/barrow/cutover/${encodeURIComponent(row.id)}`)))}>View cutover</button></td></tr>)}</tbody>
       </table></div>}
       {journal && <div className="br-stack">
         <div className="br-heading-row"><h4>Cutover {journal.id}</h4><span className="br-badge">{journal.state}</span></div>

@@ -61,8 +61,8 @@ export function reconcileCutover(source:{records:CutoverRecord[];fields:unknown;
    const s=before.filter(row=>(row.currency??'')===currency),t=after.filter(row=>(row.currency??'')===currency)
    const sum=(values:number[])=>{const value=values.reduce((n,v)=>n+BigInt(v),0n);if(value>BigInt(Number.MAX_SAFE_INTEGER)||value<BigInt(Number.MIN_SAFE_INTEGER))fail('CUTOVER_TOTAL','Reconciled totals exceed the exact integer range.',400);return Number(value)}
    const sourceCents=sum(s.map(row=>row.amountCents??0)),targetCents=sum(t.map(row=>row.amountCents??0))
-   const sourceQuantity=quantities(s.map(row=>row.quantity??0)),targetQuantity=quantities(t.map(row=>row.quantity??0))
-   return {kind,currency,sourceCount:s.length,targetCount:t.length,sourceCents,targetCents,differenceCents:sum([sourceCents,-targetCents]),sourceQuantity,targetQuantity,quantityDifference:Number(quantityUnits(sourceQuantity)-quantityUnits(targetQuantity))/1000000}
+   const sourceQuantity=s.some(row=>row.quantity!==undefined)?quantities(s.map(row=>row.quantity??0)):null,targetQuantity=t.some(row=>row.quantity!==undefined)?quantities(t.map(row=>row.quantity??0)):t.length?null:0
+   return {kind,currency,sourceCount:s.length,targetCount:t.length,sourceCents,targetCents,differenceCents:sum([sourceCents,-targetCents]),sourceQuantity,targetQuantity,quantityDifference:sourceQuantity!==null&&targetQuantity!==null?Number(quantityUnits(sourceQuantity)-quantityUnits(targetQuantity))/1000000:null}
   })
  })
  const unmatched=targets.filter(row=>!seen.has(key(row)))
