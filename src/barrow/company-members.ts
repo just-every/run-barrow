@@ -93,7 +93,7 @@ function withdrawMemberMail(db: D1Database, userId: string, accountId: string) {
   WHERE recipient_id=? AND account_id=? AND status IN ('queued','not configured','rate_limited','uncertain') AND restored=0`).bind(new Date().toISOString(), userId, accountId)
 }
 
-export async function companyCommand(request: Request, env: Bindings, actor: Actor, type: string, p: any) {
+export async function companyCommand(request: Request, env: Bindings, actor: Actor, type: string, p: any, imported?: {key:string;jobId:string;fingerprint:string;sourceJson:string}) {
  requirePerson(actor)
  if (type === 'company.accept') return acceptCompanyInvitation(env, actor, p)
  if (type === 'company.erase') return eraseCompanyUser(env, actor, p)
@@ -104,6 +104,7 @@ export async function companyCommand(request: Request, env: Bindings, actor: Act
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fail('INPUT', 'Enter a valid email address.', 400)
   const identitySnapshot = await identityGuard(env.DB)
   const policy = await validateCompanyPolicy(env.DB, accountId, p.policy ?? p)
+  if(imported){const previous=await env.DB.prepare('SELECT i.policy_json FROM bw_import_invitations link JOIN bw_company_invites i ON i.id=link.invitation_id WHERE link.source_key=?').bind(imported.key).first<{policy_json:string}>();if(previous){if(previous.policy_json!==JSON.stringify(policy))fail('IMPORT_INVITATION_CHANGED','This source invitation was already reviewed with different rights. Use the native company rights controls to change them.');return {status:'invitation requested',replayed:true}}}
   const match = await collision(env.DB, accountId, email), id = crypto.randomUUID(), secret = token(), expiresAt = Date.now() + week
   const prior = await env.DB.prepare("SELECT * FROM bw_company_members WHERE email_key=? AND account_id=? AND state<>'removed'").bind(email, accountId).first<any>()
   // An active member is edited explicitly; invitation is still a uniform request.
@@ -124,6 +125,7 @@ export async function companyCommand(request: Request, env: Bindings, actor: Act
   statements.push(env.DB.prepare('INSERT INTO bw_company_invites(id,account_id,member_id,email,email_key,display_name,token_hash,policy_json,status,collision_reason,expires_at,created_by,issuer_version,issuer_member_revision,created_at,reason,revision,delivery_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
    .bind(id, accountId, blocked ? null : memberId, email, email, name, blocked ? null : await digest(secret), JSON.stringify(policy), blocked ? 'collision' : 'requested', blocked, expiresAt, actor.id, actor.version, manager?.revision ?? actor.staff?.revision ?? null, at, reason, revision, blocked ? 'not sent' : 'pending'),
    audit(env.DB, actor, id, 'company.invitation-requested', { accountId, revision, source: type, reason }))
+  if(imported)statements.push(guard(env.DB,"EXISTS(SELECT 1 FROM bw_platform_imports WHERE id=? AND fingerprint=? AND source_json=?) AND EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND coalesce(json_extract(value_json,'$.lifecycle'),'active')<>'closed')",[imported.jobId,imported.fingerprint,imported.sourceJson,accountId]),env.DB.prepare('INSERT INTO bw_import_invitations VALUES(?,?,?,?)').bind(imported.key,imported.jobId,accountId,id))
   await commit(env.DB, actor, statements)
   if (!blocked) {
    // The seven-day company link survives native sign-in-link expiry. Normal Base
@@ -234,6 +236,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   if (Array.isArray(value)) return value.map(item => redact(item, field))
   return value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, redact(item, key)])) : value
  }
+ const sourceCustody="SELECT p.id FROM bw_platform_imports p WHERE EXISTS(SELECT 1 FROM json_tree(p.source_json) value WHERE value.type='text' AND lower(value.atom)=?)"
  const statements: D1PreparedStatement[] = [guard(env.DB, `NOT EXISTS(
   SELECT 1 FROM bw_company_members target WHERE target.user_id=? AND target.state='active'
   AND EXISTS(SELECT 1 FROM json_each(target.policy_json,'$.rights') WHERE value='administrator')
@@ -248,6 +251,8 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   endDelegations(env.DB, member.userId, revision),
   env.DB.prepare('DELETE FROM bw_lists WHERE created_by=? AND json_extract(value_json,\'$.shared\')=0').bind(member.userId),
   withdrawMemberMail(env.DB, member.userId, member.accountId),
+  env.DB.prepare(`DELETE FROM bw_import_history WHERE import_id IN (${sourceCustody})`).bind(companyEmail(member.email)),
+  env.DB.prepare(`UPDATE bw_platform_imports SET source_json='{}',report_json='{}' WHERE id IN (${sourceCustody})`).bind(companyEmail(member.email)),
   env.DB.prepare('DELETE FROM bw_usage_acceptances WHERE user_id=?').bind(member.userId),
   env.DB.prepare('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?').bind(member.userId, member.userId),
  ]
