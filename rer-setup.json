@@ -141,7 +141,8 @@
           },
           "required": true
         }
-      ]
+      ],
+      "localDefault": "auth@localhost.test"
     },
     {
       "name": "MAIL_RELAY_URL",
@@ -151,6 +152,9 @@
       "when": {
         "field": "MAIL_PROVIDER",
         "equals": "rer"
+      },
+      "localDefault": {
+        "from": "origin"
       }
     },
     {
@@ -189,7 +193,10 @@
           },
           "required": true
         }
-      ]
+      ],
+      "localDefault": {
+        "generate": "hex"
+      }
     },
     {
       "name": "MAIL_ACCOUNT_ID",
