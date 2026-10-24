@@ -76,3 +76,13 @@ Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for your account, a
 ## Development
 
 `rer check --profile first-party` checks the command contract. Before running Verify locally, install the pinned browser with `pnpm exec playwright install chromium` (Linux may also need `--with-deps`). `rer verify` builds, typechecks, runs the small HTTP/D1 integration suite including email-link confirmation at the mail provider network boundary, and checks hosted assets. The tests obtain pinned public Pier source under `.cache/pier-source`; this is test infrastructure, never a production stock fallback. CI runs one Verify workflow per push. See [ACCEPTANCE.md](ACCEPTANCE.md), [source lineage](docs/SOURCES.md) and [command contract](SEED-COMMAND-CONTRACT.md).
+
+## Release listing
+
+| Field | Value |
+|---|---|
+| Listing id | `barrow` (from `seed.json`) |
+| Run URL | https://run-barrow.com/run |
+| Stores files | `true`: purchase-order documents, quote attachments, trade-application attachments and product images are stored in D1; the independent erasure journal uses the `ERASURE_JOURNAL` R2 bucket. |
+
+The release app capture at `.github/assets/release/barrow-app-1440.png` uses the seed's Juniper & Vale demo records in the real local application. Its SHA-256 is provided with the release handoff for the Site source gallery.

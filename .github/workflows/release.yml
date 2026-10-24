@@ -1,0 +1,10 @@
+name: Release checks
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  installation:
+    uses: ./.github/workflows/installation.yml
