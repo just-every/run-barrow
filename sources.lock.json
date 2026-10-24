@@ -79,6 +79,10 @@
     }
   ],
   "files": {
+    ".github/assets/release/barrow-app-1440.png": {
+      "sha256": "861c27d2f0f092f5ca2b2f4b12d0e28489858df2abe1371b7d792117cc3c7dea",
+      "executable": false
+    },
     ".github/workflows/confirmation-production.yml": {
       "sha256": "fd92cf8da8964a0948df2568c9b1bf3eee7aef1f986ed51514ef29b55d2e0f9e",
       "executable": false
@@ -760,7 +764,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "2e1dd315ed2e5688d87196d81ee41b284bc4cdf79f75c9d5fab6a7ead9a21767",
+      "sha256": "ac7420d86110aee2c0cb474fb70c2cbe82ebc27f3fdb752e31bcec639baf9b1c",
       "executable": false
     },
     "release-history/0.1.0.json": {
@@ -996,7 +1000,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "1ec3c28cddf2fee500585772d44cfc69d6f9e8459735dd5d39ae92faefacc579",
+      "sha256": "ebe4b72eaad34a3737bb7d4b92ab0c8d9cedf3ba6aff41d9eb135c2145883801",
       "executable": false
     },
     "src/auth.server.ts": {

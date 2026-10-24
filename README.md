@@ -81,8 +81,8 @@ Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for your account, a
 
 | Field | Value |
 |---|---|
-| Listing id | `barrow` (from `seed.json`) |
-| Run URL | https://run-barrow.com/run |
-| Stores files | `true`: purchase-order documents, quote attachments, trade-application attachments and product images are stored in D1; the independent erasure journal uses the `ERASURE_JOURNAL` R2 bucket. |
+| Listing id (`seed.json.id`) | `barrow` (from `seed.json`) |
+| `runUrl` | https://run-barrow.com/run |
+| `storesFiles` | `true`: purchase-order documents, quote attachments, trade-application attachments and product images are stored in D1; the independent erasure journal uses the `ERASURE_JOURNAL` R2 bucket. |
 
-The release app capture at `.github/assets/release/barrow-app-1440.png` uses the seed's Juniper & Vale demo records in the real local application. Its SHA-256 is provided with the release handoff for the Site source gallery.
+The release app capture at `.github/assets/release/barrow-app-1440.png` uses the seed's Juniper & Vale demo records in the real local application. Its SHA-256 is `861c27d2f0f092f5ca2b2f4b12d0e28489858df2abe1371b7d792117cc3c7dea` for the Site source gallery.
