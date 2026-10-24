@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "parent": null,
   "edition": "just-every/run-barrow",
-  "manifest": "d6a0677ec7edce665a422bfac0bdc4ac769a9c79bdb0fda562ad2640e1b22953",
+  "manifest": "52779530c5f69df17b63e0986580038e2c513ce62463e7e316800793626878e4",
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
@@ -14,6 +14,7 @@
       "source": {
         "kind": "local",
         "paths": [
+          "scripts/installer/local.mjs",
           "scripts/delivery/base/setup-manifest.mjs",
           "src/mail.server.mjs",
           "src/auth.server.ts",
@@ -25,6 +26,7 @@
           "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
           "path": ".",
           "paths": [
+            "foundation/template/scripts/installer/local.mjs",
             "foundation/template/src/auth.server.ts",
             "foundation/template/src/mail.server.mjs",
             "foundation/template/src/server.dev.ts",
@@ -33,6 +35,10 @@
           ]
         },
         "mappings": [
+          {
+            "path": "scripts/installer/local.mjs",
+            "originPath": "foundation/template/scripts/installer/local.mjs"
+          },
           {
             "path": "scripts/delivery/base/setup-manifest.mjs",
             "originPath": "modules/delivery-producer/setup-manifest.mjs"
@@ -56,9 +62,9 @@
         ]
       },
       "baseline": {
-        "key": "37d9b9bb5ad9ba722e17dc9a82303bfa586449cc8707012b44b120a26fc0828d",
-        "digest": "a84a2f96c79252cf530906d377e56349da25674b29dd8c35b514cf1985f03db8",
-        "sha256": "8b87edc4630ba21137e4f5478f7c44266e53e6b7764eac0ac997f53c2c773a27"
+        "key": "1991c7fee818f3cd00ef72f473f683677af653dc2003e44052bcdab0ae379cb9",
+        "digest": "46896e1b732350a696a7eea0852d18ed4f4bb711ab745adc1de9df626f5996f0",
+        "sha256": "3d0f0db075aea30e96c1fb3f3628062a0909d1bcd163e81b73b58bc8f0e2fe15"
       }
     },
     {
@@ -234,7 +240,7 @@
       "executable": false
     },
     "docs/SOURCES.md": {
-      "sha256": "4ed157456dfcb46b12695b7cb8ca087cd5d9b3be4dd23c6dcb09b61085571596",
+      "sha256": "b89f14bb3d2ba1ff2a83033d473c4a18f4aca35e8f43441c65cc4aef994243c7",
       "executable": false
     },
     "docs/SPARKLAYER.md": {
@@ -250,7 +256,7 @@
       "executable": false
     },
     "edition.json": {
-      "sha256": "d6a0677ec7edce665a422bfac0bdc4ac769a9c79bdb0fda562ad2640e1b22953",
+      "sha256": "52779530c5f69df17b63e0986580038e2c513ce62463e7e316800793626878e4",
       "executable": false
     },
     "fixtures/trade-accounts.csv": {
@@ -758,11 +764,11 @@
       "executable": false
     },
     "rer-project.json": {
-      "sha256": "73d342f675ee4e272b7301d42acc8790db6d906ade4fafa7f538ba35f578a41a",
+      "sha256": "df2df3256a2da2731b7f539d321c96b8b83503f25519db74e99ffb4060053e10",
       "executable": false
     },
     "rer-setup.json": {
-      "sha256": "11707451cc099d77ee066cb66962484f5313b50d3513ab8c9717d5b55f37d22e",
+      "sha256": "2718254968816f6ed615173ebb7c2d78b6e3d69df9f0c8880cc1ff1fa6365cc2",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -930,7 +936,7 @@
       "executable": false
     },
     "scripts/installer/local.mjs": {
-      "sha256": "2098e3f7ea57f00a4fcb754f2307e430c125057e9e3c869919230b8318700b1d",
+      "sha256": "26edbfc87465a692e4f56a2f7198f4e3aa1dbfcf6b46659fccc4467f72c7b33d",
       "executable": false
     },
     "scripts/installer/seed.mjs": {

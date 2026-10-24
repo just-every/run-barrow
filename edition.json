@@ -13,6 +13,7 @@
       "source": {
         "kind": "local",
         "paths": [
+          "scripts/installer/local.mjs",
           "scripts/delivery/base/setup-manifest.mjs",
           "src/mail.server.mjs",
           "src/auth.server.ts",
@@ -24,6 +25,7 @@
           "revision": "4280971d7c0295b8a88c3e1179048efcbbe14f30",
           "path": ".",
           "paths": [
+            "foundation/template/scripts/installer/local.mjs",
             "foundation/template/src/auth.server.ts",
             "foundation/template/src/mail.server.mjs",
             "foundation/template/src/server.dev.ts",
@@ -32,6 +34,10 @@
           ]
         },
         "mappings": [
+          {
+            "path": "scripts/installer/local.mjs",
+            "originPath": "foundation/template/scripts/installer/local.mjs"
+          },
           {
             "path": "scripts/delivery/base/setup-manifest.mjs",
             "originPath": "modules/delivery-producer/setup-manifest.mjs"
