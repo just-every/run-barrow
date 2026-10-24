@@ -60,3 +60,9 @@ instructions under `node_modules/@runeditrun/rer/modules/deploy-kit`; account sc
 resource ownership, migrations, receipt and health checks are defined there.
 Local validation does not prove hosted acceptance, provider delivery or remote
 health.
+
+## Hosted installation packaging
+
+Run `pnpm run build`, then `pnpm delivery:spec` to generate the committed deployment specification. `pnpm check:deployment-spec` compares it with the real build and packaging policy. The descriptor binds the exact setup manifest and uses the dispatch-only Managed delivery workflow. `node scripts/delivery/base/cli.mjs package --config packaging.json --output rer-package` packages the Worker, static assets and unchanged migrations. Generated package and artifact folders are private build output and stay ignored.
+
+Hosted setup offers RER relay, Resend, SendGrid and Cloudflare mail. Managed hosting supplies its relay URL, sender and private installation key; Assisted hosting requires the chosen provider's sender and private credential. Cloudflare also requires its account ID. Local review suppresses delivery. Quote-delivery event processing continues to require the existing Resend tenant and signed webhook configuration; selecting another sender does not claim quote-event support. No provider acceptance or hosted installation is established by packaging.

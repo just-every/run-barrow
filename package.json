@@ -16,7 +16,7 @@
     "deploy": "rer deploy",
     "onboard": "node scripts/install.mjs",
     "build:app": "rer queue build:app -- sh -c \"vite build\"",
-    "verify:app": "rer queue verify:app -- sh -c \"pnpm run build && pnpm run typecheck && pnpm run test:api && rer build --site && node --test tests/site.test.mjs\"",
+    "verify:app": "rer queue verify:app -- sh -c \"pnpm run build && pnpm run typecheck && pnpm check:deployment-spec && node scripts/edition-authoring/cli.mjs check && node scripts/edition-authoring/cli.mjs verify-base --offline && pnpm run test:api && rer build --site && node --test tests/site.test.mjs\"",
     "reset": "rer reset",
     "export": "rer export",
     "import": "rer import",
@@ -27,7 +27,9 @@
     "check": "rer check",
     "deps": "rer install",
     "rer": "rer",
-    "test:api": "rer queue test:api -- node scripts/test-api.mjs"
+    "test:api": "rer queue test:api -- node scripts/test-api.mjs",
+    "delivery:spec": "node scripts/build-deployment-spec.mjs",
+    "check:deployment-spec": "node scripts/build-deployment-spec.mjs --check"
   },
   "dependencies": {
     "@tanstack/react-router": "1.170.41",
@@ -43,7 +45,7 @@
     "@cloudflare/vite-plugin": "1.54.5",
     "@cloudflare/workers-types": "5.20260908.1",
     "@playwright/test": "1.63.0",
-    "@runeditrun/rer": "0.2.62",
+    "@runeditrun/rer": "0.2.79",
     "@types/node": "22.18.6",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.7",
