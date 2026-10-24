@@ -4,25 +4,19 @@ Run Barrow on your computer, connect your existing Pier stock desk, then invite 
 
 ## Open Barrow
 
-Open a terminal and run the two lines from the [Run page](https://run-barrow.com/run). The first installs `rer`, the Run Edit Run command, for you alone, with its own Node if you have no Node 22 or later:
+Open a terminal and run the line from the [Run page](https://run-barrow.com/run). It installs `rer`, the Run Edit Run command, for you alone, with its own Node if you have no Node 22 or later, then gets Barrow into `run-barrow`, installs everything and starts it:
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
+curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-barrow
 ```
 
-If the installer ends with a line to run, run it before the next step: it puts `rer` on your PATH. Then get Barrow, install everything and start it:
-
-```sh
-rer dev just-every/run-barrow
-```
-
-Already have Node 22 or later? This one line does both steps:
+Git is required; rer brings Node and pnpm. Already have Node 22 or later? This line does the same:
 
 ```sh
 npx -y @runeditrun/rer dev just-every/run-barrow
 ```
 
-To start it again later, run `cd run-barrow && rer dev`. Allow several minutes for the first start. The command installs the locked dependencies, selects Node 22.20.0, applies the local database migrations and prepares a local owner. Open the private `RER_OPEN` link it prints, confirm the first-run owner and open `/app` in that installation.
+If the installer prints a line that puts `rer` on your PATH, run that line too. To start it again later, run the same line from the same folder, or `cd run-barrow && rer dev`. Allow several minutes for the first start. The command installs the locked dependencies, selects Node 22.20.0, applies the local database migrations and prepares a local owner. Open the private `RER_OPEN` link it prints, confirm the first-run owner and open `/app` in that installation.
 
 Keep `RER_OPEN` and sign-in links private. The local development outbox sends no external email. Stop this checkout's server with `rer dev --stop`.
 

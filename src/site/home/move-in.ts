@@ -16,14 +16,16 @@ const rows: [string, string][] = [
 
 /** The start command with a break opportunity before the repository name, and never inside a token. */
 const command = (line: string) => escapeHtml(line).split(' ').map(word => `<span class="nb">${word}</span>`).join(' ')
+// The one start line every Run Edit Run page shows (the installer, then rer dev); the npx line is the alternative.
+const start = `curl -fsSL https://runeditrun.com/install.sh | sh -s -- ${run.clone.slice('npx -y @runeditrun/rer '.length)}`
 
 export function moveInSection(): string {
   return '<section class="section move-in" aria-labelledby="move-title"><div class="wrap move-grid">'
     + '<div class="move-copy"><p class="eyebrow">Moving in · Juniper &amp; Vale · Sat Sep 26 – Thu Oct 1</p>'
     + '<h2 id="move-title" class="xl">Off NuORDER, <span class="line">line sheets and all.</span></h2>'
     + '<p class="lede">Hannah previewed everything that would move, invited every buyer, and took orders in Barrow a week before the line sheet went out.</p>'
-    + `<div class="terminal"><span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span><pre aria-label="Start Barrow"><code><span class="prompt" aria-hidden="true">$ </span>${command(run.clone)}\n<span class="comment"># clones, installs and starts Barrow on your computer</span></code></pre>`
-    + `<button class="copy" type="button" data-copy="${escapeHtml(run.clone)}" hidden>${icon('copy', 'icon')}<span>Copy</span></button></div>`
+    + `<div class="terminal"><span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span><pre aria-label="Start Barrow"><code><span class="prompt" aria-hidden="true">$ </span>${command(start)}\n<span class="comment"># ${command('installs rer, then gets and starts Barrow on your computer')}</span>\n<span class="comment"># ${command(`Already have Node 22 or later? ${run.clone}`)}</span></code></pre>`
+    + `<button class="copy" type="button" data-copy="${escapeHtml(start)}" hidden>${icon('copy', 'icon')}<span>Copy</span></button></div>`
     + '<p class="move-also">Also moves in from Pepperi, Brandboom, SparkLayer and WizCommerce.</p></div>'
     + `<article class="card import"><div class="card-head">${glyph('leaf', 'card-glyph xxl')}<div><h3 class="serif-title xl">Import preview · from NuORDER</h3><p class="muted">reviewed Sat Sep 26 by Hannah Pierce</p></div></div>`
     + `<dl>${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>`
