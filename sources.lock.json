@@ -84,7 +84,11 @@
       "executable": false
     },
     ".github/workflows/installation.yml": {
-      "sha256": "cd2f935a5e1afd920ce6850c5ca5a936f4a466c9ce584c03c7e34fff843baad9",
+      "sha256": "dda4bbb45f4013b0aa613f5e9dab4de64e64e12b2e8b4a9aa093395126209de0",
+      "executable": false
+    },
+    ".github/workflows/release.yml": {
+      "sha256": "398e5a3d619b268de14e3c0fbad9f7939bb7c13b44e1bb8e01322c36904dc9b4",
       "executable": false
     },
     ".github/workflows/rer-managed.yml": {
@@ -496,7 +500,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "94f3d315bf21d0c11d31d9856e8823637d418960e9349c9a0f2c0496a7a458f6",
+      "sha256": "17181564f65a8c8dc91002495f257fa887f94638d947f677deb5d416f65a1560",
       "executable": false
     },
     "packaging.json": {
@@ -756,11 +760,15 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "cdcac14314d818a7c067b5472e80301c1c3627416936bcac6e3bdcf2995928a0",
+      "sha256": "2e1dd315ed2e5688d87196d81ee41b284bc4cdf79f75c9d5fab6a7ead9a21767",
+      "executable": false
+    },
+    "release-history/0.1.0.json": {
+      "sha256": "d2d4ccf382a8de65915cda64892c5c0964c7c9875646e2cbf9362a6010445de6",
       "executable": false
     },
     "RELEASE.json": {
-      "sha256": "d2d4ccf382a8de65915cda64892c5c0964c7c9875646e2cbf9362a6010445de6",
+      "sha256": "49b3b78a3fe6749462023fd57849d93b18eb8c92dfe20906fbb7d012e8d8bdd4",
       "executable": false
     },
     "rer-project.json": {
@@ -988,7 +996,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "815b9a5ccc517287c2a891f20132bb4cc0e528d9453ee01495dc3b4b35b28b3a",
+      "sha256": "1ec3c28cddf2fee500585772d44cfc69d6f9e8459735dd5d39ae92faefacc579",
       "executable": false
     },
     "src/auth.server.ts": {
