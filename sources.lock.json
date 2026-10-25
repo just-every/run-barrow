@@ -4016,7 +4016,7 @@
       "executable": false
     },
     "src/site/styles/docs.css": {
-      "sha256": "830a877a343c5682056573ebfe071eeef633491902e7120c8924d5cbb702c8de",
+      "sha256": "46d40aac8155e387f7e2b7581c226388a07a81294e07d4d08418f6ee8bd05fcb",
       "executable": false
     },
     "src/site/styles/hero.css": {
@@ -4024,7 +4024,7 @@
       "executable": false
     },
     "src/site/styles/run.css": {
-      "sha256": "49a1e2431c0dcc5cb8546ac2a115184d264753c2e4de54a591e4c339d87d9739",
+      "sha256": "4c9f070baf3d8b9f698714987b25131eb0e63e725dd6e3e25e8146132c820f7b",
       "executable": false
     },
     "src/site/styles/sections.css": {

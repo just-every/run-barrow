@@ -12,6 +12,19 @@ body.br-base-page { background: #fff; color: var(--br-ink); font-family: var(--r
 .br-missing .hero h1 { font-size: clamp(40px, 5vw, 64px); }
 .br-missing .link { color: var(--br-ultramarine); }
 
+/* The homepage also has an offline timeline. Keep its layout out of the shared chooser. */
+.br-run .timeline { display: block; }
+.br-run .timeline::before { content: none; }
+.br-run .timeline li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 12px; min-height: 0; padding: 0; }
+@container self (min-width: 720px) {
+  .br-run .timeline { display: grid; gap: 20px; }
+  .br-run .timeline li { display: flex; gap: 0; }
+}
+
+/* Shared guide proportions, with Barrow's own heading face and weight. */
+.br-hosting h2 { margin: 0; font-size: 30px; line-height: 1.2; font-weight: 760; letter-spacing: -.02em; }
+.br-hosting section ul { list-style: disc; }
+
 @media (max-width: 760px) {
   .br-base-page .bar { padding: 14px 16px 0; }
   .br-base-page .brand { font-size: 24px; gap: 9px; }
@@ -19,6 +32,7 @@ body.br-base-page { background: #fff; color: var(--br-ink); font-family: var(--r
   .br-base-page .bar nav { gap: 18px; font-size: 15px; }
   .br-run .intro { padding-top: 40px; }
   .br-run .intro h1 { font-size: 38px; }
+  .br-hosting h2 { font-size: 25px; }
 }
 
 /* Display type everywhere on the run site: the heavy serif's spaces are narrow and its tracking tight,
