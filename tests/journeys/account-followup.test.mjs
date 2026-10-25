@@ -68,6 +68,7 @@ test('account follow-up reviews delayed fulfillment before stock, approves exact
  await expect.poll(async () => (await f.task()).status).toBe('closed');
  await expect(plan.getByRole('button', { name: 'Send approved message', exact: true })).toHaveCount(0);
  const taskCard = page.locator('article').filter({ has: page.getByRole('heading', { name: current.title, exact: true }) });
+ await expect(taskCard.getByText(/^Resolution:/)).toContainText('Buyer replied');
  await taskCard.getByText('Follow-up decisions and outcomes', { exact: true }).click();
  await captureRegionWidths(page, taskCard, 'account-followup-closed-with-outcomes');
 });

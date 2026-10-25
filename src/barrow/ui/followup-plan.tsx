@@ -34,7 +34,7 @@ function ActionReview({ task, plan, action, busy, command }: { task: PlannedTask
   const [sendOn, setSendOn] = useState(action.sendOn), [reason, setReason] = useState(''), [consent, setConsent] = useState(false)
   const proposed = action.status === 'proposed', editable = task.status === 'open' && proposed
   const decision = (value: 'approve' | 'suppress') => command('followup.decide', { id: task.id, revision: task.revision, actionId: action.id, decision: value, recipientId, body, sendOn, reason, consent })
-  return <article className="br-card br-stack" aria-label={action.kind === 'delivery' ? 'Delivery follow-up' : 'Quote follow-up'}>
+  return <article className="br-stack" aria-label={action.kind === 'delivery' ? 'Delivery follow-up' : 'Quote follow-up'}>
     <h4>{action.kind === 'delivery' ? 'Resolve delayed delivery' : 'Review unanswered quote'} · {action.status}</h4>
     <a href={`/app?quote=${encodeURIComponent(action.quoteId)}`}>Open quote conversation</a>
     <label>Message recipient<select value={recipientId} disabled={!editable || busy} onChange={event => setRecipientId(event.target.value)}>
@@ -45,7 +45,7 @@ function ActionReview({ task, plan, action, busy, command }: { task: PlannedTask
     {action.reason && <p>Decision reason: {action.reason}</p>}
     {task.status === 'open' && proposed && <>
       <label>Reason for this decision<textarea value={reason} onChange={event => setReason(event.target.value)} maxLength={2000} disabled={busy} /></label>
-      <label><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} disabled={busy} /> I reviewed this recipient, message and contact date.</label>
+      <label><input type="checkbox" style={{width:20,minHeight:20,verticalAlign:"middle",marginRight:8}} checked={consent} onChange={event => setConsent(event.target.checked)} disabled={busy} /> I reviewed this recipient, message and contact date.</label>
       <div className="br-actions">
         {proposed && <button disabled={busy || !consent || !reason.trim() || !body.trim() || !recipientId || !sendOn} onClick={() => void decision('approve')}>Approve exact message</button>}
         <button className="br-secondary" disabled={busy || !consent || !reason.trim()} onClick={() => void decision('suppress')}>Suppress outreach</button>
