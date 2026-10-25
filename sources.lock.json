@@ -4052,7 +4052,7 @@
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
-      "sha256": "3d0689e9ce0cd0785f557b9ab3bcb2d68dc54a0d536434e445aaaa41bd272ffe",
+      "sha256": "d8f88176709d9280027918d834de8ef9fe304157d7861160fac9bbdea8c88cb8",
       "executable": false
     },
     "tests/api/line-sheet-fixture.mjs": {
