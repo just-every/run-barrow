@@ -3996,7 +3996,7 @@
       "executable": false
     },
     "src/site/run.json": {
-      "sha256": "7fae86e047b8f63eca20141b55f01af7fcc1eaad48f9a1d17a9bc56cc32680d2",
+      "sha256": "53e142d3d9ee099bd4c22602a13ab8d44c5e34c3d5bf5926268834c268bad905",
       "executable": false
     },
     "src/site/shell/bind.ts": {
@@ -4024,7 +4024,7 @@
       "executable": false
     },
     "src/site/styles/run.css": {
-      "sha256": "eaf72cc0b2773d28deb1601ad585a0cea3904e2128907a4aae574f2cab567db4",
+      "sha256": "49a1e2431c0dcc5cb8546ac2a115184d264753c2e4de54a591e4c339d87d9739",
       "executable": false
     },
     "src/site/styles/sections.css": {
