@@ -14,9 +14,9 @@ test('account follow-up reviews delayed fulfillment before stock, approves exact
   await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
  }
  await page.getByRole('button', { name: 'Data', exact: true }).click();
- await page.getByLabel('Queue view', { exact: true }).selectOption('all');
+ await page.getByLabel('Queue view').selectOption('all');
  const builder = page.getByRole('region', { name: 'Plan account follow-up', exact: true });
- await builder.getByLabel('Account for follow-up', { exact: true }).selectOption(account.id);
+ await builder.getByLabel('Account for follow-up').selectOption(account.id);
  await captureRegionWidths(page, builder, 'account-followup-account');
  const beforePlanMail = h.mail.deliveries.length;
  await builder.getByRole('button', { name: 'Prepare account follow-up plan', exact: true }).click();
@@ -30,17 +30,17 @@ test('account follow-up reviews delayed fulfillment before stock, approves exact
  const delivery = plan.getByRole('article', { name: 'Delivery follow-up', exact: true });
  const quote = plan.getByRole('article', { name: 'Quote follow-up', exact: true });
  const body = 'We are reviewing the four outstanding cases from your delivery. I will confirm a verified update before discussing additional stock.';
- await delivery.getByLabel('Message recipient', { exact: true }).selectOption(current.plan.actions[0].recipientId);
- await delivery.getByLabel('Message to buyer', { exact: true }).fill(body);
- await delivery.getByLabel('Contact date', { exact: true }).fill(current.plan.actions[0].sendOn);
- await delivery.getByLabel('Reason for this decision', { exact: true }).fill('Review the delayed delivery with the buyer before discussing a new order.');
+ await delivery.getByLabel('Message recipient').selectOption(current.plan.actions[0].recipientId);
+ await delivery.getByLabel('Message to buyer').fill(body);
+ await delivery.getByLabel('Contact date').fill(current.plan.actions[0].sendOn);
+ await delivery.getByLabel('Reason for this decision').fill('Review the delayed delivery with the buyer before discussing a new order.');
  await delivery.getByRole('checkbox').check();
  await captureRegionWidths(page, delivery, 'account-followup-review-exact-message');
  await delivery.getByRole('button', { name: 'Approve exact message', exact: true }).click();
  await expect(delivery.getByRole('heading')).toContainText('approved');
  assert.equal(h.mail.deliveries.length, beforePlanMail);
  await captureRegionWidths(page, delivery, 'account-followup-approved');
- await quote.getByLabel('Reason for this decision', { exact: true }).fill('The delivery issue takes priority; suppress additional stock outreach.');
+ await quote.getByLabel('Reason for this decision').fill('The delivery issue takes priority; suppress additional stock outreach.');
  await quote.getByRole('checkbox').check();
  await quote.getByRole('button', { name: 'Suppress outreach', exact: true }).click();
  await expect(quote.getByRole('heading')).toContainText('suppressed');
@@ -60,9 +60,9 @@ test('account follow-up reviews delayed fulfillment before stock, approves exact
  const buyerPage = await buyerContext.newPage(); await buyerPage.goto(`${h.origin}/app?quote=${encodeURIComponent(action.quoteId)}`);
  const conversation = buyerPage.locator('details').filter({ has: buyerPage.locator('summary').filter({ hasText: /^Conversation/ }) });
  await conversation.locator('summary').click();
- await conversation.getByLabel('Message', { exact: true }).fill('Thank you. Please confirm the four outstanding cases after your delivery review.');
+ await conversation.getByLabel('Message').fill('Thank you. Please confirm the four outstanding cases after your delivery review.');
  await conversation.getByRole('button', { name: 'Send message', exact: true }).click();
- await expect(conversation.getByLabel('Message', { exact: true })).toHaveValue('');
+ await expect(conversation.getByLabel('Message')).toHaveValue('');
  await captureRegionWidths(buyerPage, conversation, 'account-followup-buyer-response');
  await page.getByRole('button', { name: 'Refresh next actions', exact: true }).click();
  await expect.poll(async () => (await f.task()).status).toBe('closed');

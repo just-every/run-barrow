@@ -58,7 +58,7 @@ export function Followups() {
     <div className="br-form-grid"><label>Queue view<select value={view} onChange={event => setView(event.target.value)}><option value="due">Due and unanswered</option><option value="all">All, including snoozed and closed</option></select></label>
       <label>Due on<input type="date" value={on} onChange={event => setOn(event.target.value)} /></label></div>
     <div className="br-actions"><button disabled={busy} onClick={() => void command('followup.refresh', {})}>Refresh next actions</button></div>
-    <AccountPlanBuilder busy={busy} command={command} />
+    {board?.canPlan && <AccountPlanBuilder busy={busy} command={command} />}
     {error && <Notice error>{error}</Notice>}
     {board && <>
       <p className="br-quiet-text">{Object.values(board.notes).join(' ')}</p>

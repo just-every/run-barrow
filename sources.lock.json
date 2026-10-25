@@ -1260,7 +1260,7 @@
       "executable": false
     },
     "src/barrow/followups.ts": {
-      "sha256": "f618de827babd9a964972c2fe2aa41f73ae0cc45933ab9f6b309e10da5ea3aa9",
+      "sha256": "5104c7422d014bec35511f2e37fbad8bab380d1df5bec64ca7db3783984e64cc",
       "executable": false
     },
     "src/barrow/freshness.ts": {
@@ -1792,7 +1792,7 @@
       "executable": false
     },
     "src/barrow/ui/followups.tsx": {
-      "sha256": "17c90d91d43cf6b6b8e3891117c290d7d8578071fc9385d16b6591fcb05273f2",
+      "sha256": "f680d0dfeb6e74a76388660398b06c205db1598fb19cd317cbfa0f8732d98d0f",
       "executable": false
     },
     "src/barrow/ui/freshness.tsx": {
@@ -3996,7 +3996,7 @@
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
-      "sha256": "bf4e9fe69c361b9624eaac452ba61118ea4c91c849aa1878a1eb751c45e78388",
+      "sha256": "8ac30a8ef8d6db60df0cf4d3dbd4f15f050f0176178bd0892772c7ff06d0189e",
       "executable": false
     },
     "tests/api/application-fixture.mjs": {
@@ -4236,7 +4236,7 @@
       "executable": false
     },
     "tests/journeys/account-followup.test.mjs": {
-      "sha256": "d83d18116617add3534899de5e62710bcc4d00b74036227deb926467ac8a3dbe",
+      "sha256": "9976f0fb916f1f1c3ad41d0d1887ed77d9e75319991460e60e95c3a5bf4c2fe7",
       "executable": false
     },
     "tests/journeys/agent-proposals.test.mjs": {
