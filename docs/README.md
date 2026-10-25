@@ -31,3 +31,7 @@ On hold and closed stop new drafts, submission and the first supplier approval. 
 A matching company name (Unicode-normalized, case-insensitive, with repeated spaces collapsed) or Pier customer ID requires a review of the matching account IDs and revisions. Confirm separate companies before saving; this never merges their sign-ins or history. Duplicate email ownership remains refused. Move in shows possible duplicates in its reviewed preview, and applying that exact fingerprint records the review with its actor and time. CSV updates preserve existing lifecycle and profile fields that are absent from the CSV format.
 
 See [Seasonal line sheets and retail prices](LINE-SHEETS.md) for recipient shares, size runs, fixed assortments, price display preferences and buyer engagement.
+
+## Put Barrow online
+
+[Hosting](/docs/hosting) explains Assisted setup and deployment to your own Cloudflare account.

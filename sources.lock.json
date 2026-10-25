@@ -228,7 +228,7 @@
       "executable": false
     },
     "docs/README.md": {
-      "sha256": "fc582c687fae1630cc944eeb93cf3c2c2b041be980d0888ff06d3116b34e241c",
+      "sha256": "fd87cfeb423036a139ce50bee318b32bdf9535d46a9364a04d7321fa9b3797f1",
       "executable": false
     },
     "docs/RETENTION.md": {
@@ -3992,7 +3992,7 @@
       "executable": false
     },
     "src/site/pages.ts": {
-      "sha256": "951b9fc38713f1762be4f8b289aa5b05eb39f667e4f70550455af7cecabe4f6d",
+      "sha256": "bc5f5ed17678390b029d951a6bbd5451ca8ca53a672e6bc4fb9e67f9b60ab2ac",
       "executable": false
     },
     "src/site/run.json": {
