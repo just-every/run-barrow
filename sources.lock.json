@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "f8744019255e80038d545617670910b1b8d049f749b9a6c8307c7d9b53af4bff",
+      "sha256": "26e9517b4430204f8a0c133878c670833fa9370b884171a055f9c4e1dc2cbc62",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "adc67e54f94061c2e12aa2de081e5402e5a5d9c2081e24266dd99a40c13f1eea",
+      "sha256": "07abb4e69bd384459eaba6e3afcb5ff8796a3dac64aed4d9178fd7bf5add7440",
       "executable": false
     },
     "DEMO.md": {
@@ -260,7 +260,7 @@
       "executable": false
     },
     "docs/WIZCOMMERCE.md": {
-      "sha256": "21436fb7a89e6aeddd387e7551d9b3e2feb81725a8913162a06516fdc2682040",
+      "sha256": "23e2b10ebdd8ed76d14c083d5b372b50f640490ef35c21be09c9a5f7eb7e9b22",
       "executable": false
     },
     "edition.json": {
@@ -1344,7 +1344,7 @@
       "executable": false
     },
     "src/barrow/imports/platform-history.ts": {
-      "sha256": "73d8bcad3e4acd2b32faa84f969db8605350a9c9d1c214b6115c89c4cf4071ba",
+      "sha256": "814b94c15a3ad10986a24f862972c62e043069b7f6fd6a9b8105945eb5e1757b",
       "executable": false
     },
     "src/barrow/imports/reconcile.ts": {
@@ -1356,7 +1356,7 @@
       "executable": false
     },
     "src/barrow/imports/sparklayer.ts": {
-      "sha256": "2546d78720d693f23921ff971f295914f566fc949db93bdff848f2a246cf944b",
+      "sha256": "f2976a14ee8528598ea240225a8a85908476e2611c377e527e647e7cc641428a",
       "executable": false
     },
     "src/barrow/imports/targets.ts": {
@@ -1371,8 +1371,12 @@
       "sha256": "193944138b1e888655658296e3b967b6a0fba0eba709e778d3d33d8b540bbded",
       "executable": false
     },
+    "src/barrow/imports/wizcommerce-native.ts": {
+      "sha256": "01240ede1f77c1fe33b3f34925713c61ff950f0ed179a5fac61cbf0b2e6f5a21",
+      "executable": false
+    },
     "src/barrow/imports/wizcommerce.ts": {
-      "sha256": "c5a0c40e54a8517ef1d942f6a7654d90e1058a306397f46dcb2f2bb230586446",
+      "sha256": "cc012cd98fc67a9d92d6d4ca728c3dff9b152dcc7c52baab02a8b7d823df0a7b",
       "executable": false
     },
     "src/barrow/invoice.ts": {
@@ -1392,7 +1396,7 @@
       "executable": false
     },
     "src/barrow/locations.ts": {
-      "sha256": "cf65eebea5bee6e310b8bc4618526eb38211085482418de4685e3c745cc7e786",
+      "sha256": "eb9ce1432ed961ead7a506b24fc2d5a928717e8aa2bc6449c388d956bb4eebaf",
       "executable": false
     },
     "src/barrow/model.ts": {
@@ -1644,7 +1648,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "b0853bdaca264dab9b6e829348a37795103f9c7c783aba6c171415b8b59f7924",
+      "sha256": "968b4c9ffb9f67bd1aa5968333a3dc5ae92350ed6d94b5395495deb90f2d4f7f",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -1945,6 +1949,10 @@
     },
     "src/barrow/ui/webhooks.tsx": {
       "sha256": "f5e9491b2e8c2cf821e77945f005b515c494beb428661fb9ec8b8b74eb0eb851",
+      "executable": false
+    },
+    "src/barrow/ui/wizcommerce.tsx": {
+      "sha256": "58e914a90f019d3d1e4b514f366fb9f034dc5282a862283acf80cae5eebb948c",
       "executable": false
     },
     "src/barrow/unit-lines.ts": {
@@ -4072,11 +4080,11 @@
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
-      "sha256": "aaed9612e55d6436b577c157163beaed557a24f5080001f441ba912904f7c99c",
+      "sha256": "3f880107dd1c566372794fe7f07937fd781651e3fbe4c3252533cceeb6ed2dfa",
       "executable": false
     },
     "tests/api/move-wizcommerce.test.mjs": {
-      "sha256": "f21350bed73ca7d399732e5e2ebd89ff20f329f65fac0f88d2810228868d21b9",
+      "sha256": "7b8353e9b669fd911e10cdeceb331c18242eb84afbb8aaa0abaf473900e41181",
       "executable": false
     },
     "tests/api/order-guarantee.test.mjs": {
@@ -4196,7 +4204,7 @@
       "executable": false
     },
     "tests/api/wizcommerce-fixture.mjs": {
-      "sha256": "4b7f6fd6443b62a309b66d57a6bb794240db91ba78681a45010636f65920114f",
+      "sha256": "66c16533bd69b3eec7aefa1b56b682fbf3eb263ca4f06412f70a990a42a2e169",
       "executable": false
     },
     "tests/api/worker.ts": {
@@ -4272,7 +4280,7 @@
       "executable": false
     },
     "tests/journeys/move-wizcommerce.test.mjs": {
-      "sha256": "d3b1eb194f5d88e177de8598535374ca187ff544dc06f6f6b452a9940f145da5",
+      "sha256": "a87d628a8b24017cedb22752ceb590119be9a407e836b9d5ffdf80ebacd26417",
       "executable": false
     },
     "tests/journeys/rep-ordering.test.mjs": {
