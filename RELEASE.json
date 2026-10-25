@@ -1,8 +1,8 @@
 {
-  "version": "0.1.1",
-  "publicReleaseNotes": "Add a release-bound capture of the populated wholesale app, explicit listing and storage details, and release checks through the native installation and restore journey.",
+  "version": "0.1.2",
+  "publicReleaseNotes": "Keep the RER CLI pinned to 0.2.80 and refresh its shared foundations and hosted-install descriptor. Repair native installation evidence so Managed checkouts can pass the first-party check without publisher workflows.",
   "migrations": [],
   "breaking": false,
-  "agentUpdateInstructions": "Install the declared frozen dependencies. No migrations or runtime configuration changes are required for this patch. The pinned RER CLI remains 0.2.80.",
-  "previousVersion": "0.1.0"
+  "agentUpdateInstructions": "Install the frozen dependencies with RER CLI 0.2.80. No migrations or runtime configuration changes are required. Native installation evidence now points to the surviving installation journey in both publisher and Managed checkouts.",
+  "previousVersion": "0.1.1"
 }

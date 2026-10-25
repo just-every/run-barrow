@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "7d78d7f0a6d842ada6e0893068e720e782685409a72d458104b56d93e50d18ca",
+      "sha256": "f8744019255e80038d545617670910b1b8d049f749b9a6c8307c7d9b53af4bff",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1084a7f56e0189fcb56f302ad76e42d0389020598db176e5e1c6520fdf5d802f",
+      "sha256": "adc67e54f94061c2e12aa2de081e5402e5a5d9c2081e24266dd99a40c13f1eea",
       "executable": false
     },
     "DEMO.md": {
@@ -504,7 +504,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "17181564f65a8c8dc91002495f257fa887f94638d947f677deb5d416f65a1560",
+      "sha256": "f9f0b3882dc2bfee4c3471421e80becb4019ca81ab38984052d06bf55ffca58b",
       "executable": false
     },
     "packaging.json": {
@@ -771,8 +771,12 @@
       "sha256": "d2d4ccf382a8de65915cda64892c5c0964c7c9875646e2cbf9362a6010445de6",
       "executable": false
     },
-    "RELEASE.json": {
+    "release-history/0.1.1.json": {
       "sha256": "49b3b78a3fe6749462023fd57849d93b18eb8c92dfe20906fbb7d012e8d8bdd4",
+      "executable": false
+    },
+    "RELEASE.json": {
+      "sha256": "757685bf76cc967f86ae2f72734a8b387b9e48f27ec2a94ad0b59b4c510fe217",
       "executable": false
     },
     "rer-project.json": {
@@ -1000,7 +1004,7 @@
       "executable": false
     },
     "seed.json": {
-      "sha256": "ebe4b72eaad34a3737bb7d4b92ab0c8d9cedf3ba6aff41d9eb135c2145883801",
+      "sha256": "5c7f212a226f6ff72fa7d57e96dd5aca755f8e8cd907cc4951d13fc3cbee311d",
       "executable": false
     },
     "src/auth.server.ts": {

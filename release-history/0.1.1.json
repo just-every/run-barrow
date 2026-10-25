@@ -1,0 +1,8 @@
+{
+  "version": "0.1.1",
+  "publicReleaseNotes": "Add a release-bound capture of the populated wholesale app, explicit listing and storage details, and release checks through the native installation and restore journey.",
+  "migrations": [],
+  "breaking": false,
+  "agentUpdateInstructions": "Install the declared frozen dependencies. No migrations or runtime configuration changes are required for this patch. The pinned RER CLI remains 0.2.80.",
+  "previousVersion": "0.1.0"
+}

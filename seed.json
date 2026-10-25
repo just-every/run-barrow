@@ -1,12 +1,12 @@
 {
   "id": "barrow",
   "name": "Barrow",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "maturity": "first-release-worker-d1-ui",
   "category": "commerce",
   "spine": {
     "id": "wholesale",
-    "record": "A trade account’s priced order, approved by a supplier and reserved in Pier."
+    "record": "A trade account\u2019s priced order, approved by a supplier and reserved in Pier."
   },
   "description": "Private wholesale catalogues, customer order review, supplier-approved Pier reservations, invoice CSV handoff and reviewed account move-in.",
   "capabilities": [
