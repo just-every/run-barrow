@@ -83,6 +83,8 @@ test('owner approves two brand price books and one company buyer deliberately sw
  await profileForm.getByRole('button',{name:'Save buying profile',exact:true}).click();
  await expect.poll(async()=>(await f.read({})).profiles.find(profile=>profile.id===profiles[0].id).value.prices[0].unitCents).toBe(6502);
  specifications[0].unitCents=6502;
+ await profileForm.getByLabel('Edit buying profile').selectOption(profiles[0].id);
+ await expect(profileForm.getByLabel('Unit price in cents for price 1',{exact:true})).toHaveValue('6502');
  await captureRegionWidths(owner, profileForm, 'buying-profile-price-book-settings');
  const buyerContext = await signedContext(browser, h, f.buyer.as); t.after(() => buyerContext.close());
  const buyer = await buyerContext.newPage(); await buyer.goto(h.origin + '/app');
