@@ -20,7 +20,7 @@ const optional = (value: unknown, name: string, limit: number) => value === unde
 const row = (value: any): Location => ({ id: value.id, accountId: value.account_id, kind: value.kind, value: JSON.parse(value.value_json), revision: value.revision, isDefault: Boolean(value.is_default), archived: Boolean(value.archived) })
 export const jurisdictionLabel = 'State jurisdiction from the ship-to address; local jurisdictions and rates come with TAX-001. No tax is calculated.'
 
-function locationValue(kind: LocationKind, p: any): LocationValue {
+export function locationValue(kind: LocationKind, p: any): LocationValue {
  const name = text(p?.name, kind === 'contact' ? 'Contact name' : 'Location name', 120)
  if (kind === 'contact') {
   const email = optional(p.email, 'Email', 200)
