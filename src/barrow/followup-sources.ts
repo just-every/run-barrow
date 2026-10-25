@@ -3,7 +3,7 @@ import type { Quote } from './quotes'
 import { applicationTaskId, escalatedView } from './application-followup'
 import { supplierDate } from './model'
 
-export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail' | 'application' | 'visit'
+export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail' | 'application' | 'visit' | 'account-plan'
 export type FollowupSource = { id: string; kind: FollowupKind; accountId: string; sourceId: string; sourcePath: string; title: string; reason: string; priority: number }
 const day = 86400000
 /** AUTO-002: the exact reason a submitted order still waits for supplier approval, checked the way approval checks it. */

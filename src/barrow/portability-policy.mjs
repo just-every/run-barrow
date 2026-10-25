@@ -10,6 +10,7 @@ export const portabilityPolicy = {
   if(table==='bw_staff_members')return {...row,state:'revoked'};
   if(table==='bw_rep_assignments'||table==='bw_company_delegations')return {...row,state:'ended'};
   if(table==='bw_company_members')return {...row,state:'removed'};
+  if(table==='bw_followups') {const value=JSON.parse(row.value_json);if(value.plan)return {...row,value_json:JSON.stringify({...value,plan:{...value.plan,restored:true}})}}
   if(table==='bw_report_schedules')return {...row,restored:1};
   if(table==='bw_report_deliveries' && ['queued','not configured','uncertain'].includes(row.status))return {...row,status:'cancelled',reason:'Restored history cannot initiate outreach'};
   if(table==='bw_quote_notices')return {...row,mail_eligible:0};

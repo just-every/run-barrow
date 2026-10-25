@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { request, errorMessage } from './api'
 import { Notice } from './primitives'
+import { AccountPlanBuilder, AccountPlanReview } from './followup-plan'
 import type { readFollowups } from '../followups'
 
 type Board = Awaited<ReturnType<typeof readFollowups>>
 type Task = Board['tasks'][number]
 
-function TaskEditor({ task, people, busy, update }: { task: Task; people: Board['people']; busy: boolean; update: (payload: Record<string, unknown>) => Promise<void> }) {
+function TaskEditor({ task, people, busy, update, command }: { task: Task; people: Board['people']; busy: boolean; update: (payload: Record<string, unknown>) => Promise<void>; command: (type: string, payload: Record<string, unknown>) => Promise<void> }) {
   const [ownerId, setOwner] = useState(task.ownerId), [nextContactDate, setDate] = useState(task.nextContactDate)
   const [note, setNote] = useState(''), [outcome, setOutcome] = useState('failed'), [resolution, setResolution] = useState('')
   const save = (extra: Record<string, unknown> = {}) => update({ id: task.id, revision: task.revision, ownerId, nextContactDate, ...extra })
@@ -14,6 +15,7 @@ function TaskEditor({ task, people, busy, update }: { task: Task; people: Board[
     <p>Last recorded source: {task.reason} · {task.status} · next contact {task.nextContactDate}</p>
     {task.escalated && task.status === 'open' && <p><strong>Escalated since {task.escalated.since} to {people.find(person => person.id === task.escalated!.toId)?.displayName ?? 'a former owner or admin'}</strong> until a decision or an explicit closure.</p>}
     <a href={task.sourcePath}>Open source record</a>
+    <AccountPlanReview task={task} busy={busy} command={command} />
     {task.status === 'closed' ? <p>Resolution: {task.resolution}</p> : <>
       <div className="br-form-grid"><label>Task owner<select value={ownerId} onChange={event => setOwner(event.target.value)}>{!people.some(person => person.id === ownerId) && <option value={ownerId} disabled>Former staff member; choose a current owner</option>}{people.map(person => <option key={person.id} value={person.id}>{person.displayName}</option>)}</select></label>
         <label>Next contact date<input type="date" value={nextContactDate} onChange={event => setDate(event.target.value)} /></label></div>
@@ -48,7 +50,7 @@ export function Followups() {
   useEffect(() => { setBoard(null); setError(''); void load().catch(cause => setError(errorMessage(cause))); return () => { latestRequest.current++ } }, [String(query)])
   async function command(type: string, payload: Record<string, unknown>) {
     setBusy(true); setError('')
-    try { await request('/api/barrow/commands', { type, payload }); await load() }
+    try { await request('/api/barrow/commands', { type, payload }); if (type === 'followup.plan') setView('all'); await load() }
     catch (cause) { setError(errorMessage(cause)) }
     finally { setBusy(false) }
   }
@@ -56,11 +58,12 @@ export function Followups() {
     <div className="br-form-grid"><label>Queue view<select value={view} onChange={event => setView(event.target.value)}><option value="due">Due and unanswered</option><option value="all">All, including snoozed and closed</option></select></label>
       <label>Due on<input type="date" value={on} onChange={event => setOn(event.target.value)} /></label></div>
     <div className="br-actions"><button disabled={busy} onClick={() => void command('followup.refresh', {})}>Refresh next actions</button></div>
+    <AccountPlanBuilder busy={busy} command={command} />
     {error && <Notice error>{error}</Notice>}
     {board && <>
       <p className="br-quiet-text">{Object.values(board.notes).join(' ')}</p>
       {!board.tasks.length && <p>No next actions in this view. Refresh to reconcile the current source records.</p>}
-      {board.tasks.map(task => <TaskEditor key={`${task.id}:${task.revision}`} task={task} people={board.people} busy={busy} update={payload => command('followup.update', payload)} />)}
+      {board.tasks.map(task => <TaskEditor key={`${task.id}:${task.revision}`} task={task} people={board.people} busy={busy} command={command} update={payload => command('followup.update', payload)} />)}
     </>}
   </div>
 }

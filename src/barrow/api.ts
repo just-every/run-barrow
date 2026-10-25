@@ -1,3 +1,4 @@
+import { accountFollowupCommand } from './account-followup'
 import { refreshCatalogIndex, searchCatalog } from './catalog-search'
 import {inviteWizUser} from './imports/wizcommerce-invitations'
 import {previewPlatform,applyPlatform,readPlatform} from './imports/platform-history'
@@ -336,6 +337,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['followup.plan','followup.decide','followup.send'].includes(body.type)) result=await accountFollowupCommand(env,actor,body.type,body.payload)
    else if(['followup.refresh','followup.update'].includes(body.type)) result=await followupCommand(env,actor,body.type,body.payload)
    else if(body.type==='settings.timezone') result=await saveReportZone(env.DB,actor,body.payload)
    else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)
@@ -347,7 +349,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['visit.schedule','visit.record','visit.samples','visit.basket','visit.handoff'].includes(body.type)) result=await visitCommand(env,actor,body.type,body.payload)
    else if(['quote.request','quote.propose','quote.approve','quote.accept','quote.message','quote.read'].includes(body.type)) result=await quoteCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
-   if(body.type.startsWith('quote.') && body.type!=='quote.read') await dispatchQuoteMail(env)
+   if(body.type==='followup.send' || body.type.startsWith('quote.') && body.type!=='quote.read') await dispatchQuoteMail(env)
    return json({result})
   }
   return json({error:{code:'NOT_FOUND',message:'Unknown endpoint.'}},404)

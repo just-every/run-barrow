@@ -1,3 +1,4 @@
+import { planResponseResolution, type FollowupPlan } from './account-followup'
 import { applicationReviewers } from './application-reviewers'
 import { staffTaskAllowed } from './staff-access'
 import { readStaffGrant,staffGuard } from './staff-policy'
@@ -10,7 +11,7 @@ import { fail, requirePerson, requireSupplier, text, type Actor } from './model'
 import { calendarDate, reportZone } from './report-zone'
 
 export type FollowupContact = { outcome: 'failed' | 'reached'; note: string; by: string; at: string }
-export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; resolution?: string; contacts: FollowupContact[] }
+export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; resolution?: string; contacts: FollowupContact[]; plan?: FollowupPlan }
 export type FollowupTask = FollowupValue & { revision: string }
 type Stored = { value_json: string; revision: string }
 const parse = (row: Stored): FollowupTask => ({ ...JSON.parse(row.value_json), revision: row.revision })
@@ -83,7 +84,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
   }
   for (const task of existing) {
    if(!staffTaskAllowed(actor,task))continue
-   const resolution = sources.resolved.get(task.id)
+   const resolution = task.plan ? await planResponseResolution(env.DB,task) : sources.resolved.get(task.id)
    if (task.status === 'closed' || !resolution) continue
    const { revision: previous, ...value } = task, revision = crypto.randomUUID()
    statements.push(updateStatement(env.DB, task, { ...value, status: 'closed', resolution }, revision), changed(env.DB))

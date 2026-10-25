@@ -71,6 +71,7 @@ const commandRoles:Record<string,string[]>={
  'location.save':['sales-manager'],'location.archive':['sales-manager'],
  'rep.assign':['sales-manager'],'rep.cover':['sales-manager'],'rep.end':['sales-manager'],'rep.transfer':['sales-manager'],
  'visit.schedule':selling,'visit.record':selling,'visit.samples':selling,'visit.basket':selling,'visit.handoff':operating,
+ 'followup.plan':selling,'followup.decide':selling,'followup.send':selling,
  'followup.refresh':['sales-manager','rep','operations','finance'],'followup.update':['sales-manager','rep','operations','finance'],
  'report.remove-recipient':['sales-manager','rep','operations','finance','analyst'],
 }
