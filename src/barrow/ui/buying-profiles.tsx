@@ -39,18 +39,15 @@ function BrandEditor({ brands, busy, save }: { brands: Brand[]; busy: boolean; s
 
 function ProfileEditor({ accountId, profiles, brands, busy, save }: { accountId: string; profiles: Profile[]; brands: Brand[]; busy: boolean; save: Save }) {
   const [selected, setSelected] = useState(''), [id, setId] = useState(''), [name, setName] = useState(''), [brandId, setBrandId] = useState('')
-  const [minimumCents, setMinimum] = useState('0'), [termsDays, setTermsDays] = useState('30'), [prices, setPrices] = useState('[]'), [error, setError] = useState('')
+  const [minimumCents, setMinimum] = useState('0'), [termsDays, setTermsDays] = useState('30'), [prices, setPrices] = useState<Record<string,unknown>[]>([{sku:'',unitCents:0,minQty:1}])
   function choose(value: string) {
     const profile = profiles.find(profile => profile.id === value)
     setSelected(value); setId(profile?.id ?? ''); setName(profile?.value.name ?? ''); setBrandId(profile?.value.brandId ?? '')
-    setMinimum(String(profile?.value.minimumCents ?? 0)); setTermsDays(String(profile?.value.termsDays ?? 30)); setPrices(JSON.stringify(profile?.value.prices ?? [], null, 2)); setError('')
+    setMinimum(String(profile?.value.minimumCents ?? 0)); setTermsDays(String(profile?.value.termsDays ?? 30)); setPrices(profile?.value.prices ?? [{sku:'',unitCents:0,minQty:1}])
   }
   function submit(event: FormEvent) {
-    event.preventDefault(); setError('')
-    let rows: unknown
-    try { rows = JSON.parse(prices) } catch { setError('Enter the price rows as a JSON array.'); return }
-    if (!Array.isArray(rows)) { setError('Enter the price rows as a JSON array.'); return }
-    void save('profile.save', { id, revision: profiles.find(profile => profile.id === selected)?.revision ?? null, accountId, value: { brandId, name, prices: rows, minimumCents: Number(minimumCents), termsDays: Number(termsDays) } })
+    event.preventDefault()
+    void save('profile.save', { id, revision: profiles.find(profile => profile.id === selected)?.revision ?? null, accountId, value: { brandId, name, prices, minimumCents: Number(minimumCents), termsDays: Number(termsDays) } })
   }
   return <form className="br-card br-stack" aria-label="Buying profile settings" onSubmit={submit}>
     <h3>Buying profile and price book</h3>
@@ -60,9 +57,13 @@ function ProfileEditor({ accountId, profiles, brands, busy, save }: { accountId:
     <label>Brand for this profile<select required value={brandId} disabled={busy || !!selected} onChange={event => setBrandId(event.target.value)}><option value="">Choose a brand</option>{brands.map(brand => <option key={brand.id} value={brand.id}>{brand.value.name} · {brand.value.currency}</option>)}</select></label>
     <div className="br-form-grid"><label>Minimum order in cents<input type="number" min="0" step="1" required value={minimumCents} disabled={busy} onChange={event => setMinimum(event.target.value)} /></label>
       <label>Payment terms in days<input type="number" min="0" step="1" required value={termsDays} disabled={busy} onChange={event => setTermsDays(event.target.value)} /></label></div>
-    <label>Price rows as JSON<textarea rows={7} value={prices} required disabled={busy} onChange={event => setPrices(event.target.value)} /></label>
-    <p>Each row names an exact SKU, its unitCents and minQty. Amounts use the selected brand’s currency. Create a separate profile to use another legal seller.</p>
-    {error && <p role="alert">{error}</p>}
+    <fieldset className="br-stack"><legend>Agreed SKU prices</legend>{prices.map((price,index)=><div className="br-form-grid" key={index}>
+      <label>SKU for price {index+1}<input required maxLength={100} value={String(price.sku??'')} disabled={busy} onChange={event=>setPrices(rows=>rows.map((row,i)=>i===index?{...row,sku:event.target.value}:row))}/></label>
+      <label>Unit price in cents for price {index+1}<input required type="number" min="0" step="1" value={Number(price.unitCents??0)} disabled={busy} onChange={event=>setPrices(rows=>rows.map((row,i)=>i===index?{...row,unitCents:Number(event.target.value)}:row))}/></label>
+      <label>Minimum quantity for price {index+1}<input required type="number" min="1" step="1" value={Number(price.minQty??1)} disabled={busy} onChange={event=>setPrices(rows=>rows.map((row,i)=>i===index?{...row,minQty:Number(event.target.value)}:row))}/></label>
+      <button type="button" className="br-secondary" disabled={busy||prices.length===1} onClick={()=>setPrices(rows=>rows.filter((_,i)=>i!==index))}>Remove price {index+1}</button>
+    </div>)}<button type="button" className="br-secondary" disabled={busy} onClick={()=>setPrices(rows=>[...rows,{sku:'',unitCents:0,minQty:1}])}>Add agreed SKU</button></fieldset>
+    <p>Enter integer cents in the selected brand’s currency. Only the agreed SKUs appear in this profile’s catalog.</p>
     <div className="br-actions"><button disabled={busy || !brandId}>Save buying profile</button></div>
   </form>
 }

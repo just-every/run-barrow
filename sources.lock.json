@@ -1704,7 +1704,7 @@
       "executable": false
     },
     "src/barrow/ui/buying-profiles.tsx": {
-      "sha256": "acc36971fd4f2b7d797ff9e45a7b378367308d5f22a1ce93d7d9daa09dce3bd1",
+      "sha256": "608a29e2dd161b88d283f3c148dafcb6e88439461c1ab15e3528466eef28dd88",
       "executable": false
     },
     "src/barrow/ui/cancel-order.tsx": {
@@ -4312,7 +4312,7 @@
       "executable": false
     },
     "tests/journeys/line-sheets.test.mjs": {
-      "sha256": "8060452772c64ee22ecd08f6280e51f024a3b21573c1712e8836a6be246c2ae5",
+      "sha256": "77b076970d9f47c7019521f8268e5f202336ddb1ba520ead603af3cfe109d360",
       "executable": false
     },
     "tests/journeys/move-sparklayer.test.mjs": {
