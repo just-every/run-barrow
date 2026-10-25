@@ -1788,7 +1788,7 @@
       "executable": false
     },
     "src/barrow/ui/followup-plan.tsx": {
-      "sha256": "e21c1f44fbfad3d0be795c162c592809a1675918cea5fcee09f46da717c19e07",
+      "sha256": "998b6bdee02485e41695b35d67cd2fa17d6e589b7e2a45e9de1f1b21b5b799b5",
       "executable": false
     },
     "src/barrow/ui/followups.tsx": {
@@ -4236,7 +4236,7 @@
       "executable": false
     },
     "tests/journeys/account-followup.test.mjs": {
-      "sha256": "9976f0fb916f1f1c3ad41d0d1887ed77d9e75319991460e60e95c3a5bf4c2fe7",
+      "sha256": "5c598158afd84f961bde5b3717f6b721535837eddec3d26ab170f4d64cd6e015",
       "executable": false
     },
     "tests/journeys/agent-proposals.test.mjs": {

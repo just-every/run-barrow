@@ -7,6 +7,7 @@ type Plan = {
   model: string; runId: string; generatedAt: string; sourceFingerprint: string
   sources: { kind: string; path: string; summary: string }[]
   recipients: { id: string; email: string }[]
+  tools: string[]; costCents: number; contactLimit: number; restored?: boolean
   actions: Action[]
   history: { at: string; by: string; actionId: string; decision: string; reason: string; revision: string }[]
   previousRuns?: {runId:string;generatedAt:string;resolution?:string;ownerId:string;history:Plan['history']}[]
@@ -60,6 +61,7 @@ export function AccountPlanReview({ task, busy, command }: { task: PlannedTask; 
   if (!plan) return null
   return <section className="br-stack" aria-label="Account follow-up plan">
     <p>Plan prepared {plan.generatedAt}. Review each action before sending. Approval and suppression keep the account task open.</p>
+    <details><summary>Plan provenance and limits</summary><p>Native source-based planner · run {plan.runId}. Reads are scoped to this account. Recorded inference cost: USD {plan.costCents / 100}. At most {plan.contactLimit} reviewed contacts in this run.</p><p>Permitted reads: {plan.tools.join(', ')}. Current sources and purchasing access are checked again before sending.</p>{plan.restored && <p>Restored history is inactive. Record a resolution and prepare a fresh plan before outreach.</p>}</details>
     <details><summary>Records used for this plan</summary><ul>{plan.sources.map((source, index) => <li key={`${source.kind}:${index}`}><a href={source.path}>{source.kind}</a>: {source.summary}</li>)}</ul></details>
     {plan.actions.map(action => <ActionReview key={`${task.revision}:${action.id}`} task={task} plan={plan} action={action} busy={busy} command={command} />)}
     {!!plan.previousRuns?.length && <details><summary>Earlier account plan outcomes</summary>{plan.previousRuns.map(run => <article key={run.runId}><p>{run.generatedAt} · owner {run.ownerId} · {run.resolution}</p><ul>{run.history.map((event,index) => <li key={index}>{event.decision} · {event.reason}</li>)}</ul></article>)}</details>}

@@ -32,7 +32,7 @@ test('account follow-up reviews delayed fulfillment before stock, approves exact
  const body = 'We are reviewing the four outstanding cases from your delivery. I will confirm a verified update before discussing additional stock.';
  await delivery.getByLabel('Message recipient').selectOption(current.plan.actions[0].recipientId);
  await delivery.getByLabel('Message to buyer').fill(body);
- await delivery.getByLabel('Contact date').fill(current.plan.actions[0].sendOn);
+ await delivery.getByLabel('Contact date', {exact:true}).fill(current.plan.actions[0].sendOn);
  await delivery.getByLabel('Reason for this decision').fill('Review the delayed delivery with the buyer before discussing a new order.');
  await delivery.getByRole('checkbox').check();
  await captureRegionWidths(page, delivery, 'account-followup-review-exact-message');
@@ -60,9 +60,9 @@ test('account follow-up reviews delayed fulfillment before stock, approves exact
  const buyerPage = await buyerContext.newPage(); await buyerPage.goto(`${h.origin}/app?quote=${encodeURIComponent(action.quoteId)}`);
  const conversation = buyerPage.locator('details').filter({ has: buyerPage.locator('summary').filter({ hasText: /^Conversation/ }) });
  await conversation.locator('summary').click();
- await conversation.getByLabel('Message').fill('Thank you. Please confirm the four outstanding cases after your delivery review.');
+ await conversation.getByLabel('Message', {exact:true}).fill('Thank you. Please confirm the four outstanding cases after your delivery review.');
  await conversation.getByRole('button', { name: 'Send message', exact: true }).click();
- await expect(conversation.getByLabel('Message')).toHaveValue('');
+ await expect(conversation.getByLabel('Message', {exact:true})).toHaveValue('');
  await captureRegionWidths(buyerPage, conversation, 'account-followup-buyer-response');
  await page.getByRole('button', { name: 'Refresh next actions', exact: true }).click();
  await expect.poll(async () => (await f.task()).status).toBe('closed');
