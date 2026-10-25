@@ -25,6 +25,8 @@ export function parseWizEntities(input:WizInput,customers:Row[],contacts:Row[],a
  if(new Set(value.customers.map(row=>row.accountId)).size!==value.customers.length)fail('IMPORT_MAPPING','Map distinct source customers to separate native accounts.',400)
  for(const id of Object.keys(input.nativeAccounts??{}))if(!value.customers.some(row=>row.accountId===id))fail('IMPORT_MAPPING',`Native account proposal ${id} has no source customer.`,400)
  for(const sourceId of new Set([...Object.keys(input.authority.customers)]))if(!value.customers.some(row=>row.sourceId===sourceId))missing.push(`Customer source entity ${sourceId} is absent; only its explicit existing-account mapping is available`)
+ if(!contacts.length)missing.push('Contact source entities are not supplied')
+ if(!addresses.length)missing.push('Address source entities are not supplied')
  return {value,rejectedFields:[...rejectedFields].sort(),missing}
 }
 export function planWizNative(tenant:string,activation:WizActivation,native:{accounts:any[];locations:any[];imports:any[]},errors:string[]) {
