@@ -5,8 +5,9 @@ export interface AccountValue { currency?:'USD'|'CAD'; priceDisplay?:import('../
   lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; warehouses?: string[]; providerReferences?: Record<string, string>
 }
 export interface CurrentRep { name: string; coverage: boolean; through?: string }
-export interface Account { id: string; value: AccountValue; revision: string }
+export interface Account { buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot; id: string; value: AccountValue; revision: string }
 export interface Order {
+  buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}
 
   delivery?: import('../shipping-rules').Delivery; freightQuotes?: import('../shipping-rules').FreightQuote[]

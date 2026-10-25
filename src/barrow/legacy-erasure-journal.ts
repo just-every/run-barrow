@@ -32,6 +32,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put("DELETE FROM oa_dev_credentials WHERE (credential='oa_sessions' AND id IN (SELECT id FROM oa_sessions WHERE operator_id=?)) OR (credential='oa_tokens' AND id IN (SELECT id FROM oa_tokens WHERE operator_id=?)) OR (credential='oa_credentials' AND id IN (SELECT id FROM oa_credentials WHERE operator_id=?))",id,id,id)
   for(const table of ['oa_sessions','oa_tokens','oa_credentials','oa_step_up_challenges','oa_external_identities','oa_owner_signins'])put(`DELETE FROM ${table} WHERE operator_id=?`,id)
   put('DELETE FROM bw_agent_tokens WHERE actor_id=?',id)
+  put('DELETE FROM bw_profile_approvals WHERE user_id=?',id)
   put("UPDATE oa_operators SET email=?,display_name='Former company user',status='inactive' WHERE id=? AND role='member'",email,id)
   put("UPDATE bw_company_members SET email=?,email_key=?,display_name='Former company user',state='removed',erased_at=?,revision=? WHERE user_id=?",email,email,operation.at,operation.id,id)
   put("DELETE FROM bw_company_invites WHERE member_id IN (SELECT id FROM bw_company_members WHERE user_id=?) OR email_key=?",id,p.email)
@@ -59,7 +60,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   // Retire the source originals and provenance as well as the native account.
   const {retireAccountImportCustody}=await import('./imports/erasure')
   put('DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',accountId)
-  for(const table of ['bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_retention_requests','bw_company_invites','bw_company_delegations','bw_approval_notices','bw_visits','bw_company_route_versions','bw_company_routes','bw_company_members','bw_company_legacy_accounts','bw_lists','bw_locations','bw_terms_assignments','bw_followups'])put(`DELETE FROM ${table} WHERE account_id=?`,accountId)
+  for(const table of ['bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_retention_requests','bw_company_invites','bw_company_delegations','bw_approval_notices','bw_visits','bw_company_route_versions','bw_company_routes','bw_profile_approvals','bw_buying_profiles','bw_company_members','bw_company_legacy_accounts','bw_lists','bw_locations','bw_terms_assignments','bw_followups'])put(`DELETE FROM ${table} WHERE account_id=?`,accountId)
   const {applicationAccountErasure}=await import('./application-erasure-statements'),{quoteMailErasureStatements}=await import('./quote-mail-custody')
   statements.push(...applicationAccountErasure(accountId),...quoteMailErasureStatements(accountId));put('DELETE FROM bw_accounts WHERE id=?',accountId)
   statements.push(...replayReceipt(operation),journalRow(operation,fingerprint))

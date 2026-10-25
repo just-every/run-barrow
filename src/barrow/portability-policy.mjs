@@ -9,6 +9,7 @@ export const portabilityPolicy = {
   if(table==='bw_line_sheets')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),state:'revoked'})};
   if(table==='bw_staff_members')return {...row,state:'revoked'};
   if(table==='bw_rep_assignments'||table==='bw_company_delegations')return {...row,state:'ended'};
+  if(table==='bw_profile_approvals')return {...row,restored:1};
   if(table==='bw_company_members')return {...row,state:'removed'};
   if(table==='bw_followups') {const value=JSON.parse(row.value_json);if(value.plan)return {...row,value_json:JSON.stringify({...value,plan:{...value.plan,restored:true}})}}
   if(table==='bw_report_schedules')return {...row,restored:1};

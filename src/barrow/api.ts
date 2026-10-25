@@ -1,3 +1,4 @@
+import { buyingProfileCommand, readBuyingProfiles, resolveBuyingProfile } from './buying-profiles'
 import { accountFollowupCommand } from './account-followup'
 import { refreshCatalogIndex, searchCatalog } from './catalog-search'
 import {inviteWizUser} from './imports/wizcommerce-invitations'
@@ -170,7 +171,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/confirmations/selection' && request.method==='POST')return json(await confirmationChoices(env.DB,actor,await boundedJson(request,20000)))
   if(path==='/api/barrow/confirmations/export.csv' && request.method==='POST')return await bulkConfirmationResponse(env.DB,actor,await boundedJson(request,20000))
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
-  if(path==='/api/barrow/sales-terms' && request.method==='GET') return json(await readSalesTerms(env,actor,url.searchParams.get('accountId')))
+  if(path==='/api/barrow/sales-terms' && request.method==='GET') return json(await readSalesTerms(env,actor,url.searchParams.get('accountId'),url.searchParams.get('profileId')))
   const termsDocument=/^\/api\/barrow\/sales-terms\/([^/]+)\/([1-9]\d{0,8})\/document$/.exec(path)
   if(termsDocument && request.method==='GET') return await termsDocumentResponse(env,actor,decodeURIComponent(termsDocument[1]),Number(termsDocument[2]))
   const termsSignature=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/terms-signature$/.exec(path)
@@ -198,6 +199,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/sales' && request.method==='GET') return json(await salesReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/sales.csv' && request.method==='GET') return await salesCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/buying-profiles' && request.method==='GET') return json(await readBuyingProfiles(env.DB,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/followups' && request.method==='GET') return json(await readFollowups(env,actor,url.searchParams))
   if(path==='/api/barrow/approval-notices' && request.method==='GET') return json(await readApprovalNotices(env.DB,actor))
   if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
@@ -224,7 +226,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const attachment=/^\/api\/barrow\/quotes\/(Q-\d{1,9})\/attachments\/([-a-f0-9]{36})$/.exec(path)
   if(attachment && request.method==='GET') return await quoteAttachment(env,actor,attachment[1],attachment[2])
   if(path==='/api/barrow/catalogue/search' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await searchCatalog(env,actor,url.searchParams))}
-  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,await account(env.DB,actor,id)))}
+  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,(await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,id),url.searchParams.get('profileId'))).selected))}
   const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
   if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
@@ -328,6 +330,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='retention.erase-account'||body.type==='retention.revoke-access')result=await executeAccountErasure(env,actor,body.payload,body.type==='retention.revoke-access'?'revoke':'erase')
    else if(['retention.settings','retention.request','retention.erase-document','retention.erase-application'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
+   else if(['brand.save','profile.save','profile.grant'].includes(body.type))result=await buyingProfileCommand(env,actor,body.type,body.payload)
    else if(body.type==='seller.identity')result=await saveSellerIdentity(env.DB,actor,body.payload)
    else if(body.type==='variant.attributes')result=await saveVariantAttributes(env.DB,actor,body.payload)
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)

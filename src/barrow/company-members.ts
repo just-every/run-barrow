@@ -253,7 +253,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   withdrawMemberMail(env.DB, member.userId, member.accountId),
   env.DB.prepare(`DELETE FROM bw_import_history WHERE import_id IN (${sourceCustody})`).bind(companyEmail(member.email)),
   env.DB.prepare(`UPDATE bw_platform_imports SET source_json='{}',report_json='{}' WHERE id IN (${sourceCustody})`).bind(companyEmail(member.email)),
-  env.DB.prepare('DELETE FROM bw_usage_acceptances WHERE user_id=?').bind(member.userId),
+  env.DB.prepare('DELETE FROM bw_usage_acceptances WHERE user_id=?').bind(member.userId),env.DB.prepare('DELETE FROM bw_profile_approvals WHERE user_id=?').bind(member.userId),
   env.DB.prepare('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?').bind(member.userId, member.userId),
  ]
  // Use snapshot revisions so an order edit racing the review cannot be lost.

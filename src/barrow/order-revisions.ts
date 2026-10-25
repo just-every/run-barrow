@@ -1,3 +1,4 @@
+import { orderBuyingProfile } from './buying-profiles'
 // ORD-011 slice for ORD-014: the account buyer changes line quantities on a submitted order before the supplier
 // accepts it. No stock is reserved yet, so nothing is handed to Pier; the result is one new confirmation revision
 // carrying exactly the changed lines. Accepted orders, supplier-started edits, line/date/address changes and
@@ -18,7 +19,7 @@ export async function revisedOrder(env: Bindings, actor: Actor, order: Order, p:
  if (order.status !== 'submitted') fail('REVISION_LOCKED', 'Only a submitted order the supplier has not accepted can be revised. Accepted orders keep their stock reservation unchanged.')
  if (p.revision !== order.revision) fail('CHANGED', 'Refresh the exact order before revising it.')
  if (order.delivery) fail('REVISION_DELIVERY', 'The accepted delivery charge was quoted for the original lines. Prepare a new draft to change quantities.')
- const selected = await account(env.DB, actor, order.accountId)
+ const selected = (await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected
  requireActiveAccount(selected)
  if (selected.revision !== order.accountRevision) fail('PRICE_CHANGED', 'The price list or terms changed. Prepare a new draft for review.')
  if (!Array.isArray(p.changes) || !p.changes.length || p.changes.length > order.lines.length) fail('INPUT', 'Choose the line quantities to change.', 400)

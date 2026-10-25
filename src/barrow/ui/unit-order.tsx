@@ -25,7 +25,7 @@ export function UnitOrder({catalogue,draft,initial,run,busy,error,onClose,onPrep
  })
  async function prepare() {
   if(problem || !lines.length) return
-  const result=await run('order.prepare',{accountId:catalogue.account.id,...(draft?{replaces:draft.id}:{}),reference,deliveryLocation:location,lines:lines.map(line=>({...line,quantity:Number(line.quantity)}))})
+  const result=await run('order.prepare',{accountId:catalogue.account.id,...(catalogue.account.buyingProfile?{profileId:catalogue.account.buyingProfile.id}:{}),...(draft?{replaces:draft.id}:{}),reference,deliveryLocation:location,lines:lines.map(line=>({...line,quantity:Number(line.quantity)}))})
   if(result){onClose();onPrepared()}
  }
  return <Dialog title="Order by selling unit" busy={busy} onClose={onClose}>

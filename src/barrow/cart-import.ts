@@ -1,3 +1,4 @@
+import { resolveBuyingProfile } from './buying-profiles'
 import { requireCompanyRight } from './company-policy'
 // ORD-001: quick add, pasted lines, CSV uploads and filled order forms all pass through this one server preview.
 // It never writes a record: the buyer resolves every problem, chooses merge or replace, and the pad prepares the
@@ -137,7 +138,7 @@ export function orderForm(selected: Account, offers: Offer[], p: any) {
 export async function cartCommand(env: Bindings, actor: Parameters<typeof account>[1], type: string, p: any) {
  // ORD-002: a saved list previews as the same CSV a buyer could upload, against its own account's current catalog.
  const list = type === 'cart.preview' && p.listId !== undefined ? await readList(env.DB, actor, text(p.listId, 'List')) : undefined
- const selected = await account(env.DB, actor, list ? list.accountId : text(p.accountId, 'Account'))
+ const selected = (await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,list?list.accountId:text(p.accountId,'Account')),p.profileId)).selected
  await requireCompanyRight(env.DB,actor,selected.id,'purchasing',p.shipToId)
  const offered = await catalogue(env, selected)
  if (type === 'cart.form') return orderForm(selected, offered.items, p)

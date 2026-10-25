@@ -53,7 +53,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
     live.current = true
     let current = true
     setLoading(true); setError(''); setCatalogue(null)
-    void request<Catalogue>(`/api/barrow/catalogue?accountId=${encodeURIComponent(account.id)}`)
+    void request<Catalogue>(`/api/barrow/catalogue?${new URLSearchParams({accountId:account.id,...(account.buyingProfile?{profileId:account.buyingProfile.id}:{})})}`)
       .then(data => { if (current) setCatalogue(data) })
       .catch(error => { if (current) setError(errorMessage(error)) })
       .finally(() => { if (current) setLoading(false) })
@@ -94,7 +94,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
     event.preventDefault()
     if (!canPurchase || blocked || unitOrder || unitDraft) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
-    const prepared = await run('order.prepare', { accountId: account.id, reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
+    const prepared = await run('order.prepare', { accountId: account.id, ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
       if (live.current) { setQuantities({}); setAliases({}); setReference(''); setDeliveryLocation('') }
       onPrepared()
@@ -102,6 +102,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   }
   // ORD-004: the cart becomes a quote request; the supplier proposes prices and terms, nothing is reserved.
   async function requestQuote() {
+    if(account.buyingProfile){setError('Start a separate account price-book cart to request an account quote.');return}
     if (await run('quote.request', { accountId: account.id, lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })) {
       if (live.current) { setQuantities({}); setAliases({}) }
       onPrepared()
@@ -133,6 +134,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   if(unitDraft && draft) return <UnitDraft key={draft.id} account={account} draft={draft} catalogue={catalogue} loading={loading} error={error || commandError} busy={busy} run={run} onNew={()=>onDraft('')} onPrepared={onPrepared} />
 
   return <form className="br-pad" onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
+    {account.buyingProfile&&<section aria-label="Buying seller and permissions"><h2>{account.buyingProfile.brandName}</h2><p>Seller: {account.buyingProfile.seller.legalName} · {account.buyingProfile.seller.address}</p><p>Profile: {account.buyingProfile.name} · {account.buyingProfile.currency} · {canPurchase?'Purchasing permitted':'Read only'} · Account owner: {account.value.name}</p></section>}
     {inactive && <Notice error>This account is {account.value.lifecycle === 'closed' ? 'closed' : 'on hold'}. Contact the supplier before placing a new order. Existing order history remains available in Orders.</Notice>}
     <div className="br-pad-head">
       <div className="br-pad-title">
@@ -190,7 +192,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       </div>
     </>}
     {unitOrder && catalogue && catalogue.items.length>0 && <UnitOrder key={unitLines?'import':draft?.id??"new"} catalogue={catalogue} draft={unitDraft?draft:undefined} initial={unitLines} run={run} busy={busy} error={commandError} onClose={()=>setUnitOrder(false)} onPrepared={onPrepared} />}
-    {(importing || fromList) && catalogue && <CartImport accountId={account.id} cart={padCart} list={fromList} onApply={apply} onClose={() => { setImporting(false); setFromList(undefined) }} />}
+    {(importing || fromList) && catalogue && <CartImport profileId={account.buyingProfile?.id} accountId={account.id} cart={padCart} list={fromList} onApply={apply} onClose={() => { setImporting(false); setFromList(undefined) }} />}
     {listing && catalogue && <SavedLists accountId={account.id} cart={padCart} onAdd={list => { setListing(false); setFromList(list) }} onClose={() => setListing(false)} />}
   </form>
 }
