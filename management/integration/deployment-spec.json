@@ -322,6 +322,12 @@
       "name": "0050_import_invitations.sql",
       "sha256": "02cb511bdbb76c8c7c1ed91ababe3737566569b56ac69895ef7701a7acff76f5",
       "sql": "-- Source review may request one native invitation, never an active membership.\nCREATE TABLE bw_import_invitations(source_key TEXT PRIMARY KEY, import_id TEXT NOT NULL, account_id TEXT NOT NULL, invitation_id TEXT NOT NULL);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0051_buying_profiles.sql",
+      "sha256": "5f26ba7e383e56d3fd183dcae75022006678654a4d6165853120f4e5249e717c",
+      "sql": "CREATE TABLE bw_brands (id TEXT PRIMARY KEY,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nCREATE TABLE bw_buying_profiles (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nCREATE INDEX bw_buying_profiles_account ON bw_buying_profiles(account_id,id);\nCREATE TABLE bw_profile_approvals (\n profile_id TEXT NOT NULL,user_id TEXT NOT NULL,account_id TEXT NOT NULL,\n state TEXT NOT NULL CHECK(state IN ('approved','revoked')),revision TEXT NOT NULL,\n approved_by TEXT NOT NULL,reason TEXT NOT NULL,approved_at TEXT NOT NULL,\n restored INTEGER NOT NULL DEFAULT 0 CHECK(restored IN (0,1)),PRIMARY KEY(profile_id,user_id)\n);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
