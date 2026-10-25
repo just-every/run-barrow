@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "26e9517b4430204f8a0c133878c670833fa9370b884171a055f9c4e1dc2cbc62",
+      "sha256": "46e25082b23c6683e6f731c6fd68e2f7d31cb48beab0276b05b3c0d0d5d61596",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "07abb4e69bd384459eaba6e3afcb5ff8796a3dac64aed4d9178fd7bf5add7440",
+      "sha256": "535a1aa919e528a333a465b063c6cbfd80fe123195751cf51aa5e4989ecda826",
       "executable": false
     },
     "DEMO.md": {
@@ -1024,11 +1024,11 @@
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
-      "sha256": "9e0009bdf1962f4a96f7f74dc963bd96522976315ba45f2e686c93d45ca6c521",
+      "sha256": "dce901f6c02fdd0bcde0bef94e1c45d298583eb3b1e8ac9b472df076554090f3",
       "executable": false
     },
     "src/barrow/account-followup.ts": {
-      "sha256": "8dfb1839d31574d2464aee8bda1585b5536e6e7e83333a6748e8dcb269311967",
+      "sha256": "37bc5c189cf1819bc5ec1cc1a3124edf82e15f4e0d04fa1391ab40f3a41534b0",
       "executable": false
     },
     "src/barrow/account-profile.ts": {
