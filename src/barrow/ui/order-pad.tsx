@@ -102,8 +102,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   }
   // ORD-004: the cart becomes a quote request; the supplier proposes prices and terms, nothing is reserved.
   async function requestQuote() {
-    if(account.buyingProfile){setError('Start a separate account price-book cart to request an account quote.');return}
-    if (await run('quote.request', { accountId: account.id, lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })) {
+    if (await run('quote.request', { accountId: account.id, ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]) })) })) {
       if (live.current) { setQuantities({}); setAliases({}) }
       onPrepared()
     }

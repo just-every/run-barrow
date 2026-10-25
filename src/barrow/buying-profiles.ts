@@ -34,7 +34,7 @@ export async function resolveBuyingProfile(db:D1Database,actor:Actor,base:Accoun
  if(!supplier(actor)){clauses.push(`EXISTS(${approvedSql})`);args.push(row.id,actor.id,base.id)}
  return {selected:{...base,value:{...base.value,prices:value.prices,minimumCents:value.minimumCents,termsDays:value.termsDays,currency:brandValue.currency},buyingProfile:snapshot},guard:guard(db,clauses.join(' AND '),args)}
 }
-export async function orderBuyingProfile(db:D1Database,actor:Actor,base:Account,order:Order) {
+export async function orderBuyingProfile(db:D1Database,actor:Actor,base:Account,order:Pick<Order,'buyingProfile'>) {
  const context=await resolveBuyingProfile(db,actor,base,order.buyingProfile?.id)
  if(order.buyingProfile&&(context.selected.buyingProfile?.revision!==order.buyingProfile.revision||context.selected.buyingProfile.brandRevision!==order.buyingProfile.brandRevision))fail('PROFILE_CHANGED','The brand or buying profile changed. Prepare and review a new cart.')
  return context
@@ -88,11 +88,11 @@ export async function buyingProfileCommand(env:Bindings,actor:Actor,type:string,
  }
  if(type==='profile.grant') {
   const row=await read(env.DB,'bw_buying_profiles',id(p.profileId,'Profile'));if(!row)fail('NOT_FOUND','Profile not found.',404)
-  await account(env.DB,actor,row.account_id!);await bootstrapLegacyCompanyMembers(env.DB)
+  const selected=await account(env.DB,actor,row.account_id!);await bootstrapLegacyCompanyMembers(env.DB)
   const userId=text(p.userId,'Buyer',160),reason=text(p.reason,'Approval reason',1000)
   if(typeof p.approved!=='boolean')fail('INPUT','Explicitly approve or revoke this buying profile.',400)
   if(p.approved&&!await env.DB.prepare("SELECT 1 FROM bw_company_members cm JOIN oa_operators u ON u.id=cm.user_id WHERE cm.account_id=? AND cm.user_id=? AND cm.state='active' AND cm.erased_at IS NULL AND u.status='active' AND u.role='member'").bind(row.account_id,userId).first())fail('MEMBERSHIP','Approve an existing active buyer of this same account.',400)
-  await commit(env.DB,actor,[env.DB.prepare("INSERT INTO bw_profile_approvals VALUES(?,?,?,?,?,?,?,?,0) ON CONFLICT(profile_id,user_id) DO UPDATE SET state=excluded.state,revision=excluded.revision,approved_by=excluded.approved_by,reason=excluded.reason,approved_at=excluded.approved_at,restored=0").bind(row.id,userId,row.account_id,p.approved?'approved':'revoked',revision,actor.id,reason,at),audit(env.DB,actor,row.id,p.approved?'profile.approved':'profile.revoked',{accountId:row.account_id,revision,source:type,reason})])
+  await commit(env.DB,actor,[guard(env.DB,'EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) AND EXISTS(SELECT 1 FROM bw_buying_profiles WHERE id=? AND revision=?)',[selected.id,selected.revision,row.id,row.revision]),...(p.approved?[guard(env.DB,"EXISTS(SELECT 1 FROM bw_company_members WHERE account_id=? AND user_id=? AND state='active' AND erased_at IS NULL)",[selected.id,userId])]:[]),env.DB.prepare("INSERT INTO bw_profile_approvals VALUES(?,?,?,?,?,?,?,?,0) ON CONFLICT(profile_id,user_id) DO UPDATE SET state=excluded.state,revision=excluded.revision,approved_by=excluded.approved_by,reason=excluded.reason,approved_at=excluded.approved_at,restored=0").bind(row.id,userId,row.account_id,p.approved?'approved':'revoked',revision,actor.id,reason,at),audit(env.DB,actor,row.id,p.approved?'profile.approved':'profile.revoked',{accountId:row.account_id,revision,source:type,reason})])
   return {profileId:row.id,userId,approved:p.approved,revision}
  }
  fail('COMMAND','Unknown buying profile command.',400)

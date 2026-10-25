@@ -14,8 +14,8 @@ export async function accountFollowupSources(env: Bindings, actor: Actor, accoun
  if ((selected.value.lifecycle ?? 'active') !== 'active') fail('ACCOUNT_INACTIVE', 'Only active accounts can receive follow-up outreach.')
  await bootstrapLegacyCompanyMembers(env.DB)
  const read = async (table: string) => (await env.DB.prepare(`SELECT * FROM ${table} WHERE account_id=? ORDER BY rowid`).bind(accountId).all<any>()).results
- const [quotes, entries, orders, visits, tasks, recipients] = await Promise.all([
-  read('bw_quotes'), read('bw_quote_entries'), read('bw_orders'), read('bw_visits'), read('bw_followups'),
+ const [quotes, entries, orders, visits, tasks, profileApprovals, recipients] = await Promise.all([
+  read('bw_quotes'), read('bw_quote_entries'), read('bw_orders'), read('bw_visits'), read('bw_followups'), read('bw_profile_approvals'),
   env.DB.prepare(`SELECT p.id,p.email,p.version FROM oa_operators p JOIN bw_accounts a ON a.id=? WHERE p.status='active' AND ${companyPurchasingRecipientSql('p','a.id')} ORDER BY p.id`).bind(accountId).all<{id:string;email:string;version:number}>(),
  ])
  const at = await now(), today = calendarDate(at, await reportZone(env.DB)), zone = await reportZone(env.DB)
@@ -44,6 +44,6 @@ export async function accountFollowupSources(env: Bindings, actor: Actor, accoun
  }
  for(const line of delayed)sources.unshift({kind:'delivery',path:`/api/barrow/reports/fulfillment?accountId=${accountId}`,summary:`${line.reference || line.orderId}: ${line.sku}, ${line.outstanding} outstanding after promise ${line.promisedDate}. Carrier delivery remains unknown.`})
  if(unknown)sources.unshift({kind:'service-unknown',path:'/api/barrow/reports/fulfillment',summary:'Fulfillment could not be confirmed. Resolve the service uncertainty before offering stock.'})
- const fingerprint=await digest(JSON.stringify({account:selected,quotes,entries,orders,visits,tasks:sourceTasks,recipients:recipients.results,fulfillment,unknown}))
- return { selected, quotes:quoteValues, entries, recipients:recipients.results, sources, fingerprint, delayed, unknown, today, at:at.toISOString(), counts:[{table:'bw_quotes',count:quotes.length},{table:'bw_quote_entries',count:entries.length},{table:'bw_orders',count:orders.length},{table:'bw_visits',count:visits.length},{table:'bw_followups',count:sourceTasks.length}], fences:[...sourceTasks.map(row=>({table:'bw_followups',id:row.id,revision:row.revision})),...quotes.map(row=>({table:'bw_quotes',id:row.id,revision:row.revision})),...orders.map(row=>({table:'bw_orders',id:row.id,revision:row.revision})),...visits.map(row=>({table:'bw_visits',id:row.id,revision:row.revision}))] }
+ const fingerprint=await digest(JSON.stringify({account:selected,quotes,entries,orders,visits,tasks:sourceTasks,profileApprovals,recipients:recipients.results,fulfillment,unknown}))
+ return { selected, quotes:quoteValues, entries, profileApprovals, recipients:recipients.results, sources, fingerprint, delayed, unknown, today, at:at.toISOString(), counts:[{table:'bw_quotes',count:quotes.length},{table:'bw_quote_entries',count:entries.length},{table:'bw_orders',count:orders.length},{table:'bw_visits',count:visits.length},{table:'bw_followups',count:sourceTasks.length}], fences:[...sourceTasks.map(row=>({table:'bw_followups',id:row.id,revision:row.revision})),...quotes.map(row=>({table:'bw_quotes',id:row.id,revision:row.revision})),...orders.map(row=>({table:'bw_orders',id:row.id,revision:row.revision})),...visits.map(row=>({table:'bw_visits',id:row.id,revision:row.revision}))] }
 }

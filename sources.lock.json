@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "46e25082b23c6683e6f731c6fd68e2f7d31cb48beab0276b05b3c0d0d5d61596",
+      "sha256": "5d55ee5d90c957b30d672d469206c11b102006d1dbd27e1f90513dc605dee48f",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "535a1aa919e528a333a465b063c6cbfd80fe123195751cf51aa5e4989ecda826",
+      "sha256": "01bb957870fb72e499b0e515ce2176f7a6ff6389486935f7e8e4f0b60c74e89a",
       "executable": false
     },
     "DEMO.md": {
@@ -1028,11 +1028,11 @@
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
-      "sha256": "dce901f6c02fdd0bcde0bef94e1c45d298583eb3b1e8ac9b472df076554090f3",
+      "sha256": "187bd59627a60788f87210786eed6235e878828f43f3cb13fd875b2e2dae31d1",
       "executable": false
     },
     "src/barrow/account-followup.ts": {
-      "sha256": "37bc5c189cf1819bc5ec1cc1a3124edf82e15f4e0d04fa1391ab40f3a41534b0",
+      "sha256": "e01c9b04546ac57cc72572128fe95928e43e2ce1af7055b95386135a93ad174f",
       "executable": false
     },
     "src/barrow/account-profile.ts": {
@@ -1128,7 +1128,7 @@
       "executable": false
     },
     "src/barrow/buying-profiles.ts": {
-      "sha256": "623a46fe9ec442fd814f07fdf72b6428e3369d5f067072f95978d31399de5477",
+      "sha256": "ce0778bfce7ce4a85e680dcece1c1df08b4e1e6edbf73f2d723c7d5dab3345ba",
       "executable": false
     },
     "src/barrow/cart-csv.ts": {
@@ -1516,7 +1516,7 @@
       "executable": false
     },
     "src/barrow/quote-mail.ts": {
-      "sha256": "5e26f6e9f2cada624a47a12e98a4bd1667bf023b6e020f307048bb569910c7a4",
+      "sha256": "2d39c86a8377ec172ed53b6880f94aeb19848475341de8b1392d3cf81515f8d9",
       "executable": false
     },
     "src/barrow/quote-report.ts": {
@@ -1532,7 +1532,7 @@
       "executable": false
     },
     "src/barrow/quotes.ts": {
-      "sha256": "c38b60c9f5f33ee7b7d7189638c0c3bf2e91cb0c55f95a8f9d36acddcdc45465",
+      "sha256": "cf3c3e2635a4db22cc79d5b81406d62455ca1fc061eb59ccf0c960d3606f9c60",
       "executable": false
     },
     "src/barrow/reorders.ts": {
@@ -1840,7 +1840,7 @@
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
-      "sha256": "bd4e525fe5fd7410e6979b13f70b3d46f97381ac5e54073cc053d532dfaeb284",
+      "sha256": "f7f220bee31315932b09afd0048a4b2ea7443ac205dbcf9b36004a76b42c6889",
       "executable": false
     },
     "src/barrow/ui/order-revision.tsx": {
@@ -4035,10 +4035,6 @@
       "sha256": "b82685ff108cd8883c60dffd308b62fc4be67fe3886d3ad4ff7f27b3dc1ad4c0",
       "executable": false
     },
-    "tests/api/buying-profiles.test.mjs": {
-      "sha256": "ae19a41aecc8edb291565e610f29b914ded2e8409c660be180d7a33078dbcbc1",
-      "executable": false
-    },
     "tests/api/cart-import.test.mjs": {
       "sha256": "d4c521194d8fa155dcfa862da75bf0e29b99f901649f84a8a84167b2dbbc0370",
       "executable": false
@@ -4140,7 +4136,7 @@
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
-      "sha256": "09b897d02013dd3cd0f6d0a568b733bb21fc68fcc68b82061277029a5727d01c",
+      "sha256": "e5d633a2db80bc2e0c972fc12a25cf2ce1e70959852ab2b062feb6d2f5802e64",
       "executable": false
     },
     "tests/api/proposal-fixture.mjs": {
@@ -4263,10 +4259,6 @@
       "sha256": "cbcbbdd0b3e2dfe8b894468bd0c979ebb9cfb19f564042e5a9bed477a7d833d5",
       "executable": false
     },
-    "tests/journeys/account-followup.test.mjs": {
-      "sha256": "a935e8c548bf129e3a8b70a74ff747167c1f6ba3d5bfd79ce2e3c50a65514338",
-      "executable": false
-    },
     "tests/journeys/agent-proposals.test.mjs": {
       "sha256": "39bb66beb67579b045050e852d35a79ede066b76610bede5d1432de0cf5850b6",
       "executable": false
@@ -4280,7 +4272,7 @@
       "executable": false
     },
     "tests/journeys/approval-escalation.test.mjs": {
-      "sha256": "d822edcf3f9b9eff5485b0609af5b99a6750bf96f684886a2836c4af036ff75b",
+      "sha256": "71f554503f0acb4921ad814d6af7f23223ebae2c4962f587263d7d4bc5cd1b2b",
       "executable": false
     },
     "tests/journeys/approvals.test.mjs": {
@@ -4289,10 +4281,6 @@
     },
     "tests/journeys/browser-helpers.mjs": {
       "sha256": "f26029105cfd279285ce6d5391483f2ab6b7f73288642622cb45d6cf7f0af76d",
-      "executable": false
-    },
-    "tests/journeys/buying-profiles.test.mjs": {
-      "sha256": "d88922d9440c9c3d666113c4998160cc45684b50c6e820a63700d3ec6fc2c05c",
       "executable": false
     },
     "tests/journeys/catalog-search-scale.test.mjs": {
@@ -4324,7 +4312,7 @@
       "executable": false
     },
     "tests/journeys/line-sheets.test.mjs": {
-      "sha256": "6d1ac04567f00f69593b1ad8b9b926ec2a9e28d96369f2741d027e439e57f383",
+      "sha256": "8060452772c64ee22ecd08f6280e51f024a3b21573c1712e8836a6be246c2ae5",
       "executable": false
     },
     "tests/journeys/move-sparklayer.test.mjs": {

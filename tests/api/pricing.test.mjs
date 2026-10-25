@@ -1,3 +1,5 @@
+import { buyingProfilesFixture } from './buying-profiles-fixture.mjs';
+import { activateStaff } from './harness.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation, stock, accountValue, archive, restore } from './harness.mjs';
@@ -100,4 +102,95 @@ test('MSRP books import and edit exact USD/CAD cents and preserve configured she
  await h.command('shipping.settings',{revision:null,methods:[{id:'parcel',name:'USD parcel',kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1500,handlingCents:0,freeOverCents:null,transitMinDays:2,transitMaxDays:5,quoteRequired:false}]});
  assert.equal((await h.api(`/api/barrow/shipping/options?quoteId=${quote.id}`,undefined,{...buyers.wren,status:409})).error.code,'SHIPPING_CURRENCY');
  assert.equal((await h.api(`/api/barrow/quotes/${quote.id}`,undefined,buyers.wren)).currency,'CAD');
+});
+
+const csvRows = text => {
+ const [columns, ...rows] = text.trim().split('\r\n').map(row => row.slice(1, -1).split('","').map(value => value.replaceAll('""', '"')));
+ return rows.map(row => Object.fromEntries(columns.map((column, index) => [column, row[index]])));
+};
+
+test('CAT-006: one company buyer deliberately selects approved brand price books; exact currencies, sellers and accepted terms survive orders, invoices and later seller edits', async t => {
+ const f = await buyingProfilesFixture(t), { h, account, buyer, buyerId, profiles, brands, specifications } = f;
+ assert.deepEqual((await f.read()).profiles.map(profile => profile.id), [profiles[0].id]);
+ assert.equal((await f.read({})).profiles.length, 2);
+ await f.catalogue(1, { ...buyer, status: 404 });
+ await f.prepare(1, {}, { ...buyer, status: 404 });
+ await f.terms(1, { ...buyer, status: 404 });
+ const initial = await f.catalogue(0);
+ assert.equal(initial.currency, specifications[0].currency); assert.equal(initial.items[0].unitCents, specifications[0].unitCents);
+ const { token } = await h.api('/api/barrow/agent-token', {}), agent = { as: '', headers: { authorization: `Bearer ${token}` } };
+ const staff = await activateStaff(h, 'synthetic-barrow-812@example.test', { role: 'sales-manager', accounts: 'all', warehouses: 'all', reports: [], discountLimitCents: 0, stockExceptionLimitCents: 0 });
+ for (const who of [buyer, agent, staff.who]) {
+  await h.command('brand.save', { id: brands[0].id, revision: brands[0].revision, value: brands[0].value }, { ...who, status: 403 });
+  await h.command('profile.save', { id: profiles[0].id, revision: profiles[0].revision, accountId: account.id, value: profiles[0].value }, { ...who, status: 403 });
+  await f.grant(1, true, { ...who, status: 403 });
+ }
+ await h.command('brand.save', { id: brands[0].id, revision: brands[0].revision, value: { ...brands[0].value, currency: 'CAD' } }, { status: 409 });
+ await h.command('profile.save', { id: profiles[0].id, revision: profiles[0].revision, accountId: account.id, value: { ...profiles[0].value, brandId: brands[1].id } }, { status: 409 });
+ await f.grant(1);
+ assert.deepEqual(new Set((await f.read()).profiles.map(profile => profile.id)), new Set(profiles.map(profile => profile.id)));
+ const orders = [];
+ for (let index = 0; index < profiles.length; index++) {
+  const spec = specifications[index], profile = profiles[index], catalogue = await f.catalogue(index);
+  assert.equal(catalogue.currency, spec.currency); assert.equal(catalogue.items[0].unitCents, spec.unitCents);
+  let order = await f.prepare(index, { currency: index === 0 ? 'CAD' : 'USD', totalCents: 1, lines: [{ sku: 'OAT-1', quantity: 2, unitCents: 1 }] });
+  assert.equal(order.accountId, account.id); assert.equal(order.currency, spec.currency);
+  assert.equal(order.lines[0].unitCents, spec.unitCents); assert.equal(order.totalCents, spec.unitCents * 2); assert.equal(order.termsDays, spec.termsDays);
+  assert.equal(order.buyingProfile.id, profile.id); assert.equal(order.buyingProfile.brandId, spec.brandId);
+  assert.deepEqual(order.buyingProfile.seller, spec.seller); assert.equal(order.buyingProfile.currency, spec.currency);
+  await h.command('order.submit', { orderId: order.id }, { ...buyer, status: 409 });
+  const before = (await f.terms(index)).assignment.current;
+  if (index === 0) {
+   await h.command('terms.publish', { series: spec.series, title: 'Mill House updated sales terms', body: 'Contact Mill House Foods before returning goods. The current order records its agreed currency and payment date.' });
+   await h.command('order.submit', { orderId: order.id, termsAcceptance: { version: before.version, accepted: true } }, { ...buyer, status: 409 });
+  }
+  const current = (await f.terms(index)).assignment.current;
+  order = await h.command('order.submit', { orderId: order.id, termsAcceptance: { version: current.version, accepted: true } }, buyer);
+  assert.equal(order.termsAcceptance.series, spec.series); assert.equal(order.termsAcceptance.version, current.version); assert.equal(order.termsAcceptance.acceptedBy, buyerId);
+  order = await h.command('order.approve', { orderId: order.id }); assert.equal(order.status, 'approved'); orders.push(order);
+  const response = await h.request(`/api/barrow/invoices/${order.id}.csv`, buyer); assert.equal(response.status, 200);
+  const [line] = csvRows(await response.text());
+  assert.equal(line.currency, spec.currency); assert.equal(line.unit_cents, String(spec.unitCents)); assert.equal(line.invoice_total_cents, String(spec.unitCents * 2));
+  assert.equal(line.buying_profile_id, profile.id); assert.equal(line.brand_id, spec.brandId);
+  assert.equal(line.seller_legal_name, spec.seller.legalName); assert.equal(line.seller_address, spec.seller.address); assert.equal(line.seller_registration, spec.seller.registration);
+ }
+ await f.prepare(1, { replaces: (await f.prepare(0)).id }, { ...buyer, status: 409 });
+ let brandedQuote=await h.command('quote.request',{accountId:account.id,profileId:profiles[0].id,lines:[{sku:'OAT-1',quantity:2}]},buyer);
+ const validity=new Date(Date.now()+10*86400000).toISOString().slice(0,10);
+ brandedQuote=await h.command('quote.propose',{quoteId:brandedQuote.id,revision:brandedQuote.revision,validUntil:validity,lines:[{sku:'OAT-1',quantity:2}]});
+ const quoteTerms=(await f.terms(0)).assignment.current;
+ const converted=await h.command('quote.accept',{quoteId:brandedQuote.id,number:1,termsAcceptance:{version:quoteTerms.version,accepted:true}},buyer);
+ assert.deepEqual(converted.order.buyingProfile.seller,specifications[0].seller);assert.equal(converted.order.lines[0].unitCents,specifications[0].unitCents);
+
+ const historical = await h.api(`/api/barrow/orders/${orders[0].id}`, undefined, buyer);
+ await h.command('brand.save', { id: brands[0].id, revision: brands[0].revision, value: { ...brands[0].value, seller: { ...brands[0].value.seller, legalName: 'Mill House Foods Wholesale LLC', address: '50 Broadway, New York, NY 10004' } } });
+ assert.deepEqual((await h.api(`/api/barrow/orders/${historical.id}`, undefined, buyer)).buyingProfile, historical.buyingProfile);
+ const invoice = await h.request(`/api/barrow/invoices/${historical.id}.csv`, buyer);
+ assert.equal(csvRows(await invoice.text())[0].seller_legal_name, historical.buyingProfile.seller.legalName);
+ const exported = await h.api('/api/barrow/export.json');
+ for (const order of orders) {
+  const row = exported.orders.find(row => row.id === order.id);
+  assert.deepEqual(row.buyingProfile, order.buyingProfile); assert.equal(row.currency, order.currency); assert.equal(row.totalCents, order.totalCents);
+ }
+ const revokedDraft=await f.prepare(1);
+ await f.grant(1, false);
+ await h.command('order.submit',{orderId:revokedDraft.id,termsAcceptance:{version:1,accepted:true}},{...buyer,status:404});
+ assert.ok(!(await f.read()).profiles.some(profile => profile.id === profiles[1].id));
+ await f.prepare(1, {}, { ...buyer, status: 404 });
+ const pierOrders = (await f.pier.api('/api/pier/state')).orders;
+ for (const order of orders) assert.ok(pierOrders.some(upstream => upstream.id === order.pierOrderId));
+ const backup=await archive(h),recovered=await installation();t.after(()=>recovered.close());await restore(recovered,backup);
+ const restored=(await recovered.api('/api/barrow/export.json'));
+ assert.ok(restored.profileapprovals.length);assert.ok(restored.profileapprovals.every(approval=>approval.restored===1));
+ assert.deepEqual(restored.orders.find(order=>order.id===orders[0].id).buyingProfile,orders[0].buyingProfile);
+ const unusedParty=await f.pier.command('party.save',{name:'Birch Hollow Market',kind:'customer'});
+ const unused=await h.command('account.save',{id:'synthetic-barrow-816',value:{...accountValue(unusedParty.id,'synthetic-barrow-816@example.test'),name:'Birch Hollow Market'}});
+ const unusedBuyer={as:await h.signIn(unused.value.email)},unusedId=(await h.api('/api/barrow/state',undefined,unusedBuyer)).actor.id;
+ const unusedProfile=await h.command('profile.save',{id:'synthetic-barrow-817',accountId:unused.id,value:{...profiles[1].value}});
+ await h.command('profile.grant',{profileId:unusedProfile.id,userId:unusedId,approved:true,reason:'Supplier approved this existing buyer for this account only.'});
+ await h.command('account.erase',{accountId:unused.id,confirm:'ERASE'});
+ const erased=await h.api('/api/barrow/export.json');
+ assert.ok(!erased.buyingprofiles.some(profile=>profile.accountId===unused.id));assert.ok(!erased.profileapprovals.some(approval=>approval.accountId===unused.id));
+ await h.api(`/api/barrow/catalogue?accountId=${unused.id}&profileId=${unusedProfile.id}`,undefined,{...unusedBuyer,status:404});
+
 });
