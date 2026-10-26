@@ -323,7 +323,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
-   if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
+   if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
    if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
    if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})

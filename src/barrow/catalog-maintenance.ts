@@ -1,3 +1,4 @@
+import { releaseImage } from './product-images'
 import type { Bindings } from '../auth.server'
 import { audit, commit } from './access'
 import { fail, text, type Actor } from './model'
@@ -24,6 +25,7 @@ export async function applyCatalogMaintenance(env: Bindings, actor: Actor, input
   variants[row.sku] = { style: row.style, color: row.color, size: row.size, ...(image ? { image } : {}) }
  }
  if (Object.keys(variants).length > 20000) fail('CATALOG_LIMIT', 'Variant attributes are limited to 20,000 SKUs.', 400)
+ const released=[...new Set(report.rows.flatMap(row=>[context.attributes.variants[row.sku]?.image?.sha256,context.store.listings.find(before=>before.sku===row.sku)?.mediaSha256]).filter((value):value is string=>Boolean(value)))]
  const approval = { fingerprint, reconciliation: report.reconciliation, artifact: report.artifact, reason, approvedBy: actor.id, approvedAt: at }
  await commit(env.DB, actor, [
   env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key=?),\'\')=? THEN 1 ELSE 0 END').bind(catalogSetting, context.store.revision ?? ''),
@@ -32,6 +34,7 @@ export async function applyCatalogMaintenance(env: Bindings, actor: Actor, input
   env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN (SELECT count(*) FROM bw_product_images WHERE sha256 IN (SELECT value FROM json_each(?)))=? THEN 1 ELSE 0 END').bind(JSON.stringify([...new Set(report.rows.map(row => row.mediaSha256).filter(Boolean))]), new Set(report.rows.map(row => row.mediaSha256).filter(Boolean)).size),
   env.DB.prepare('INSERT INTO bw_settings(key,value_json,revision) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision').bind(catalogSetting, JSON.stringify(listings), revision),
   env.DB.prepare("INSERT INTO bw_settings(key,value_json,revision) VALUES('variant-attributes',?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision").bind(JSON.stringify(variants), revision),
+  ...released.map(sha256=>releaseImage(env.DB,sha256)),
   audit(env.DB, actor, catalogSetting, 'import.approved', { revision, source: 'catalog-maintenance.apply', reason: JSON.stringify(approval) }),
  ])
  return { revision, fingerprint, listings, approval }

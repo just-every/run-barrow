@@ -17,7 +17,7 @@ export async function stockWatchCommand(env: Bindings, actor: Actor, type: strin
   if(!live.items.some((item:any)=>item.sku===sku))fail('NOT_FOUND','This SKU is not in your current assortment.',404)
  }
  const id=crypto.randomUUID()
- await commit(env.DB,actor,[env.DB.prepare(`INSERT INTO bw_stock_watches VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(account_id,user_id,sku,kind) DO UPDATE SET active=excluded.active`).bind(id,selected.id,actor.id,sku,kind,type==='stock.watch'?1:0,stamp),audit(env.DB,actor,sku,type==='stock.watch'?'stock.watch-requested':'stock.watch-cancelled',{accountId:selected.id,revision:id,source:type,reason:'Buyer explicitly changed their own in-app back-in-stock notice request; no email or external channel.'})])
+ await commit(env.DB,actor,[env.DB.prepare(`INSERT INTO bw_stock_watches(id,account_id,user_id,sku,kind,active,created_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(account_id,user_id,sku,kind) DO UPDATE SET active=excluded.active`).bind(id,selected.id,actor.id,sku,kind,type==='stock.watch'?1:0,stamp),audit(env.DB,actor,sku,type==='stock.watch'?'stock.watch-requested':'stock.watch-cancelled',{accountId:selected.id,revision:id,source:type,reason:'Buyer explicitly changed their own in-app back-in-stock notice request; no email or external channel.'})])
  return {sku,active:type==='stock.watch'}
 }
 export async function readStockWatches(env:Bindings,actor:Actor,accountId:string) {

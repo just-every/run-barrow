@@ -102,4 +102,5 @@ test('scheduled stock synchronization resumes an interrupted ACK, sends one requ
  const failed=(await h.api('/api/barrow/stock-sync')).sync;assert.equal(failed.task_status,'open');assert.equal(failed.task_owner,(await h.api('/api/barrow/state')).actor.id);
  f.failure(false);const recovered=await f.sync();assert.equal(recovered.task_status,'open');assert.equal(recovered.task_owner,failed.task_owner);
  const closed=await h.command('stock.sync-resolve',{reason:'Owner reconnected Pier and checked the completed reconciliation.'});assert.equal(closed.sync.task_status,'closed');assert.ok(closed.sync.resolution);
+ const restarted=await h.command('stock.sync-reset',{confirm:'RESET',reason:'Owner renewed the native Pier session and requested complete reconciliation.'});assert.notEqual(restarted.sync.consumer,closed.sync.consumer);assert.equal(restarted.sync.checkpoint,null);await f.sync();assert.equal((await f.read()).notices.length,2);
 });

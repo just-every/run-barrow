@@ -15,7 +15,7 @@ export async function configurePierRouting(pier) {
  const eligible=[...new Set(state.locations.filter(row=>row.kind==='bin').map(row=>row.warehouse))];
  if(!eligible.length)return;
  for(const customer of state.parties.filter(row=>row.kind==='customer'))await pier.command('customer.splitPolicy',{customerId:customer.id,version:customer.version,allowSplit:true,reason:'Synthetic installation owner approved the fixture’s multi-warehouse fulfillment policy.'});
- let rule=await pier.command('routing.save',{source:'manual',mode:'fixed',shortage:'split',eligible});
+ let rule=await pier.command('routing.save',{source:'manual',mode:'rules',shortage:'split',zones:[],defaultEligible:eligible});
  rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});
  await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
 }

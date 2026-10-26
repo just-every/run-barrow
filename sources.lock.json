@@ -259,6 +259,10 @@
       "sha256": "2c00181076be37b972f3fe8153314643f8954a0157cc1afcd6f672ea2bc70fba",
       "executable": false
     },
+    "docs/STOCK-SYNC.md": {
+      "sha256": "3190058da9a05a7d3fbfd5de53564829aac626237b0a0260e93353cea47d71c8",
+      "executable": false
+    },
     "docs/SUBSTITUTIONS.md": {
       "sha256": "ab59f5ea8b5299276b9eada1bc1757c57714e3b879e961bfd7c33e3b81738fab",
       "executable": false
@@ -1068,7 +1072,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "c7e208a37a8f88e5de23b98e8888121ae78a8524b8903a0408f706dadd215f5e",
+      "sha256": "586292d3f6c2d6b6c944836c2a19e66ef36af01659f052c44b206a0125e34898",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1204,7 +1208,7 @@
       "executable": false
     },
     "src/barrow/catalog-maintenance.ts": {
-      "sha256": "6d45fc3e37c915dd70ccf9dfe98c7d3cddf5cc823c92c309c3fedbd0ea4a2895",
+      "sha256": "839f83b2367fcb0df56094fe0071d20d11efdd21ba3bc4f31599ef3a1ab7c42c",
       "executable": false
     },
     "src/barrow/catalog-search.ts": {
@@ -1516,7 +1520,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "8a0cc5dfeb9a58da23ad00fafe31e7f257df631fcdf38cbd62db4e41b32a1e68",
+      "sha256": "4bd168f1eb50ea8effff8140d082e0cff988a17270fed19dfa6cb64c101abac5",
       "executable": false
     },
     "src/barrow/price-books.ts": {
@@ -1692,11 +1696,11 @@
       "executable": false
     },
     "src/barrow/stock-sync.ts": {
-      "sha256": "07fee3fca21db64dee92ab141d2462f62160f43d73c8f93e3d1642889cf2a92c",
+      "sha256": "5b56709b47129ed3076d9c0017a501ad1a753e26496a09ec149214672caa4764",
       "executable": false
     },
     "src/barrow/stock-watch.ts": {
-      "sha256": "0dfc29ee4065dc16bc4800a17e74ea3d372240c5bef24fcc3e2a65d6843b23f1",
+      "sha256": "a8f432af7b56773111b908e94fb7df3d8bf3f6a921843acca0d829486ac99e91",
       "executable": false
     },
     "src/barrow/stock-windows.ts": {
@@ -2048,7 +2052,7 @@
       "executable": false
     },
     "src/barrow/ui/stock-sync.tsx": {
-      "sha256": "7a9237c8e06ce9f2466ed2fb444e5d58490a6fa3dbfbf50baabe4f783dbf2c90",
+      "sha256": "782e2d2f4b970dab17a4c7db4af1e9bab01db095dacd106be7cf3bb05f4bc9f7",
       "executable": false
     },
     "src/barrow/ui/style-card.tsx": {
@@ -4208,7 +4212,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "b7d8b973dc7c38de78e02e5ad1261f217408d2ad3d7e90631013dc1544ea509f",
+      "sha256": "eb9872af79e9d822363f1a5e3849ede79aab52e368e31350c94f50571e26e227",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
@@ -4228,7 +4232,7 @@
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
-      "sha256": "65934bf358f4ce2f733bcba9bf0d4dca2a5b1f8f58955bd98e1278c54f90880f",
+      "sha256": "7a0db41c3f94795f7e38ef07ad1de2f3439730c8d849e11325c82da0773675c3",
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
@@ -4328,7 +4332,7 @@
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
-      "sha256": "0763fe9fd7b91870f87e2c85f81ced7a99ab1a3ea3a0b3062acd48048ae0b5b6",
+      "sha256": "2616a00976c3653894a3c2cba39d9a493419836abad27b96bb38ecc03bbd7559",
       "executable": false
     },
     "tests/api/stock-sync-fixture.mjs": {
@@ -4464,7 +4468,7 @@
       "executable": false
     },
     "tests/journeys/stock-sync.test.mjs": {
-      "sha256": "6a58bdf146d956e088dd7bbeb77416bf1cd4225406ff842c18bb1208afb25715",
+      "sha256": "f446437835b43b1b0c739e4dcf83d5535b5cc3ec0095831648fd53978f0598d1",
       "executable": false
     },
     "tests/journeys/territories.test.mjs": {
