@@ -1,13 +1,13 @@
 import type { Bindings } from '../auth.server'
 import { audit,changed,commit } from './access'
 import { commercialAuditEvent } from './audit-event'
-import { cardMerchant } from './card-settings'
+import { creditAuthority } from './credit-access'
 import { storedCard } from './card-ledger'
 import { provider } from './card-provider'
 import { cardInstallation } from './card-installation'
 import { creditAccess } from './credit-notes'
 import { creditAvailable,creditRecords,financialGuard,storedCredit,storedRefund } from './credit-ledger'
-import { fail,integer,text,type Actor } from './model'
+import { fail,integer,text,requirePerson,type Actor } from './model'
 import type { CreditRefund } from './credit-model'
 
 export async function readRefund(env:Bindings,actor:Actor,id:string) {
@@ -28,9 +28,10 @@ export async function reconcileRefund(env:Bindings,id:string,result:any,event?:{
  return after
 }
 export async function refundCommand(env:Bindings,actor:Actor,type:string,p:any) {
- cardMerchant(actor)
+ requirePerson(actor)
  if(type==='refund.refresh') {
   const value=await storedRefund(env.DB,text(p.refundId,'Refund'))
+  creditAuthority(actor,value.accountId,value.amountCents,value.currency,'refund')
   if(value.restored)fail('RESTORED','Restored refund history cannot initiate provider operations.',409)
   if(!value.providerRefundId)fail('REFUND_UNCERTAIN','Retry the same approved refund request to reconcile its stable Stripe idempotency key.',409)
   const stripe=await provider(env)
@@ -38,7 +39,8 @@ export async function refundCommand(env:Bindings,actor:Actor,type:string,p:any) 
   return reconcileRefund(env,value.id,await stripe.call(`/refunds/${encodeURIComponent(value.providerRefundId)}`),undefined,actor.id)
  }
  const credit=await storedCredit(env.DB,text(p.creditId,'Credit note')),payment=(await storedCard(env,text(p.paymentId,'Captured payment'))).value
- const amountCents=integer(p.amountCents,'Refund cents',1),reason=text(p.reason,'Refund reason',1000)
+ const amountCents=integer(p.amountCents,'Refund cents',1);creditAuthority(actor,credit.accountId,amountCents,credit.currency,'refund')
+ const reason=text(p.reason,'Refund reason',1000)
  if(p.consent!==true)fail('CONSENT','Explicitly approve the exact credit amount returning to the original card.',400)
  if(payment.restored||payment.state!=='captured'||!payment.providerPaymentId||payment.orderId!==credit.orderId||payment.accountId!==credit.accountId||payment.currency!==credit.currency)fail('REFUND_SOURCE','Refund only a captured receipt for the credit’s original order and currency.',409)
  const stripe=await provider(env),installationId=await cardInstallation(env.DB)

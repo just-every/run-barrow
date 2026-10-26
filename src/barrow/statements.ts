@@ -38,7 +38,7 @@ export async function statement(db: D1Database, actor: Actor, accountId: string,
  const from = day(query.get('from'), 'start'), to = day(query.get('to'), 'end') ?? supplierDate(await now())
  if (from && from > to) fail('DATE', 'The start date must precede the end date.', 400)
  const [rows, paymentRows, financial] = await Promise.all([
-  db.prepare("SELECT value_json FROM bw_orders WHERE account_id=? AND json_extract(value_json,'$.status')='approved' AND json_extract(value_json,'$.invoice') IS NOT NULL").bind(selected.id).all<{ value_json: string }>(),
+  db.prepare("SELECT value_json FROM bw_orders WHERE account_id=? AND (json_extract(value_json,'$.status')='approved' OR json_extract(value_json,'$.status')='cancelled' AND EXISTS(SELECT 1 FROM bw_credit_notes credit WHERE credit.order_id=bw_orders.id)) AND json_extract(value_json,'$.invoice') IS NOT NULL").bind(selected.id).all<{ value_json: string }>(),
   db.prepare("SELECT value_json FROM bw_card_payments WHERE account_id=? AND json_extract(value_json,'$.state')='captured' AND json_extract(value_json,'$.capturedAt') IS NOT NULL").bind(selected.id).all<{ value_json: string }>(),
   creditRecords(db),
  ])

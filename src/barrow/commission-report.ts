@@ -13,7 +13,7 @@ export type CommissionRow = {
  rep: string; assignedRep: string; orderId: string; line: number; accountId: string; account: string; sku: string; currency: string
  ruleId: string | null; ruleRevision: string | null; basis: CommissionRule['basis'] | null; rateBps: number | null; shareBps: number | null
  acceptedAt: string; creditIds:string[];refundIds:string[];sourceOrderId: string | null; sourceLineId: string | null; shipmentIds: string[]; returnIds: string[]
- basisCents: Amount; cancelledBasisCents: Amount; returnedBasisCents: Amount; grossCents: Amount; reversedCents: Amount; netCents: Amount
+ adjustedBasisCents:Amount;basisCents: Amount; cancelledBasisCents: Amount; returnedBasisCents: Amount; grossCents: Amount; reversedCents: Amount; netCents: Amount
  source: 'read' | 'unavailable'; reason: string | null; path: string
 }
 const lexical = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
@@ -37,7 +37,7 @@ function allocate(total: number, splits: CommissionRule['splits'], denominator =
  for (let index = 0; index < extra; index++) ranked[index].amount++
  return new Map(rows.map(row => [row.rep, row.amount]))
 }
-function measured(order: Order, line: number, rule: CommissionRule, source: CommissionSource | undefined) {
+function measured(order: Order, line: number, rule: CommissionRule, source: CommissionSource | undefined,priceCreditCents=0) {
  if (rule.basis === 'payment' || !source) return null
  const merchandise = cents(order.lines[line - 1].lineCents)
  // All selling-unit lines for an item receive the same fraction of confirmed source units.
@@ -46,13 +46,14 @@ function measured(order: Order, line: number, rule: CommissionRule, source: Comm
  const basisCents = half(BigInt(merchandise) * eligible, source.base)
  const cancelledBasisCents = rule.basis === 'acceptance' ? half(BigInt(merchandise) * source.cancelled, source.base) : 0
  const returnedBasisCents = Math.min(basisCents - cancelledBasisCents, half(BigInt(merchandise) * source.returned, source.base))
+ const adjustedBasisCents=Math.min(basisCents-cancelledBasisCents-returnedBasisCents,priceCreditCents)
  const gross = half(BigInt(basisCents) * BigInt(rule.rateBps), 10000n)
- const remaining = half(BigInt(basisCents - cancelledBasisCents - returnedBasisCents) * BigInt(rule.rateBps), 10000n)
+ const remaining = half(BigInt(basisCents - cancelledBasisCents - returnedBasisCents - adjustedBasisCents) * BigInt(rule.rateBps), 10000n)
  const grossShares = allocate(gross, rule.splits)
  // Preserve each rep's original earned cents as the remaining allocation weights.
  // This conserves all remaining cents and prevents rounding from reversing a negative cent.
  const remainingShares = allocate(remaining, rule.splits.map(split => ({ rep: split.rep, shareBps: grossShares.get(split.rep)! })), gross)
- return { basisCents, cancelledBasisCents, returnedBasisCents, gross: grossShares, remaining: remainingShares }
+ return { adjustedBasisCents,basisCents, cancelledBasisCents, returnedBasisCents, gross: grossShares, remaining: remainingShares }
 }
 function totals(rows: CommissionRow[]) {
  const groups = new Map<string, CommissionRow[]>()
@@ -89,10 +90,10 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
    const line = order.lines[entry.line - 1]
    if (!line) fail('COMMISSION_SNAPSHOT', 'Commission snapshot references a missing order line.', 409)
    const rule = entry.rule, confirmed = quantities?.get(line.itemId)
-   const linkedCredits=financial.credits.filter(credit=>credit.orderId===order.id&&credit.currency===(order.currency??'AUD')&&credit.lines.some(line=>line.line===entry.line)&&confirmed?.returnIds.includes(credit.returnId))
-   const measuredLine = rule ? measured(order, entry.line, rule, confirmed) : null
+   const linkedCredits=financial.credits.filter(credit=>credit.orderId===order.id&&credit.currency===(order.currency??'AUD')&&credit.lines.some(line=>line.line===entry.line)&&confirmed&&(credit.kind==='price-correction'||credit.kind==='cancellation'&&confirmed.cancelled>0n||confirmed.returnIds.includes(credit.returnId)))
+   const measuredLine = rule ? measured(order, entry.line, rule, confirmed,linkedCredits.filter(credit=>credit.kind==='price-correction').flatMap(credit=>credit.lines.filter(line=>line.line===entry.line)).reduce((sum,line)=>sum+line.amountCents,0)) : null
    if (!rule) unmatchedLines++
-   const base = { creditIds:linkedCredits.map(credit=>credit.id),refundIds:financial.refunds.filter(refund=>linkedCredits.some(credit=>credit.id===refund.creditId)).map(refund=>refund.id),assignedRep: commission.assignedRep, orderId: order.id, line: entry.line, accountId: order.accountId, account: order.customerName, sku: line.sku, currency: order.currency ?? 'AUD', ruleId: rule?.id ?? null, ruleRevision: commission.policyRevision, basis: rule?.basis ?? null, rateBps: rule?.rateBps ?? null, acceptedAt: commission.at, sourceOrderId: confirmed?.sourceOrderId ?? order.pierOrderId ?? null, sourceLineId: confirmed?.sourceLineId ?? null, shipmentIds: confirmed?.shipmentIds ?? [], returnIds: confirmed?.returnIds ?? [], basisCents: measuredLine?.basisCents ?? null, cancelledBasisCents: measuredLine?.cancelledBasisCents ?? null, returnedBasisCents: measuredLine?.returnedBasisCents ?? null, source: confirmed ? 'read' as const : 'unavailable' as const, reason: !rule ? 'No matching rule at first approval; no commission recorded.' : rule.basis === 'payment' ? 'Verified payment allocations are not recorded (PAY-003); payment-basis commission is unknown.' : !confirmed ? 'Pier source unavailable or unreconciled; commission and reversals are unknown.' : null, path: `/api/barrow/orders/${order.id}/timeline` }
+   const base = { adjustedBasisCents:measuredLine?.adjustedBasisCents??null,creditIds:linkedCredits.map(credit=>credit.id),refundIds:financial.refunds.filter(refund=>linkedCredits.some(credit=>credit.id===refund.creditId)).map(refund=>refund.id),assignedRep: commission.assignedRep, orderId: order.id, line: entry.line, accountId: order.accountId, account: order.customerName, sku: line.sku, currency: order.currency ?? 'AUD', ruleId: rule?.id ?? null, ruleRevision: commission.policyRevision, basis: rule?.basis ?? null, rateBps: rule?.rateBps ?? null, acceptedAt: commission.at, sourceOrderId: confirmed?.sourceOrderId ?? order.pierOrderId ?? null, sourceLineId: confirmed?.sourceLineId ?? null, shipmentIds: confirmed?.shipmentIds ?? [], returnIds: confirmed?.returnIds ?? [], basisCents: measuredLine?.basisCents ?? null, cancelledBasisCents: measuredLine?.cancelledBasisCents ?? null, returnedBasisCents: measuredLine?.returnedBasisCents ?? null, source: confirmed ? 'read' as const : 'unavailable' as const, reason: !rule ? 'No matching rule at first approval; no commission recorded.' : rule.basis === 'payment' ? 'Verified payment allocations are not recorded (PAY-003); payment-basis commission is unknown.' : !confirmed ? 'Pier source unavailable or unreconciled; commission and reversals are unknown.' : null, path: `/api/barrow/orders/${order.id}/timeline` }
    const splits = rule?.splits ?? [{ rep: commission.assignedRep, shareBps: null }]
    for (const split of splits) {
     if (filter.rep && split.rep !== filter.rep) continue
@@ -112,7 +113,7 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
   access: 'Owner, admins and all-account managers read every frozen statement. A rep reads only their fixed label’s statements for accounts they hold today (assignment or temporary coverage); an account transferred away leaves their view while its frozen attribution stays. Rep labels alone grant no access.',
  } }
 }
-export const commissionColumns = ['rep', 'assignedRep', 'orderId', 'line', 'accountId', 'account', 'sku', 'currency', 'ruleId', 'ruleRevision', 'basis', 'rateBps', 'shareBps', 'acceptedAt', 'sourceOrderId', 'sourceLineId', 'shipmentIds', 'returnIds', 'creditIds', 'refundIds', 'basisCents', 'cancelledBasisCents', 'returnedBasisCents', 'grossCents', 'reversedCents', 'netCents', 'source', 'reason', 'path'] as const
+export const commissionColumns = ['rep', 'assignedRep', 'orderId', 'line', 'accountId', 'account', 'sku', 'currency', 'ruleId', 'ruleRevision', 'basis', 'rateBps', 'shareBps', 'acceptedAt', 'sourceOrderId', 'sourceLineId', 'shipmentIds', 'returnIds', 'creditIds', 'refundIds', 'basisCents', 'adjustedBasisCents','cancelledBasisCents', 'returnedBasisCents', 'grossCents', 'reversedCents', 'netCents', 'source', 'reason', 'path'] as const
 export async function commissionCsv(env: Bindings, actor: Actor, params: URLSearchParams) {
  const report = await commissionReport(env, actor, params)
  return new Response(csvText([[...commissionColumns], ...report.rows.map(row => commissionColumns.map(column => Array.isArray(row[column]) ? (row[column] as string[]).join(';') : row[column] ?? 'not recorded')), [], ['historicalUnrecorded', report.historicalUnrecorded ?? 'not attributable to this rep'], ...Object.entries(report.notes).map(([key, value]) => [key, value])]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-commissions.csv"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })

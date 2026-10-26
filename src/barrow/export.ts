@@ -23,7 +23,7 @@ type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
- creditnotes:['id','revision','accountId','orderId','orderRevision','currency','amountCents','returnId','createdAt','actorId','reason','path'],
+ creditnotes:['kind','sourceId','freightCents','freightBasis','taxCents','taxBasis','id','revision','accountId','orderId','orderRevision','currency','amountCents','returnId','createdAt','actorId','reason','path'],
  creditlines:['id','creditId','revision','accountId','orderId','orderRevision','returnId','line','sku','quantity','currency','amountCents','basis','original'],
  creditapplications:['id','revision','creditId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
  cardallocations:['id','revision','paymentId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
@@ -113,7 +113,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const refundById = new Map(refunds.map(refund => [refund.id, refund]))
  const refundEvents = (await env.DB.prepare('SELECT id,refund_id,created_at,value_json FROM bw_refund_events ORDER BY created_at,id').all<{id:string;refund_id:string;created_at:string;value_json:string}>()).results.filter(row => refundById.has(row.refund_id))
  const records = { ...stockRecords,
-  creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit, path: `/api/barrow/credits/${credit.id}` })),
+  creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit,freightBasis:json(credit.freightBasis), path: `/api/barrow/credits/${credit.id}` })),
   creditlines: credits.flatMap(credit => credit.lines.map((line, index) => ({ id: `${credit.id}:${index + 1}`, creditId: credit.id, revision: credit.revision, accountId: credit.accountId, orderId: credit.orderId, orderRevision: credit.orderRevision, returnId: credit.returnId, line: line.line, sku: line.sku, quantity: line.quantity, currency: credit.currency, amountCents: line.amountCents, basis: json(line.basis), original: json(line.original) }))),
   creditapplications: applications.map(application => financialFields('creditapplications', application)),
   cardallocations: allocations.map(allocation => financialFields('cardallocations', allocation)),

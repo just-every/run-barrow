@@ -47,6 +47,10 @@ export function StaffMembers({ accounts, version, run, busy }: { accounts: Accou
             <dt>Reports</dt><dd>{member.reports.map(report => staffReports[report]).join(', ') || 'None'}</dd>
             <dt>Discount approval allowance</dt><dd>{money(member.discountLimitCents)}</dd>
             <dt>Stock exception allowance</dt><dd>{money(member.stockExceptionLimitCents)}</dd>
+            {member.role === 'finance' && <>
+              <dt>Credit issue, application and receipt allocation allowance per decision</dt><dd>{money(member.creditLimitCents ?? 0)}</dd>
+              <dt>Card refund allowance per decision</dt><dd>{money(member.refundLimitCents ?? 0)}</dd>
+            </>}
             <dt>Fixed commission attribution</dt><dd>{member.commissionRep || 'None'}</dd>
           </dl>
           <details className="br-details"><summary>Saved revision</summary><p>Grant revision: {member.revision}</p><p>Native identity version: {member.nativeVersion}</p></details>

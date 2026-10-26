@@ -6,7 +6,7 @@ import { Notice } from './primitives'
 import { money, orderNumber, when, type Order } from './types'
 
 type Credit = {
-  id: string; revision: string; orderId: string; currency: 'USD' | 'AUD' | 'CAD'
+  kind?:'return'|'price-correction'|'cancellation';sourceId?:string;freightCents?:number;taxCents?:number;id: string; revision: string; orderId: string; currency: 'USD' | 'AUD' | 'CAD'
   amountCents: number; availableCents: number; returnId: string; createdAt: string; reason: string
   lines: { line: number; sku: string; quantity: number; amountCents: number; basis: unknown; original?: unknown }[]
 }
@@ -15,7 +15,7 @@ type Refund = {
   status: 'requested' | 'pending' | 'succeeded' | 'failed' | 'cancelled'; updatedAt: string
 }
 type CreditReport = {
-  canAct: boolean; credits: Credit[]; refunds: Refund[]; outstandingCents: number
+  canAct: boolean; creditLimitCents:number|null;refundLimitCents:number|null;credits: Credit[]; refunds: Refund[]; outstandingCents: number
   applications: { id: string; creditId: string; orderId: string; amountCents: number }[]
   allocations: { id: string; paymentId: string; orderId: string; amountCents: number }[]
 }
@@ -84,7 +84,7 @@ function CreditReportPanel({ order }: { order: Order }) {
     finally { setBusy(false) }
   }
 
-  return <section className="br-stack" aria-label="Credit report" aria-busy={busy}>
+  return <section className="br-stack" style={{overflowWrap:'anywhere',minWidth:0}} aria-label="Credit report" aria-busy={busy}>
     {error && <Notice error>{error}</Notice>}
     {message && <Notice>{message}</Notice>}
     {!report && !error && <p role="status">Loading credit notes and refunds…</p>}
@@ -103,8 +103,8 @@ function CreditHistory({ report, order, busy, command }: { report: CreditReport;
     {report.credits.length === 0 && <p className="br-quiet-text">No credit notes for this company.</p>}
     {report.credits.map(credit => <div className="br-card br-stack" key={credit.id}>
       <p><a href={creditPath(credit.id)}>Credit note {credit.id}</a> · {money(credit.amountCents, credit.currency)} · available {money(credit.availableCents, credit.currency)}</p>
-      <p className="br-quiet-text">Order {orderNumber(credit.orderId)} · Pier return {credit.returnId} · {when(credit.createdAt)}</p>
-      <p>{credit.reason}</p>
+      <p className="br-quiet-text">Order {orderNumber(credit.orderId)} · Source {credit.sourceId??credit.returnId} · {when(credit.createdAt)}</p>
+      <p>{credit.reason}</p>{!!credit.freightCents&&<p>Original freight credit: {money(credit.freightCents,credit.currency)}</p>}
       <ul>{credit.lines.map(line => <li key={line.line}>Line {line.line}: {line.sku} · {line.quantity} selling units · {money(line.amountCents, credit.currency)}{typeof line.basis === 'string' ? ` · ${line.basis}` : ''}</li>)}</ul>
     </div>)}
     {report.allocations.filter(row => row.orderId === order.id).map(row => <p key={row.id}>Card principal applied: {money(row.amountCents, currency)} · receipt {row.paymentId}</p>)}
@@ -121,6 +121,7 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
   const [action, setAction] = useState('allocate')
   const [creditId, setCreditId] = useState(''), [paymentId, setPaymentId] = useState('')
   const [amount, setAmount] = useState(''), [reason, setReason] = useState(''), [returnId, setReturnId] = useState('')
+  const [kind,setKind]=useState('return'),[sourceReference,setSourceReference]=useState(''),[freight,setFreight]=useState(''),[priceCredits,setPriceCredits]=useState<Record<number,string>>({})
   const [quantities, setQuantities] = useState<Record<number, string>>({})
   const [consentKey, setConsentKey] = useState('')
   const currency = order.currency ?? 'AUD', data = report.credits
@@ -131,13 +132,14 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
     : !data.applications.some(row => row.creditId === credit.id && row.orderId === order.id)))
   const payment = receipts.find(row => row.id === paymentId), credit = credits.find(row => row.id === creditId)
   const amountCents = cents(amount)
-  const maximum = action === 'allocate' ? Math.min(payment?.amountCents ?? 0, data.outstandingCents)
+  const allowance=action==='refund'?data.refundLimitCents:data.creditLimitCents
+  const maximum = Math.min(allowance??Number.MAX_SAFE_INTEGER,action === 'allocate' ? Math.min(payment?.amountCents ?? 0, data.outstandingCents)
     : action === 'apply' ? Math.min(credit?.availableCents ?? 0, data.outstandingCents)
-    : Math.min(credit?.availableCents ?? 0, payment?.amountCents ?? 0)
+    : Math.min(credit?.availableCents ?? 0, payment?.amountCents ?? 0))
   const refundKey = JSON.stringify([credit?.id, credit?.revision, payment?.id, payment?.updatedAt, amountCents])
-  const lines = Object.entries(quantities).filter(([, quantity]) => quantity !== '' && Number(quantity) !== 0).map(([line, quantity]) => ({ line: Number(line), quantity: Number(quantity) }))
+  const lines = Object.entries(quantities).filter(([, quantity]) => quantity !== '' && Number(quantity) !== 0).map(([line, quantity]) => ({ line: Number(line), quantity: Number(quantity),...(kind==='price-correction'?{amountCents:cents(priceCredits[Number(line)]??'')}:{}) }))
   const invalidLines = !lines.length || lines.some(line => !Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > order.lines[line.line - 1].quantity)
-  const invalid = disabled || !reason.trim() || (action === 'issue' ? !returnId.trim() || invalidLines
+  const invalid = disabled || !reason.trim() || (action === 'issue' ? (kind==='return'?!returnId.trim():kind==='price-correction'?!sourceReference.trim():false) || invalidLines || kind==='price-correction'&&lines.some(line=>!line.amountCents)
     : amountCents <= 0 || amountCents > maximum || (action === 'allocate' ? !payment : action === 'apply' ? !credit : !credit || !payment || consentKey !== refundKey))
 
   useEffect(() => { setConsentKey('') }, [credit?.revision, payment?.updatedAt, disabled])
@@ -147,14 +149,14 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
     const explanation = reason.trim()
     setConsentKey('')
     if (action === 'allocate') await command('card.allocate', { paymentId: payment!.id, orderId: order.id, amountCents, reason: explanation })
-    if (action === 'issue') await command('credit.issue', { orderId: order.id, returnId: returnId.trim(), lines, reason: explanation })
+    if (action === 'issue') await command('credit.issue', { orderId: order.id,kind,sourceReference:sourceReference.trim(), returnId: returnId.trim(),freightCents:cents(freight||'0'), lines, reason: explanation })
     if (action === 'apply') await command('credit.apply', { creditId: credit!.id, revision: credit!.revision, orderId: order.id, amountCents, reason: explanation })
     if (action === 'refund') await command('refund.request', { creditId: credit!.id, revision: credit!.revision, paymentId: payment!.id, amountCents, consent: true, reason: explanation })
   }
 
   return <details className="br-details"><summary>Manage credits and refunds</summary><div className="br-stack">
     <label>Action<select value={action} disabled={disabled} onChange={event => { setAction(event.target.value); setCreditId(''); setPaymentId(''); setAmount(''); setReason(''); setConsentKey('') }}>
-      <option value="allocate">Apply captured card principal to invoice</option><option value="issue">Issue credit for a physical return</option><option value="apply">Apply available company credit</option><option value="refund">Request a card refund</option>
+      <option value="allocate">Apply captured card principal to invoice</option><option value="issue">Issue a linked credit note</option><option value="apply">Apply available company credit</option><option value="refund">Request a card refund</option>
     </select></label>
     {(action === 'allocate' || action === 'refund') && <label>Captured receipt<select value={paymentId} disabled={disabled} onChange={event => { setPaymentId(event.target.value); setConsentKey('') }}>
       <option value="">Choose a captured receipt</option>{receipts.map(row => <option key={row.id} value={row.id}>{receiptName(row)}</option>)}
@@ -163,11 +165,14 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
       <option value="">Choose a credit note</option>{credits.map(row => <option key={row.id} value={row.id}>{row.id} · order {orderNumber(row.orderId)} · {money(row.availableCents, row.currency)} available</option>)}
     </select></label>}
     {action === 'issue' ? <>
-      <label>Pier physical return ID<input value={returnId} disabled={disabled} onChange={event => setReturnId(event.target.value)} /></label>
+      <label>Credit basis<select value={kind} disabled={disabled} onChange={event=>setKind(event.target.value)}><option value="return">Physical return</option><option value="price-correction">Price correction</option><option value="cancellation">Confirmed cancellation</option></select></label>
+      {kind==='return'&&<label>Pier physical return ID<input value={returnId} disabled={disabled} onChange={event => setReturnId(event.target.value)} /></label>}
+      {kind==='price-correction'&&<label>Price correction reference<input value={sourceReference} disabled={disabled} onChange={event=>setSourceReference(event.target.value)}/></label>}
       <p className="br-quiet-text">Enter returned selling units. Credit uses the original approved line prices and first reduces this invoice’s unpaid amount.</p>
-      {order.lines.map((line, index) => <label key={index}>Line {index + 1}: {line.sku} · {line.name} · returned {line.unit ?? 'selling units'}
+      {order.lines.map((line, index) => <div className="br-stack" key={index}><label>Line {index + 1}: {line.sku} · {line.name} · credited {line.unit ?? 'selling units'}
         <input type="number" min={0} max={line.quantity} step={1} inputMode="numeric" value={quantities[index + 1] ?? ''} disabled={disabled} onChange={event => setQuantities(current => ({ ...current, [index + 1]: event.target.value }))} />
-      </label>)}
+      </label>{kind==='price-correction'&&<label>Line {index+1} price credit ({currency})<input inputMode="decimal" value={priceCredits[index+1]??''} disabled={disabled} onChange={event=>setPriceCredits(current=>({...current,[index+1]:event.target.value}))}/></label>}</div>)}
+      <label>Freight credit ({currency})<input inputMode="decimal" value={freight} disabled={disabled} onChange={event=>setFreight(event.target.value)}/></label><p className="br-quiet-text">Original delivery and handling: {money(order.delivery?.totalCents??0,currency)}. Tax is not recorded; no tax credit is assumed.</p>
     </> : <>
       <label>{currency} amount<input inputMode="decimal" value={amount} disabled={disabled} onChange={event => { setAmount(event.target.value); setConsentKey('') }} /></label>
       <p className="br-quiet-text">Maximum {money(maximum, currency)}{action === 'allocate' ? ' in captured principal; card surcharge is excluded.' : '.'}</p>

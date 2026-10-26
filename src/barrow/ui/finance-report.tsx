@@ -18,7 +18,7 @@ export function FinanceReport() {
     void request<Report>(`/api/barrow/reports/finance?${query}`).then(value => { if (active) setReport(value) }).catch(cause => { if (active) setError(errorMessage(cause)) })
     return () => { active = false }
   }, [String(query)])
-  return <div className="br-card br-stack"><h2>Invoice aging and finance</h2>
+  return <div className="br-card br-stack" style={{overflowWrap:'anywhere',minWidth:0}}><h2>Invoice aging and finance</h2>
     <div className="br-form-grid">
       <label>As of<input type="date" value={filter.asOf} onChange={event => setFilter(value => ({ ...value, asOf: event.target.value }))} /></label>
       <label>Account ID<input value={filter.accountId} onChange={event => setFilter(value => ({ ...value, accountId: event.target.value }))} /></label>

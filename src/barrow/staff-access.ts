@@ -61,6 +61,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 }
 
 const commandRoles:Record<string,string[]>={
+ 'credit.issue':['finance'],'credit.apply':['finance'],'card.allocate':['finance'],'refund.request':['finance'],'refund.refresh':['finance'],
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
  'price-book.import':['sales-manager'],'sheet.publish':['sales-manager'],'sheet.revoke':['sales-manager'],
  'account.save':['sales-manager'], 'terms.assign':['sales-manager'], 'terms.publish':['sales-manager'], 'commission.settings':['sales-manager'],
@@ -90,7 +91,7 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
  if(['terms.publish','commission.settings','rep.assign','rep.cover','rep.end','rep.transfer'].includes(type)&&grant.accounts!=='all')return denied(env,actor,type)
  if(['order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
  let accountId=typeof p.accountId==='string'?p.accountId:undefined
- for(const [key,table] of [['orderId','bw_orders'],['quoteId','bw_quotes'],['listId','bw_lists'],['sheetId','bw_line_sheets'],['id','bw_followups']] as const){
+ for(const [key,table] of [['orderId','bw_orders'],['creditId','bw_credit_notes'],['refundId','bw_credit_refunds'],['paymentId','bw_card_payments'],['quoteId','bw_quotes'],['listId','bw_lists'],['sheetId','bw_line_sheets'],['id','bw_followups']] as const){
   if(typeof p[key]!=='string'||key==='id'&&!type.startsWith('followup.'))continue
   const row=await env.DB.prepare(`SELECT account_id FROM ${table} WHERE id=?`).bind(p[key]).first<{account_id:string}>()
   if(row){if(accountId&&accountId!==row.account_id)fail('NOT_FOUND','Resource not found.',404);accountId=row.account_id}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {creditFixture} from './credit-fixture.mjs';
-import {archive,installation,restore} from './harness.mjs';
+import {activateStaff,archive,installation,restore} from './harness.mjs';
 
 test('one linked partial-return credit applies to an unpaid invoice and refunds the paid remainder once with exact dated balances and frozen commission reversals',async t=>{
  const {h,pier,buyer,other,edge,source,payment,returned,credit,order}=await creditFixture(t);
@@ -52,4 +52,28 @@ test('unpaid returned principal is applied before refundable cash; invalid retur
  await h.command('refund.request',{creditId:credit.id,revision:current.revision,paymentId:payment.id,amountCents:6500,reason:'No explicit exact-amount consent.'},{status:400});
  const failed=await h.command('refund.request',{creditId:credit.id,revision:current.revision,paymentId:payment.id,amountCents:6500,consent:true,reason:'Provider pending refund.'});edge.refunds.get(failed.providerRefundId).status='failed';await edge.refundEvent(h,failed,{type:'refund.failed'});const finance=await h.api('/api/barrow/reports/finance?asOf=2100-12-31');assert.equal(finance.refundStatus[0].status,'failed');assert.equal(finance.rows.find(row=>row.orderId===third.id).outstandingCents,6500);assert.equal((await h.api('/api/barrow/statements/cedar?to=2100-12-31')).sections[0].refundedCents,0);
  const another=await h.command('order.prepare',{accountId:'wren',reference:'Foreign invoice',lines:[{sku:'OAT-1',quantity:2}]},other);await h.command('order.submit',{orderId:another.id},other);await h.command('order.approve',{orderId:another.id});await h.command('credit.apply',{creditId:credit.id,revision:(await h.api('/api/barrow/credits/'+credit.id)).revision,orderId:another.id,amountCents:1,reason:'Cannot move credit to another company.'},{status:409});
+});
+
+
+test('finance allowances bound source-priced corrections and refunds; confirmed cancellations credit the original invoice and freight without inventing tax or reversing commission twice',async t=>{
+ const {h,buyer,credit,payment}=await creditFixture(t);
+ const initialPolicy={role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:1000,refundLimitCents:500};
+ const {who:finance,id}=await activateStaff(h,'bounded-finance@example.test',initialPolicy);
+ const method={id:'original-freight',name:'Original freight',kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1000,handlingCents:250,freeOverCents:null,transitMinDays:1,transitMaxDays:3,quoteRequired:false};
+ await h.command('shipping.settings',{revision:(await h.api('/api/barrow/shipping/settings')).revision,methods:[method]});
+ const place=async reference=>{const draft=await h.command('order.prepare',{accountId:'cedar',reference,lines:[{sku:'OAT-1',quantity:2}]},buyer),offer=(await h.api('/api/barrow/shipping/options?orderId='+draft.id,undefined,buyer)).options[0];await h.command('shipping.select',{orderId:draft.id,...offer},buyer);await h.command('order.submit',{orderId:draft.id,deliveryAcknowledged:true},buyer);return h.command('order.approve',{orderId:draft.id})};
+ const order=await place('Original-priced correction'),snapshot=await h.api('/api/barrow/orders/'+order.id);
+ await h.command('shipping.settings',{revision:(await h.api('/api/barrow/shipping/settings')).revision,methods:[{...method,baseCents:10000}]});
+ const correction={orderId:order.id,kind:'price-correction',sourceReference:'Supplier approved price difference',lines:[{line:1,quantity:1,amountCents:500}],freightCents:500,reason:'Correct original merchandise and accepted freight only.'};
+ await h.command('credit.issue',{...correction,sourceReference:'Over allowance',lines:[{line:1,quantity:1,amountCents:501}]},{...finance,status:403});
+ await h.command('credit.issue',{...correction,sourceReference:'Unverified tax',taxCents:1},{status:409});await h.command('credit.issue',{...correction,sourceReference:'New freight cannot rewrite old basis',freightCents:1251},{status:409});
+ const note=await h.command('credit.issue',correction,finance);assert.equal(note.amountCents,1000);assert.equal(note.freightCents,500);assert.deepEqual(note.freightBasis,order.delivery);assert.equal(note.taxBasis,'not recorded');assert.equal((await h.api('/api/barrow/credits?orderId='+order.id)).outstandingCents,13250);
+ assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),snapshot);let rows=(await h.api('/api/barrow/reports/commissions')).rows.filter(row=>row.orderId===order.id);assert.deepEqual(rows.map(row=>[row.rep,row.reversedCents]),[['avery',30],['blair',20]]);assert.ok(rows.every(row=>row.creditIds.includes(note.id)));
+ const current=await h.api('/api/barrow/credits/'+credit.id),refundPayload={creditId:credit.id,revision:current.revision,paymentId:payment.id,amountCents:501,consent:true,reason:'Finance returns unused paid credit.'};await h.command('refund.request',refundPayload,{...finance,status:403});const refund=await h.command('refund.request',{...refundPayload,amountCents:500},finance);assert.equal(refund.status,'pending');
+ const grant=(await h.api('/api/barrow/staff/members')).members.find(row=>row.userId===id);await h.command('staff.update',{userId:id,revision:grant.revision,policy:{...initialPolicy,creditLimitCents:0,refundLimitCents:0},reason:'Owner withdraws both financial allowances.'});await h.command('refund.refresh',{refundId:refund.id},{...finance,status:403});await h.command('credit.issue',{...correction,sourceReference:'No remaining credit allowance'},{...finance,status:403});
+ await h.command('shipping.settings',{revision:(await h.api('/api/barrow/shipping/settings')).revision,methods:[method]});const cancelled=await place('Confirmed cancellation credit');await h.command('order.cancel',{orderId:cancelled.id,reason:'Supplier confirmed the whole unshipped cancellation.'});
+ const cancellation=await h.command('credit.issue',{orderId:cancelled.id,kind:'cancellation',lines:[{line:1,quantity:2}],freightCents:1250,reason:'Credit cancelled original merchandise and original accepted freight.'});assert.equal(cancellation.amountCents,14250);assert.equal((await h.api('/api/barrow/credits?orderId='+cancelled.id)).outstandingCents,0);
+ const statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31');assert.equal(statement.sections[0].entries.find(row=>row.kind==='invoice'&&row.orderId===cancelled.id).amountCents,14250);assert.equal(statement.sections[0].entries.find(row=>row.kind==='credit-note'&&row.id===cancellation.id).amountCents,-14250);const invoice=await(await h.request('/api/barrow/invoices/'+cancelled.id+'.csv',buyer)).text();assert.ok(invoice.includes('withdrawn; original preserved with linked credit'));assert.ok(invoice.includes('14250'));
+ rows=(await h.api('/api/barrow/reports/commissions')).rows.filter(row=>row.orderId===cancelled.id);assert.ok(rows.every(row=>row.reversedCents===row.grossCents&&row.netCents===0&&row.creditIds.includes(cancellation.id)));
+ const sales=await h.api('/api/barrow/reports/sales?from=2000-01-01&to=2100-12-31');assert.equal(sales.rows.find(row=>row.orderId===cancelled.id).creditedFreightCents,1250);assert.equal(sales.rows.find(row=>row.orderId===cancelled.id).outstandingCents,0);
 });

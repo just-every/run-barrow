@@ -33,7 +33,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
  const [accountRows, financial] = await Promise.all([accounts(env.DB, actor), creditRecords(env.DB)])
  const profiles = new Map(accountRows.map(account => [account.id, account.value]))
  const recorded = (instant: string) => calendarDate(new Date(instant), timeZone) <= asOf
- const records = await env.DB.prepare("SELECT value_json FROM bw_orders WHERE json_extract(value_json,'$.status')='approved' AND json_extract(value_json,'$.invoice') IS NOT NULL AND (?='' OR json_extract(value_json,'$.accountId')=?)").bind(filter.accountId,filter.accountId).all<{ value_json: string }>()
+ const records = await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (json_extract(value_json,'$.status')='approved' OR json_extract(value_json,'$.status')='cancelled' AND EXISTS(SELECT 1 FROM bw_credit_notes credit WHERE credit.order_id=bw_orders.id)) AND json_extract(value_json,'$.invoice') IS NOT NULL AND (?='' OR json_extract(value_json,'$.accountId')=?)").bind(filter.accountId,filter.accountId).all<{ value_json: string }>()
  const rows: FinanceRow[] = []
  for (const record of records.results) {
   const order = JSON.parse(record.value_json) as Order, invoice = order.invoice!, profile = profiles.get(order.accountId)

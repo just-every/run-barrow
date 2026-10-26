@@ -255,7 +255,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(invoice && request.method==='GET') {
    if(actor.agent) fail('FORBIDDEN','A person must download invoice exports.',403)
    const order=await readOrder(env.DB,actor,invoice[1]);await requireCompanyRight(env.DB,actor,order.accountId,'finance')
-   return new Response(invoiceCsv(order),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','content-disposition':`attachment; filename="barrow-${order.id}.csv"`}})
+   return new Response(invoiceCsv(order,!!await env.DB.prepare('SELECT 1 FROM bw_credit_notes WHERE order_id=? LIMIT 1').bind(order.id).first()),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','content-disposition':`attachment; filename="barrow-${order.id}.csv"`}})
   }
   const confirmation=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/confirmations(?:\/([1-9]\d*)\.(csv|pdf))?$/.exec(path)
   if(confirmation && request.method==='GET') {
