@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "2a780995f4cd87f7bae266e0dc40c7088b64f90bf0b4bd6c2ac40e895c1be338",
+      "sha256": "f81ac81191cbbb9b57797ec759858dec9ae0a698cd31aaeea9dea2552ff02cbe",
       "executable": false
     },
     "DEMO.md": {
@@ -1376,7 +1376,7 @@
       "executable": false
     },
     "src/barrow/finance-report.ts": {
-      "sha256": "02915ff42aa77a5c49d51007c96a48b4770f16567169507f7d1c6ad6320d6863",
+      "sha256": "ce8cc73715e638d8b6c10d2360c3615a55e9c3e88d9e7fdbd799ade95b5212f1",
       "executable": false
     },
     "src/barrow/followup-sources.ts": {

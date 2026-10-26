@@ -66,7 +66,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
   notes: {
    amounts: `${statementNote} Aging buckets contain invoice principal less explicit card allocations and applied credits, never summed across currencies; original invoice cents remain separate. Amounts include recorded delivery and handling; tax is not calculated. Pending, failed and succeeded refunds do not restore invoice debt.`,
    dates: `Invoices issued on or before ${asOf}, inclusive. Frozen issue and due dates retain their original calendar-day semantics. Default as-of day uses ${timeZone}. Due today is current; overdue days are whole calendar days.`,
-   unrecorded: 'Available credit and exposure (PAY-004), deposits and other payment types (PAY-003), failed payments and disputed balances (PAY-011), and ledger reconciliation (INT-002/INT-003) are not recorded. PAY-010 refunds show their latest verified status only when that snapshot is on or before the as-of day; later status snapshots are omitted.',
+   unrecorded: 'Available credit and exposure (PAY-004), deposits and other payment types (PAY-003), failed payments and disputed balances (PAY-011), and ledger reconciliation (INT-002 and INT-003) are not recorded. PAY-010 refunds show their latest verified status only when that snapshot is on or before the as-of day; later status snapshots are omitted.',
    access: 'Owner, admins and entitled finance staff. A rep with the finance report right reads only an account they hold today, or a territory they hold completely, through the page and CSV; another rep’s account is refused, never trimmed. Assigned rep is account metadata, not an access restriction or historical attribution.',
   },
  }
