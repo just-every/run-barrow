@@ -17,11 +17,12 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
+ stockwindows:['sku','opensAt','closesAt','revision'],
  stockwatches:['id','account_id','user_id','sku','kind','active','created_at'],
  stocknotices:['id','watch_id','account_id','user_id','sku','kind','event_id','created_at'],
  cardpayments:['id','revision','accountId','orderId','currency','amountCents','surchargeCents','state','providerAccountId','providerPaymentId','createdAt','updatedAt','latestFinancialAt','capturedAt'],
@@ -96,7 +97,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const profileRecords = await buyingProfileExport(env.DB, actor, ids, financeOnly)
  const cardRows=(await env.DB.prepare('SELECT value_json,revision FROM bw_card_payments').all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})).filter(row=>ids.includes(row.accountId))
  const cardIds=new Set(cardRows.map(row=>row.id)),cardEvents=(await env.DB.prepare('SELECT * FROM bw_card_events').all<{id:string;payment_id:string;created_at:string;value_json:string}>()).results.filter(row=>cardIds.has(row.payment_id))
- const stockRecords=actor.role==='owner'||actor.role==='admin'?{stockwatches:(await env.DB.prepare('SELECT * FROM bw_stock_watches ORDER BY id').all<any>()).results,stocknotices:(await env.DB.prepare('SELECT * FROM bw_stock_notices ORDER BY id').all<any>()).results}:{}
+ const stockRecords=actor.role==='owner'||actor.role==='admin'?{stockwindows:JSON.parse((await env.DB.prepare("SELECT value_json FROM bw_settings WHERE key='stock-windows'").first<{value_json:string}>())?.value_json??'[]'),stockwatches:(await env.DB.prepare('SELECT * FROM bw_stock_watches ORDER BY id').all<any>()).results,stocknotices:(await env.DB.prepare('SELECT * FROM bw_stock_notices ORDER BY id').all<any>()).results}:{}
  const records = { ...stockRecords,
   cardpayments:cardRows.map(row=>Object.fromEntries(columns.cardpayments.map(key=>[key,row[key]??'']))),
   cardevents:cardEvents.map(row=>({id:row.id,paymentId:row.payment_id,createdAt:row.created_at,...JSON.parse(row.value_json)})),

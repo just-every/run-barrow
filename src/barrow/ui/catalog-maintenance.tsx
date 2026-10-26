@@ -59,8 +59,8 @@ export function CatalogMaintenance() {
    {preview.reconciliation.removedListings.length > 0 && <Notice><strong>Explicit removals</strong><ul>{preview.reconciliation.removedListings.map(sku => <li key={sku}>{sku}</li>)}</ul></Notice>}
    <label>Reviewed fingerprint<input value={preview.fingerprint} readOnly className="br-mono" /></label>
    <label>Approval reason<textarea value={reason} maxLength={1000} rows={3} disabled={busy || !preview.canApply} onChange={event => { setReason(event.target.value); setApproved(false) }} /></label>
-   <label><input type="checkbox" checked={approved} disabled={busy || !preview.canApply} onChange={event => setApproved(event.target.checked)} /> I approve this exact fingerprint and its reconciliation.</label>
-   {preview.reconciliation.removedListings.length > 0 && <label><input type="checkbox" checked={approveRemoved} disabled={busy || !preview.canApply} onChange={event => setApproveRemoved(event.target.checked)} /> I approve every removal listed above.</label>}
+   <label style={{display:'flex',alignItems:'center',gap:8}}><input style={{width:20,minHeight:20,flex:'0 0 20px'}} type="checkbox" checked={approved} disabled={busy || !preview.canApply} onChange={event => setApproved(event.target.checked)} /> I approve this exact fingerprint and its reconciliation.</label>
+   {preview.reconciliation.removedListings.length > 0 && <label style={{display:'flex',alignItems:'center',gap:8}}><input style={{width:20,minHeight:20,flex:'0 0 20px'}} type="checkbox" checked={approveRemoved} disabled={busy || !preview.canApply} onChange={event => setApproveRemoved(event.target.checked)} /> I approve every removal listed above.</label>}
    <div className="br-actions"><button disabled={busy || !preview.canApply || !approved || !reason.trim() || preview.reconciliation.removedListings.length > 0 && !approveRemoved} onClick={() => void act(apply)}>Apply reviewed catalog</button></div>
   </div>}
  </section>
