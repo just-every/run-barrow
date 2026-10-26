@@ -4468,7 +4468,7 @@
       "executable": false
     },
     "tests/journeys/card-stripe-sandbox.mjs": {
-      "sha256": "3119ba75d3cd3d251d2e8a1d3b9dc828a44443da89d6f82eac47034f0425ba8f",
+      "sha256": "f6166a4d66c9ac4a55d2b331d363968e25a2d012278cc3ca45d12e297df1be3d",
       "executable": false
     },
     "tests/journeys/catalog-maintenance.test.mjs": {
