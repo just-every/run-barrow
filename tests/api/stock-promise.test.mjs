@@ -103,4 +103,10 @@ test('scheduled stock synchronization resumes an interrupted ACK, sends one requ
  f.failure(false);const recovered=await f.sync();assert.equal(recovered.task_status,'open');assert.equal(recovered.task_owner,failed.task_owner);
  const closed=await h.command('stock.sync-resolve',{reason:'Owner reconnected Pier and checked the completed reconciliation.'});assert.equal(closed.sync.task_status,'closed');assert.ok(closed.sync.resolution);
  const restarted=await h.command('stock.sync-reset',{confirm:'RESET',reason:'Owner renewed the native Pier session and requested complete reconciliation.'});assert.notEqual(restarted.sync.consumer,closed.sync.consumer);assert.equal(restarted.sync.checkpoint,null);await f.sync();assert.equal((await f.read()).notices.length,2);
+ const {archive,restore}=await import('./harness.mjs');
+ await h.command('stock.watch',{accountId:f.account.id,sku:'OAT-1',kind:'prebook'},buyer);
+ const snapshot=await archive(h),restored=await installation({bindings:{PIER_ORIGIN:f.pier.origin,PIER_SESSION:f.pier.cookie}});t.after(()=>restored.close());
+ await restore(restored,snapshot);assert.equal((await restored.api('/api/barrow/stock-sync')).sync.enabled,0);assert.ok((await restored.api('/api/barrow/export.json')).stockwatches.every(row=>row.active===0));
+ await h.command('account.erase',{accountId:f.account.id,confirm:'ERASE'});let exported=await h.api('/api/barrow/export.json');assert.equal(exported.stockwatches.length,0);assert.equal(exported.stocknotices.length,0);
+ const rewound=await installation({bindings:{PIER_ORIGIN:f.pier.origin,PIER_SESSION:f.pier.cookie}});t.after(()=>rewound.close());await restore(rewound,snapshot);exported=await rewound.api('/api/barrow/export.json');assert.equal(exported.stockwatches.length,0);assert.equal(exported.stocknotices.length,0);
 });

@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "341503fb3e0891af7fd6b1c36b325f111dc0d4a0b7fb4bf59fc48f7d7427477c",
+      "sha256": "d8fa9dc600048fedf6b3e4e470fe1ae4819af2ee6aa6bb319a5d0fa8609d2387",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4896f52c89965082bc2362e79e09738a478c0707f21aa00077fa108506c0f8c7",
+      "sha256": "ce1b3f480965a67c2060e611b7040aa9318d298a805b10ce7b4fd75ca417b44d",
       "executable": false
     },
     "DEMO.md": {
@@ -4232,7 +4232,7 @@
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
-      "sha256": "7a0db41c3f94795f7e38ef07ad1de2f3439730c8d849e11325c82da0773675c3",
+      "sha256": "7eadae9ec80742dc31742103b3327cf6eda4e2ae53da4396212a7b7aad99bd25",
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
@@ -4332,7 +4332,7 @@
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
-      "sha256": "2616a00976c3653894a3c2cba39d9a493419836abad27b96bb38ecc03bbd7559",
+      "sha256": "377c93b9d608155447af8a6ddf46736bd0ef62aaeb29c0ad7a7eb4a4c660fac7",
       "executable": false
     },
     "tests/api/stock-sync-fixture.mjs": {
