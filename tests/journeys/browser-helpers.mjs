@@ -1,3 +1,6 @@
+import { userInfo } from 'node:os';
+// Browser processes use the operating-system account home, including on isolated remote jobs.
+process.env.HOME=userInfo().homedir;
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const directory=process.env.BARROW_JOURNEY_EVIDENCE??'/tmp/sx-barrow-c25-screens';

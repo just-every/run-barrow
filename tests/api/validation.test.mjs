@@ -70,7 +70,7 @@ test('deployed Pier rotation and revocation are audited once, the replacement wo
  const {execFile}=await import('node:child_process');const {promisify}=await import('node:util');
  const privateDirectory=await mkdtemp(join(tmpdir(),'barrow-connection-'));t.after(()=>rm(privateDirectory,{recursive:true,force:true}));
  const file=join(privateDirectory,'session');await writeFile(file,replacement,{mode:0o600});
- const helper=await promisify(execFile)(process.execPath,[resolve('scripts/connect-pier.mjs'),'--origin',pier.origin,'--session-file',file],{cwd:privateDirectory});
+ const helper=await promisify(execFile)(process.execPath,[resolve('scripts/connect-pier.mjs'),'--origin',pier.origin,'--session-file',file],{cwd:privateDirectory,env:{...process.env,NODE_EXTRA_CA_CERTS:pier.certificatePath}});
  assert.equal((await stat(join(privateDirectory,'.dev.vars'))).mode&0o777,0o600);assert.ok((await readFile(join(privateDirectory,'.dev.vars'),'utf8')).includes(JSON.stringify(replacement)));
  assert.equal(helper.stdout.includes(replacement),false);assert.equal(helper.stderr.includes(replacement),false);
  assert.equal((await pier.request('/auth/signout',{method:'POST',body:{}})).status,204);

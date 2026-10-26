@@ -70,14 +70,14 @@ function SignaturePad({ onChange }: { onChange: (png: string | null) => void }) 
 }
 
 // ORD-015, submission side: show the account's current terms and collect the buyer's acceptance (buyer) or signature and printed name (supplier staff acting for a rep).
-export function OrderTerms({ accountId, supplier, onChange }: { accountId: string; supplier: boolean; onChange: (choice: TermsChoice) => void }) {
+export function OrderTerms({ accountId, profileId, supplier, onChange }: { profileId?:string; accountId: string; supplier: boolean; onChange: (choice: TermsChoice) => void }) {
   const [terms, setTerms] = useState<{ requireAcceptance: boolean; current: Current } | null>(null), [error, setError] = useState('')
   const [accepted, setAccepted] = useState(false), [name, setName] = useState(''), [png, setPng] = useState<string | null>(null)
   useEffect(() => {
     let current = true
-    void request<{ assignment: { requireAcceptance: boolean; current: Current } | null }>(`/api/barrow/sales-terms?${new URLSearchParams({ accountId })}`).then(value => { if (current) { setTerms(value.assignment); onChange({ required: value.assignment?.requireAcceptance ?? false }) } }).catch(cause => { if (current) setError(errorMessage(cause)) })
+    void request<{ assignment: { requireAcceptance: boolean; current: Current } | null }>(`/api/barrow/sales-terms?${new URLSearchParams({ accountId,...(profileId?{profileId}:{}) })}`).then(value => { if (current) { setTerms(value.assignment); onChange({ required: value.assignment?.requireAcceptance ?? false }) } }).catch(cause => { if (current) setError(errorMessage(cause)) })
     return () => { current = false }
-  }, [accountId])
+  }, [accountId,profileId])
   useEffect(() => {
     if (!terms) return
     const base = { version: terms.current.version }

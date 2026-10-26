@@ -1,3 +1,8 @@
+import { CatalogMaintenance } from './catalog-maintenance'
+import { StockSync } from './stock-sync'
+import { StockAlerts } from './stock-alerts'
+import { CardSettings } from './card-settings'
+import { ProfileWorkspace, ProfileConfiguration } from './profile-workspace'
 import { DeltaCutoverReview } from './delta-cutover'
 import { ConfirmationSettings } from './confirmation-settings'
 import { LineSheets } from './line-sheets'
@@ -22,9 +27,9 @@ import { HydrationUnit } from '../../base/hydration/unit'
 import { request, errorMessage } from './api'
 import { Accounts } from './accounts'
 import { SalesTerms } from './sales-terms'
-import { DraftWorkspace } from './draft-workspace'
 import { Orders } from './orders'
 import { MoveIn } from './move-in'
+import { WizCommerceMoveIn } from './wizcommerce'
 import { CutoverReview } from './cutover'
 import { CommercialAudit } from './commercial-audit'
 import { DataTools } from './data'
@@ -89,6 +94,7 @@ export function BarrowApp() {
     if ((new URLSearchParams(window.location.search).get('task') ?? '').startsWith('quote-mail:')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('reportRun')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('application') && (!staff || applicationRight==='review')) setTab('Accounts')
+    if (new URLSearchParams(window.location.search).has('cardPayment')) setTab('Orders')
     if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
     void load()
   }, [load])
@@ -154,7 +160,7 @@ export function BarrowApp() {
           </div>}
           {activeTab === pad && !supplier && <CurrentRep reps={state.currentReps?.[accountId]}/>}
           {activeTab === pad && (selected
-            ? <DraftWorkspace canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} key={`draft:${selected.id}`} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
+            ? <ProfileWorkspace canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} key={`draft:${selected.id}`} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
                 onAccount={id => openPad(id)} onDraft={setDraftId} onPrepared={() => { setDraftId(''); setTab('Orders') }} />
             : accountId ? <p role="status">{accountLoading?'Loading selected trade account…':'The selected trade account could not be loaded. Refresh records to try again.'}</p> : <div className="br-page-empty">{staff?<Empty title="No assigned trade accounts">The owner must explicitly assign accounts before you can sell.</Empty>:legacySupplier
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
@@ -186,10 +192,14 @@ export function BarrowApp() {
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
-          {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} /></>}
+          {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><WizCommerceMoveIn reload={reload} /><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} />{legacySupplier&&<CatalogMaintenance />}</>}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}
+          {activeTab === 'Data' && legacySupplier && <StockSync />}
+          {activeTab === pad && !supplier && selected && <StockAlerts accountId={selected.id} skus={selected.value.prices.map(price=>price.sku)} />}
+          {activeTab === 'Data' && legacySupplier && <ProfileConfiguration accounts={state.accounts} version={state}/>}
+          {activeTab === 'Data' && state.actor.role==='owner' && <details className="br-details"><summary>Payment settings</summary><CardSettings /></details>}
           {activeTab === 'Data' && supplier && <DataTools owner={state.actor.role==='owner'} accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
         </>}
       </section></HydrationUnit>

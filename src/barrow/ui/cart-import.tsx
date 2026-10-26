@@ -12,7 +12,7 @@ interface Preview { currency:'USD'|'CAD'; layout: string; rows: PreviewRow[]; li
 const command = async <T,>(type: string, payload: Record<string, unknown>) => (await request<{ result: T }>('/api/barrow/commands', { type, payload })).result
 
 // ORD-001: paste or upload, review every row on the server's preview, resolve each problem, then merge or replace.
-export function CartImport({ accountId, cart, list, onApply, onClose }: { accountId: string; cart: CartLine[]; list?: { id: string; name: string }; onApply: (lines: CartLine[]) => void; onClose: () => void }) {
+export function CartImport({ accountId, profileId, cart, list, onApply, onClose }: { profileId?:string; accountId: string; cart: CartLine[]; list?: { id: string; name: string }; onApply: (lines: CartLine[]) => void; onClose: () => void }) {
   const [source, setSource] = useState<{ csv?: string; paste?: string; listId?: string } | null>(null)
   const [paste, setPaste] = useState('')
   const [skip, setSkip] = useState<string[]>([])
@@ -27,7 +27,7 @@ export function CartImport({ accountId, cart, list, onApply, onClose }: { accoun
     if (!using) return
     setBusy(true); setError('')
     try {
-      const result = await command<Preview>('cart.preview', { accountId, ...using, skip: skipping, set: setting, cart, ...(choice ? { mode: choice } : {}) })
+      const result = await command<Preview>('cart.preview', { accountId, ...(profileId?{profileId}:{}), ...using, skip: skipping, set: setting, cart, ...(choice ? { mode: choice } : {}) })
       setSource(using); setSkip(skipping); setSet(setting); setMode(choice); setPreview(result)
       if (result.cart) { onApply(result.cart); onClose() }
     } catch (failure) { setError(errorMessage(failure)) } finally { setBusy(false) }
@@ -35,7 +35,7 @@ export function CartImport({ accountId, cart, list, onApply, onClose }: { accoun
   async function download(layout: 'vertical' | 'matrix') {
     setBusy(true); setError('')
     try {
-      const form = await command<{ filename: string; csv: string }>('cart.form', { accountId, layout, cart })
+      const form = await command<{ filename: string; csv: string }>('cart.form', { accountId, ...(profileId?{profileId}:{}), layout, cart })
       const link = document.createElement('a')
       link.href = URL.createObjectURL(new Blob([form.csv], { type: 'text/csv;charset=utf-8' })); link.download = form.filename; link.click()
       URL.revokeObjectURL(link.href)

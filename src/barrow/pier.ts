@@ -5,7 +5,7 @@ import { demoPierState, demoReservation, demoPierOrder, demoRelease } from './de
 import { now } from './clock'
 import { sellingUnits } from './units'
 // Decimal representation adapted from Pier model.ts at dcd4c591. Allocation stays in Pier.
-import { fail, type Account, type Line, type Order } from './model'
+import { fail, Problem, type Account, type Line, type Order } from './model'
 import type { Bindings } from '../auth.server'
 const SCALE=1000000n
 export function decimal(value: string): bigint {
@@ -21,12 +21,13 @@ function origin(env: Bindings) {
  if(url.origin!==env.PIER_ORIGIN || url.username || url.password || (url.protocol!=='https:' && !(env.AUTH_LOCAL==='true' && url.protocol==='http:' && ['127.0.0.1','localhost','[::1]'].includes(url.hostname)))) fail('PIER_UNAVAILABLE','Pier requires an HTTPS origin (loopback is allowed locally).',503)
  return url.origin
 }
-async function call(env: Bindings,path: string,body?: unknown) {
- await observePierConfiguration(env)
+async function call(env: Bindings,path: string,body?: unknown,observe=true) {
+ if(observe)await observePierConfiguration(env)
  const base=origin(env)
  let response: Response
  try { response=await fetch(base+path,{method:body?'POST':'GET',redirect:'manual',signal:AbortSignal.timeout(12000),headers:{cookie:env.PIER_SESSION!,origin:base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}) }
  catch { return fail('PIER_UNAVAILABLE','Pier did not answer. An approved request remains recoverable with the same order ID.',503) }
+ if(response.status===429){const seconds=Number(response.headers.get('retry-after'));throw Object.assign(new Problem('PIER_RATE_LIMIT','Pier asked synchronization to wait before another request.',503),{retryAt:Date.now()+(Number.isFinite(seconds)&&seconds>0?seconds:60)*1000})}
  if(!response.ok) fail('PIER_UNAVAILABLE',response.status===401||response.status===403?'The Pier connection needs a current authorized supplier session.':'Pier refused the request. Check the stock desk before continuing.',503)
  const data=await response.json() as any
  if(data.ok===false) fail('PIER_REJECTED','Pier refused this order. Check its customer, items and session permissions.',409)
@@ -121,3 +122,8 @@ export const releaseOrder = (env: Bindings,order: Order) => demoEffect(() => cal
 export function released(result: any) {
  return Array.isArray(result?.lines) && result.lines.length>0 && result.lines.every((l:any)=>decimal(l.reserved)===0n && decimal(l.cancelled)+decimal(l.dispatched)===decimal(l.quantity))
 }
+
+export const pierStockPage=(env:Bindings,consumer:string,checkpoint:string|null,limit=100)=>call(env,'/api/pier/stock-changes?'+new URLSearchParams({consumer,limit:String(limit),...(checkpoint?{checkpoint}:{})}))
+export const acknowledgePierStock=(env:Bindings,consumer:string,checkpoint:string)=>call(env,'/api/pier/stock-changes/ack',{consumer,checkpoint})
+
+export const pierReadOnlyState=(env:Bindings)=>demoEffect(()=>call(env,'/api/pier/state',undefined,false),demoPierState)

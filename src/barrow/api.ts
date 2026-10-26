@@ -1,3 +1,11 @@
+import { catalogMaintenanceResponse } from './catalog-maintenance-http'
+import { stockSyncState, stockSyncCommand } from './stock-sync'
+import { stockWatchCommand, readStockWatches } from './stock-watch'
+import { cardCommand,readCard,readCards } from './card-payments'
+import { cardSettings,cardConfiguration } from './card-settings'
+import { cardWebhook } from './card-webhook'
+import { buyingProfileCommand, readBuyingProfiles, resolveBuyingProfile } from './buying-profiles'
+import { accountFollowupCommand } from './account-followup'
 import { refreshCatalogIndex, searchCatalog } from './catalog-search'
 import {inviteWizUser} from './imports/wizcommerce-invitations'
 import {previewPlatform,applyPlatform,readPlatform} from './imports/platform-history'
@@ -105,6 +113,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(application)return application
   if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
   if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
+  if(path==='/api/barrow/card-webhook')return await cardWebhook(request,env)
   const actor=await current(request,env).catch(error=>{
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
@@ -122,6 +131,13 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
+  const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
+  if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
+  if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/card-settings'&&request.method==='GET')return json(await cardSettings(env,actor))
+  if(path==='/api/barrow/payments'&&request.method==='GET')return json(await readCards(env,actor,url.searchParams.get('orderId')??''))
+  const cardPath=/^\/api\/barrow\/payments\/([-a-zA-Z0-9_]+)$/.exec(path)
+  if(cardPath&&request.method==='GET')return json(await readCard(env,actor,cardPath[1]))
   if(path==='/api/barrow/staff/members'&&request.method==='GET')return json({members:await readStaffMembers(env.DB,actor)})
   if(path==='/api/barrow/company/invitations'&&request.method==='GET')return json({invitations:await ownCompanyInvitations(env.DB,actor)})
   if(path==='/api/barrow/company/collisions'&&request.method==='GET')return json({collisions:await readCompanyCollisions(env.DB,actor)})
@@ -169,7 +185,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/confirmations/selection' && request.method==='POST')return json(await confirmationChoices(env.DB,actor,await boundedJson(request,20000)))
   if(path==='/api/barrow/confirmations/export.csv' && request.method==='POST')return await bulkConfirmationResponse(env.DB,actor,await boundedJson(request,20000))
   if(path==='/api/barrow/retention' && request.method==='GET') return json(await readRetention(env,actor))
-  if(path==='/api/barrow/sales-terms' && request.method==='GET') return json(await readSalesTerms(env,actor,url.searchParams.get('accountId')))
+  if(path==='/api/barrow/sales-terms' && request.method==='GET') return json(await readSalesTerms(env,actor,url.searchParams.get('accountId'),url.searchParams.get('profileId')))
   const termsDocument=/^\/api\/barrow\/sales-terms\/([^/]+)\/([1-9]\d{0,8})\/document$/.exec(path)
   if(termsDocument && request.method==='GET') return await termsDocumentResponse(env,actor,decodeURIComponent(termsDocument[1]),Number(termsDocument[2]))
   const termsSignature=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/terms-signature$/.exec(path)
@@ -197,6 +213,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/sales' && request.method==='GET') return json(await salesReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/sales.csv' && request.method==='GET') return await salesCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/buying-profiles' && request.method==='GET') return json(await readBuyingProfiles(env.DB,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/followups' && request.method==='GET') return json(await readFollowups(env,actor,url.searchParams))
   if(path==='/api/barrow/approval-notices' && request.method==='GET') return json(await readApprovalNotices(env.DB,actor))
   if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
@@ -223,7 +240,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const attachment=/^\/api\/barrow\/quotes\/(Q-\d{1,9})\/attachments\/([-a-f0-9]{36})$/.exec(path)
   if(attachment && request.method==='GET') return await quoteAttachment(env,actor,attachment[1],attachment[2])
   if(path==='/api/barrow/catalogue/search' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await searchCatalog(env,actor,url.searchParams))}
-  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,await account(env.DB,actor,id)))}
+  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,(await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,id),url.searchParams.get('profileId'))).selected))}
   const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
   if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
@@ -306,6 +323,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
+   if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
+   if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
+   if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
    if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
    if(body.type==='catalog.refresh')return json({result:await refreshCatalogIndex(env,actor,body.payload)})
@@ -327,6 +348,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='retention.erase-account'||body.type==='retention.revoke-access')result=await executeAccountErasure(env,actor,body.payload,body.type==='retention.revoke-access'?'revoke':'erase')
    else if(['retention.settings','retention.request','retention.erase-document','retention.erase-application'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
+   else if(['brand.save','profile.save','profile.grant'].includes(body.type))result=await buyingProfileCommand(env,actor,body.type,body.payload)
    else if(body.type==='seller.identity')result=await saveSellerIdentity(env.DB,actor,body.payload)
    else if(body.type==='variant.attributes')result=await saveVariantAttributes(env.DB,actor,body.payload)
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
@@ -336,6 +358,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['followup.plan','followup.decide','followup.send'].includes(body.type)) result=await accountFollowupCommand(env,actor,body.type,body.payload)
    else if(['followup.refresh','followup.update'].includes(body.type)) result=await followupCommand(env,actor,body.type,body.payload)
    else if(body.type==='settings.timezone') result=await saveReportZone(env.DB,actor,body.payload)
    else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)
@@ -347,7 +370,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['visit.schedule','visit.record','visit.samples','visit.basket','visit.handoff'].includes(body.type)) result=await visitCommand(env,actor,body.type,body.payload)
    else if(['quote.request','quote.propose','quote.approve','quote.accept','quote.message','quote.read'].includes(body.type)) result=await quoteCommand(env,actor,body.type,body.payload)
    else fail('COMMAND','Unknown command.',404)
-   if(body.type.startsWith('quote.') && body.type!=='quote.read') await dispatchQuoteMail(env)
+   if(body.type==='followup.send' || body.type.startsWith('quote.') && body.type!=='quote.read') await dispatchQuoteMail(env)
    return json({result})
   }
   return json({error:{code:'NOT_FOUND',message:'Unknown endpoint.'}},404)

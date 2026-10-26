@@ -1,3 +1,4 @@
+import { resolveBuyingProfile } from './buying-profiles'
 import type { Bindings } from '../auth.server'
 import { priceLine } from './pricing'
 import { now } from './clock'
@@ -24,7 +25,7 @@ export type ReorderReview = {
 export async function reviewReorder(env: Bindings, actor: Actor, payload: any) {
  const original = await readOrder(env.DB, actor, text(payload.orderId,'Original order'))
  if (!['submitted','reserving','shortfall','approved'].includes(original.status)) fail('REORDER','Choose an order that was submitted, rather than a draft.')
- const selected = await account(env.DB, actor, original.accountId)
+ const selected = (await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,original.accountId),original.buyingProfile?.id)).selected
  requireActiveAccount(selected)
  const available = await catalogue(env, selected)
  if (!Array.isArray(payload.selections) || !payload.selections.length || payload.selections.length > 100) fail('LINES','Select between one and 100 original lines.',400)

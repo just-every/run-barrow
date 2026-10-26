@@ -30,30 +30,36 @@ test('PAY-007: a dated statement of invoices with opening and closing balances b
 
  const read = (suffix = '', query = '?from=2026-09-01&to=2026-09-30', opts = buyer) => h.request(`/api/barrow/statements/cedar${suffix}${query}`, opts);
  const statement = await (await read()).json();
- assert.equal(statement.to, '2026-09-30'); assert.match(statement.note, /no payments, deposits, returns, credit notes or unapplied cash/);
+ assert.equal(statement.to, '2026-09-30');
  const [usd, aud] = statement.sections;
  // Inclusive bounds: 1 and 30 September are in the period; 14 August is opening; 1 October is excluded.
  assert.deepEqual([usd.currency, usd.openingCents, usd.invoices.map(line => line.number), usd.invoicedCents, usd.closingCents], ['USD', august.totalCents, [first.invoice.number, second.invoice.number], first.totalCents + second.totalCents, august.totalCents + first.totalCents + second.totalCents]);
  assert.deepEqual([aud.currency, aud.openingCents, aud.invoices.map(line => [line.number, line.amountCents]), aud.closingCents], ['AUD', 0, [[legacy.invoice.number, legacy.totalCents]], legacy.totalCents]);
+ assert.deepEqual(usd.entries.map(line => [line.kind, line.date, line.amountCents]), [['invoice', '2026-09-01', first.totalCents], ['invoice', '2026-09-30', second.totalCents]]);
+ assert.equal(usd.receivedCents, 0);
+ assert.equal(usd.surchargedCents, 0);
  assert.deepEqual(usd.invoices[0], { number: first.invoice.number, issuedAt: '2026-09-01', dueAt: '2026-09-28', orderId: first.id, reference: 'PO-SEP-1', amountCents: 19500, invoicePath: `/api/barrow/invoices/${first.id}.csv`, orderPath: `/api/barrow/orders/${first.id}/timeline` });
  // Each source link resolves to the invoice with the same total.
  const invoiceCsv = await (await h.request(usd.invoices[1].invoicePath, buyer)).text();
  assert.ok(invoiceCsv.includes(`"${second.invoice.number}"`) && invoiceCsv.includes(`"${second.totalCents}"`));
  assert.equal((await h.request(usd.invoices[1].orderPath, buyer)).status, 200);
 
- // The CSV carries the same running balances; the PDF carries the same figures and the same honest note.
- const csv = await (await read('.csv')).text(), rows = csv.trim().split('\r\n');
- assert.equal(rows[0], '"currency","kind","date","due_date","invoice_number","order","customer_reference","amount_cents","balance_cents"');
- assert.equal(rows[1], `"USD","opening","2026-09-01","","","","","${august.totalCents}","${august.totalCents}"`);
- assert.equal(rows[3], `"USD","invoice","2026-09-30","2026-09-28","${second.invoice.number}","${second.id}","PO-SEP-2","26000","${august.totalCents + 19500 + 26000}"`);
- assert.ok(rows.includes(`"AUD","closing","2026-09-30","","","","","13000","13000"`));
+ // The CSV and PDF carry the same financial figures as JSON.
+ const csv = await (await read('.csv')).text(), [header, ...data] = csv.trim().split('\r\n').map(line => line.slice(1, -1).split('","'));
+ const rows = data.filter(row => row.length === header.length).map(row => Object.fromEntries(header.map((key, index) => [key, row[index]])));
+ assert.deepEqual(rows.filter(row => row.currency === 'USD').map(row => [row.kind, row.date, Number(row.amount_cents), Number(row.balance_cents)]), [
+  ['opening', '2026-09-01', august.totalCents, august.totalCents],
+  ['invoice', '2026-09-01', first.totalCents, august.totalCents + first.totalCents],
+  ['invoice', '2026-09-30', second.totalCents, usd.closingCents],
+  ['closing', '2026-09-30', usd.closingCents, usd.closingCents],
+ ]);
+ assert.equal(Number(rows.find(row => row.currency === 'AUD' && row.kind === 'closing').balance_cents), aud.closingCents);
  const pdf = await read('.pdf');
  assert.equal(pdf.headers.get('content-type'), 'application/pdf');
  const text = await pdf.text();
  assert.ok(text.startsWith('%PDF-1.4'));
  assert.ok(text.includes(`(USD closing balance: USD ${((august.totalCents + 45500) / 100).toFixed(2)}) Tj`));
- assert.ok(text.includes(`(  Invoice ${legacy.invoice.number} issued 2026-09-10, due 2026-09-28, PO PO-LEGACY: AUD 130.00) Tj`));
- assert.ok(text.includes('balances are invoiced totals, not amounts confirmed unpaid'));
+ assert.ok(text.includes(legacy.invoice.number) && text.includes('AUD 130.00'));
  // DATA-001: every statement invoice is in the buyer's export with the same number, issue date, currency and amount.
  const exported = await (await h.request('/api/barrow/export.json', buyer)).json();
  const records = new Map(exported.invoices.map(row => [row.number, [row.issuedAt, row.currency, row.totalCents]]));

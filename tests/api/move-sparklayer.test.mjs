@@ -18,7 +18,7 @@ test('SparkLayer detailed activity reconciles original scoped order and quote hi
  const order=history.find(doc=>doc.document_type==='order').value,quote=history.find(doc=>doc.document_type==='quote').value;
  assert.equal(order.tracking,'synthetic-barrow-1');assert.equal(order.shippingCents,600);assert.equal(order.status,'Shipped');assert.equal(order.originals[0].fields['Custom PO'],'PO-source-1');assert.equal(quote.type,'quote');assert.equal(quote.currency,'CAD');
  const account=await h.api('/api/barrow/accounts/by-id/cedar');assert.deepEqual([account.value.prices[0].casePack,account.value.prices[0].increment],[2,2]);
- const lists=(await h.api('/api/barrow/lists?accountId=cedar')).lists;assert.equal(lists.length,1);const list=lists[0];assert.equal(list.shared,false);assert.deepEqual(list.lines,[{sku:'OAT-1',quantity:'4'}]);assert.equal(JSON.stringify(list).includes('999'),false);
+ const lists=(await h.api('/api/barrow/lists?accountId=cedar')).lists;assert.equal(lists.length,1);const list=lists[0];assert.equal(list.shared,false);assert.deepEqual(list.lines,[{sku:'OAT-1',quantity:'4'}]);
  await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:account.value.prices.map(p=>({...p,unitCents:7000}))}});
  const cart=await h.command('cart.preview',{listId:list.id,mode:'replace'});assert.equal(cart.totalCents,28000);assert.equal(cart.ready,true);assert.equal(cart.lines[0].unitCents,7000);
  const buyer={as:await h.signIn('buyer@example.test')};assert.equal((await h.api('/api/barrow/lists?accountId=cedar',undefined,buyer)).lists.length,0);

@@ -2,7 +2,14 @@
 // The assertions and all erasure decisions use authenticated HTTP doors.
 import {createHash} from 'node:crypto';
 import {accountValue} from './harness.mjs';
-export async function orderedAccountFixture(h,{accountId='cedar',email='synthetic-barrow-31@example.test',existingAccount}={}) {
+export async function historicalCard(h,{id,accountId,orderId,at,eventAt=at,state='captured'}) {
+ const payment={id,accountId,orderId,currency:'USD',amountCents:13000,surchargeCents:0,state,createdAt:at,updatedAt:at,latestFinancialAt:at,providerPaymentId:'pi_'+id,card:{brand:'visa',last4:'4242',funding:'credit',state:'NY'},paymentMethodId:'pm_'+id,setupSessionId:'cs_'+id,checkoutUrl:'https://checkout.stripe.com/c/pay/'+id,actionUrl:'https://hooks.stripe.com/3d_secure/'+id,...(state==='captured'?{capturedAt:at}:{})};
+ const event={id:'evt_'+id,type:state==='captured'?'payment_intent.succeeded':'payment_intent.canceled',providerPaymentId:payment.providerPaymentId,state,amountCents:payment.amountCents,currency:payment.currency,verifiedAt:eventAt};
+ await h.db.prepare('INSERT INTO bw_card_payments(id,account_id,order_id,value_json,revision) VALUES(?,?,?,?,?)').bind(id,accountId,orderId,JSON.stringify(payment),id).run();
+ await h.db.prepare('INSERT INTO bw_card_events(id,payment_id,created_at,value_json) VALUES(?,?,?,?)').bind(event.id,id,eventAt,JSON.stringify(event)).run();
+ return {payment,event};
+}
+export async function orderedAccountFixture(h,{accountId='cedar',email='synthetic-barrow-31@example.test',existingAccount,cardHistory=false}={}) {
  const account=existingAccount??await h.command('account.save',{id:accountId,value:{...accountValue('synthetic-barrow-32',email),minimumCents:0,prices:[{sku:'OAT-1',unitCents:6500,minQty:1}]}});
  const buyer={as:await h.signIn(email)},person=(await h.api('/api/barrow/state',undefined,buyer)).actor;
  const bytes=Buffer.from('%PDF-1.4 synthetic-barrow-33'),sha256=createHash('sha256').update(bytes).digest('hex'),recent=new Date().toISOString(),old='2010-02-28T12:00:00.000Z';
@@ -19,6 +26,7 @@ export async function orderedAccountFixture(h,{accountId='cedar',email='syntheti
   await h.db.prepare('INSERT INTO bw_terms_signatures VALUES(?,?,?)').bind(id,signatureSha256,signatureBytes.toString('base64')).run();
   orders.push(order);
  }
+ const card=cardHistory?await historicalCard(h,{id:accountId+'-card',accountId,orderId:orders[1].id,at:'2024-02-29T12:34:56.789Z'}):null;
  const quotes=[];
  for(const [id,orderId] of [['Q-10001',undefined],['Q-10002',orders[0].id]]) {
   const quote={id,accountId,customerName:account.value.name,currency:'USD',status:orderId?'accepted':'requested',requestedBy:person.id,requestedAt:old,note:'Contact '+email,request:[line],revisions:[],...(orderId?{accepted:{revision:1,by:person.id,at:recent,orderId}}:{}),revision:id};
@@ -49,7 +57,7 @@ export async function orderedAccountFixture(h,{accountId='cedar',email='syntheti
  await h.db.prepare('INSERT INTO bw_application_documents VALUES(?,?,?,?,?,?,?,?)').bind('synthetic-barrow-72',applicationId,'certificate.pdf','application/pdf',bytes.length,sha256,bytes.toString('base64'),old).run();
  await h.db.prepare('INSERT INTO bw_application_history VALUES(?,?,?,?,?,?)').bind('synthetic-barrow-73',applicationId,'approved','Annual review with Ann at '+email,person.id,old).run();
  const usage=await h.command('usage.publish',{title:'Portal usage',body:'Buyer reviewed the portal usage terms before ordering.'});await h.command('usage.accept',{...usage,accepted:true},buyer);
- return {account,buyer,person,orders,quotes,message,note,retained,live,contact,email,bytes,sha256,ledger,applicationId,signatureBytes};
+ return {account,buyer,person,orders,quotes,message,note,retained,live,contact,email,bytes,sha256,ledger,applicationId,signatureBytes,card};
 }
 export async function erasurePreview(h,accountId='cedar') {return h.command('retention.preview',{accountId})}
 export const erasurePayload=preview=>({accountId:preview.accountId,accountRevision:preview.accountRevision,requestRevision:preview.requestRevision,policyRevision:preview.policyRevision,reviewHash:preview.reviewHash,confirm:'ERASE',reason:'Owner verified this erasure request and reviewed every retained class.'});

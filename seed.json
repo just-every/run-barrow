@@ -43,7 +43,6 @@
   ],
   "nonGoals": [
     "Consumer storefront",
-    "Card checkout or payment collection",
     "Tax calculation and shipping rates",
     "ERP or a second stock ledger"
   ],
@@ -67,6 +66,18 @@
       ],
       "adapters": [
         "src/barrow/pier.ts"
+      ]
+    },
+    {
+      "id": "stripe",
+      "required": false,
+      "why": "Merchant-owned hosted card entry, authorization and capture in test mode",
+      "data": [
+        "Order and account references, exact currency and amount",
+        "Provider payment and event IDs; card brand, funding, billing state and last four digits"
+      ],
+      "adapters": [
+        "src/barrow/card-provider.ts"
       ]
     }
   ],

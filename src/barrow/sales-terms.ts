@@ -1,3 +1,4 @@
+import { resolveBuyingProfile, readBuyingProfiles } from './buying-profiles'
 import { companyAccountPredicate } from './company-access'
 // ORD-015: versioned sales terms, per-account assignment and the acceptance recorded on each submitted order.
 import type { Bindings } from '../auth.server'
@@ -16,10 +17,11 @@ const meta = (row: VersionRow) => ({ series: row.series, version: row.version, t
 const full = (row: VersionRow) => ({ ...meta(row), body: row.body })
 const versions = async (db: D1Database, series?: string) => (await db.prepare(`SELECT series,version,title,body,content_sha256,pdf_name,pdf_size,pdf_sha256,created_by,created_at FROM bw_sales_terms ${series === undefined ? '' : 'WHERE series=? '}ORDER BY series,version DESC`).bind(...(series === undefined ? [] : [series])).all<VersionRow>()).results
 const assignment = (db: D1Database, accountId: string) => db.prepare('SELECT * FROM bw_terms_assignments WHERE account_id=?').bind(accountId).first<AssignmentRow>()
+const effectiveAssignment=async(db:D1Database,selected:Account):Promise<AssignmentRow|null>=>selected.buyingProfile?.termsSeries?{account_id:selected.id,series:selected.buyingProfile.termsSeries,require_acceptance:selected.buyingProfile.requireAcceptance===false?0:1,assigned_by:'brand',assigned_at:''}:assignment(db,selected.id)
 const newest = async (db: D1Database, series: string) => (await db.prepare('SELECT series,version,title,body,content_sha256,pdf_name,pdf_size,pdf_sha256,created_by,created_at FROM bw_sales_terms WHERE series=? ORDER BY version DESC LIMIT 1').bind(series).first<VersionRow>())
 
 /** Supplier: every series with its versions and every assignment. Buyer: the terms assigned to one of their own accounts. */
-export async function readSalesTerms(env: Bindings, actor: Actor, accountId: string | null) {
+export async function readSalesTerms(env: Bindings, actor: Actor, accountId: string | null, profileId?: string | null) {
  requirePerson(actor)
  if (accountId === null) {
   requireSupplier(actor)
@@ -28,7 +30,7 @@ export async function readSalesTerms(env: Bindings, actor: Actor, accountId: str
   const assignments = (await env.DB.prepare('SELECT * FROM bw_terms_assignments ORDER BY account_id').all<AssignmentRow>()).results
   return { series: names.map(name => ({ series: name, versions: rows.filter(row => row.series === name).map(meta), current: full(rows.find(row => row.series === name)!) })), assignments: assignments.map(row => ({ accountId: row.account_id, series: row.series, requireAcceptance: row.require_acceptance === 1, assignedBy: row.assigned_by, assignedAt: row.assigned_at })) }
  }
- const selected = await account(env.DB, actor, accountId), row = await assignment(env.DB, selected.id)
+ const selected = (await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,accountId),profileId)).selected, row = await effectiveAssignment(env.DB, selected)
  const current = row ? await newest(env.DB, row.series) : null
  return { assignment: row && current ? { series: row.series, requireAcceptance: row.require_acceptance === 1, current: full(current) } : null }
 }
@@ -85,8 +87,8 @@ const signature = async (p: any) => {
  * and printed name. The guard holds the exact assignment and newest version this decision saw until the batch commits.
  */
 export async function termsAtSubmission(env: Bindings, actor: Actor, selected: Account, orderId: string, p: unknown, at: string) {
- const row = await assignment(env.DB, selected.id), latest = row ? await newest(env.DB, row.series) : null
- const guard = env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT series||\':\'||require_acceptance FROM bw_terms_assignments WHERE account_id=?),\'\')=? AND COALESCE((SELECT MAX(version) FROM bw_sales_terms WHERE series=?),0)=? THEN 1 ELSE 0 END').bind(selected.id, row ? `${row.series}:${row.require_acceptance}` : '', row?.series ?? '', latest?.version ?? 0)
+ const row = await effectiveAssignment(env.DB, selected), latest = row ? await newest(env.DB, row.series) : null
+ const guard = selected.buyingProfile?.termsSeries ? env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_brands WHERE id=? AND revision=?) AND COALESCE((SELECT MAX(version) FROM bw_sales_terms WHERE series=?),0)=? THEN 1 ELSE 0 END').bind(selected.buyingProfile.brandId,selected.buyingProfile.brandRevision,row!.series,latest?.version??0) : env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT series||\':\'||require_acceptance FROM bw_terms_assignments WHERE account_id=?),\'\')=? AND COALESCE((SELECT MAX(version) FROM bw_sales_terms WHERE series=?),0)=? THEN 1 ELSE 0 END').bind(selected.id, row ? `${row.series}:${row.require_acceptance}` : '', row?.series ?? '', latest?.version ?? 0)
  if (!row || !latest) {
   if (p !== undefined) fail('TERMS_NOT_ASSIGNED', 'No sales terms are assigned to this account.')
   return { guard, statements: [] as D1PreparedStatement[] }
@@ -124,7 +126,7 @@ export async function termsDocumentResponse(env: Bindings, actor: Actor, series:
  if(actor.staff){const ids=(await import('./accounts')).accounts;const allowed=await ids(env.DB,actor);if(!await env.DB.prepare('SELECT 1 FROM bw_terms_assignments WHERE series=? AND account_id IN (SELECT value FROM json_each(?))').bind(series,JSON.stringify(allowed.map(a=>a.id))).first())fail('NOT_FOUND','Sales terms not found.',404)}
  if (!supplier(actor)) {
   const mine = (await env.DB.prepare(`SELECT 1 FROM bw_terms_assignments t JOIN bw_accounts a ON a.id=t.account_id WHERE t.series=? AND ${companyAccountPredicate('a.id')}`).bind(series, actor.id).first())
-  if (!mine) fail('NOT_FOUND', 'Sales terms not found.', 404)
+  if (!mine) {const ids=await (await import('./accounts')).accounts(env.DB,actor);let allowed=false;for(const selected of ids)if((await readBuyingProfiles(env.DB,actor,selected.id)).profiles.some(profile=>profile.brand.value.termsSeries===series))allowed=true;if(!allowed)fail('NOT_FOUND','Sales terms not found.',404)}
  }
  const row = await env.DB.prepare('SELECT pdf_name,pdf_base64 FROM bw_sales_terms WHERE series=? AND version=? AND pdf_base64 IS NOT NULL').bind(series, version).first<{ pdf_name: string; pdf_base64: string }>()
  if (!row) fail('NOT_FOUND', 'Sales terms PDF not found.', 404)
@@ -133,7 +135,8 @@ export async function termsDocumentResponse(env: Bindings, actor: Actor, series:
 
 /** DATA-001 rows: published versions (a buyer sees series assigned to their accounts) and the acceptance on each order. */
 export async function termsExport(db: D1Database, actor: Actor, accountIds: string[], orders: Order[]) {
- const rows = supplier(actor)&&!actor.staff ? await versions(db) : (await db.prepare('SELECT s.series,s.version,s.title,s.body,s.content_sha256,s.pdf_name,s.pdf_size,s.pdf_sha256,s.created_by,s.created_at FROM bw_sales_terms s WHERE s.series IN (SELECT series FROM bw_terms_assignments WHERE account_id IN (SELECT value FROM json_each(?))) ORDER BY s.series,s.version').bind(JSON.stringify(accountIds)).all<VersionRow>()).results
+ const visibleSeries=new Set(orders.flatMap(order=>order.termsAcceptance?[order.termsAcceptance.series]:[]));for(const accountId of accountIds)for(const profile of (await readBuyingProfiles(db,actor,accountId)).profiles)if(profile.brand.value.termsSeries)visibleSeries.add(profile.brand.value.termsSeries)
+ const rows = supplier(actor)&&!actor.staff ? await versions(db) : (await db.prepare('SELECT s.series,s.version,s.title,s.body,s.content_sha256,s.pdf_name,s.pdf_size,s.pdf_sha256,s.created_by,s.created_at FROM bw_sales_terms s WHERE s.series IN (SELECT series FROM bw_terms_assignments WHERE account_id IN (SELECT value FROM json_each(?))) OR s.series IN (SELECT value FROM json_each(?)) ORDER BY s.series,s.version').bind(JSON.stringify(accountIds),JSON.stringify([...visibleSeries])).all<VersionRow>()).results
  const salesterms = [...rows].sort((a, b) => a.series.localeCompare(b.series) || a.version - b.version).map(row => ({ series: row.series, version: row.version, title: row.title, contentSha256: row.content_sha256, createdBy: row.created_by, createdAt: row.created_at, body: row.body, pdfName: row.pdf_name ?? '', pdfBytes: row.pdf_size ?? '', pdfSha256: row.pdf_sha256 ?? '', pdfPath: row.pdf_sha256 ? `/api/barrow/sales-terms/${encodeURIComponent(row.series)}/${row.version}/document` : '' }))
  const termsacceptances = orders.filter(order => order.termsAcceptance).map(order => { const a = order.termsAcceptance!; return { orderId: order.id, accountId: order.accountId, series: a.series, version: a.version, contentSha256: a.contentSha256, how: a.how, acceptedBy: a.acceptedBy, acceptedAt: a.acceptedAt, printedName: a.printedName ?? '', signatureSha256: a.signatureSha256 ?? '', signaturePath: a.signatureSha256 ? `/api/barrow/orders/${order.id}/terms-signature` : '' } })
  return { salesterms, termsacceptances }
@@ -142,7 +145,7 @@ export async function termsExport(db: D1Database, actor: Actor, accountIds: stri
 /** A company release preserves the purchaser’s exact acceptance while it is still current. */
 export async function termsAtCompanyRelease(env:Bindings,actor:Actor,selected:Account,order:Order,p:unknown,at:string) {
  if(p!==undefined)return termsAtSubmission(env,actor,selected,order.id,p,at)
- const assigned=await assignment(env.DB,selected.id),current=assigned?await newest(env.DB,assigned.series):null,accepted=order.termsAcceptance
+ const assigned=await effectiveAssignment(env.DB,selected),current=assigned?await newest(env.DB,assigned.series):null,accepted=order.termsAcceptance
  if(!accepted)return termsAtSubmission(env,actor,selected,order.id,undefined,at)
  if(!current||accepted.series!==current.series||accepted.version!==current.version||accepted.contentSha256!==current.content_sha256)fail('TERMS_REQUIRED','The sales terms changed. Review and accept the current version before company release.')
  const checked=await termsAtSubmission(env,actor,selected,order.id,{version:accepted.version,accepted:true},at)

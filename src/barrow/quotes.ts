@@ -1,3 +1,4 @@
+import { resolveBuyingProfile, orderBuyingProfile } from './buying-profiles'
 import {deltaEntryGuard} from './imports/delta-entry'
 import { companySubmission } from './company-purchase'
 import { requireCompanyRight } from './company-policy'
@@ -29,7 +30,7 @@ import { approvalNoticeStatements } from './approval-notices'
 
 export type QuoteLine = Line & { basisUnitCents: number; basisLineCents: number; discountBps?: number; negotiatedUnitCents?: number }
 export type QuoteRevision = { delivery?:Delivery; freightQuotes?:FreightQuote[]; number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedBy: string; proposedByEmail?: string; proposedAt: string; changes?: string[]; discounted: boolean; approval?: { by: string; at: string; reason: string } }
-export type Quote = { id: string; accountId: string; customerName: string; currency: 'USD'|'CAD'; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedBy: string; requestedAt: string; note: string; request: Line[]; revisions: QuoteRevision[]; accepted?: { revision: number; by: string; at: string; orderId: string }; revision: string }
+export type Quote = { buyingProfile?: import('./buying-profiles').BuyingProfileSnapshot; id: string; accountId: string; customerName: string; currency: 'USD'|'CAD'; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedBy: string; requestedAt: string; note: string; request: Line[]; revisions: QuoteRevision[]; accepted?: { revision: number; by: string; at: string; orderId: string }; revision: string }
 
 function missing(): never { return fail('NOT_FOUND', 'Quote not found.', 404) }
 const parse = (row: any): Quote => ({ ...JSON.parse(row.value_json), revision: row.revision })
@@ -54,7 +55,7 @@ async function readQuote(db: D1Database, actor: Actor, id: string) {
  const row = await db.prepare('SELECT value_json,revision FROM bw_quotes WHERE id=?').bind(id).first<any>()
  if (!row) missing()
  const quote = parse(row)
- try { await account(db, actor, quote.accountId);await requireCompanyRight(db,actor,quote.accountId,'purchasing') } catch { missing() }
+ try { await resolveBuyingProfile(db,actor,await account(db,actor,quote.accountId),quote.buyingProfile?.id);await requireCompanyRight(db,actor,quote.accountId,'purchasing') } catch { missing() }
  return quote
 }
 
@@ -63,7 +64,8 @@ export async function readQuotes(db: D1Database, actor: Actor, accountId: string
  const ids = accountId ? [(await account(db, actor, accountId)).id] : (await accounts(db, actor)).map(row => row.id)
  for(const id of ids)await requireCompanyRight(db,actor,id,'purchasing')
  const rows = ids.length ? (await db.prepare('SELECT value_json,revision FROM bw_quotes WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY rowid DESC').bind(JSON.stringify(ids)).all<any>()).results : []
- return threaded(db, actor, rows.map(parse), supplierDate(await now()))
+ const visible:Quote[]=[];for(const row of rows){const quote=parse(row);try{await resolveBuyingProfile(db,actor,await account(db,actor,quote.accountId),quote.buyingProfile?.id);visible.push(quote)}catch(error){if(!(error instanceof Error&&'status' in error&&error.status===404))throw error}}
+ return threaded(db, actor, visible, supplierDate(await now()))
 }
 
 export async function quoteResponse(db: D1Database, actor: Actor, id: string) {
@@ -120,7 +122,8 @@ function quoteLine(line: Line, input: any): QuoteLine {
 const sources: Record<string, string> = { 'quote.proposed': 'quote.propose', 'quote.discount-approved': 'quote.approve', 'quote.accepted': 'quote.accept' }
 async function save(db: D1Database, actor: Actor, before: Quote, after: Omit<Quote, 'revision'>, action: string, reason: string, extra: D1PreparedStatement[] = [], orderId?: string) {
  const revision = crypto.randomUUID()
- await commit(db, actor, [
+ const profile=await orderBuyingProfile(db,actor,await account(db,actor,before.accountId),before)
+ await commit(db, actor, [profile.guard,
   db.prepare('UPDATE bw_quotes SET value_json=?,revision=?,order_id=? WHERE id=? AND revision=? AND order_id IS NULL').bind(JSON.stringify(after), revision, orderId ?? null, before.id, before.revision), changed(db),
   ...extra,
   audit(db, actor, before.id, action, { accountId: before.accountId, ...(orderId ? { orderId } : {}), revision: `${before.id}:r${after.revisions.length}:${revision}`, source: sources[action], reason }),
@@ -132,14 +135,14 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
  requirePerson(actor)
  const at = (await now()).toISOString(), today = supplierDate(new Date(at))
  if (type === 'quote.request') {
-  const selected = await account(env.DB, actor, text(p.accountId, 'Account'))
+  const profile = await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,text(p.accountId,'Account')),p.profileId),selected=profile.selected
   requireActiveAccount(selected)
   await requireCompanyRight(env.DB,actor,selected.id,'purchaser')
   if (!Array.isArray(p.lines) || !p.lines.length || p.lines.length > 100) fail('LINES', 'Choose between one and 100 lines.', 400)
   const offers = await catalogue(env, selected), lines = prepareLines(p.lines, offers.items, today, false)
   const id = await nextQuote(env.DB), revision = crypto.randomUUID()
-  const quote: Omit<Quote, 'revision'> = { id, accountId: selected.id, customerName: selected.value.name, currency: selected.value.currency??'USD', status: 'requested', requestedBy: actor.id, requestedAt: at, note: note(p.note, 'Quote note', 1000), request: lines, revisions: [] }
-  await commit(env.DB, actor, [activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_quotes(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(quote), revision), audit(env.DB, actor, id, 'quote.requested', { accountId: selected.id, revision: `${id}:r0:${revision}`, source: 'quote.request', reason: `Requested a quote for ${lines.length} cart ${lines.length === 1 ? 'line' : 'lines'} at current prices; no stock reserved.` }), notice(env.DB, actor, { id, accountId: selected.id }, 'supplier', 'requested', `${selected.value.name} requested quote ${id} for ${lines.length} ${lines.length === 1 ? 'line' : 'lines'}.`, at, await supplierRoute(env.DB, selected.id, actor.id))])
+  const quote: Omit<Quote, 'revision'> = { ...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id, accountId: selected.id, customerName: selected.value.name, currency: selected.value.currency??'USD', status: 'requested', requestedBy: actor.id, requestedAt: at, note: note(p.note, 'Quote note', 1000), request: lines, revisions: [] }
+  await commit(env.DB, actor, [profile.guard,activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_quotes(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(quote), revision), audit(env.DB, actor, id, 'quote.requested', { accountId: selected.id, revision: `${id}:r0:${revision}`, source: 'quote.request', reason: `Requested a quote for ${lines.length} cart ${lines.length === 1 ? 'line' : 'lines'} at current prices; no stock reserved.` }), notice(env.DB, actor, { id, accountId: selected.id }, 'supplier', 'requested', `${selected.value.name} requested quote ${id} for ${lines.length} ${lines.length === 1 ? 'line' : 'lines'}.`, at, await supplierRoute(env.DB, selected.id, actor.id))])
   return { ...quote, revision }
  }
  const quote = await readQuote(env.DB, actor, text(p.quoteId, 'Quote', 40)), latest = quote.revisions.at(-1)
@@ -155,7 +158,7 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   if (latest.number !== number) fail('QUOTE_REVISED', `Revision ${number} was replaced by revision ${latest.number}. Review the current revision before accepting.`)
   if (quote.status !== 'proposed') fail('QUOTE_APPROVAL', 'This revision is waiting for the supplier’s discount approval.')
   if (today > latest.validUntil) fail('QUOTE_EXPIRED', `This quote expired after ${latest.validUntil} (Eastern time). Ask the supplier for a revised quote.`)
-  const selected = await account(env.DB, actor, quote.accountId)
+  const selected = (await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,quote.accountId),quote)).selected
   requireActiveAccount(selected)
   if(quote.currency!==(selected.value.currency??'USD'))fail('QUOTE_STALE','The quote currency changed. Request a new quote.')
   // Acceptance recalculates every line at today's rule (PRI-002), quantity rules (PRI-003) and live Pier stock.
@@ -171,7 +174,7 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   const billTo = await locationSnapshot(env.DB, selected, 'bill-to', undefined), shipTo = await locationSnapshot(env.DB, selected, 'ship-to', undefined)
   const delivery=await acceptDelivery(env,actor,{account:selected,lines,shipTo,quotes:latest.freightQuotes},latest.delivery,p.deliveryAcknowledged)
   const id = await nextNumber(env.DB), orderRevision = crypto.randomUUID()
-  let order: Order = { id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, delivery, totalCents: deliveryTotal(lines,delivery), ...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),currency: selected.value.currency??'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
+  let order: Order = { ...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, delivery, totalCents: deliveryTotal(lines,delivery), ...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),currency: selected.value.currency??'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
   const terms=await termsAtSubmission(env,actor,selected,order.id,p.termsAcceptance,at)
   if(terms.acceptance)order.termsAcceptance=terms.acceptance
   const submission=await companySubmission(env,actor,order);order=submission.order
@@ -191,7 +194,7 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
  if (quote.accepted) fail('QUOTE_ACCEPTED', `This quote was converted into order ${quote.accepted.orderId}; it can no longer change.`)
  if (p.revision !== quote.revision) fail('CHANGED', 'This quote changed. Refresh it before continuing.')
  if (type === 'quote.propose') {
-  const selected = await account(env.DB, actor, quote.accountId)
+  const selected = (await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,quote.accountId),quote)).selected
   if(quote.currency!==(selected.value.currency??'USD'))fail('QUOTE_STALE','The quote currency changed. Request a new quote.')
   if (!Array.isArray(p.lines) || !p.lines.length || p.lines.length > 100) fail('LINES', 'Choose between one and 100 lines.', 400)
   const validUntil = day(p.validUntil)

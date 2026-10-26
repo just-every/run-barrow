@@ -24,7 +24,7 @@ const retryable = "status IN ('queued','not configured','rate_limited','uncertai
 // Supplier-side recipients are owner/admin (accounts with no rep) or the rep who holds the account today (ACC-006).
 const authorizedAt = (today: string) => `SELECT p.email FROM oa_operators p WHERE p.id=m.recipient_id AND p.status='active' AND (
  (m.audience='supplier' AND p.id<>m.actor_id AND (p.role IN ('owner','admin') OR ${repRecipientSql('p','m.account_id',today)})) OR
- (m.audience='buyer' AND ${companyPurchasingRecipientSql('p','m.account_id')}))`
+ (m.audience='buyer' AND ${companyPurchasingRecipientSql('p','m.account_id')} AND EXISTS(SELECT 1 FROM bw_quotes q WHERE q.id=m.quote_id AND (json_extract(q.value_json,'$.buyingProfile.id') IS NULL OR EXISTS(SELECT 1 FROM bw_profile_approvals g WHERE g.profile_id=json_extract(q.value_json,'$.buyingProfile.id') AND g.user_id=p.id AND g.account_id=m.account_id AND g.state='approved' AND g.restored=0)))))`
 const currentExpiry = `SELECT 1 FROM bw_quotes q WHERE q.id=m.quote_id
  AND json_extract(q.value_json,'$.status')='proposed' AND json_extract(q.value_json,'$.accepted') IS NULL
  AND json_extract(q.value_json,'$.revisions[#-1].number')=m.expiry_revision

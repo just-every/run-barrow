@@ -1,9 +1,10 @@
+import { accountFollowupFixture } from '../api/account-followup-fixture.mjs';
 // Manual AUTO-002 journey: built HTTPS Worker, real D1/Pier, only Resend's edge faked.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium, expect } from '@playwright/test';
 import { installation, stock, accountValue } from '../api/harness.mjs';
-import { captureWidths, signedContext } from './browser-helpers.mjs';
+import { captureWidths, captureRegionWidths, signedContext } from './browser-helpers.mjs';
 
 const policyOf = (rights, extra = {}) => ({ rights, locations: 'all', perOrderLimitCents: null, approvalLimitCents: null, ...extra });
 const hoursAgo = hours => new Date(Date.now() - hours * 3600000).toISOString();
@@ -109,4 +110,73 @@ test('approvers, delegates and the escalation approver see the steps waiting for
  await board();
  await task.getByText('Resolution: Supplier approved the order; its approval task is resolved.').waitFor();
  await captureWidths(owner, 'approval-task-closed-by-approval');
+});
+
+test('account follow-up reviews delayed fulfillment before stock, approves exact delivery outreach, suppresses a quote and records a buyer response at desktop and phone', async t => {
+ const f = await accountFollowupFixture(t, { built: true, https: true }), { h, account } = f;
+ const browser = await chromium.launch({ headless: true, args: ['--use-mock-keychain', '--password-store=basic'] }); t.after(() => browser.close());
+ const context = await signedContext(browser, h); t.after(() => context.close());
+ const page = await context.newPage(); await page.goto(h.origin + '/app');
+ if (new URL(page.url()).pathname === '/setup') {
+  await page.getByLabel('Your name').fill('synthetic-barrow-708'); await page.getByRole('checkbox').check();
+  await page.getByRole('button', { name: 'Finish setup', exact: true }).click();
+ }
+ await page.getByRole('button', { name: 'Data', exact: true }).click();
+ await page.getByLabel('Queue view').selectOption('all');
+ const builder = page.getByRole('region', { name: 'Plan account follow-up', exact: true });
+ await builder.getByLabel('Account for follow-up').selectOption(account.id);
+ await captureRegionWidths(page, builder, 'account-followup-account');
+ const beforePlanMail = h.mail.deliveries.length;
+ await builder.getByRole('button', { name: 'Prepare account follow-up plan', exact: true }).click();
+ const plan = page.getByRole('region', { name: 'Account follow-up plan', exact: true });
+ await plan.waitFor();
+ await plan.getByText('Records used for this plan', { exact: true }).click();
+ const current = await f.task();
+ assert.equal(current.plan.actions[0].kind, 'delivery'); assert.equal(current.status, 'open'); assert.ok(current.ownerId);
+ assert.equal(h.mail.deliveries.length, beforePlanMail);
+ await captureRegionWidths(page, plan, 'account-followup-grounded-plan');
+ const delivery = plan.getByRole('article', { name: 'Delivery follow-up', exact: true });
+ const quote = plan.getByRole('article', { name: 'Quote follow-up', exact: true });
+ const body = 'We are reviewing the four outstanding cases from your delivery. I will confirm a verified update before discussing additional stock.';
+ await delivery.getByLabel('Message recipient').selectOption(current.plan.actions[0].recipientId);
+ await delivery.getByLabel('Message to buyer').fill(body);
+ await delivery.getByLabel('Contact date', {exact:true}).fill(current.plan.actions[0].sendOn);
+ await delivery.getByLabel('Reason for this decision').fill('Review the delayed delivery with the buyer before discussing a new order.');
+ await delivery.getByRole('checkbox').check();
+ await captureRegionWidths(page, delivery, 'account-followup-review-exact-message');
+ await delivery.getByRole('button', { name: 'Approve exact message', exact: true }).click();
+ await expect(delivery.getByRole('heading')).toContainText('approved');
+ assert.equal(h.mail.deliveries.length, beforePlanMail);
+ await captureRegionWidths(page, delivery, 'account-followup-approved');
+ await quote.getByLabel('Reason for this decision').fill('The delivery issue takes priority; suppress additional stock outreach.');
+ await quote.getByRole('checkbox').check();
+ await quote.getByRole('button', { name: 'Suppress outreach', exact: true }).click();
+ await expect(quote.getByRole('heading')).toContainText('suppressed');
+ assert.equal((await f.task()).status, 'open'); assert.equal(h.mail.deliveries.length, beforePlanMail);
+ await captureRegionWidths(page, quote, 'account-followup-suppressed');
+ await delivery.getByRole('button', { name: 'Send approved message', exact: true }).click();
+ await expect(delivery.getByRole('heading')).toContainText('sent');
+ const sent = await f.task();
+ assert.equal(sent.status, 'open'); assert.equal(sent.ownerId, current.ownerId);
+ const action = sent.plan.actions.find(action => action.kind === 'delivery');
+ assert.equal((await h.api(`/api/barrow/quotes/${action.quoteId}`, undefined, f.buyer)).thread.at(-1).body, body);
+ assert.equal(h.mail.deliveries.length, beforePlanMail + 1);
+ await captureRegionWidths(page, plan, 'account-followup-sent-awaiting-buyer');
+ await page.getByRole('button', { name: 'Refresh next actions', exact: true }).click();
+ await expect.poll(async () => (await f.task()).status).toBe('open');
+ const buyerContext = await signedContext(browser, h, f.buyer.as); t.after(() => buyerContext.close());
+ const buyerPage = await buyerContext.newPage(); await buyerPage.goto(`${h.origin}/app?quote=${encodeURIComponent(action.quoteId)}`);
+ const conversation = buyerPage.locator('details').filter({ has: buyerPage.locator('summary').filter({ hasText: /^Conversation/ }) });
+ await conversation.locator('summary').click();
+ await conversation.getByLabel('Message', {exact:true}).fill('Thank you. Please confirm the four outstanding cases after your delivery review.');
+ await conversation.getByRole('button', { name: 'Send message', exact: true }).click();
+ await expect(conversation.getByLabel('Message', {exact:true})).toHaveValue('');
+ await captureRegionWidths(buyerPage, conversation, 'account-followup-buyer-response');
+ await page.getByRole('button', { name: 'Refresh next actions', exact: true }).click();
+ await expect.poll(async () => (await f.task()).status).toBe('closed');
+ await expect(plan.getByRole('button', { name: 'Send approved message', exact: true })).toHaveCount(0);
+ const taskCard = page.locator('article').filter({ has: page.getByRole('heading', { name: current.title, exact: true }) });
+ await expect(taskCard.getByText(/^Resolution:/)).toContainText('Buyer replied');
+ await taskCard.getByText('Follow-up decisions and outcomes', { exact: true }).click();
+ await captureRegionWidths(page, taskCard, 'account-followup-closed-with-outcomes');
 });

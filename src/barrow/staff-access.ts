@@ -17,7 +17,7 @@ export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}
  if(!grant)return true
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
- return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','reconciliation','credit','refund'].includes(task.kind)
+ return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
 }
 async function denied(env:Bindings,actor:Actor,source:string):Promise<never> {
  await commit(env.DB,actor,[audit(env.DB,actor,actor.id,'staff.permission-refused',{revision:actor.staff!.revision,source,reason:'Current owner-granted functional role does not authorize this door; no commercial action or outreach performed.'})])
@@ -47,13 +47,14 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
  if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
+ if(method==='GET'&&/^payments(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&(role==='finance'||selling.includes(role)))return
  if(method==='GET'&&relative==='locations')return
  if(method==='GET'&&relative==='visits'&&(selling.includes(role)||role==='operations'))return // REP-005: scoped per account by the read itself
  if(method==='GET'&&relative==='sales-terms')return
  if(selling.includes(role)&&method==='GET'&&/^statements\/[-a-zA-Z0-9._:]+?(?:\.(csv|pdf))?$/.test(relative))return // REP-001: balances of accounts held today; account() scopes the read
  if(method==='GET'&&/^sales-terms\/[^/]+\/[1-9]\d*\/document$/.test(relative))return
  if(method==='GET'&&(/^(invoices|statements)\//.test(relative)||/^export(?:\.json|\/[^/]+\.csv)$/.test(relative))&&(role==='finance'||selling.includes(role)&&relative==='export/followups.csv'))return
- if(selling.includes(role)&&method==='GET'&&(relative==='line-sheets'||/^line-sheets\/[a-f0-9-]+(\.(pdf|csv))?$/.test(relative)||relative==='catalogue'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
+ if(selling.includes(role)&&method==='GET'&&(relative==='line-sheets'||/^line-sheets\/[a-f0-9-]+(\.(pdf|csv))?$/.test(relative)||relative==='catalogue'||relative==='buying-profiles'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
  return denied(env,actor,path)
 }
 
@@ -71,6 +72,7 @@ const commandRoles:Record<string,string[]>={
  'location.save':['sales-manager'],'location.archive':['sales-manager'],
  'rep.assign':['sales-manager'],'rep.cover':['sales-manager'],'rep.end':['sales-manager'],'rep.transfer':['sales-manager'],
  'visit.schedule':selling,'visit.record':selling,'visit.samples':selling,'visit.basket':selling,'visit.handoff':operating,
+ 'followup.plan':selling,'followup.decide':selling,'followup.send':selling,
  'followup.refresh':['sales-manager','rep','operations','finance'],'followup.update':['sales-manager','rep','operations','finance'],
  'report.remove-recipient':['sales-manager','rep','operations','finance','analyst'],
 }

@@ -1,3 +1,4 @@
+import { orderBuyingProfile } from './buying-profiles'
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { requireActiveAccount } from './account-profile'
@@ -18,7 +19,7 @@ export async function substitutionContext(env:Bindings,actor:Actor,order:Order,i
  const upstream=await pierOrder(env,order)
  if(upstream.lines.some((line:any)=>decimal(line.dispatched)>0n))fail('SHIPPED','Dispatched units cannot be substituted; arrange a return instead.')
  if(upstream.lines.some((line:any)=>decimal(line.cancelled)>0n))fail('SUBSTITUTION_STATE','The source order already has cancelled units. Reconcile it before proposing a substitution.')
- const selected=await account(env.DB,actor,order.accountId);requireActiveAccount(selected)
+ const selected=(await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected;requireActiveAccount(selected)
  if(!Array.isArray(input)||!input.length||input.length>100)fail('LINES','Supply the complete replacement basket, between one and 100 lines.',400)
  const available=await catalogue(env,selected)
  // This order's own reservation will be released before the replacement can reserve.

@@ -322,6 +322,24 @@
       "name": "0050_import_invitations.sql",
       "sha256": "02cb511bdbb76c8c7c1ed91ababe3737566569b56ac69895ef7701a7acff76f5",
       "sql": "-- Source review may request one native invitation, never an active membership.\nCREATE TABLE bw_import_invitations(source_key TEXT PRIMARY KEY, import_id TEXT NOT NULL, account_id TEXT NOT NULL, invitation_id TEXT NOT NULL);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0051_buying_profiles.sql",
+      "sha256": "5f26ba7e383e56d3fd183dcae75022006678654a4d6165853120f4e5249e717c",
+      "sql": "CREATE TABLE bw_brands (id TEXT PRIMARY KEY,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nCREATE TABLE bw_buying_profiles (id TEXT PRIMARY KEY,account_id TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nCREATE INDEX bw_buying_profiles_account ON bw_buying_profiles(account_id,id);\nCREATE TABLE bw_profile_approvals (\n profile_id TEXT NOT NULL,user_id TEXT NOT NULL,account_id TEXT NOT NULL,\n state TEXT NOT NULL CHECK(state IN ('approved','revoked')),revision TEXT NOT NULL,\n approved_by TEXT NOT NULL,reason TEXT NOT NULL,approved_at TEXT NOT NULL,\n restored INTEGER NOT NULL DEFAULT 0 CHECK(restored IN (0,1)),PRIMARY KEY(profile_id,user_id)\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0052_card_payments.sql",
+      "sha256": "1e2070e793e77e38e071b4bbbc5685a894af345abf27e90e28cef35dec8004cf",
+      "sql": "CREATE TABLE bw_card_connection (\n singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n account_id TEXT NOT NULL,\n country TEXT NOT NULL,\n livemode INTEGER NOT NULL CHECK(livemode IN (0,1)),\n secret_cipher TEXT NOT NULL,\n webhook_cipher TEXT NOT NULL,\n webhook_id TEXT NOT NULL,\n revision TEXT NOT NULL,\n surcharge_bps INTEGER NOT NULL DEFAULT 0,\n allowed_states TEXT NOT NULL DEFAULT '[]'\n);\nCREATE TABLE bw_card_payments (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL UNIQUE,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE TABLE bw_card_events (\n id TEXT PRIMARY KEY,\n payment_id TEXT NOT NULL,\n created_at TEXT NOT NULL,\n value_json TEXT NOT NULL\n);\nCREATE TABLE bw_card_customers (\n account_id TEXT NOT NULL,\n provider_account_id TEXT NOT NULL,\n customer_id TEXT NOT NULL,\n PRIMARY KEY(account_id,provider_account_id)\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0053_stock_sync.sql",
+      "sha256": "7c691433416cb6ca58e6b50f0fdff764efb188aece6a9936d3b64381f7f2f2fe",
+      "sql": "CREATE TABLE bw_stock_sync (\n singleton INTEGER PRIMARY KEY CHECK(singleton=1), consumer TEXT NOT NULL, origin TEXT NOT NULL,\n enabled INTEGER NOT NULL DEFAULT 0, restored INTEGER NOT NULL DEFAULT 0, page_limit INTEGER NOT NULL DEFAULT 100, checkpoint TEXT, pending TEXT, lease_until INTEGER NOT NULL DEFAULT 0,\n failures INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0, rate_until INTEGER NOT NULL DEFAULT 0, observed_at TEXT,\n processed INTEGER NOT NULL DEFAULT 0, has_more INTEGER NOT NULL DEFAULT 1,\n task_owner TEXT, task_status TEXT, task_reason TEXT, resolution TEXT\n);\nCREATE TABLE bw_stock_events (id TEXT PRIMARY KEY, sequence INTEGER NOT NULL, value_json TEXT NOT NULL);\nCREATE TABLE bw_stock_watches (\n id TEXT PRIMARY KEY, account_id TEXT NOT NULL, user_id TEXT NOT NULL, sku TEXT NOT NULL,\n kind TEXT NOT NULL, active INTEGER NOT NULL, created_at TEXT NOT NULL, UNIQUE(account_id,user_id,sku,kind)\n);\nCREATE TABLE bw_stock_notices (\n id TEXT PRIMARY KEY, watch_id TEXT NOT NULL, account_id TEXT NOT NULL, user_id TEXT NOT NULL,\n sku TEXT NOT NULL, kind TEXT NOT NULL, event_id TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(watch_id,event_id)\n);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
