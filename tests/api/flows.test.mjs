@@ -37,7 +37,7 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
    const tokenFile=join(directory,'agent.txt'),cookieFile=join(directory,'pier.txt'),input=join(directory,'order.json');
    await writeFile(tokenFile,grant.token,{mode:0o600});await writeFile(cookieFile,pier.cookie,{mode:0o600});
    await writeFile(input,JSON.stringify({accountId:'cedar',lines:[{sku:'OAT-1',quantity:18}]}));
-   await exec(process.execPath,[resolve('scripts/connect-pier.mjs'),'--origin',pier.origin,'--session-file',cookieFile],{cwd:directory});
+   await exec(process.execPath,[resolve('scripts/connect-pier.mjs'),'--origin',pier.origin,'--session-file',cookieFile],{cwd:directory,env:{...process.env,NODE_EXTRA_CA_CERTS:pier.certificatePath}});
    assert.ok((await readFile(join(directory,'.dev.vars'),'utf8')).includes('PIER_ORIGIN='));
    const command=resolve('scripts/barrow.mjs'),flags=['--origin',h.origin,'--token-file',tokenFile];
    const catalogue=JSON.parse((await exec(process.execPath,[command,'catalogue',...flags,'--account','cedar'])).stdout);assert.equal(catalogue.items[0].unitCents,6500);
