@@ -1696,7 +1696,7 @@
       "executable": false
     },
     "src/barrow/stock-sync.ts": {
-      "sha256": "5b56709b47129ed3076d9c0017a501ad1a753e26496a09ec149214672caa4764",
+      "sha256": "6a4e581511120391d151443b5a35acd626dfdd44729d5923c9444929f4afd896",
       "executable": false
     },
     "src/barrow/stock-watch.ts": {
@@ -4400,7 +4400,7 @@
       "executable": false
     },
     "tests/journeys/browser-helpers.mjs": {
-      "sha256": "f26029105cfd279285ce6d5391483f2ab6b7f73288642622cb45d6cf7f0af76d",
+      "sha256": "0062b5fbff04c862141591422f925d676f82ac9c6a3984fb4b836ba1214cdebe",
       "executable": false
     },
     "tests/journeys/card-stripe-sandbox.mjs": {

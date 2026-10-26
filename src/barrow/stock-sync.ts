@@ -58,7 +58,7 @@ export async function runStockSync(env:Bindings,pages=10,manual=false) {
    await acknowledgePierStock(env,claimed.consumer,pending)
    await db.prepare('UPDATE bw_stock_sync SET checkpoint=?,pending=NULL,failures=0 WHERE singleton=1 AND lease_until=?').bind(pending,lease).run()
    checkpoint=pending;pending=null
-   if(!page.hasMore){await db.batch(await prebookNoticeStatements(env));break}
+   if(!page.hasMore){const notices=await prebookNoticeStatements(env);if(notices.length)await db.batch(notices);break}
   }
   await db.prepare('UPDATE bw_stock_sync SET lease_until=0,next_at=? WHERE singleton=1 AND lease_until=?').bind(at+60000,lease).run()
  } catch(error:any) {
