@@ -132,7 +132,7 @@ test('saved consent is bound to company delivery location and current company fi
  await h.command('saved-card.prepare',{orderId:elsewhere.id,methodId:saved.id,revision:saved.revision},{...buyer,status:403});
  assert.deepEqual((await h.api('/api/barrow/saved-cards?orderId='+elsewhere.id,undefined,buyer)).methods,[]);
  const members=await h.api('/api/barrow/company/members?accountId=cedar'),member=members.members.find(m=>m.email==='buyer@example.test');
- await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,reason:'Restrict the buyer to purchasing at the second shop.',policy:{rights:['purchaser'],locations:[second.id],perOrderLimitCents:null,approvalLimitCents:null}});
+ await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,reason:'Restrict the buyer to purchasing at the second shop.',policy:{rights:['administrator','purchaser'],locations:[second.id],perOrderLimitCents:null,approvalLimitCents:null}});
  assert.equal((await h.request('/api/barrow/saved-cards?orderId='+payment.orderId,buyer)).status,403);
  await h.command('saved-card.revoke',{methodId:saved.id,revision:saved.revision,reason:'No current finance authority.'},{...buyer,status:403});
  assert.equal(edge.intents.size,0);assert.equal(saved.locationId,first.id);

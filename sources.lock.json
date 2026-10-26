@@ -4164,7 +4164,7 @@
       "executable": false
     },
     "tests/api/card-payments.test.mjs": {
-      "sha256": "13efdb29f94d5a521947ad64a670c2313e8077bd182a3376cbe6bb7c0742cc07",
+      "sha256": "7123705287fc94eda2e488a6e205faf1f41f659c0f030f9823792504a24eddac",
       "executable": false
     },
     "tests/api/cart-import.test.mjs": {
