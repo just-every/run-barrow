@@ -4347,6 +4347,10 @@
       "sha256": "252f3383f7107576de88ab1b5f7417c208eb95afe8f299a0993762e67a51e920",
       "executable": false
     },
+    "tests/api/tls.mjs": {
+      "sha256": "4a9d35d014613b5a08899d58d20167f08f73eea97bc64dd58a47834d725f360d",
+      "executable": false
+    },
     "tests/api/units.test.mjs": {
       "sha256": "a299c7a44ac3e144e509ac7edaa99ad735823e744e19de809fdc9e026c3acdec",
       "executable": false
