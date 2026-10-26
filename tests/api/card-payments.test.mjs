@@ -118,7 +118,7 @@ test('saved company card needs separate exact-amount authorization, withdrawal f
   const response=JSON.stringify(await h.api(path,undefined,actor));for(const token of [stored.paymentMethodId,stored.providerCustomerId])assert.ok(!response.includes(token));
  }
  assert.equal((await h.db.prepare('SELECT method_cipher FROM bw_saved_cards WHERE id=?').bind(saved.id).first()).method_cipher,'');
- const snapshotArchive=await archive(h);for(const part of snapshotArchive)for(const item of part.items??[])if(item.table==='bw_card_payments'){const row=JSON.parse(item.row.value_json);assert.equal('paymentMethodId' in row,false);assert.equal('providerCustomerId' in row,false);assert.equal('setupSessionId' in row,false)}
+ const snapshotArchive=await archive(h);assert.ok(!JSON.stringify(snapshotArchive).includes(stored.providerCustomerId));assert.ok(!JSON.stringify(snapshotArchive).includes(stored.paymentMethodId));for(const part of snapshotArchive)for(const item of part.items??[])if(item.table==='bw_card_payments'){const row=JSON.parse(item.row.value_json);assert.equal('paymentMethodId' in row,false);assert.equal('providerCustomerId' in row,false);assert.equal('setupSessionId' in row,false)}
  const target=await installation({networkEdge:edge.networkEdge});t.after(()=>target.close());await restore(target,snapshotArchive);
  assert.equal((await target.db.prepare('SELECT COUNT(*) AS n FROM bw_saved_cards').first()).n,0);
  assert.equal((await target.api('/api/barrow/payments/'+payment.id)).state,'captured');
