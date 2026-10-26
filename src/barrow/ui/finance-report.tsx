@@ -7,7 +7,7 @@ import type { financeReport } from '../finance-report'
 type Report = Awaited<ReturnType<typeof financeReport>>
 const amount = (cents: number, currency: string) => money(cents, currency as 'USD' | 'AUD')
 
-// RPT-004: invoice aging by frozen due date. No payment or ledger fact is inferred.
+// RPT-004: invoice aging by frozen due date and explicit verified financial effects.
 export function FinanceReport() {
   const [report, setReport] = useState<Report | null>(null), [error, setError] = useState('')
   const [filter, setFilter] = useState({ asOf: '', accountId: '', assignedRep: '' })
@@ -28,12 +28,13 @@ export function FinanceReport() {
     {report && <>
       <p className="br-quiet-text">As of {report.asOf} · {report.timeZone} · read {when(report.checkedAt)}.</p>
       <p className="br-quiet-text">{report.notes.amounts}</p>
-      {report.totals.map(total => <article className="br-card br-stack" key={total.currency}><h3>{total.currency} invoiced totals</h3>
-        <p>Total {amount(total.totalCents, total.currency)}</p>
+      {report.totals.map(total => <article className="br-card br-stack" key={total.currency}><h3>{total.currency} outstanding totals</h3>
+        <p>Outstanding {amount(total.totalCents, total.currency)} · invoiced {amount(total.invoicedCents, total.currency)} · paid {amount(total.paidCents, total.currency)} · applied credits {amount(total.appliedCreditCents, total.currency)}</p>
         {Object.entries(total.buckets).map(([bucket, cents]) => <p key={bucket}>{bucket}: {amount(cents, total.currency)}</p>)}
       </article>)}
       {!report.rows.length && <p>No invoices match this date and these filters.</p>}
-      <details><summary>Invoice sources ({report.rows.length})</summary><ul>{report.rows.map(row => <li key={row.orderId}>{row.account} · <a href={row.invoicePath} download>{row.invoiceNumber}</a> · {amount(row.amountCents, row.currency)} · due {row.dueAt} · {row.overdueDays} days overdue · {row.bucket}<br /><a href={row.orderPath}>Order</a> · <a href={row.statementPath}>Account statement</a></li>)}</ul></details>
+      <details><summary>Invoice sources ({report.rows.length})</summary><ul>{report.rows.map(row => <li key={row.orderId}>{row.account} · <a href={row.invoicePath} download>{row.invoiceNumber}</a> · invoiced {amount(row.amountCents, row.currency)} · paid {amount(row.paidCents, row.currency)} · applied credits {amount(row.appliedCreditCents, row.currency)} · outstanding {amount(row.outstandingCents, row.currency)} · due {row.dueAt} · {row.overdueDays} days overdue · {row.bucket}<br /><a href={row.orderPath}>Order</a> · <a href={row.statementPath}>Account statement</a></li>)}</ul></details>
+      <details><summary>Refund status ({report.refundStatus.length})</summary>{report.refundStatus.length ? <ul>{report.refundStatus.map(refund => <li key={refund.id}><a href={refund.path}>{refund.id}</a> · {refund.status} · {amount(refund.amountCents, refund.currency)} · order {refund.orderId} · <a href={refund.creditPath}>Credit note</a> · provider {refund.providerRefundId || refund.providerPaymentId} · updated {when(refund.updatedAt)}</li>)}</ul> : <p>No refund status recorded within this date and these filters.</p>}</details>
       <p className="br-quiet-text">{report.notes.dates} {report.notes.unrecorded} {report.notes.access}</p>
       <div className="br-actions"><a className="br-secondary" href={`/api/barrow/reports/finance.csv?${query}`} download>Download invoice aging (CSV)</a></div>
     </>}

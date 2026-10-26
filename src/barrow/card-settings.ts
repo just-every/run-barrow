@@ -36,7 +36,7 @@ export async function cardConfiguration(env:Bindings,actor:Actor,type:string,p:a
  if(bps>0&&account.country!=='US')fail('SURCHARGE','Card surcharges require a verified US Stripe merchant and permitted US state.',400)
  const origin=env.AUTH_LOCAL==='true'&&env.CARD_WEBHOOK_ORIGIN?env.CARD_WEBHOOK_ORIGIN:env.AUTH_ORIGIN
  if(!origin.startsWith('https://'))fail('STRIPE_ENDPOINT','Stripe needs this installation’s public HTTPS webhook address.',400)
- const endpoint=await stripe(key,'/webhook_endpoints',{url:new URL('/api/barrow/card-webhook',origin).href,'enabled_events[0]':'payment_intent.amount_capturable_updated','enabled_events[1]':'payment_intent.succeeded','enabled_events[2]':'payment_intent.payment_failed','enabled_events[3]':'payment_intent.canceled','metadata[barrow]':'card-checkout'},`barrow-connect-${revision}`)
+ const endpoint=await stripe(key,'/webhook_endpoints',{url:new URL('/api/barrow/card-webhook',origin).href,'enabled_events[0]':'payment_intent.amount_capturable_updated','enabled_events[1]':'payment_intent.succeeded','enabled_events[2]':'payment_intent.payment_failed','enabled_events[3]':'payment_intent.canceled','enabled_events[4]':'refund.created','enabled_events[5]':'refund.updated','enabled_events[6]':'refund.failed','metadata[barrow]':'card-checkout'},`barrow-connect-${revision}`)
  if(!endpoint.secret||!endpoint.id)fail('STRIPE_ENDPOINT','Stripe did not create a signing endpoint.',409)
  const secret=await sealWebhookSecret(env,'stripe:key',key),webhook=await sealWebhookSecret(env,'stripe:webhook',endpoint.secret)
  try {

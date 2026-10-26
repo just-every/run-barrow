@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHmac} from 'node:crypto';
 import {installation,stock,accountValue} from './harness.mjs';
 export function cardEdge() {
+ const refunds=new Map();let loseRefund=false;
  const intents=new Map(),sessions=new Map(),methods=new Map(),customers=new Map(),requests=[],secret='synthetic-barrow-2';
  let sequence=0,captures=0,loseCapture=false;
  const next=()=>`synthetic-barrow-${++sequence+100}`;
@@ -20,6 +21,8 @@ export function cardEdge() {
   }
   if(path.startsWith('/checkout/sessions/')){const parts=path.split('/'),session=sessions.get(parts.at(-1)==='expire'?parts.at(-2):parts.at(-1));if(parts.at(-1)==='expire')session.status='expired';return Response.json(session)}
   if(path.startsWith('/payment_methods/'))return Response.json(methods.get(path.split('/').at(-1)));
+  if(path==='/refunds'){const key=request.headers.get('idempotency-key');let refund=[...refunds.values()].find(row=>row.key===key);if(!refund){refund={id:next(),key,livemode:false,payment_intent:body.get('payment_intent'),amount:Number(body.get('amount')),currency:intents.get(body.get('payment_intent')).currency,status:'pending',metadata:{barrowRefundId:body.get('metadata[barrowRefundId]'),barrowInstallationId:body.get('metadata[barrowInstallationId]')}};refunds.set(refund.id,refund)}if(loseRefund){loseRefund=false;throw Error('Lost response after real refund request at the paid network edge')}return Response.json(refund)}
+  if(path.startsWith('/refunds/'))return Response.json(refunds.get(path.split('/').at(-1)));
   if(path==='/payment_intents') {
    const duplicate=[...intents.values()].find(i=>i.metadata.barrowPaymentId===body.get('metadata[barrowPaymentId]')&&i.metadata.barrowInstallationId===body.get('metadata[barrowInstallationId]'));if(duplicate)return Response.json(duplicate);
    const method=methods.get(body.get('payment_method'));
@@ -34,7 +37,7 @@ export function cardEdge() {
   }
   throw Error('Unexpected Stripe network request '+path);
  };
- return {networkEdge,requests,intents,sessions,secret,get captures(){return captures},loseCapture(){loseCapture=true},complete(payment,{funding='credit',state='NY',outcome,setupFailure=false}={}) {
+ return {networkEdge,requests,intents,sessions,secret,refunds,loseRefund(){loseRefund=true},async refundEvent(h,refund,{type='refund.updated',id=next()}={}){const object=refunds.get(refund.providerRefundId),time=Math.floor(Date.now()/1000),body=JSON.stringify({id,type,created:time,livemode:false,data:{object}}),signature=`t=${time},v1=${createHmac('sha256',secret).update(`${time}.${body}`).digest('hex')}`;return {body,signature,response:await h.raw('/api/barrow/card-webhook',{method:'POST',headers:{'stripe-signature':signature},body})}},get captures(){return captures},loseCapture(){loseCapture=true},complete(payment,{funding='credit',state='NY',outcome,setupFailure=false}={}) {
   const session=[...sessions.values()].find(s=>s.client_reference_id===payment.id&&s.installationId===payment.installationId);assert.ok(session);
   const method={id:next(),customer:session.customer,type:'card',card:{funding,brand:'visa',last4:'4242'},billing_details:{address:{country:'US',state}},outcome};methods.set(method.id,method);session.status=setupFailure?'open':'complete';session.setup_intent={status:setupFailure?'requires_payment_method':'succeeded',payment_method:method,...(setupFailure?{last_setup_error:{type:'card_error'}}:{})};
  },async event(h,payment,{type='payment_intent.succeeded',id=next(),created=Math.floor(Date.now()/1000),tamper=false}={}) {

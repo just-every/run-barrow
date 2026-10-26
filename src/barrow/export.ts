@@ -1,3 +1,4 @@
+import { creditRecords } from './credit-ledger'
 import { buyingProfileColumns, buyingProfileExport, orderProfileColumns, orderProfileExport } from './buying-profile-export'
 import { readLists } from './lists'
 import { applicationAccess } from './application-access'
@@ -17,11 +18,17 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
+ creditnotes:['id','revision','accountId','orderId','orderRevision','currency','amountCents','returnId','createdAt','actorId','reason','path'],
+ creditlines:['id','creditId','revision','accountId','orderId','orderRevision','returnId','line','sku','quantity','currency','amountCents','basis','original'],
+ creditapplications:['id','revision','creditId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
+ cardallocations:['id','revision','paymentId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
+ refunds:['id','revision','creditId','accountId','orderId','paymentId','providerPaymentId','providerRefundId','providerAccountId','installationId','livemode','currency','amountCents','status','createdAt','updatedAt','completedAt','latestFinancialAt','actorId','reason','path'],
+ refundevents:['id','refundId','refundRevision','creditId','accountId','orderId','paymentId','providerPaymentId','providerRefundId','currency','amountCents','status','type','createdAt','verifiedAt','source'],
  stockwindows:['sku','opensAt','closesAt','revision'],
  stockwatches:['id','account_id','user_id','sku','kind','active','created_at'],
  stocknotices:['id','watch_id','account_id','user_id','sku','kind','event_id','created_at'],
@@ -62,6 +69,8 @@ const json = (value: unknown) => value === undefined ? '' : JSON.stringify(value
 const lineCents = (line: Order['lines'][number]) => line.lineCents ?? line.quantity * line.unitCents
 // Records written before USD carry AUD, exactly as their invoices do.
 const currency = (order: Order) => order.currency ?? 'AUD'
+// Only declared public fields cross either export door; commission snapshots remain supplier-private.
+const financialFields = (kind: Kind, value: object) => Object.fromEntries(columns[kind].map(key => [key, (value as Record<string, unknown>)[key] ?? '']))
 
 export async function commercialExport(env: Bindings, actor: Actor) {
  requirePerson(actor)
@@ -95,10 +104,24 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const sourceimports=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_platform_imports ORDER BY id').all<any>()).results:undefined
  const lists=financeOnly?[]:(await Promise.all(ids.map(async id=>{if(!supplier(actor)){try{await requireCompanyRight(env.DB,actor,id,'purchasing')}catch{return []}}return readLists(env.DB,actor,id)}))).flat().map(({mine,creatorName,...row})=>({...row,lines:json(row.lines)}))
  const profileRecords = await buyingProfileExport(env.DB, actor, ids, financeOnly)
- const cardRows=(await env.DB.prepare('SELECT value_json,revision FROM bw_card_payments').all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})).filter(row=>ids.includes(row.accountId))
+ const cardRows=(await env.DB.prepare('SELECT value_json,revision FROM bw_card_payments').all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})).filter(row=>ids.includes(row.accountId)&&orderIds.has(row.orderId))
  const cardIds=new Set(cardRows.map(row=>row.id)),cardEvents=(await env.DB.prepare('SELECT * FROM bw_card_events').all<{id:string;payment_id:string;created_at:string;value_json:string}>()).results.filter(row=>cardIds.has(row.payment_id))
  const stockRecords=actor.role==='owner'||actor.role==='admin'?{stockwindows:JSON.parse((await env.DB.prepare("SELECT value_json FROM bw_settings WHERE key='stock-windows'").first<{value_json:string}>())?.value_json??'[]'),stockwatches:(await env.DB.prepare('SELECT * FROM bw_stock_watches ORDER BY id').all<any>()).results,stocknotices:(await env.DB.prepare('SELECT * FROM bw_stock_notices ORDER BY id').all<any>()).results}:{}
+ const financial = await creditRecords(env.DB)
+ const inScope = (row: { accountId: string; orderId: string }) => ids.includes(row.accountId) && orderIds.has(row.orderId)
+ const credits = financial.credits.filter(inScope), applications = financial.applications.filter(inScope), allocations = financial.allocations.filter(inScope), refunds = financial.refunds.filter(inScope)
+ const refundById = new Map(refunds.map(refund => [refund.id, refund]))
+ const refundEvents = (await env.DB.prepare('SELECT id,refund_id,created_at,value_json FROM bw_refund_events ORDER BY created_at,id').all<{id:string;refund_id:string;created_at:string;value_json:string}>()).results.filter(row => refundById.has(row.refund_id))
  const records = { ...stockRecords,
+  creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit, path: `/api/barrow/credits/${credit.id}` })),
+  creditlines: credits.flatMap(credit => credit.lines.map((line, index) => ({ id: `${credit.id}:${index + 1}`, creditId: credit.id, revision: credit.revision, accountId: credit.accountId, orderId: credit.orderId, orderRevision: credit.orderRevision, returnId: credit.returnId, line: line.line, sku: line.sku, quantity: line.quantity, currency: credit.currency, amountCents: line.amountCents, basis: json(line.basis), original: json(line.original) }))),
+  creditapplications: applications.map(application => financialFields('creditapplications', application)),
+  cardallocations: allocations.map(allocation => financialFields('cardallocations', allocation)),
+  refunds: refunds.map(refund => financialFields('refunds', { ...refund, path: `/api/barrow/refunds/${refund.id}` })),
+  refundevents: refundEvents.map(row => {
+   const refund = refundById.get(row.refund_id)!, event = JSON.parse(row.value_json)
+   return financialFields('refundevents', { ...event, id: row.id, refundId: row.refund_id, refundRevision: refund.revision, creditId: refund.creditId, accountId: refund.accountId, orderId: refund.orderId, paymentId: refund.paymentId, providerPaymentId: refund.providerPaymentId, providerRefundId: event.providerRefundId ?? refund.providerRefundId, currency: refund.currency, amountCents: refund.amountCents, createdAt: row.created_at })
+  }),
   cardpayments:cardRows.map(row=>Object.fromEntries(columns.cardpayments.map(key=>[key,row[key]??'']))),
   cardevents:cardEvents.map(row=>({id:row.id,paymentId:row.payment_id,createdAt:row.created_at,...JSON.parse(row.value_json)})),
   ...profileRecords,
@@ -124,9 +147,11 @@ export async function commercialExport(env: Bindings, actor: Actor) {
   ...(followups ? { followups: followups.map(row => ({...row, contacts: json(row.contacts), plan: json(row.plan)})) } : {}),
   ...(audit ? { audit: audit.map(row => ({ id: row.id, subjectId: row.subject_id, actorId: row.actor_id, action: row.action, createdAt: row.created_at, accountId: row.account_id ?? '', orderId: row.order_id ?? '', revision: row.revision ?? '' })) } : {}),
  }
- const totals = [...new Set([...orders.map(currency), ...quotes.map(quote => quote.currency)])].sort().map(code => {
+ const totals = [...new Set([...orders.map(currency), ...quotes.map(quote => quote.currency), ...credits.map(row => row.currency), ...applications.map(row => row.currency), ...allocations.map(row => row.currency), ...refunds.map(row => row.currency)])].sort().map(code => {
   const mine = orders.filter(order => currency(order) === code), invoiced = mine.filter(order => order.invoice), offered = quotes.filter(quote => quote.currency === code)
-  return { currency: code, orders: mine.length, orderCents: mine.reduce((sum, order) => sum + order.totalCents, 0), invoices: invoiced.length, invoiceCents: invoiced.reduce((sum, order) => sum + order.totalCents, 0), quotes: offered.length, quoteCents: offered.reduce((sum, quote) => sum + quoted(quote), 0) }
+  const creditRows = credits.filter(row => row.currency === code), applicationRows = applications.filter(row => row.currency === code), allocationRows = allocations.filter(row => row.currency === code), refundRows = refunds.filter(row => row.currency === code)
+  const refundCents = (statuses: string[]) => refundRows.filter(row => statuses.includes(row.status)).reduce((sum, row) => sum + row.amountCents, 0)
+  return { currency: code, orders: mine.length, orderCents: mine.reduce((sum, order) => sum + order.totalCents, 0), invoices: invoiced.length, invoiceCents: invoiced.reduce((sum, order) => sum + order.totalCents, 0), quotes: offered.length, quoteCents: offered.reduce((sum, quote) => sum + quoted(quote), 0), credits: creditRows.length, creditCents: creditRows.reduce((sum, row) => sum + row.amountCents, 0), creditApplications: applicationRows.length, appliedCreditCents: applicationRows.reduce((sum, row) => sum + row.amountCents, 0), cardAllocations: allocationRows.length, allocatedCardCents: allocationRows.reduce((sum, row) => sum + row.amountCents, 0), refunds: refundRows.length, refundedCents: refundCents(['succeeded']), pendingRefundCents: refundCents(['requested','pending']), failedRefundCents: refundCents(['failed']), cancelledRefundCents: refundCents(['cancelled']) }
  })
  const counts = Object.fromEntries(Object.entries(records).map(([kind, list]) => [kind, list.length]))
  return { manifest: { format: 'barrow-commercial-export', version: 1, exportedAt: (await now()).toISOString(), scope: actor.staff?'staff':supplier(actor) ? 'installation' : 'buyer', accountIds: ids, counts, totals }, ...records }

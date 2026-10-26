@@ -1,3 +1,5 @@
+import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
+import { readRefund,refundCommand } from './credit-refunds'
 import { savedCardCommand,readSavedCards } from './saved-cards'
 import { catalogMaintenanceResponse } from './catalog-maintenance-http'
 import { stockSyncState, stockSyncCommand } from './stock-sync'
@@ -135,6 +137,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/credits'&&request.method==='GET')return json(await readCredits(env,actor,url.searchParams.get('orderId')??''))
+  const creditPath=/^\/api\/barrow\/credits\/([-a-zA-Z0-9_]+)$/.exec(path),refundPath=/^\/api\/barrow\/refunds\/([-a-zA-Z0-9_]+)$/.exec(path)
+  if(creditPath&&request.method==='GET')return json(await readCredit(env,actor,creditPath[1]))
+  if(refundPath&&request.method==='GET')return json(await readRefund(env,actor,refundPath[1]))
   if(path==='/api/barrow/saved-cards'&&request.method==='GET')return json(await readSavedCards(env,actor,url.searchParams.get('orderId')??''))
   if(path==='/api/barrow/card-settings'&&request.method==='GET')return json(await cardSettings(env,actor))
   if(path==='/api/barrow/payments'&&request.method==='GET')return json(await readCards(env,actor,url.searchParams.get('orderId')??''))
@@ -327,6 +333,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
+   if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
+   if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
+   if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})
+   if(['refund.request','refund.refresh'].includes(body.type))return json({result:await refundCommand(env,actor,body.type,body.payload)})
    if(['saved-card.save','saved-card.revoke','saved-card.prepare'].includes(body.type)){const result=await savedCardCommand(env,actor,body.type,body.payload);return json({result:body.type==='saved-card.prepare'?publicCard(result as import('./card-model').CardPayment):result})}
    if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
    if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})

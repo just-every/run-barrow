@@ -1,3 +1,4 @@
+import { reconcileRefund } from './credit-refunds'
 import type { Bindings } from '../auth.server'
 import { connection,provider } from './card-provider'
 import { openWebhookSecret } from './webhook-security'
@@ -18,6 +19,16 @@ export async function cardWebhook(request:Request,env:Bindings) {
  if(!verified)fail('STRIPE_SIGNATURE','Stripe signature could not be verified.',400)
  let event:any;try{event=JSON.parse(body)}catch{fail('STRIPE_EVENT','Stripe event is malformed.',400)}
  if(event.livemode!==!!config.livemode||typeof event.id!=='string'||!Number.isInteger(event.created)||event.created>Math.floor(Date.now()/1000)+300)fail('STRIPE_EVENT','The Stripe event must match the connected merchant mode.',400)
+ if(['refund.created','refund.updated','refund.failed'].includes(event.type)) {
+  if(await env.DB.prepare('SELECT 1 FROM bw_refund_events WHERE id=?').bind(event.id).first())return Response.json({received:true,duplicate:true})
+  const object=event.data?.object,id=object?.metadata?.barrowRefundId
+  if(typeof id!=='string')return Response.json({received:true})
+  const row=await env.DB.prepare('SELECT value_json FROM bw_credit_refunds WHERE id=?').bind(id).first<{value_json:string}>()
+  if(!row||JSON.parse(row.value_json).installationId!==object.metadata?.barrowInstallationId)return Response.json({received:true})
+  const stripe=await provider(env,config),refund=await stripe.call(`/refunds/${encodeURIComponent(object.id)}`)
+  await reconcileRefund(env,id,refund,{id:event.id,type:event.type,created:event.created})
+  return Response.json({received:true})
+ }
  if(!['payment_intent.amount_capturable_updated','payment_intent.succeeded','payment_intent.payment_failed','payment_intent.canceled'].includes(event.type))return Response.json({received:true})
  if(await env.DB.prepare('SELECT 1 FROM bw_card_events WHERE id=?').bind(event.id).first())return Response.json({received:true,duplicate:true})
  const object=event.data?.object,id=object?.metadata?.barrowPaymentId

@@ -1,3 +1,4 @@
+import { creditRecords } from './credit-ledger'
 import { requireStaffReport } from './staff-policy'
 import type { Bindings } from '../auth.server'
 import { csvText } from './cart-csv'
@@ -11,7 +12,7 @@ type Amount = number | null
 export type CommissionRow = {
  rep: string; assignedRep: string; orderId: string; line: number; accountId: string; account: string; sku: string; currency: string
  ruleId: string | null; ruleRevision: string | null; basis: CommissionRule['basis'] | null; rateBps: number | null; shareBps: number | null
- acceptedAt: string; sourceOrderId: string | null; sourceLineId: string | null; shipmentIds: string[]; returnIds: string[]
+ acceptedAt: string; creditIds:string[];refundIds:string[];sourceOrderId: string | null; sourceLineId: string | null; shipmentIds: string[]; returnIds: string[]
  basisCents: Amount; cancelledBasisCents: Amount; returnedBasisCents: Amount; grossCents: Amount; reversedCents: Amount; netCents: Amount
  source: 'read' | 'unavailable'; reason: string | null; path: string
 }
@@ -63,6 +64,7 @@ function totals(rows: CommissionRow[]) {
 }
 export async function commissionReport(env: Bindings, actor: Actor, params: URLSearchParams) {
  requirePerson(actor); requireStaffReport(actor, 'commissions', params); requireSupplier(actor)
+ const financial=await creditRecords(env.DB)
  const checkedAt = (await now()).toISOString(), filter = { rep: params.get('rep') ?? '', accountId: params.get('accountId') ?? '' }
  const restrictRep = actor.role==='member' && Boolean(filter.rep)
  // ACC-006: a scoped staff statement shows only accounts held today; frozen attribution on those orders is unchanged.
@@ -87,9 +89,10 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
    const line = order.lines[entry.line - 1]
    if (!line) fail('COMMISSION_SNAPSHOT', 'Commission snapshot references a missing order line.', 409)
    const rule = entry.rule, confirmed = quantities?.get(line.itemId)
+   const linkedCredits=financial.credits.filter(credit=>credit.orderId===order.id&&credit.currency===(order.currency??'AUD')&&credit.lines.some(line=>line.line===entry.line)&&confirmed?.returnIds.includes(credit.returnId))
    const measuredLine = rule ? measured(order, entry.line, rule, confirmed) : null
    if (!rule) unmatchedLines++
-   const base = { assignedRep: commission.assignedRep, orderId: order.id, line: entry.line, accountId: order.accountId, account: order.customerName, sku: line.sku, currency: order.currency ?? 'AUD', ruleId: rule?.id ?? null, ruleRevision: commission.policyRevision, basis: rule?.basis ?? null, rateBps: rule?.rateBps ?? null, acceptedAt: commission.at, sourceOrderId: confirmed?.sourceOrderId ?? order.pierOrderId ?? null, sourceLineId: confirmed?.sourceLineId ?? null, shipmentIds: confirmed?.shipmentIds ?? [], returnIds: confirmed?.returnIds ?? [], basisCents: measuredLine?.basisCents ?? null, cancelledBasisCents: measuredLine?.cancelledBasisCents ?? null, returnedBasisCents: measuredLine?.returnedBasisCents ?? null, source: confirmed ? 'read' as const : 'unavailable' as const, reason: !rule ? 'No matching rule at first approval; no commission recorded.' : rule.basis === 'payment' ? 'Verified payment allocations are not recorded (PAY-003); payment-basis commission is unknown.' : !confirmed ? 'Pier source unavailable or unreconciled; commission and reversals are unknown.' : null, path: `/api/barrow/orders/${order.id}/timeline` }
+   const base = { creditIds:linkedCredits.map(credit=>credit.id),refundIds:financial.refunds.filter(refund=>linkedCredits.some(credit=>credit.id===refund.creditId)).map(refund=>refund.id),assignedRep: commission.assignedRep, orderId: order.id, line: entry.line, accountId: order.accountId, account: order.customerName, sku: line.sku, currency: order.currency ?? 'AUD', ruleId: rule?.id ?? null, ruleRevision: commission.policyRevision, basis: rule?.basis ?? null, rateBps: rule?.rateBps ?? null, acceptedAt: commission.at, sourceOrderId: confirmed?.sourceOrderId ?? order.pierOrderId ?? null, sourceLineId: confirmed?.sourceLineId ?? null, shipmentIds: confirmed?.shipmentIds ?? [], returnIds: confirmed?.returnIds ?? [], basisCents: measuredLine?.basisCents ?? null, cancelledBasisCents: measuredLine?.cancelledBasisCents ?? null, returnedBasisCents: measuredLine?.returnedBasisCents ?? null, source: confirmed ? 'read' as const : 'unavailable' as const, reason: !rule ? 'No matching rule at first approval; no commission recorded.' : rule.basis === 'payment' ? 'Verified payment allocations are not recorded (PAY-003); payment-basis commission is unknown.' : !confirmed ? 'Pier source unavailable or unreconciled; commission and reversals are unknown.' : null, path: `/api/barrow/orders/${order.id}/timeline` }
    const splits = rule?.splits ?? [{ rep: commission.assignedRep, shareBps: null }]
    for (const split of splits) {
     if (filter.rep && split.rep !== filter.rep) continue
@@ -105,11 +108,11 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
   rounding: 'BigInt ratios round half up once per line. Commission rounds half up before splits; largest remainders allocate earned cents with lexical rep ties. Remaining commission uses original earned split cents as proportional weights, again by largest remainder. Reversals are original earned less remaining split cents, never negative; a full return or cancellation reverses every original cent.',
   returns: 'Only actual Pier return receipts linked to the original shipment reverse merchandise commission, capped by the earned merchandise basis. Missing or unreconciled sources leave amounts unknown, never zero.',
   payments: 'Payments and allocations are not recorded (PAY-003). Payment-basis commission is unknown; PAY-003 must add verified allocated payment evidence before it can earn or reverse.',
-  credits: 'Credit notes and refunds are not recorded (PAY-010). Inventory returns are not credit notes; PAY-010 must add source-linked credit/refund effects without double counting returns.',
+  credits: 'Credit notes retain the original physical return, approved line, currency and frozen split. Their linked refunds return cash only. The original physical-return reversal is applied once, capped by earned merchandise; issuing credit or refunding it never reverses the same return again.',
   access: 'Owner, admins and all-account managers read every frozen statement. A rep reads only their fixed label’s statements for accounts they hold today (assignment or temporary coverage); an account transferred away leaves their view while its frozen attribution stays. Rep labels alone grant no access.',
  } }
 }
-export const commissionColumns = ['rep', 'assignedRep', 'orderId', 'line', 'accountId', 'account', 'sku', 'currency', 'ruleId', 'ruleRevision', 'basis', 'rateBps', 'shareBps', 'acceptedAt', 'sourceOrderId', 'sourceLineId', 'shipmentIds', 'returnIds', 'basisCents', 'cancelledBasisCents', 'returnedBasisCents', 'grossCents', 'reversedCents', 'netCents', 'source', 'reason', 'path'] as const
+export const commissionColumns = ['rep', 'assignedRep', 'orderId', 'line', 'accountId', 'account', 'sku', 'currency', 'ruleId', 'ruleRevision', 'basis', 'rateBps', 'shareBps', 'acceptedAt', 'sourceOrderId', 'sourceLineId', 'shipmentIds', 'returnIds', 'creditIds', 'refundIds', 'basisCents', 'cancelledBasisCents', 'returnedBasisCents', 'grossCents', 'reversedCents', 'netCents', 'source', 'reason', 'path'] as const
 export async function commissionCsv(env: Bindings, actor: Actor, params: URLSearchParams) {
  const report = await commissionReport(env, actor, params)
  return new Response(csvText([[...commissionColumns], ...report.rows.map(row => commissionColumns.map(column => Array.isArray(row[column]) ? (row[column] as string[]).join(';') : row[column] ?? 'not recorded')), [], ['historicalUnrecorded', report.historicalUnrecorded ?? 'not attributable to this rep'], ...Object.entries(report.notes).map(([key, value]) => [key, value])]), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="barrow-commissions.csv"', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })

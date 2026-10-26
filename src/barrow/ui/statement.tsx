@@ -4,10 +4,11 @@ import { AccountPicker, Notice } from './primitives'
 import { money } from './types'
 import type { Account } from './types'
 
-type StatementEntry = { orderId: string; orderPath: string; date: string; amountCents: number } & ({ kind: 'invoice'; number: string; dueAt: string; reference: string; invoicePath: string } | { kind: 'card-payment' | 'card-surcharge'; id: string; paymentPath: string })
+type StatementEntry = { orderId: string; orderPath: string; date: string; amountCents: number } & ({ kind: 'invoice'; number: string; dueAt: string; reference: string; invoicePath: string } | { kind: 'card-payment' | 'card-surcharge' | 'credit-note' | 'refund'; id: string; paymentPath: string })
 interface Statement { customer: string; from: string | null; to: string; dates: string; note: string; sections: { currency: 'USD' | 'AUD' | 'CAD'; openingCents: number; closingCents: number; entries: StatementEntry[] }[] }
 
-// PAY-007 / PAY-001: invoice, surcharge and unapplied card receipt figures match the CSV and PDF downloads.
+// Dated cash effects match the CSV and PDF downloads.
+const entryLabel = { 'card-surcharge': 'Card surcharge', 'card-payment': 'Card receipt', 'credit-note': 'Credit note', refund: 'Refund' }
 export function StatementCard({ accounts }: { accounts: Account[] }) {
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? '')
   const [from, setFrom] = useState('')
@@ -38,7 +39,7 @@ export function StatementCard({ accounts }: { accounts: Account[] }) {
         <thead><tr><th scope="col">Entry</th><th scope="col">Date</th><th scope="col">Due</th><th scope="col">Order</th><th scope="col">PO</th><th scope="col">Amount</th></tr></thead>
         <tbody>
           <tr><th scope="row">Opening balance</th><td colSpan={4} /><td>{money(section.openingCents, section.currency)}</td></tr>
-          {section.entries.map(line => <tr key={`${line.kind}:${line.kind === 'invoice' ? line.number : line.id}`}><th scope="row">{line.kind === 'invoice' ? <a href={line.invoicePath} download>{line.number}</a> : <a href={line.paymentPath}>{line.kind === 'card-surcharge' ? 'Card surcharge' : 'Unapplied card receipt'} {line.id}</a>}</th><td>{line.date}</td><td>{line.kind === 'invoice' ? line.dueAt : ''}</td><td><a href={line.orderPath}>{line.orderId}</a></td><td>{line.kind === 'invoice' ? line.reference : ''}</td><td>{money(line.amountCents, section.currency)}</td></tr>)}
+          {section.entries.map(line => <tr key={`${line.kind}:${line.kind === 'invoice' ? line.number : line.id}`}><th scope="row">{line.kind === 'invoice' ? <a href={line.invoicePath} download>{line.number}</a> : <a href={line.paymentPath}>{entryLabel[line.kind]} {line.id}</a>}</th><td>{line.date}</td><td>{line.kind === 'invoice' ? line.dueAt : ''}</td><td><a href={line.orderPath}>{line.orderId}</a></td><td>{line.kind === 'invoice' ? line.reference : ''}</td><td>{money(line.amountCents, section.currency)}</td></tr>)}
           <tr><th scope="row">Closing balance</th><td colSpan={4} /><td>{money(section.closingCents, section.currency)}</td></tr>
         </tbody></table></div>)}
       <Notice>{value.note}</Notice>
