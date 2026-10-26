@@ -260,7 +260,7 @@
       "executable": false
     },
     "docs/STOCK-SYNC.md": {
-      "sha256": "3190058da9a05a7d3fbfd5de53564829aac626237b0a0260e93353cea47d71c8",
+      "sha256": "bd1a88248de20c00ca726e64f282b7d09aa4c8df26a6c5943e3e323f4b356241",
       "executable": false
     },
     "docs/SUBSTITUTIONS.md": {
@@ -508,7 +508,7 @@
       "executable": false
     },
     "migrations/core/0053_stock_sync.sql": {
-      "sha256": "5764d4a6851cf229505106c04867f34b0d17d22ca7724067471245d90b681661",
+      "sha256": "7c691433416cb6ca58e6b50f0fdff764efb188aece6a9936d3b64381f7f2f2fe",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1520,7 +1520,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "4bd168f1eb50ea8effff8140d082e0cff988a17270fed19dfa6cb64c101abac5",
+      "sha256": "c488ad3dca07354823cc6bdf7853d7e68917f0930bdb47152fc7acac53b28a1e",
       "executable": false
     },
     "src/barrow/price-books.ts": {
@@ -1696,7 +1696,7 @@
       "executable": false
     },
     "src/barrow/stock-sync.ts": {
-      "sha256": "6a4e581511120391d151443b5a35acd626dfdd44729d5923c9444929f4afd896",
+      "sha256": "df4316b45030019282af41b8c059c0896bfb8fa5398433594140e30f957b266f",
       "executable": false
     },
     "src/barrow/stock-watch.ts": {

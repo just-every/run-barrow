@@ -14,7 +14,7 @@ export async function stockSyncCommand(env:Bindings,actor:Actor,type:string,p:an
   if(typeof p.enabled!=='boolean')fail('INPUT','Choose whether scheduled synchronization is enabled.',400)
   if(!env.PIER_ORIGIN||!env.PIER_SESSION)fail('PIER_UNAVAILABLE','Connect a real Pier installation first.',503)
   const id=crypto.randomUUID(),limit=integer(p.pageSize??100,'Events per page',1,100)
-  await commit(env.DB,actor,[env.DB.prepare(`INSERT INTO bw_stock_sync(singleton,consumer,origin,enabled,page_limit) VALUES(1,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET enabled=excluded.enabled,page_limit=excluded.page_limit WHERE origin=excluded.origin`).bind('barrow-'+id,env.PIER_ORIGIN,p.enabled?1:0,limit),audit(env.DB,actor,'stock-sync','stock.sync-settings',{revision:id,source:type,reason:p.enabled?'Owner enabled scheduled Pier stock observations.':'Owner disabled scheduled Pier stock observations.'})])
+  await commit(env.DB,actor,[env.DB.prepare(`INSERT INTO bw_stock_sync(singleton,consumer,origin,enabled,page_limit) VALUES(1,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET enabled=excluded.enabled,page_limit=excluded.page_limit,consumer=CASE WHEN bw_stock_sync.restored=1 THEN excluded.consumer ELSE bw_stock_sync.consumer END,restored=0 WHERE origin=excluded.origin`).bind('barrow-'+id,env.PIER_ORIGIN,p.enabled?1:0,limit),audit(env.DB,actor,'stock-sync','stock.sync-settings',{revision:id,source:type,reason:p.enabled?'Owner enabled scheduled Pier stock observations.':'Owner disabled scheduled Pier stock observations.'})])
  } else if(type==='stock.sync-reset') {
   if(p.confirm!=='RESET')fail('CONFIRM','Type RESET to restart source reconciliation.',400)
   const reason=text(p.reason,'Restart reason',1000)

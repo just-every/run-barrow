@@ -1,6 +1,6 @@
 CREATE TABLE bw_stock_sync (
  singleton INTEGER PRIMARY KEY CHECK(singleton=1), consumer TEXT NOT NULL, origin TEXT NOT NULL,
- enabled INTEGER NOT NULL DEFAULT 0, page_limit INTEGER NOT NULL DEFAULT 100, checkpoint TEXT, pending TEXT, lease_until INTEGER NOT NULL DEFAULT 0,
+ enabled INTEGER NOT NULL DEFAULT 0, restored INTEGER NOT NULL DEFAULT 0, page_limit INTEGER NOT NULL DEFAULT 100, checkpoint TEXT, pending TEXT, lease_until INTEGER NOT NULL DEFAULT 0,
  failures INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0, rate_until INTEGER NOT NULL DEFAULT 0, observed_at TEXT,
  processed INTEGER NOT NULL DEFAULT 0, has_more INTEGER NOT NULL DEFAULT 1,
  task_owner TEXT, task_status TEXT, task_reason TEXT, resolution TEXT
