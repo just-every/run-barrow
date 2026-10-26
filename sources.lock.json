@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "f467a32e02c3fd9d8a9e756b767cac4d3b3cf9a8a05d31b4897a4c0b2cd0ff4a",
+      "sha256": "af421e06e1dedfa58d90432828f8f223ee65d4c5aeea1ebdbdefed1cec5f86e2",
       "executable": false
     },
     ".gitignore": {
@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "1330d18f7629fdc04c6f9d544eb2dc727688a027bb715f8ee9afa6f32cb1bc6c",
+      "sha256": "fcd515ab69383b339834f6f76d8d410c2520fd20361ced717fc961cc51eaaf12",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "38a3a43c1ae74839588423c92338c0145414783df9535f9940d02b4c1e5195f5",
+      "sha256": "e3e1dcff68d968dc2d8210f5faa59e929625ebca4a4e9411b437b3318a645079",
       "executable": false
     },
     "DEMO.md": {
@@ -180,7 +180,7 @@
       "executable": false
     },
     "docs/CARD-PAYMENTS.md": {
-      "sha256": "aa15eba228276e99b7c94c49b63752c93f8a84b0ebba10e27b2d0cffb147ddfb",
+      "sha256": "d59053cc0fa2bacd47c8f7eab9b84ba5e2133c9b3cad13694da5b6848e0d47e0",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -4468,7 +4468,7 @@
       "executable": false
     },
     "tests/journeys/card-stripe-sandbox.mjs": {
-      "sha256": "9b69892087f89357cfe47b170a7cbf0da58d2c9a329c2c92f924a824e8691a96",
+      "sha256": "f7f695ba4b7dfde4e1e61857ea7dd17f68b3878ef192794fc3a1dab690f0fe1c",
       "executable": false
     },
     "tests/journeys/catalog-maintenance.test.mjs": {
@@ -4488,7 +4488,7 @@
       "executable": false
     },
     "tests/journeys/credit-payments.test.mjs": {
-      "sha256": "c4fc1144fede638aeaf31058ba60635168912603321b71e472b2b29beee5c202",
+      "sha256": "cec8c0461e22668440d5bd74df19acdea7845ebf808a5514114aa8f86c56c489",
       "executable": false
     },
     "tests/journeys/cutover.test.mjs": {
