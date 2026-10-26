@@ -1,3 +1,6 @@
+import { catalogMaintenanceResponse } from './catalog-maintenance-http'
+import { stockSyncState, stockSyncCommand } from './stock-sync'
+import { stockWatchCommand, readStockWatches } from './stock-watch'
 import { cardCommand,readCard,readCards } from './card-payments'
 import { cardSettings,cardConfiguration } from './card-settings'
 import { cardWebhook } from './card-webhook'
@@ -128,6 +131,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
+  const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
+  if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
+  if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/card-settings'&&request.method==='GET')return json(await cardSettings(env,actor))
   if(path==='/api/barrow/payments'&&request.method==='GET')return json(await readCards(env,actor,url.searchParams.get('orderId')??''))
   const cardPath=/^\/api\/barrow\/payments\/([-a-zA-Z0-9_]+)$/.exec(path)
@@ -317,6 +323,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['stock.sync','stock.sync-settings','stock.sync-resolve'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
+   if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
    if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
    if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})

@@ -40,6 +40,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put('DELETE FROM bw_usage_acceptances WHERE user_id=?',id)
   put("UPDATE bw_company_delegations SET state='ended' WHERE delegator_id=? OR delegate_id=?",id,id)
   put('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?',id,id)
+  for(const table of ['bw_stock_watches','bw_stock_notices'])put(`DELETE FROM ${table} WHERE user_id=?`,id)
   put("DELETE FROM rer_mail_event_receipts WHERE event_namespace='quotes' AND json_extract(event_json,'$.providerMessageId') IN (SELECT provider_message_id FROM bw_quote_mail WHERE recipient_id=?)",id)
   put("DELETE FROM rer_mail_event_states WHERE event_namespace='quotes' AND provider_message_id IN (SELECT provider_message_id FROM bw_quote_mail WHERE recipient_id=?)",id)
   put("UPDATE bw_quote_mail SET recipient=NULL,summary='[Erased notice]',submission_json=NULL,sender_result_json=NULL,restored=1 WHERE recipient_id=?",id)

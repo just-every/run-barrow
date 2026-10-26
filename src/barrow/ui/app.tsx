@@ -1,3 +1,6 @@
+import { CatalogMaintenance } from './catalog-maintenance'
+import { StockSync } from './stock-sync'
+import { StockAlerts } from './stock-alerts'
 import { CardSettings } from './card-settings'
 import { ProfileWorkspace, ProfileConfiguration } from './profile-workspace'
 import { DeltaCutoverReview } from './delta-cutover'
@@ -189,10 +192,12 @@ export function BarrowApp() {
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
-          {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><WizCommerceMoveIn reload={reload} /><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} /></>}
+          {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><WizCommerceMoveIn reload={reload} /><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} />{legacySupplier&&<CatalogMaintenance />}</>}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}
+          {activeTab === 'Data' && legacySupplier && <StockSync />}
+          {activeTab === pad && !supplier && selected && <StockAlerts accountId={selected.id} skus={selected.value.prices.map(price=>price.sku)} />}
           {activeTab === 'Data' && legacySupplier && <ProfileConfiguration accounts={state.accounts} version={state}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <details className="br-details"><summary>Payment settings</summary><CardSettings /></details>}
           {activeTab === 'Data' && supplier && <DataTools owner={state.actor.role==='owner'} accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}

@@ -74,3 +74,26 @@ test('STK-002 / PRI-007: Pier stock by warehouse and incoming promise dates, acc
  assert.equal((await cut.api('/api/barrow/catalogue?accountId=cedar', undefined, { status: 503 })).error.code, 'PIER_UNAVAILABLE');
  assert.equal((await cut.command('order.prepare', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 1 }] }, { status: 503 })).error.code, 'PIER_UNAVAILABLE');
 });
+
+test('scheduled stock synchronization resumes an interrupted ACK, sends one requested private notice on replay, and retains an owned persistent exception',async t=>{
+ const {syncFixture}=await import('./stock-sync-fixture.mjs');
+ const f=await syncFixture(t),{h,buyer}=f;
+ await f.ready();
+ await h.command('stock.watch',{accountId:f.account.id,sku:'OAT-1'},buyer);
+ assert.equal((await f.read()).notices.length,0);
+ const before=(await h.api('/api/barrow/stock-sync')).sync;
+ await f.restock();f.interruptAck();
+ const interrupted=await f.sync();assert.equal(interrupted.checkpoint,before.checkpoint);assert.ok(interrupted.pending);assert.equal((await f.read()).notices.length,1);
+ const replay1=await f.pier.api('/api/pier/stock-changes?'+new URLSearchParams({consumer:interrupted.consumer,limit:'2',checkpoint:interrupted.checkpoint}));
+ const replay2=await f.pier.api('/api/pier/stock-changes?'+new URLSearchParams({consumer:interrupted.consumer,limit:'2',checkpoint:interrupted.checkpoint}));
+ assert.deepEqual(replay1.events.map(row=>row.eventId),replay2.events.map(row=>row.eventId));
+ const resumed=await f.sync();assert.equal(resumed.failures,0);assert.equal(resumed.pending,null);assert.equal(resumed.has_more,0);assert.equal((await f.read()).notices.length,1);
+ assert.equal((await f.read()).watches[0].active,0);
+ await h.command('stock.sync',{}, {...buyer,status:403});
+ const other={as:await h.signIn('synthetic-barrow-902@example.test')};
+ await h.api('/api/barrow/stock-watches?accountId='+f.account.id,undefined,{...other,status:404});
+ f.failure(true);for(let n=0;n<3;n++)await f.sync();
+ const failed=(await h.api('/api/barrow/stock-sync')).sync;assert.equal(failed.task_status,'open');assert.equal(failed.task_owner,(await h.api('/api/barrow/state')).actor.id);
+ f.failure(false);const recovered=await f.sync();assert.equal(recovered.task_status,'open');assert.equal(recovered.task_owner,failed.task_owner);
+ const closed=await h.command('stock.sync-resolve',{reason:'Owner reconnected Pier and checked the completed reconciliation.'});assert.equal(closed.sync.task_status,'closed');assert.ok(closed.sync.resolution);
+});

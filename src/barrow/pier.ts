@@ -21,8 +21,8 @@ function origin(env: Bindings) {
  if(url.origin!==env.PIER_ORIGIN || url.username || url.password || (url.protocol!=='https:' && !(env.AUTH_LOCAL==='true' && url.protocol==='http:' && ['127.0.0.1','localhost','[::1]'].includes(url.hostname)))) fail('PIER_UNAVAILABLE','Pier requires an HTTPS origin (loopback is allowed locally).',503)
  return url.origin
 }
-async function call(env: Bindings,path: string,body?: unknown) {
- await observePierConfiguration(env)
+async function call(env: Bindings,path: string,body?: unknown,observe=true) {
+ if(observe)await observePierConfiguration(env)
  const base=origin(env)
  let response: Response
  try { response=await fetch(base+path,{method:body?'POST':'GET',redirect:'manual',signal:AbortSignal.timeout(12000),headers:{cookie:env.PIER_SESSION!,origin:base,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})}) }
@@ -121,3 +121,8 @@ export const releaseOrder = (env: Bindings,order: Order) => demoEffect(() => cal
 export function released(result: any) {
  return Array.isArray(result?.lines) && result.lines.length>0 && result.lines.every((l:any)=>decimal(l.reserved)===0n && decimal(l.cancelled)+decimal(l.dispatched)===decimal(l.quantity))
 }
+
+export const pierStockPage=(env:Bindings,consumer:string,checkpoint:string|null,limit=100)=>call(env,'/api/pier/stock-changes?'+new URLSearchParams({consumer,limit:String(limit),...(checkpoint?{checkpoint}:{})}))
+export const acknowledgePierStock=(env:Bindings,consumer:string,checkpoint:string)=>call(env,'/api/pier/stock-changes/ack',{consumer,checkpoint})
+
+export const pierReadOnlyState=(env:Bindings)=>demoEffect(()=>call(env,'/api/pier/state',undefined,false),demoPierState)

@@ -190,3 +190,44 @@ test('owner rehearses and reconciles a source delta, signs scoped authority and 
  assert.ok((await h.api('/api/barrow/export.json')).deltafeeds.filter(row=>row.session_id===id).every(row=>row.snapshot_json==='{}'));
  assert.ok((await h.api('/api/barrow/export.json')).deltasources.filter(row=>row.session_id===id).every(row=>row.source_json==='{}'&&row.report_json==='{}'));
 });
+
+test('CAT-009: owner previews a real catalog workbook, corrects duplicate barcodes and broken media, applies the approved fingerprint and exports stable source identities',async t=>{
+ const {unzipSync,zipSync,strToU8,strFromU8}=await import('fflate');
+ const {withExif,imageSha}=await import('../fixtures/confirmation-image.mjs');
+ const pier=await installation({pier:true});t.after(()=>pier.close());const products=await stock(pier);
+ const rye=await pier.command('item.save',{sku:'RYE-1',name:'Rye crisps',barcode:'synthetic-barrow-2',unit:'case',packSize:'1'});
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
+ let attrs=await h.command('variant.attributes',{revision:null,variants:[{sku:'OAT-1',style:'Pantry',color:'Natural',size:'Case'}]});
+ await h.command('variant.image',{revision:attrs.revision,sku:'OAT-1',contentBase64:withExif.toString('base64')});
+ const path='/api/barrow/catalog-maintenance';
+ const exported=await h.request(path+'/export.xlsx');assert.equal(exported.status,200);const bytes=Buffer.from(await exported.arrayBuffer());
+ const escape=value=>value.replace(/[<>&"']/g,char=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[char]));
+ const workbook=updates=>{
+  const entries=unzipSync(bytes);let xml=strFromU8(entries['xl/worksheets/sheet1.xml']);
+  for(const [cell,value]of Object.entries(updates))xml=xml.replace(new RegExp(`<c r="${cell}"[^>]*>[\\s\\S]*?</c>`),`<c r="${cell}" t="inlineStr"><is><t>${escape(value)}</t></is></c>`);
+  entries['xl/worksheets/sheet1.xml']=strToU8(xml);return {name:'synthetic-barrow-9.xlsx',base64:Buffer.from(zipSync(entries)).toString('base64')};
+ };
+ const fields={B2:'oat-case',C2:'Pantry',D2:'Natural',E2:'Case',F2:'{"material":"oats"}',G2:'Food|Pantry',H2:'Spring',I2:imageSha,B3:'rye-case',C3:'Pantry',D3:'Natural',E3:'Case',I3:'',J3:'listed'};
+ const invalid={workbook:workbook({...fields,L2:rye.barcode,I2:'f'.repeat(64)})};
+ const effects=async()=>({settings:(await h.db.prepare('SELECT * FROM bw_settings ORDER BY key').all()).results,audit:(await h.db.prepare('SELECT * FROM bw_audit ORDER BY rowid').all()).results,connectors:(await h.db.prepare('SELECT * FROM bw_connector_config').all()).results,accounts:(await h.db.prepare('SELECT * FROM bw_accounts').all()).results,orders:(await h.db.prepare('SELECT * FROM bw_orders').all()).results,pier:await pier.api('/api/pier/state'),mail:h.mail.deliveries.length});
+ const before=await effects(),bad=await h.api(path+'/preview',invalid);
+ assert.equal(bad.canApply,false);assert.ok(bad.issues.some(issue=>issue.code==='DUPLICATE_BARCODE'));assert.ok(bad.issues.some(issue=>issue.code==='BROKEN_MEDIA'));assert.ok(bad.issues.some(issue=>issue.code==='SOURCE_OWNED'&&issue.sourceRoute===pier.origin+'/app'));
+ await h.api(path+'/apply',{...invalid,fingerprint:bad.fingerprint,reason:'Invalid source must not apply.',approveRemoved:true},{status:400});assert.deepEqual(await effects(),before);
+ const corrected={workbook:workbook({...fields,L2:''})},review=await h.api(path+'/preview',corrected);
+ assert.equal(review.canApply,true);assert.deepEqual(review.issues,[]);assert.deepEqual(review.reconciliation.source,review.reconciliation.planned);assert.equal(review.reconciliation.planned.mediaReferences,1);assert.equal(review.reconciliation.planned.assortmentAssignments,1);assert.ok(review.reconciliation.missingSourceEntities.some(row=>row.kind==='balances'));assert.deepEqual(await effects(),before);
+ const rename=await h.api(path+'/preview',{workbook:workbook({...fields,K2:'Renamed outside Pier'})});assert.ok(rename.issues.some(issue=>issue.field==='name'&&issue.code==='SOURCE_OWNED'));
+ await h.api(path+'/apply',{...corrected,fingerprint:bad.fingerprint,reason:'Stale fingerprint refused.',approveRemoved:false},{status:409});
+ const applied=await h.api(path+'/apply',{...corrected,fingerprint:review.fingerprint,reason:'Owner reviewed exact source keys, existing image and Spring assortment.',approveRemoved:false});
+ assert.equal(applied.fingerprint,review.fingerprint);
+ const data=await h.api(path+'/export.json'),oat=data.listings.find(row=>row.sku==='OAT-1');assert.equal(oat.sourceItemId,products.item.id);assert.equal(oat.variantKey,'oat-case');assert.deepEqual(oat.attributes,{material:'oats'});assert.deepEqual(oat.categories,['Food','Pantry']);assert.deepEqual(oat.assortments,['Spring']);assert.equal(oat.mediaSha256,imageSha);assert.equal(data.manifest.listings,2);
+ const csv=await (await h.request(path+'/export.csv')).text();assert.ok(csv.includes('oat-case'));assert.ok(csv.includes(imageSha));
+ const roundTrip=await h.request(path+'/export.xlsx');assert.equal(roundTrip.status,200);const again=await h.api(path+'/preview',{workbook:{name:'synthetic-barrow-10.xlsx',base64:Buffer.from(await roundTrip.arrayBuffer()).toString('base64')}});assert.equal(again.canApply,true);assert.equal(again.rows.find(row=>row.sku==='OAT-1').sourceItemId,products.item.id);
+ const approval=(await h.api('/api/barrow/audit')).events.find(row=>row.action==='import.approved'&&row.source==='catalog-maintenance.apply');assert.ok(approval);const recorded=JSON.parse(approval.reason);assert.equal(recorded.fingerprint,review.fingerprint);assert.deepEqual(recorded.reconciliation,review.reconciliation);assert.equal(recorded.approvedBy,(await h.api('/api/barrow/state')).actor.id);
+ const removed={workbook:workbook({...fields,L2:'',I2:'',J2:'removed'})},removal=await h.api(path+'/preview',removed);assert.deepEqual(removal.reconciliation.removedListings,['OAT-1']);
+ await h.api(path+'/apply',{...removed,fingerprint:removal.fingerprint,reason:'Review removal separately.',approveRemoved:false},{status:400});
+ await h.api(path+'/apply',{...removed,fingerprint:removal.fingerprint,reason:'Explicitly remove the Oat listing, keeping its source identity.',approveRemoved:true});assert.equal((await h.api(path+'/export.json')).listings.find(row=>row.sku==='OAT-1').listing,'removed');
+ await h.command('account.save',{id:'cedar',value:accountValue(products.customer.id)});const buyer={as:await h.signIn('synthetic-barrow-11@example.test')};
+ const credential=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${credential.token}`}};
+ for(const who of [buyer,agent])for(const [url,body]of [[path,undefined],[path+'/export.json',undefined],[path+'/preview',corrected],[path+'/apply',{...corrected,fingerprint:review.fingerprint,reason:'No supplier authority.'}]])await h.api(url,body,{...who,status:403});
+ assert.deepEqual((await pier.api('/api/pier/state')).items,before.pier.items);assert.deepEqual((await pier.api('/api/pier/state')).positions,before.pier.positions);
+});

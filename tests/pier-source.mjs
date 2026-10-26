@@ -1,7 +1,7 @@
 import { access,mkdir,readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
-export const pierCommit='dcd4c5916a96b3237eafbec6abd6591df5c75dcd';
+export const pierCommit='60fde60ffa1f44c2ae6a3ef47225117f36cf546a';
 export async function pierSource() {
  // A fleet cloud may read other repositories only through the GitHub API.
  // Its pinned tarball has the same immutable source, without another Git clone.

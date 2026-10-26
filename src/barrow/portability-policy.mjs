@@ -2,6 +2,8 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_stock_sync')return {...row,enabled:0,lease_until:0};
+  if(table==='bw_stock_watches')return {...row,active:0};
   if(table==='bw_card_payments')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true,checkoutUrl:undefined,actionUrl:undefined})};
   if(table==='bw_delta_cutovers')return {...row,...(['rehearsal','signedoff'].includes(row.state)?{state:'inactive'}:{}),io_token:null,io_until:0};
   if(table==='bw_cutover_imports'&&row.state==='active')return {...row,state:'undone'}; // Restored cutover evidence is retained history, never an activation.

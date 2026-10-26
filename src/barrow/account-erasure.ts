@@ -98,6 +98,7 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
    ...['oa_sessions','oa_tokens','oa_credentials','oa_step_up_challenges','oa_external_identities','oa_owner_signins'].map(table=>sql(`DELETE FROM ${table} WHERE operator_id=?`,uid)),
    sql('DELETE FROM bw_agent_tokens WHERE actor_id=?',uid),
    sql('DELETE FROM bw_profile_approvals WHERE user_id=?',uid),
+   ...['bw_stock_watches','bw_stock_notices'].map(table=>sql(`DELETE FROM ${table} WHERE user_id=?`,uid)),
    sql("UPDATE oa_operators SET status='inactive' WHERE id=? AND role='member'",uid),
    sql("UPDATE bw_company_members SET state='removed',revision=?,updated_at=? WHERE user_id=?",op.id,at,uid),
    sql('DELETE FROM bw_company_invites WHERE member_id IN (SELECT id FROM bw_company_members WHERE user_id=?) OR email_key=?',uid,person.email),

@@ -17,11 +17,13 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
+ stockwatches:['id','account_id','user_id','sku','active','created_at'],
+ stocknotices:['id','watch_id','account_id','user_id','sku','event_id','created_at'],
  cardpayments:['id','revision','accountId','orderId','currency','amountCents','surchargeCents','state','providerAccountId','providerPaymentId','createdAt','updatedAt','latestFinancialAt','capturedAt'],
  cardevents:['id','paymentId','createdAt','type','providerPaymentId','state','amountCents','currency','verifiedAt'],
  sourcehistory:['id','system','tenant','source_id','document_type','account_id','value_json','content_hash','import_id'],
@@ -94,7 +96,8 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const profileRecords = await buyingProfileExport(env.DB, actor, ids, financeOnly)
  const cardRows=(await env.DB.prepare('SELECT value_json,revision FROM bw_card_payments').all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})).filter(row=>ids.includes(row.accountId))
  const cardIds=new Set(cardRows.map(row=>row.id)),cardEvents=(await env.DB.prepare('SELECT * FROM bw_card_events').all<{id:string;payment_id:string;created_at:string;value_json:string}>()).results.filter(row=>cardIds.has(row.payment_id))
- const records = {
+ const stockRecords=actor.role==='owner'||actor.role==='admin'?{stockwatches:(await env.DB.prepare('SELECT * FROM bw_stock_watches ORDER BY id').all<any>()).results,stocknotices:(await env.DB.prepare('SELECT * FROM bw_stock_notices ORDER BY id').all<any>()).results}:{}
+ const records = { ...stockRecords,
   cardpayments:cardRows.map(row=>Object.fromEntries(columns.cardpayments.map(key=>[key,row[key]??'']))),
   cardevents:cardEvents.map(row=>({id:row.id,paymentId:row.payment_id,createdAt:row.created_at,...JSON.parse(row.value_json)})),
   ...profileRecords,
