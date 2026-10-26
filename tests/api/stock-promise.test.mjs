@@ -89,6 +89,12 @@ test('scheduled stock synchronization resumes an interrupted ACK, sends one requ
  assert.deepEqual(replay1.events.map(row=>row.eventId),replay2.events.map(row=>row.eventId));
  const resumed=await f.sync();assert.equal(resumed.failures,0);assert.equal(resumed.pending,null);assert.equal(resumed.has_more,0);assert.equal((await f.read()).notices.length,1);
  assert.equal((await f.read()).watches[0].active,0);
+ await h.command('stock.watch',{accountId:f.account.id,sku:'OAT-1',kind:'prebook'},buyer);
+ const at=Date.now();
+ await h.command('stock.window',{sku:'OAT-1',opensAt:new Date(at+3600000).toISOString(),closesAt:new Date(at+7200000).toISOString(),reason:'Owner scheduled the next prebook notice window.'});
+ await f.sync();assert.equal((await f.read()).notices.filter(row=>row.kind==='prebook').length,0);
+ await h.command('stock.window',{sku:'OAT-1',opensAt:new Date(at-3600000).toISOString(),closesAt:new Date(at+3600000).toISOString(),reason:'Owner opened the current prebook window.'});
+ await f.sync();await f.sync();assert.equal((await f.read()).notices.filter(row=>row.kind==='prebook').length,1);
  await h.command('stock.sync',{}, {...buyer,status:403});
  const other={as:await h.signIn('synthetic-barrow-902@example.test')};
  await h.api('/api/barrow/stock-watches?accountId='+f.account.id,undefined,{...other,status:404});

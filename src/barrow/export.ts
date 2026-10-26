@@ -22,8 +22,8 @@ type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
- stockwatches:['id','account_id','user_id','sku','active','created_at'],
- stocknotices:['id','watch_id','account_id','user_id','sku','event_id','created_at'],
+ stockwatches:['id','account_id','user_id','sku','kind','active','created_at'],
+ stocknotices:['id','watch_id','account_id','user_id','sku','kind','event_id','created_at'],
  cardpayments:['id','revision','accountId','orderId','currency','amountCents','surchargeCents','state','providerAccountId','providerPaymentId','createdAt','updatedAt','latestFinancialAt','capturedAt'],
  cardevents:['id','paymentId','createdAt','type','providerPaymentId','state','amountCents','currency','verifiedAt'],
  sourcehistory:['id','system','tenant','source_id','document_type','account_id','value_json','content_hash','import_id'],

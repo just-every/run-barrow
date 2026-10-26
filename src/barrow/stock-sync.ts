@@ -1,3 +1,4 @@
+import { prebookNoticeStatements, saveStockWindow } from './stock-windows'
 import type { Bindings } from '../auth.server'
 import { audit, commit } from './access'
 import { now } from './clock'
@@ -8,7 +9,8 @@ const authorize=(actor:Actor)=>{if(actor.agent||!['owner','admin'].includes(acto
 export async function stockSyncState(env:Bindings,actor:Actor) {authorize(actor);return {sync:await env.DB.prepare('SELECT consumer,origin,enabled,page_limit,checkpoint,pending,failures,next_at,observed_at,processed,has_more,task_owner,task_status,task_reason,resolution FROM bw_stock_sync WHERE singleton=1').first()}}
 export async function stockSyncCommand(env:Bindings,actor:Actor,type:string,p:any) {
  authorize(actor)
- if(type==='stock.sync-settings') {
+ if(type==='stock.window') { await saveStockWindow(env,actor,p) }
+ else if(type==='stock.sync-settings') {
   if(typeof p.enabled!=='boolean')fail('INPUT','Choose whether scheduled synchronization is enabled.',400)
   if(!env.PIER_ORIGIN||!env.PIER_SESSION)fail('PIER_UNAVAILABLE','Connect a real Pier installation first.',503)
   const id=crypto.randomUUID(),limit=integer(p.pageSize??100,'Events per page',1,100)
@@ -23,7 +25,7 @@ export async function stockSyncCommand(env:Bindings,actor:Actor,type:string,p:an
 export async function runStockSync(env:Bindings,pages=10,manual=false) {
  if(env.RER_DEMO==='1')return
  const db=env.DB,at=(await now()).getTime(),lease=at+120000
- const claimed=await db.prepare('UPDATE bw_stock_sync SET lease_until=? WHERE singleton=1 AND enabled=1 AND lease_until<=? AND next_at<=? RETURNING *').bind(lease,at,at+(manual?59000:0)).first<any>()
+ const claimed=await db.prepare('UPDATE bw_stock_sync SET lease_until=? WHERE singleton=1 AND enabled=1 AND lease_until<=? AND next_at<=? AND rate_until<=? RETURNING *').bind(lease,at,at+(manual?59000:0),at).first<any>()
  if(!claimed)return
  try {
   if(claimed.origin!==env.PIER_ORIGIN)fail('PIER_CHANGED','The Pier origin changed. Restore the original connection before resuming.',409)
@@ -51,12 +53,12 @@ export async function runStockSync(env:Bindings,pages=10,manual=false) {
    await acknowledgePierStock(env,claimed.consumer,pending)
    await db.prepare('UPDATE bw_stock_sync SET checkpoint=?,pending=NULL,failures=0 WHERE singleton=1 AND lease_until=?').bind(pending,lease).run()
    checkpoint=pending;pending=null
-   if(!page.hasMore)break
+   if(!page.hasMore){await db.batch(await prebookNoticeStatements(env));break}
   }
   await db.prepare('UPDATE bw_stock_sync SET lease_until=0,next_at=? WHERE singleton=1 AND lease_until=?').bind(at+60000,lease).run()
- } catch {
+ } catch(error:any) {
   // No source detail, credential, or raw transport response is retained in this operator task.
   const owner=await db.prepare("SELECT id FROM oa_operators WHERE status='active' AND role='owner' ORDER BY created_at,id LIMIT 1").first<{id:string}>()
-  await db.prepare(`UPDATE bw_stock_sync SET failures=failures+1,lease_until=0,next_at=?,task_owner=CASE WHEN failures>=2 THEN COALESCE(task_owner,?) ELSE task_owner END,task_status=CASE WHEN failures>=2 THEN 'open' ELSE task_status END,task_reason=CASE WHEN failures>=2 THEN 'Pier synchronization repeatedly failed; reconnect and reconcile before resolving.' ELSE task_reason END WHERE singleton=1 AND lease_until=?`).bind(at+60000,owner?.id??null,lease).run()
+  await db.prepare(`UPDATE bw_stock_sync SET failures=failures+1,lease_until=0,next_at=?,rate_until=?,task_owner=CASE WHEN failures>=2 THEN COALESCE(task_owner,?) ELSE task_owner END,task_status=CASE WHEN failures>=2 THEN 'open' ELSE task_status END,task_reason=CASE WHEN failures>=2 THEN 'Pier synchronization repeatedly failed; reconnect and reconcile before resolving.' ELSE task_reason END WHERE singleton=1 AND lease_until=?`).bind(Math.max(at+60000,Number(error?.retryAt)||0),Number(error?.retryAt)||0,owner?.id??null,lease).run()
  }
 }
