@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f08a6ae1c2edd19d6cd71ab9e2b9a7e712d4c04361af65b3d71c1756830c379c",
+      "sha256": "62839013c03fa538fe4d2c95e1b3e47f73d7af97113e14b8052cfe9fa5cf52d1",
       "executable": false
     },
     "DEMO.md": {
@@ -1180,7 +1180,7 @@
       "executable": false
     },
     "src/barrow/card-provider.ts": {
-      "sha256": "b4652b1ebab1173c511ec7ac44cc69dfb7cae4e89619af41054654c4b739bca0",
+      "sha256": "94b9d571e22e8be866edd0553860a96cb2322f6342325920522d25c2a7020403",
       "executable": false
     },
     "src/barrow/card-review.ts": {
@@ -1312,7 +1312,7 @@
       "executable": false
     },
     "src/barrow/credit-refunds.ts": {
-      "sha256": "49eaf8ab3a92349c0dbbe4ebea79cb1b97f3d5006fd2774d060fd5a4b82d1252",
+      "sha256": "62e34852b34e059a10099318792d3ec3e7ab987411f7d22fa6e3888948fff42f",
       "executable": false
     },
     "src/barrow/credit-retention.ts": {

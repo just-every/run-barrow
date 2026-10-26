@@ -7,7 +7,7 @@ import { provider } from './card-provider'
 import { cardInstallation } from './card-installation'
 import { creditAccess } from './credit-notes'
 import { creditAvailable,creditRecords,financialGuard,storedCredit,storedRefund } from './credit-ledger'
-import { fail,integer,text,requirePerson,type Actor } from './model'
+import { fail,integer,text,requirePerson,Problem,type Actor } from './model'
 import type { CreditRefund } from './credit-model'
 
 export async function readRefund(env:Bindings,actor:Actor,id:string) {
@@ -60,6 +60,13 @@ export async function refundCommand(env:Bindings,actor:Actor,type:string,p:any) 
   value={id,creditId:credit.id,accountId:credit.accountId,orderId:credit.orderId,paymentId:payment.id,providerPaymentId:payment.providerPaymentId,providerAccountId:payment.providerAccountId,installationId,livemode:!!payment.livemode,currency:credit.currency,amountCents,status:'requested',createdAt:at,updatedAt:at,latestFinancialAt:at,actorId:actor.id,reason,revision}
   await commit(env.DB,actor,[...guards,env.DB.prepare('UPDATE bw_credit_notes SET revision=? WHERE id=? AND revision=?').bind(crypto.randomUUID(),credit.id,credit.revision),changed(env.DB),env.DB.prepare('INSERT INTO bw_credit_refunds VALUES(?,?,?,?,?,?)').bind(id,credit.accountId,credit.orderId,credit.id,JSON.stringify(value),revision),audit(env.DB,actor,id,'refund.requested',{accountId:credit.accountId,orderId:credit.orderId,revision,source:credit.id,reason})])
  }
- const result=await stripe.call('/refunds',{payment_intent:value.providerPaymentId,amount:String(value.amountCents),'metadata[barrowRefundId]':id,'metadata[barrowInstallationId]':installationId,'metadata[barrowCreditId]':credit.id},`barrow-refund-${installationId}-${id}`)
+ let result:any
+ try {result=await stripe.call('/refunds',{payment_intent:value.providerPaymentId,amount:String(value.amountCents),'metadata[barrowRefundId]':id,'metadata[barrowInstallationId]':installationId,'metadata[barrowCreditId]':credit.id},`barrow-refund-${installationId}-${id}`)}
+ catch(error) {
+  if(!(error instanceof Problem)||error.code!=='STRIPE_REFUSED')throw error
+  const at=new Date().toISOString(),revision=crypto.randomUUID(),after:CreditRefund={...value,status:'failed',updatedAt:at,latestFinancialAt:at,revision}
+  await commit(env.DB,actor,[env.DB.prepare('UPDATE bw_credit_refunds SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(after),revision,id,value.revision),changed(env.DB),audit(env.DB,actor,id,'refund.failed',{accountId:value.accountId,orderId:value.orderId,revision,source:'stripe.authenticated-refusal',reason:'Stripe explicitly refused to create the approved refund; no returned funds are recorded.'})])
+  return after
+ }
  return reconcileRefund(env,id,result,undefined,actor.id)
 }
