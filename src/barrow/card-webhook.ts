@@ -24,7 +24,7 @@ export async function cardWebhook(request:Request,env:Bindings) {
   const object=event.data?.object,id=object?.metadata?.barrowRefundId
   if(typeof id!=='string')return Response.json({received:true})
   const row=await env.DB.prepare('SELECT value_json FROM bw_credit_refunds WHERE id=?').bind(id).first<{value_json:string}>()
-  if(!row||JSON.parse(row.value_json).installationId!==object.metadata?.barrowInstallationId)return Response.json({received:true})
+  if(!row||JSON.parse(row.value_json).installationId!==object.metadata?.barrowInstallationId||JSON.parse(row.value_json).providerAccountId!==config.account_id||JSON.parse(row.value_json).livemode!==!!config.livemode)return Response.json({received:true})
   const stripe=await provider(env,config),refund=await stripe.call(`/refunds/${encodeURIComponent(object.id)}`)
   await reconcileRefund(env,id,refund,{id:event.id,type:event.type,created:event.created})
   return Response.json({received:true})

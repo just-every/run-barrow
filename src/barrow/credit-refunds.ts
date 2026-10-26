@@ -16,7 +16,7 @@ export async function readRefund(env:Bindings,actor:Actor,id:string) {
 /** Authenticated provider reads, never browser callbacks, establish refund effects. */
 export async function reconcileRefund(env:Bindings,id:string,result:any,event?:{id:string;type:string;created:number},actorId='system:stripe') {
  const before=await storedRefund(env.DB,id)
- if(result.metadata?.barrowRefundId!==id||result.metadata?.barrowInstallationId!==before.installationId||result.livemode!==before.livemode||result.payment_intent!==before.providerPaymentId||result.amount!==before.amountCents||result.currency!==before.currency.toLowerCase()||before.providerRefundId&&before.providerRefundId!==result.id)fail('STRIPE_MISMATCH','Stripe refund does not match the approved credit, receipt, amount and currency.',409)
+ if(result.metadata?.barrowRefundId!==id||result.metadata?.barrowInstallationId!==before.installationId||result.payment_intent!==before.providerPaymentId||result.amount!==before.amountCents||result.currency!==before.currency.toLowerCase()||before.providerRefundId&&before.providerRefundId!==result.id)fail('STRIPE_MISMATCH','Stripe refund does not match the approved credit, receipt, amount and currency.',409)
  const statuses:Record<string,CreditRefund['status']>={pending:'pending',requires_action:'pending',succeeded:'succeeded',failed:'failed',canceled:'cancelled'},status=statuses[result.status]
  if(!status)fail('STRIPE_STATE','Stripe has not confirmed a supported refund state.',409)
  if(before.status==='succeeded'&&status!=='succeeded')fail('STRIPE_STATE','A completed refund cannot be reversed by an older callback.',409)
@@ -35,7 +35,7 @@ export async function refundCommand(env:Bindings,actor:Actor,type:string,p:any) 
   if(value.restored)fail('RESTORED','Restored refund history cannot initiate provider operations.',409)
   if(!value.providerRefundId)fail('REFUND_UNCERTAIN','Retry the same approved refund request to reconcile its stable Stripe idempotency key.',409)
   const stripe=await provider(env)
-  if(stripe.config.account_id!==value.providerAccountId)fail('STRIPE_MISMATCH','This refund belongs to another Stripe merchant.',409)
+  if(stripe.config.account_id!==value.providerAccountId||!!stripe.config.livemode!==value.livemode)fail('STRIPE_MISMATCH','This refund belongs to another Stripe merchant.',409)
   return reconcileRefund(env,value.id,await stripe.call(`/refunds/${encodeURIComponent(value.providerRefundId)}`),undefined,actor.id)
  }
  const credit=await storedCredit(env.DB,text(p.creditId,'Credit note')),payment=(await storedCard(env,text(p.paymentId,'Captured payment'))).value
