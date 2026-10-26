@@ -139,7 +139,8 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
   const refundKey = JSON.stringify([credit?.id, credit?.revision, payment?.id, payment?.updatedAt, amountCents])
   const lines = Object.entries(quantities).filter(([, quantity]) => quantity !== '' && Number(quantity) !== 0).map(([line, quantity]) => ({ line: Number(line), quantity: Number(quantity),...(kind==='price-correction'?{amountCents:cents(priceCredits[Number(line)]??'')}:{}) }))
   const invalidLines = !lines.length || lines.some(line => !Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > order.lines[line.line - 1].quantity)
-  const invalid = disabled || !reason.trim() || (action === 'issue' ? (kind==='return'?!returnId.trim():kind==='price-correction'?!sourceReference.trim():false) || invalidLines || kind==='price-correction'&&lines.some(line=>!line.amountCents)
+  const invalidFreight=freight!==''&&(!/^\d+(?:\.\d{1,2})?$/.test(freight)||cents(freight)===0&&Number(freight)!==0)
+  const invalid = disabled || !reason.trim() || (action === 'issue' ? (kind==='return'?!returnId.trim():kind==='price-correction'?!sourceReference.trim():false) || invalidLines || invalidFreight || kind==='price-correction'&&lines.some(line=>!line.amountCents)
     : amountCents <= 0 || amountCents > maximum || (action === 'allocate' ? !payment : action === 'apply' ? !credit : !credit || !payment || consentKey !== refundKey))
 
   useEffect(() => { setConsentKey('') }, [credit?.revision, payment?.updatedAt, disabled])

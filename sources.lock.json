@@ -1892,7 +1892,7 @@
       "executable": false
     },
     "src/barrow/ui/credit-panel.tsx": {
-      "sha256": "8dc5405cb557d421e18fdee717c5f1ca61275b6f157fbdbfa84026b278f414ce",
+      "sha256": "7cb8e831d14c613d49af8810902272cc69c3736665a1fc186ebfc54d04885c15",
       "executable": false
     },
     "src/barrow/ui/current-rep.tsx": {
