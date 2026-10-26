@@ -4212,7 +4212,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "eb9872af79e9d822363f1a5e3849ede79aab52e368e31350c94f50571e26e227",
+      "sha256": "9e56e83cf6ebab85ec0d645ab8c9b2629566b24d9d3f6a7c270e03ef9f9ff617",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
@@ -4352,7 +4352,7 @@
       "executable": false
     },
     "tests/api/validation.test.mjs": {
-      "sha256": "fc1ce6ed8b2c31727d4a2354fe9d34a59e590b8ff4ddf7c6394785275949613c",
+      "sha256": "6fad5b69489dd13c96b3a615fd167ba59a1c10080c232fe092769e8883eb4627",
       "executable": false
     },
     "tests/api/webhook-fixture.mjs": {
