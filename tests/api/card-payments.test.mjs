@@ -76,7 +76,7 @@ test('hosted verification failure creates an unpaid owned exception and owner ca
 test('two installations under one Stripe merchant keep customer, checkout, idempotency and signed event effects separate',async t=>{
  const edge=cardEdge(),first=await cardFixture(t,{edge}),second=await cardFixture(t,{edge});
  const a=(await first.prepared()).payment,b=(await second.prepared()).payment;
- assert.equal(a.id,b.id);assert.notEqual(a.installationId,b.installationId);assert.notEqual(a.providerCustomerId,b.providerCustomerId);assert.equal(edge.sessions.size,2);
+ assert.equal(a.id,b.id);assert.notEqual(a.installationId,b.installationId);assert.equal('providerCustomerId' in a,false);assert.equal('providerCustomerId' in b,false);assert.equal(new Set([...edge.sessions.values()].map(s=>s.customer)).size,2);assert.equal(edge.sessions.size,2);
  const authorize=(h,p,buyer)=>h.command('card.authorize',{paymentId:p.id,consent:true,amountCents:p.amountCents,surchargeCents:p.surchargeCents},buyer);
  const one=await authorize(first.h,a,first.buyer),two=await authorize(second.h,b,second.buyer);assert.notEqual(one.providerPaymentId,two.providerPaymentId);
  edge.intents.get(one.providerPaymentId).status='succeeded';edge.intents.get(one.providerPaymentId).amount_received=one.amountCents+one.surchargeCents;
@@ -84,4 +84,56 @@ test('two installations under one Stripe merchant keep customer, checkout, idemp
  assert.equal((await second.h.api('/api/barrow/payments/'+two.id)).state,'authorized');assert.equal((await second.h.api('/api/barrow/statements/cedar?to=2100-12-31')).sections[0].receivedCents,0);
  assert.equal((await second.h.db.prepare('SELECT COUNT(*) AS n FROM bw_card_events WHERE id NOT LIKE ?').bind('api:%').first()).n,0);
  const keys=edge.requests.filter(row=>row.path==='/payment_intents').map(row=>row.key);assert.equal(new Set(keys).size,2);
+});
+
+
+test('saved company card needs separate exact-amount authorization, withdrawal fences later charges and keeps receipts without exposing reusable tokens',async t=>{
+ const {h,pier,buyer,other,edge,prepared,order}=await cardFixture(t);
+ const initial=await prepared(),source=initial.payment;
+ await h.command('saved-card.save',{paymentId:source.id,reason:'Save for this company location.'},{...buyer,status:400});
+ await h.command('saved-card.save',{paymentId:source.id,consent:true,reason:'Supplier cannot grant buyer consent.'},{status:403});
+ const saved=await h.command('saved-card.save',{paymentId:source.id,consent:true,reason:'Company finance permits later separately authorized balances at this delivery location.'},buyer);
+ assert.equal(saved.status,'active');assert.equal(saved.last4,'4242');
+ const second=await order('Later saved-card balance'),snapshot=await h.api('/api/barrow/orders/'+second.id),inventory=(await pier.api('/api/pier/state')).orders;
+ let payment=await h.command('saved-card.prepare',{orderId:second.id,methodId:saved.id,revision:saved.revision},buyer);
+ assert.equal(edge.intents.size,0);assert.equal(payment.amountCents,second.totalCents);assert.equal(payment.surchargeCents,260);
+ await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:1,surchargeCents:260},{...buyer,status:400});
+ payment=await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},buyer);
+ assert.equal(payment.state,'authorized');assert.equal(edge.requests.findLast(row=>row.path==='/payment_intents').body.get('off_session'),'true');
+ payment=await h.command('card.capture',{paymentId:payment.id,reason:'Capture explicitly authorized later balance.'});assert.equal(payment.state,'captured');
+ const third=await order('Prepared before withdrawal'),pending=await h.command('saved-card.prepare',{orderId:third.id,methodId:saved.id,revision:saved.revision},buyer);
+ const revoked=await h.command('saved-card.revoke',{methodId:saved.id,revision:saved.revision,reason:'Buyer withdraws future company collection consent.'},buyer);assert.equal(revoked.status,'revoked');
+ const requests=edge.requests.filter(row=>row.path==='/payment_intents').length;
+ await h.command('card.authorize',{paymentId:pending.id,consent:true,amountCents:pending.amountCents,surchargeCents:pending.surchargeCents},{...buyer,status:409});
+ await h.command('saved-card.prepare',{orderId:third.id,methodId:saved.id,revision:saved.revision},{...buyer,status:409});
+ await h.command('saved-card.save',{paymentId:source.id,consent:true,reason:'Cannot silently restore withdrawn consent.'},{...buyer,status:409});
+ assert.equal(edge.requests.filter(row=>row.path==='/payment_intents').length,requests);
+ assert.equal((await h.api('/api/barrow/payments/'+payment.id,undefined,buyer)).state,'captured');
+ assert.deepEqual(await h.api('/api/barrow/orders/'+second.id),snapshot);assert.deepEqual((await pier.api('/api/pier/state')).orders.filter(o=>o.id===second.pierOrderId),inventory.filter(o=>o.id===second.pierOrderId));
+ assert.equal((await h.request('/api/barrow/saved-cards?orderId='+second.id,other)).status,404);
+ const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
+ assert.equal((await h.request('/api/barrow/saved-cards?orderId='+second.id,agent)).status,403);
+ const stored=JSON.parse((await h.db.prepare('SELECT value_json FROM bw_card_payments WHERE id=?').bind(payment.id).first()).value_json);
+ for(const actor of [buyer,{}])for(const path of ['/api/barrow/payments/'+payment.id,'/api/barrow/payments?orderId='+second.id,'/api/barrow/saved-cards?orderId='+second.id,'/api/barrow/export.json']){
+  const response=JSON.stringify(await h.api(path,undefined,actor));for(const token of [stored.paymentMethodId,stored.providerCustomerId])assert.ok(!response.includes(token));
+ }
+ assert.equal((await h.db.prepare('SELECT method_cipher FROM bw_saved_cards WHERE id=?').bind(saved.id).first()).method_cipher,'');
+ const target=await installation({networkEdge:edge.networkEdge});t.after(()=>target.close());await restore(target,await archive(h));
+ assert.equal((await target.db.prepare('SELECT COUNT(*) AS n FROM bw_saved_cards').first()).n,0);
+ assert.equal((await target.api('/api/barrow/payments/'+payment.id)).state,'captured');
+});
+
+test('saved consent is bound to company delivery location and current company finance authority',async t=>{
+ const {h,buyer,edge,prepared,order}=await cardFixture(t);
+ const first=await h.command('location.save',{accountId:'cedar',kind:'ship-to',value:{name:'New York shop',line1:'101 Main Street',city:'New York',state:'NY',zip:'10001'}});
+ const {payment}=await prepared(),saved=await h.command('saved-card.save',{paymentId:payment.id,consent:true,reason:'Company finance permits later charges for the New York shop.'},buyer);
+ const second=await h.command('location.save',{accountId:'cedar',kind:'ship-to',makeDefault:true,value:{name:'Second shop',line1:'202 Main Street',city:'New York',state:'NY',zip:'10001'}});
+ const elsewhere=await order('Different delivery location');
+ await h.command('saved-card.prepare',{orderId:elsewhere.id,methodId:saved.id,revision:saved.revision},{...buyer,status:403});
+ assert.deepEqual((await h.api('/api/barrow/saved-cards?orderId='+elsewhere.id,undefined,buyer)).methods,[]);
+ const members=await h.api('/api/barrow/company/members?accountId=cedar'),member=members.members.find(m=>m.email==='buyer@example.test');
+ await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,reason:'Restrict the buyer to purchasing at the second shop.',policy:{rights:['purchaser'],locations:[second.id],perOrderLimitCents:null,approvalLimitCents:null}});
+ assert.equal((await h.request('/api/barrow/saved-cards?orderId='+payment.orderId,buyer)).status,403);
+ await h.command('saved-card.revoke',{methodId:saved.id,revision:saved.revision,reason:'No current finance authority.'},{...buyer,status:403});
+ assert.equal(edge.intents.size,0);assert.equal(saved.locationId,first.id);
 });

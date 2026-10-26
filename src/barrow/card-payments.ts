@@ -1,3 +1,5 @@
+import { assertSavedConsent } from './saved-cards'
+import { reviewedCard } from './card-review'
 import { cardInstallation } from './card-installation'
 import { cardCustomer } from './card-customer'
 import type { Bindings } from '../auth.server'
@@ -10,13 +12,13 @@ import { connection,provider,hostedUrl } from './card-provider'
 import { cardMerchant } from './card-settings'
 import { reconcileCard,reconcileHostedState,storedCard } from './card-ledger'
 import type { CardPayment } from './card-model'
-export function publicCard(p:CardPayment) {const {paymentMethodId,setupSessionId,...value}=p;return value}
+export function publicCard(p:CardPayment) {const {paymentMethodId,setupSessionId,providerCustomerId,savedCardRevision,...value}=p;return value}
 async function permitted(env:Bindings,actor:Actor,p:CardPayment) {
- requirePerson(actor);await account(env.DB,actor,p.accountId);await requireCompanyRight(env.DB,actor,p.accountId,'finance')
+ requirePerson(actor);await account(env.DB,actor,p.accountId);await requireCompanyRight(env.DB,actor,p.accountId,'finance',(await readOrder(env.DB,actor,p.orderId)).shipTo?.id)
 }
 function payable(order:Order) {if(order.status!=='approved'||!order.invoice||!order.pierOrderId)fail('PAYMENT_ORDER','Card collection needs a fully reserved approved order and issued invoice.',409)}
 export async function readCards(env:Bindings,actor:Actor,orderId:string) {
- const order=await readOrder(env.DB,actor,orderId);await permitted(env,actor,{accountId:order.accountId} as CardPayment)
+ const order=await readOrder(env.DB,actor,orderId);await permitted(env,actor,{accountId:order.accountId,orderId:order.id} as CardPayment)
  const rows=await env.DB.prepare('SELECT value_json FROM bw_card_payments WHERE order_id=?').bind(orderId).all<{value_json:string}>()
  return {configured:!!await env.DB.prepare('SELECT 1 FROM bw_card_connection').first(),payments:rows.results.map(row=>publicCard(JSON.parse(row.value_json)))}
 }
@@ -30,7 +32,7 @@ export async function cardCommand(env:Bindings,actor:Actor,type:string,p:any) {
  requirePerson(actor)
  if(actor.staff)fail('FORBIDDEN','Only company finance and the supplier owner or admin may initiate card operations.',403)
  if(type==='card.prepare') {
-  const order=await readOrder(env.DB,actor,text(p.orderId,'Order'));await permitted(env,actor,{accountId:order.accountId} as CardPayment);payable(order)
+  const order=await readOrder(env.DB,actor,text(p.orderId,'Order'));await permitted(env,actor,{accountId:order.accountId,orderId:order.id} as CardPayment);payable(order)
   const config=await connection(env),id=`card-${order.id}`,at=new Date().toISOString()
   const value:CardPayment={id,installationId:await cardInstallation(env.DB),orderId:order.id,accountId:order.accountId,orderRevision:order.revision,currency:order.currency??'AUD',amountCents:order.totalCents,surchargeCents:0,state:'prepared',createdAt:at,updatedAt:at,providerAccountId:config.account_id,livemode:!!config.livemode}
   await commit(env.DB,actor,[env.DB.prepare('INSERT OR IGNORE INTO bw_card_payments VALUES(?,?,?,?,?)').bind(id,order.accountId,order.id,JSON.stringify(value),crypto.randomUUID())])
@@ -57,11 +59,8 @@ export async function cardCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(session.status!=='complete'||setup?.status!=='succeeded'||method?.type!=='card')return publicCard(value)
   if(method.customer!==value.providerCustomerId)fail('STRIPE_MISMATCH','Stripe card belongs to another customer.',409)
   const order=await readOrder(env.DB,actor,value.orderId),a=await account(env.DB,actor,value.accountId)
-  const jurisdiction=order.shipTo?.state??a.value.state??'',billing=method.billing_details?.address
-  const funding=method.card?.funding??'unknown',state=billing?.country==='US'?billing.state??'':''
-  const eligible=stripe.config.country==='US'&&value.currency==='USD'&&funding==='credit'&&state===jurisdiction&&JSON.parse(stripe.config.allowed_states).includes(state)&&!['CT','ME','MA','PR'].includes(state)
-  const surchargeCents=eligible?Number((BigInt(value.amountCents)*BigInt(stripe.config.surcharge_bps)+5000n)/10000n):0
-  return publicCard(await save(env,actor,{...value,paymentMethodId:method.id,surchargeCents,card:{brand:method.card.brand,last4:method.card.last4,funding,state},checkoutUrl:undefined,updatedAt:new Date().toISOString()},row.revision,'card.reviewed','Stripe verified the hosted card funding and billing state; surcharge calculated only for an explicitly permitted matching US credit card.'))
+  const review=reviewedCard(stripe.config,order,a.value.state??'',method,value.amountCents)
+  return publicCard(await save(env,actor,{...value,paymentMethodId:method.id,...review,checkoutUrl:undefined,updatedAt:new Date().toISOString()},row.revision,'card.reviewed','Stripe verified the hosted card funding and billing state; surcharge calculated only for an explicitly permitted matching US credit card.'))
  }
  if(type==='card.authorize') {
   if(value.state==='cancelled'||value.state==='declined')fail('PAYMENT_STATE','This card attempt has ended; it cannot create a new authorization.',409)
@@ -69,7 +68,9 @@ export async function cardCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(order.revision!==value.orderRevision||order.totalCents!==value.amountCents||(order.currency??'AUD')!==value.currency)fail('PAYMENT_CHANGED','The order changed after this payment was prepared.',409)
   if(p.consent!==true||p.amountCents!==value.amountCents||p.surchargeCents!==value.surchargeCents||!value.paymentMethodId)fail('CONSENT','Review and explicitly accept the exact amount and disclosed surcharge after hosted card entry.',400)
   if(value.providerPaymentId)return publicCard(await reconcileCard(env,id,await stripe.call(`/payment_intents/${value.providerPaymentId}?expand[]=latest_charge`),undefined,actor.id))
-  const intent=await stripe.call('/payment_intents',{amount:String(value.amountCents+value.surchargeCents),currency:value.currency.toLowerCase(),customer:value.providerCustomerId!,payment_method:value.paymentMethodId,'payment_method_types[0]':'card',capture_method:'manual',confirm:'true',return_url:`${env.AUTH_ORIGIN}/app?cardPayment=${encodeURIComponent(id)}`,'metadata[barrowPaymentId]':id,'metadata[barrowInstallationId]':value.installationId!,'metadata[barrowOrderId]':value.orderId,'metadata[barrowAccountId]':value.accountId},`barrow-authorize-${value.installationId}-${id}`)
+  const guards=await assertSavedConsent(env,actor,value)
+  if(guards.length)await commit(env.DB,actor,[...guards,audit(env.DB,actor,id,'saved-card.authorization-requested',{accountId:value.accountId,orderId:value.orderId,revision:row.revision,source:type,reason:'Buyer explicitly authorized the exact reviewed later amount and surcharge before collection.'})])
+  const intent=await stripe.call('/payment_intents',{amount:String(value.amountCents+value.surchargeCents),currency:value.currency.toLowerCase(),customer:value.providerCustomerId!,payment_method:value.paymentMethodId,'payment_method_types[0]':'card',capture_method:'manual',confirm:'true',...(value.savedCardId?{off_session:'true'}:{}),return_url:`${env.AUTH_ORIGIN}/app?cardPayment=${encodeURIComponent(id)}`,'metadata[barrowPaymentId]':id,'metadata[barrowInstallationId]':value.installationId!,'metadata[barrowOrderId]':value.orderId,'metadata[barrowAccountId]':value.accountId},`barrow-authorize-${value.installationId}-${id}`)
   return publicCard(await reconcileCard(env,id,intent,undefined,actor.id))
  }
  cardMerchant(actor);const reason=text(p.reason,'Payment decision reason',1000)

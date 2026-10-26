@@ -19,6 +19,7 @@ export function cardEdge() {
    const session={id:next(),key:request.headers.get('idempotency-key'),livemode:false,status:'open',client_reference_id:body.get('client_reference_id'),customer:body.get('customer'),installationId:body.get('setup_intent_data[metadata][barrowInstallationId]'),url:'https://checkout.stripe.com/c/pay/synthetic-barrow-5'};sessions.set(session.id,session);return Response.json(session);
   }
   if(path.startsWith('/checkout/sessions/')){const parts=path.split('/'),session=sessions.get(parts.at(-1)==='expire'?parts.at(-2):parts.at(-1));if(parts.at(-1)==='expire')session.status='expired';return Response.json(session)}
+  if(path.startsWith('/payment_methods/'))return Response.json(methods.get(path.split('/').at(-1)));
   if(path==='/payment_intents') {
    const duplicate=[...intents.values()].find(i=>i.metadata.barrowPaymentId===body.get('metadata[barrowPaymentId]')&&i.metadata.barrowInstallationId===body.get('metadata[barrowInstallationId]'));if(duplicate)return Response.json(duplicate);
    const method=methods.get(body.get('payment_method'));
