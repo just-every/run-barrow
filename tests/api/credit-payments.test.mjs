@@ -56,7 +56,7 @@ test('unpaid returned principal is applied before refundable cash; invalid retur
 
 
 test('finance allowances bound source-priced corrections and refunds; confirmed cancellations credit the original invoice and freight without inventing tax or reversing commission twice',async t=>{
- const {h,buyer,credit,payment}=await creditFixture(t);
+ const {h,buyer,credit,payment,edge}=await creditFixture(t);
  const initialPolicy={role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:1000,refundLimitCents:500};
  const {who:finance,id}=await activateStaff(h,'bounded-finance@example.test',initialPolicy);
  const method={id:'original-freight',name:'Original freight',kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1000,handlingCents:250,freeOverCents:null,transitMinDays:1,transitMaxDays:3,quoteRequired:false};
@@ -76,4 +76,6 @@ test('finance allowances bound source-priced corrections and refunds; confirmed 
  const statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31');assert.equal(statement.sections[0].entries.find(row=>row.kind==='invoice'&&row.orderId===cancelled.id).amountCents,14250);assert.equal(statement.sections[0].entries.find(row=>row.kind==='credit-note'&&row.id===cancellation.id).amountCents,-14250);const invoice=await(await h.request('/api/barrow/invoices/'+cancelled.id+'.csv',buyer)).text();assert.ok(invoice.includes('withdrawn; original preserved with linked credit'));assert.ok(invoice.includes('14250'));
  rows=(await h.api('/api/barrow/reports/commissions')).rows.filter(row=>row.orderId===cancelled.id);assert.ok(rows.every(row=>row.reversedCents===row.grossCents&&row.netCents===0&&row.creditIds.includes(cancellation.id)));
  const sales=await h.api('/api/barrow/reports/sales?from=2000-01-01&to=2100-12-31');assert.equal(sales.rows.find(row=>row.orderId===cancelled.id).creditedFreightCents,1250);assert.equal(sales.rows.find(row=>row.orderId===cancelled.id).outstandingCents,0);
+ const refusedCredit=await h.command('credit.issue',{orderId:credit.orderId,kind:'price-correction',sourceReference:'Separate paid correction',lines:[{line:1,quantity:1,amountCents:100}],reason:'Correct the remaining paid original merchandise.'});edge.refuseRefund();const refused=await h.command('refund.request',{creditId:refusedCredit.id,revision:refusedCredit.revision,paymentId:payment.id,amountCents:100,consent:true,reason:'Explicit request that Stripe refuses before creation.'});assert.equal(refused.status,'failed');assert.equal(refused.providerRefundId,undefined);assert.equal((await h.api('/api/barrow/credits/'+refusedCredit.id)).availableCents,100);
+
 });

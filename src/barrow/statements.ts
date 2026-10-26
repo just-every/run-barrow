@@ -12,7 +12,7 @@ import { fail, requirePerson, supplierDate, type Actor, type Order } from './mod
 
 type InvoiceLine = { number: string; issuedAt: string; dueAt: string; orderId: string; reference: string; amountCents: number; invoicePath: string; orderPath: string }
 type StatementEntry = ({ kind: 'invoice'; date: string } & InvoiceLine) | { kind: 'card-payment' | 'card-surcharge' | 'credit-note' | 'refund'; date: string; id: string; orderId: string; amountCents: number; paymentPath: string; orderPath: string }
-export const statementNote = 'Invoice outstanding reflects recorded card allocations and applied credits; unapplied receipts remain separate.'
+export const statementNote = 'Recorded card allocations and applied credits explain invoice outstanding. Other payment sources are not recorded, so these figures are not amounts confirmed unpaid.'
 const cardStatementNote = 'Balances are invoices plus captured card surcharges, less captured card receipts and issued credit notes, plus succeeded provider refunds. Applying existing cash or credit to an invoice does not change this account balance. Pending and failed refunds do not count as returned funds. Other payment types and deposits are not recorded.'
 const day = (value: string | null, name: string) => {
  if (!value) return undefined

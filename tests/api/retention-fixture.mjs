@@ -1,9 +1,10 @@
+import assert from 'node:assert/strict';
 // Historical archive fixture: public commands cannot backdate financial events.
 // The assertions and all erasure decisions use authenticated HTTP doors.
 import {createHash} from 'node:crypto';
 import {accountValue} from './harness.mjs';
 export async function historicalCard(h,{id,accountId,orderId,at,eventAt=at,state='captured'}) {
- const payment={id,accountId,orderId,currency:'USD',amountCents:13000,surchargeCents:0,state,createdAt:at,updatedAt:at,latestFinancialAt:at,providerPaymentId:'pi_'+id,card:{brand:'visa',last4:'4242',funding:'credit',state:'NY'},paymentMethodId:'pm_'+id,setupSessionId:'cs_'+id,checkoutUrl:'https://checkout.stripe.com/c/pay/'+id,actionUrl:'https://hooks.stripe.com/3d_secure/'+id,...(state==='captured'?{capturedAt:at}:{})};
+ const payment={id,accountId,orderId,currency:'USD',amountCents:13000,surchargeCents:0,state,createdAt:at,updatedAt:at,latestFinancialAt:at,providerPaymentId:'synthetic-barrow-payment-'+id,card:{brand:'visa',last4:'4242',funding:'credit',state:'NY'},paymentMethodId:'synthetic-barrow-method-'+id,setupSessionId:'synthetic-barrow-checkout-'+id,checkoutUrl:'https://checkout.stripe.com/c/pay/'+id,actionUrl:'https://hooks.stripe.com/3d_secure/'+id,...(state==='captured'?{capturedAt:at}:{})};
  const event={id:'evt_'+id,type:state==='captured'?'payment_intent.succeeded':'payment_intent.canceled',providerPaymentId:payment.providerPaymentId,state,amountCents:payment.amountCents,currency:payment.currency,verifiedAt:eventAt};
  await h.db.prepare('INSERT INTO bw_card_payments(id,account_id,order_id,value_json,revision) VALUES(?,?,?,?,?)').bind(id,accountId,orderId,JSON.stringify(payment),id).run();
  await h.db.prepare('INSERT INTO bw_card_events(id,payment_id,created_at,value_json) VALUES(?,?,?,?)').bind(event.id,id,eventAt,JSON.stringify(event)).run();

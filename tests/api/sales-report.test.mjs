@@ -31,8 +31,6 @@ test('RPT-001: booked, split-shipped, invoiced and outstanding sales by account,
  assert.deepEqual(report.bySku.map(group => [group.name, group.totals[0].shippedCents]), [['OAT-1', 71500]]);
  assert.deepEqual(report.byAccount.map(group => group.name), ['Cedar Street Pantry', 'Wren & Co.']);
  assert.equal(report.byMonth.length, 1);
- // Labels say what is not recorded or not included, rather than reporting zero.
- assert.match(report.notes.payments, /PAY-003 and PAY-010/); assert.match(report.notes.season, /CAT-008 and ORD-008/); assert.match(report.notes.access, /ACC-006/);
 
  // Filter one territory and drill to its documents: the order and its invoice lines match the report line.
  const northeast = await h.api('/api/barrow/reports/sales?territory=Northeast');

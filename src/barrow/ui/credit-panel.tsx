@@ -179,6 +179,6 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
     </>}
     <label>Reason<input value={reason} maxLength={1000} disabled={disabled} onChange={event => setReason(event.target.value)} /></label>
     {action === 'refund' && payment && credit && amountCents > 0 && amountCents <= maximum && <CardConsent checked={consentKey === refundKey} disabled={disabled} onChange={checked => setConsentKey(checked ? refundKey : '')}>I approve refunding exactly {money(amountCents, currency)} from credit {credit.id} to {payment.card ? `${payment.card.brand} ending ${payment.card.last4}` : `the original captured card for receipt ${payment.id}`}.</CardConsent>}
-    <div className="br-actions"><button type="button" disabled={invalid} onClick={() => void submit()}>{action === 'allocate' ? 'Apply card principal' : action === 'issue' ? 'Issue return credit' : action === 'apply' ? 'Apply credit to this invoice' : 'Request exact card refund'}</button></div>
+    <div className="br-actions"><button type="button" disabled={invalid} onClick={() => void submit()}>{action === 'allocate' ? 'Apply card principal' : action === 'issue' ? kind==='price-correction'?'Issue price credit':kind==='cancellation'?'Issue cancellation credit':'Issue return credit' : action === 'apply' ? 'Apply credit to this invoice' : 'Request exact card refund'}</button></div>
   </div></details>
 }
