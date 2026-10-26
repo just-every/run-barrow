@@ -106,7 +106,7 @@ test('scheduled stock synchronization resumes an interrupted ACK, sends one requ
  const {archive,restore}=await import('./harness.mjs');
  await h.command('stock.watch',{accountId:f.account.id,sku:'OAT-1',kind:'prebook'},buyer);
  const snapshot=await archive(h),restored=await installation({bindings:{PIER_ORIGIN:f.pier.origin,PIER_SESSION:f.pier.cookie}});t.after(()=>restored.close());
- await restore(restored,snapshot);assert.equal((await restored.api('/api/barrow/stock-sync')).sync.enabled,0);assert.ok((await restored.api('/api/barrow/export.json')).stockwatches.every(row=>row.active===0));
+ await restore(restored,snapshot);const restoredSync=(await restored.api('/api/barrow/stock-sync')).sync;assert.equal(restoredSync.enabled,0);const enabled=await restored.command('stock.sync-settings',{enabled:true,pageSize:2});assert.notEqual(enabled.sync.consumer,restoredSync.consumer);assert.equal(enabled.sync.checkpoint,null);assert.ok((await restored.api('/api/barrow/export.json')).stockwatches.every(row=>row.active===0));
  await h.command('account.erase',{accountId:f.account.id,confirm:'ERASE'});let exported=await h.api('/api/barrow/export.json');assert.equal(exported.stockwatches.length,0);assert.equal(exported.stocknotices.length,0);
  const rewound=await installation({bindings:{PIER_ORIGIN:f.pier.origin,PIER_SESSION:f.pier.cookie}});t.after(()=>rewound.close());await restore(rewound,snapshot);exported=await rewound.api('/api/barrow/export.json');assert.equal(exported.stockwatches.length,0);assert.equal(exported.stocknotices.length,0);
 });

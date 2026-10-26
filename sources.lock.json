@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e528821a7e3f0c267f9b4fc46e125076d2ead4c44e910bf3ed274f8377afbb4c",
+      "sha256": "5a4542dcf1138a603278210c66cfe24ca4b9c5de848d346090fa48f1b996544e",
       "executable": false
     },
     "DEMO.md": {
@@ -4332,7 +4332,7 @@
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
-      "sha256": "377c93b9d608155447af8a6ddf46736bd0ef62aaeb29c0ad7a7eb4a4c660fac7",
+      "sha256": "0c6276823841434e6f3eaf5927b5556bfebfa5ef6b6cd07c6b181d664d5c70ce",
       "executable": false
     },
     "tests/api/stock-sync-fixture.mjs": {
