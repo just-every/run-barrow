@@ -4468,7 +4468,7 @@
       "executable": false
     },
     "tests/journeys/card-stripe-sandbox.mjs": {
-      "sha256": "3cf14a3cf303074e9a2ac1da1a63adaf4a672d27f1dc82095cec226a6a2c3efb",
+      "sha256": "3119ba75d3cd3d251d2e8a1d3b9dc828a44443da89d6f82eac47034f0425ba8f",
       "executable": false
     },
     "tests/journeys/catalog-maintenance.test.mjs": {
@@ -4488,7 +4488,7 @@
       "executable": false
     },
     "tests/journeys/credit-payments.test.mjs": {
-      "sha256": "8fe207a044f8391fcf63fe048b35fb571cd6183828043d7d3511c4cd46424c5a",
+      "sha256": "c4fc1144fede638aeaf31058ba60635168912603321b71e472b2b29beee5c202",
       "executable": false
     },
     "tests/journeys/cutover.test.mjs": {
