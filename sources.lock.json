@@ -6,7 +6,7 @@
   "toolchain": {
     "id": "runeditrun/edition-authoring",
     "version": "1.1.0",
-    "sha256": "60532aec53c5fb9acb6faecba0e3bad0debabc7faeb6a66224074c820fce8c90"
+    "sha256": "f8cc00a4d2ee27019cfe55492f22b08abebe4d81c24f9a5e2d5304deecf3eaed"
   },
   "components": [
     {
@@ -128,7 +128,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "96517189a6a6d98cb10a1d85bacdc42f11bd4eeb3cef4314caf8d486c02c69b2",
+      "sha256": "11d9105617ea142030f077798ab2b0b837daf491d5a52682531bb8c2a5d0b9f0",
       "executable": false
     },
     "CHANGELOG.md": {
@@ -524,7 +524,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "a190db5ac6e0e27a65733adc2d1f8f51c8a0c1c99b7a70cc9c43f01a2e3a2cbd",
+      "sha256": "472e6a2a43a50cf607b4be0742bd3d02966ce85179c8a6a4ae616e6c5af89a1f",
       "executable": false
     },
     "packaging.json": {
@@ -532,7 +532,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "1d01d938e7688c8399bf95f84d25795d5f8acc53a849ba06bf242980f236bc59",
+      "sha256": "521a866f0517069cab8153a1fac588a2826be6d632a875d338cadefcaffca3d8",
       "executable": false
     },
     "public/apple-touch-icon.png": {
@@ -940,7 +940,7 @@
       "executable": false
     },
     "scripts/edition-authoring/base-copies.mjs": {
-      "sha256": "f656c9491306fa5d003a6ea8625fccfd1ab0ad6bee239e5d85ae2908874824e3",
+      "sha256": "7ca8f236367727a6bc32bb06ba2bd128c97a91dc917725febb1f20648f5f6114",
       "executable": false
     },
     "scripts/edition-authoring/cli.mjs": {
@@ -948,11 +948,11 @@
       "executable": false
     },
     "scripts/edition-authoring/copy-checkout.mjs": {
-      "sha256": "7b7fff83e2cc90f4b7a1f83673ea1d77d02704377ada4e13164d9ec74e83ba00",
+      "sha256": "62d8c88a6c3c53fdd03f16292d653241f19e6699f26d7615481710f510fa1445",
       "executable": false
     },
     "scripts/edition-authoring/files.mjs": {
-      "sha256": "9dfb5940c9b793cca5ddf9556b756c81046a371a16a10c5b869487172a6c25ae",
+      "sha256": "1371f01fe2686c8d21cf0f0e4654666d58b5416b63c2f0c988a0636062899761",
       "executable": false
     },
     "scripts/edition-authoring/lock.mjs": {
@@ -980,7 +980,7 @@
       "executable": false
     },
     "scripts/edition-authoring/runtime-dependencies.mjs": {
-      "sha256": "1b56cb344febdb0213eda8585960ae417822244e5d061592f4374626ecf7fe4f",
+      "sha256": "3eb81d0de3c236281f05187d4b6f426e5301f49ba0e6008cf422b34f57e24162",
       "executable": false
     },
     "scripts/edition-authoring/sources.mjs": {
