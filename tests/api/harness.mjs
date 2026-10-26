@@ -8,7 +8,20 @@ import { tmpdir } from 'node:os';
 import { resolve,join } from 'node:path';
 import assert from 'node:assert/strict';
 import { pierSource } from '../pier-source.mjs';
+const nativePiers=new Map();
+export async function configurePierRouting(pier) {
+ const state=await pier.api('/api/pier/state');
+ if(state.routingRules?.some(rule=>rule.source==='manual'&&rule.activeAt))return;
+ const eligible=[...new Set(state.locations.filter(row=>row.kind==='bin').map(row=>row.warehouse))];
+ if(!eligible.length)return;
+ for(const customer of state.parties.filter(row=>row.kind==='customer'))await pier.command('customer.splitPolicy',{customerId:customer.id,version:customer.version,allowSplit:true,reason:'Synthetic installation owner approved the fixture’s multi-warehouse fulfillment policy.'});
+ let rule=await pier.command('routing.save',{source:'manual',mode:'fixed',shortage:'split',eligible});
+ rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});
+ await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
+}
 export async function installation({pier=false,bindings={},https,built=false,captureLogs=false,networkEdge}={}) {
+ const connected=nativePiers.get(bindings.PIER_ORIGIN);
+ if(!pier&&connected&&connected.cookie===bindings.PIER_SESSION)await configurePierRouting(connected);
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
@@ -83,7 +96,9 @@ export async function installation({pier=false,bindings={},https,built=false,cap
    }
    throw Error('Invitation did not produce a usable sign-in link');
   };
-  return {mf,logs,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  const harness={mf,logs,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;nativePiers.delete(origin);await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  if(pier)nativePiers.set(origin,harness);
+  return harness;
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
 }
 export async function stock(pier,quantity='24') {
@@ -95,6 +110,7 @@ export async function stock(pier,quantity='24') {
  await pier.command('po.approve',{poId:po.id,version:po.version});
  await pier.command('po.commit',{poId:po.id,version:po.version});
  await pier.command('receipt.create',{poId:po.id,supplierReference:'Delivery 1',lines:[{poLineId:po.lines[0].id,locationId:location.id,quantity,cost:'20.00'}]});
+ await configurePierRouting(pier);
  return {item,location,supplier,customer};
 }
 export const accountValue=(customerId,email='buyer@example.test')=>({name:'Cedar Street Pantry',email,pierCustomerId:customerId,termsDays:30,minimumCents:10000,prices:[{sku:'OAT-1',unitCents:6500,minQty:2}]});

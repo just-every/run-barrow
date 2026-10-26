@@ -4208,7 +4208,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "128fb92d8c059fe6b1172bc7c2305950639513de2aeaac2564e8db98e708a621",
+      "sha256": "b7d8b973dc7c38de78e02e5ad1261f217408d2ad3d7e90631013dc1544ea509f",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
@@ -4228,7 +4228,7 @@
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
-      "sha256": "ebc024bf035dd77690fa29d1690218eacbc9d02a43ceb8aa3a283d586eeaedf9",
+      "sha256": "65934bf358f4ce2f733bcba9bf0d4dca2a5b1f8f58955bd98e1278c54f90880f",
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
