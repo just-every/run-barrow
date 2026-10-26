@@ -17,7 +17,7 @@ export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}
  if(!grant)return true
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
- return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','reconciliation','credit','refund'].includes(task.kind)
+ return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
 }
 async function denied(env:Bindings,actor:Actor,source:string):Promise<never> {
  await commit(env.DB,actor,[audit(env.DB,actor,actor.id,'staff.permission-refused',{revision:actor.staff!.revision,source,reason:'Current owner-granted functional role does not authorize this door; no commercial action or outreach performed.'})])
@@ -47,6 +47,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
  if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
+ if(method==='GET'&&/^payments(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&(role==='finance'||selling.includes(role)))return
  if(method==='GET'&&relative==='locations')return
  if(method==='GET'&&relative==='visits'&&(selling.includes(role)||role==='operations'))return // REP-005: scoped per account by the read itself
  if(method==='GET'&&relative==='sales-terms')return

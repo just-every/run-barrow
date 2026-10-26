@@ -1,0 +1,87 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {cardFixture,cardEdge} from './card-fixture.mjs';
+import {archive,installation,restore} from './harness.mjs';
+
+async function assertFinancialFloor(h,payment){const date=new Date(payment.latestFinancialAt??payment.updatedAt),month=date.getUTCMonth();date.setUTCFullYear(date.getUTCFullYear()+7);if(date.getUTCMonth()!==month)date.setUTCDate(0);const preview=await h.command('retention.preview',{accountId:payment.accountId});assert.equal(preview.items.find(row=>row.id==='order:'+payment.orderId).floorUntil,date.toISOString())}
+
+test('hosted card review preserves the approved order, exact surcharge and authorization; lost capture and signed replay reconcile one receipt in every statement format',async t=>{
+ const {h,pier,buyer,other,edge,prepared}=await cardFixture(t);
+ const unpaid=await h.command('order.prepare',{accountId:'cedar',reference:'Not supplier approved',lines:[{sku:'OAT-1',quantity:2}]},buyer);await h.command('card.prepare',{orderId:unpaid.id},{...buyer,status:409});await h.command('order.submit',{orderId:unpaid.id},buyer);await h.command('card.prepare',{orderId:unpaid.id},{...buyer,status:409});
+ const {order,payment}=await prepared();assert.equal(payment.surchargeCents,260);assert.equal(payment.card.funding,'credit');
+ const snapshot=await h.api('/api/barrow/orders/'+order.id),inventory=(await pier.api('/api/pier/state')).orders;
+ assert.equal(payment.amountCents,order.totalCents);assert.equal(payment.currency,order.currency);
+ await h.command('card.authorize',{paymentId:payment.id},{...buyer,status:400});
+ await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:1,surchargeCents:payment.surchargeCents},{...buyer,status:400});
+ assert.equal(edge.requests.filter(row=>row.path==='/payment_intents').length,0);
+ let authorized=await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},buyer);assert.equal(authorized.state,'authorized');await assertFinancialFloor(h,authorized);
+ const query='?from=2000-01-01&to=2100-12-31';let statement=await h.api('/api/barrow/statements/cedar'+query,undefined,buyer);assert.equal(statement.sections[0].receivedCents,0);
+ await h.command('card.capture',{paymentId:payment.id,reason:'Buyer cannot capture their own card'},{...buyer,status:403});
+ edge.loseCapture();await h.command('card.capture',{paymentId:payment.id,reason:'Supplier approved capture after authorization.'},{status:409});
+ const captured=await h.command('card.refresh',{paymentId:payment.id},buyer);assert.equal(captured.state,'captured');await assertFinancialFloor(h,captured);
+ assert.equal((await h.command('card.capture',{paymentId:payment.id,reason:'Reconcile the lost response.'})).state,'captured');assert.equal(edge.captures,1);
+ const signed=await edge.event(h,captured);assert.equal(signed.response.status,200);
+ const replay=await h.raw('/api/barrow/card-webhook',{method:'POST',headers:{'stripe-signature':signed.signature},body:signed.body});assert.equal((await replay.json()).duplicate,true);
+ assert.equal((await edge.event(h,captured,{tamper:true})).response.status,400);
+ assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),snapshot);assert.deepEqual((await pier.api('/api/pier/state')).orders,inventory);
+ statement=await h.api('/api/barrow/statements/cedar'+query,undefined,buyer);const section=statement.sections[0];assert.equal(section.receivedCents,13260);assert.equal(section.surchargedCents,260);assert.equal(section.closingCents,0);assert.equal(section.entries.find(row=>row.kind==='card-surcharge').amountCents,260);
+ const receipt=section.entries.find(row=>row.kind==='card-payment');assert.equal(receipt.amountCents,-13260);assert.equal((await h.request(receipt.paymentPath,buyer)).status,200);
+ for(const suffix of ['.csv','.pdf']){const text=await(await h.request('/api/barrow/statements/cedar'+suffix+query,buyer)).text();assert.ok(text.includes(captured.id));assert.ok(text.includes(suffix==='.csv'?'-13260':'132.60'))}
+ const day=receipt.date,after=new Date(day+'T12:00:00Z');after.setUTCDate(after.getUTCDate()+1);const later=await h.api('/api/barrow/statements/cedar?from='+after.toISOString().slice(0,10)+'&to=2100-12-31',undefined,buyer);assert.equal(later.sections[0].openingCents,0);assert.equal(later.sections[0].entries.length,0);
+ assert.equal((await h.request('/api/barrow/payments/'+captured.id,other)).status,404);
+ const exported=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(exported.cardpayments[0].id,captured.id);assert.equal(exported.cardpayments[0].amountCents,13000);assert.ok(!JSON.stringify(exported).includes('"synthetic-barrow-1"'));
+ for(const kind of ['cardpayments','cardevents']){const csv=await(await h.request('/api/barrow/export/'+kind+'.csv',buyer)).text();assert.ok(csv.includes(captured.id));assert.equal((await h.request('/api/barrow/export/'+kind+'.csv',other)).status,200);assert.ok(!(await(await h.request('/api/barrow/export/'+kind+'.csv',other)).text()).includes(captured.id))}
+ const custody=await h.api('/api/barrow/retention');assert.match(custody.custody.stripe,/Stripe/);
+ const eventRows=await h.db.prepare('SELECT created_at FROM bw_card_events WHERE payment_id=?').bind(payment.id).all();const latest=eventRows.results.map(row=>row.created_at).sort().at(-1),date=new Date(latest),year=date.getUTCFullYear()+7,month=date.getUTCMonth(),last=new Date(Date.UTC(year,month+1,0)).getUTCDate();date.setUTCFullYear(year,month,Math.min(date.getUTCDate(),last));
+ assert.equal(custody.documents.find(row=>row.orderId===order.id)?.commercialMinimumUntil??(await h.command('retention.preview',{accountId:'cedar'})).items.find(row=>row.id==='order:'+order.id).floorUntil,date.toISOString());
+ const saved=await archive(h),target=await installation({networkEdge:edge.networkEdge});t.after(()=>target.close());await restore(target,saved);
+ assert.equal((await target.api('/api/barrow/card-settings')).configured,false);await target.command('card.refresh',{paymentId:payment.id},{status:409});
+ assert.equal((await target.api('/api/barrow/payments/'+payment.id)).state,'captured');
+});
+
+test('verified decline stays owned until provider cancellation and an authentication challenge stays unpaid',async t=>{
+ const {h,buyer,edge,prepared}=await cardFixture(t);
+ const {payment}=await prepared({outcome:'requires_action'});let challenge=await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},buyer);assert.equal(challenge.state,'requires_action');assert.ok(challenge.actionUrl);await assertFinancialFloor(h,challenge);
+ await h.command('card.capture',{paymentId:payment.id,reason:'Refuse unverified challenge.'},{status:409});
+ edge.intents.get(challenge.providerPaymentId).status='requires_payment_method';challenge=await h.command('card.refresh',{paymentId:payment.id},buyer);assert.equal(challenge.state,'declined');await assertFinancialFloor(h,challenge);
+ let task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.sourceId===payment.id);assert.equal(task.status,'open');assert.ok(task.ownerId&&task.sourcePath&&task.nextContactDate);assert.equal((await h.request(task.sourcePath)).status,200);
+ await h.command('followup.update',{id:task.id,revision:task.revision,close:true,resolution:'Unverified close'},{status:409});
+ await h.command('followup.refresh',{});task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id);assert.equal(task.status,'open');
+ const cancelled=await h.command('card.cancel',{paymentId:payment.id,reason:'Supplier voided the failed payment.'});assert.equal(cancelled.state,'cancelled');await assertFinancialFloor(h,cancelled);
+ task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id);assert.equal(task.status,'closed');assert.match(task.resolution,/verified cancelled/);
+ const statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer);assert.equal(statement.sections[0].receivedCents,0);
+ const authorization=edge.requests.find(row=>row.path==='/payment_intents');assert.equal(authorization.body.get('capture_method'),'manual');assert.equal(authorization.body.get('confirm'),'true');
+});
+
+test('card surcharge is calculated only for verified credit funding and an explicitly permitted matching state',async t=>{
+ const {prepared,h}=await cardFixture(t);
+ for(const state of ['MA','CT','ME','PR']){const refused=await h.command('card.connect',{secretKey:'synthetic-barrow-1',consent:true,mode:'test',reason:'Refuse prohibited state surcharge.',surchargeBps:200,allowedStates:[state]},{status:400});assert.equal(refused.error.code,'SURCHARGE')}
+ for(const options of [{funding:'debit'},{funding:'prepaid'},{funding:'unknown'},{state:'MA'},{state:'CT'},{state:'CA'}]){const {payment}=await prepared(options);assert.equal(payment.surchargeCents,0)}
+ const {payment}=await prepared();assert.equal(payment.surchargeCents,260);
+});
+
+test('hosted verification failure creates an unpaid owned exception and owner cancellation cannot later authorize it',async t=>{
+ const {h,buyer,edge,prepared}=await cardFixture(t,{connect:false});
+ const connection={secretKey:'synthetic-barrow-1',consent:true,reason:'Owner reviewed the merchant mode and separate Stripe custody.',surchargeBps:0,allowedStates:[]};
+ await h.command('card.connect',{...connection,mode:'live'},{status:400});await h.command('card.connect',{...connection,mode:'test'});
+ const {payment}=await prepared({setupFailure:true});assert.equal(payment.state,'declined');assert.ok(!payment.providerPaymentId);
+ assert.equal((await h.request('/api/barrow/card-settings',buyer)).status,403);
+ let task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.sourceId===payment.id);assert.equal(task.status,'open');
+ const ended=await h.command('card.cancel',{paymentId:payment.id,reason:'Owner ended the verified failed hosted attempt.'});assert.equal(ended.state,'cancelled');
+ await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},{...buyer,status:409});
+ task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id);assert.equal(task.status,'closed');assert.ok(task.resolution);
+ assert.equal(edge.intents.size,0);assert.equal((await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer)).sections[0].receivedCents,0);
+});
+
+test('two installations under one Stripe merchant keep customer, checkout, idempotency and signed event effects separate',async t=>{
+ const edge=cardEdge(),first=await cardFixture(t,{edge}),second=await cardFixture(t,{edge});
+ const a=(await first.prepared()).payment,b=(await second.prepared()).payment;
+ assert.equal(a.id,b.id);assert.notEqual(a.installationId,b.installationId);assert.notEqual(a.providerCustomerId,b.providerCustomerId);assert.equal(edge.sessions.size,2);
+ const authorize=(h,p,buyer)=>h.command('card.authorize',{paymentId:p.id,consent:true,amountCents:p.amountCents,surchargeCents:p.surchargeCents},buyer);
+ const one=await authorize(first.h,a,first.buyer),two=await authorize(second.h,b,second.buyer);assert.notEqual(one.providerPaymentId,two.providerPaymentId);
+ edge.intents.get(one.providerPaymentId).status='succeeded';edge.intents.get(one.providerPaymentId).amount_received=one.amountCents+one.surchargeCents;
+ assert.equal((await edge.event(second.h,one)).response.status,200);
+ assert.equal((await second.h.api('/api/barrow/payments/'+two.id)).state,'authorized');assert.equal((await second.h.api('/api/barrow/statements/cedar?to=2100-12-31')).sections[0].receivedCents,0);
+ assert.equal((await second.h.db.prepare('SELECT COUNT(*) AS n FROM bw_card_events WHERE id NOT LIKE ?').bind('api:%').first()).n,0);
+ const keys=edge.requests.filter(row=>row.path==='/payment_intents').map(row=>row.key);assert.equal(new Set(keys).size,2);
+});

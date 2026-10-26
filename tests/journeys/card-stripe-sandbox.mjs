@@ -1,0 +1,94 @@
+// Run only with the authorized local secret injector, under the shared heavy slot.
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {createServer} from 'node:http';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {chromium,expect} from '@playwright/test';
+import {installation,stock,accountValue} from '../api/harness.mjs';
+import {signedContext,captureRegionWidths} from './browser-helpers.mjs';
+const after=[],t={after:fn=>after.push(fn)},directory=process.env.BARROW_JOURNEY_EVIDENCE??'/tmp/barrow-card-sandbox';
+let step='initialize',connected=false,h,diagnosticPage,loseCapture=false,captureRequests=0;const deliveredEvents=[],providerErrors=[];
+async function webhookProxy() {
+ const server=createServer(async(req,res)=>{try{const parts=[];for await(const chunk of req)parts.push(chunk);const body=Buffer.concat(parts),headers=Object.fromEntries(Object.entries(req.headers).filter(([name])=>!['host','connection','content-length','transfer-encoding'].includes(name)));const response=await h.raw(req.url,{method:req.method,headers,body});if(req.url==='/api/barrow/card-webhook'&&response.ok)deliveredEvents.push({body:body.toString(),signature:headers['stripe-signature']});res.writeHead(response.status,Object.fromEntries(response.headers));res.end(Buffer.from(await response.arrayBuffer()))}catch{res.writeHead(503);res.end()}});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));after.push(()=>new Promise(resolve=>server.close(resolve)));return 'http://127.0.0.1:'+server.address().port;
+}
+async function stripeBoundary(request) {
+ const url=new URL(request.url);if(url.hostname!=='api.stripe.com')return;
+ const capture=url.pathname.endsWith('/capture');if(capture)captureRequests++;
+ const headers=Object.fromEntries([...request.headers].filter(([name])=>!['host','connection','content-length','transfer-encoding'].includes(name)));
+ const response=await fetch(request.url,{method:request.method,headers,...(['GET','HEAD'].includes(request.method)?{}:{body:await request.arrayBuffer()})});
+ const bytes=await response.arrayBuffer();if(!response.ok){try{const error=JSON.parse(Buffer.from(bytes).toString()).error;providerErrors.push({status:response.status,code:error?.code,type:error?.type,param:error?.param})}catch{}}
+ if(capture&&loseCapture){loseCapture=false;assert.ok(response.ok);throw Error('Authorized capture transport-loss probe')}
+ const clean=new Headers(response.headers);for(const name of ['content-length','content-encoding','transfer-encoding'])clean.delete(name);return new Response(bytes,{status:response.status,headers:clean});
+}
+async function eventually(fn,predicate,timeout=45000) {const end=Date.now()+timeout;let result;while(Date.now()<end){result=await fn();if(predicate(result))return result;await new Promise(resolve=>setTimeout(resolve,1000))}throw Error('Provider result did not reach the expected state')}
+async function tunnel(origin) {
+ const process=spawn('cloudflared',['tunnel','--url',origin,'--no-tls-verify','--protocol','http2'],{stdio:['ignore','ignore','pipe']});after.push(()=>{process.kill('SIGTERM')});
+ return new Promise((resolve,reject)=>{let log='';const timer=setTimeout(()=>reject(Error('Tunnel did not open')),45000);process.stderr.on('data',chunk=>{log+=chunk.toString();const url=log.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);if(url){clearTimeout(timer);resolve(url[0])}});process.on('exit',()=>{clearTimeout(timer);reject(Error('Tunnel stopped'))})});
+}
+try {
+ assert.ok(process.env.STRIPE_SECRET_KEY?.startsWith('sk_'+'test_'));await mkdir(directory,{recursive:true});
+ const pier=await installation({pier:true});t.after(()=>pier.close());const product=await stock(pier,'200');
+ h=await installation({built:true,https:true,networkEdge:stripeBoundary,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
+ const publicOrigin=await tunnel(await webhookProxy());await h.configure({CARD_WEBHOOK_ORIGIN:publicOrigin});
+ await h.command('account.save',{id:'cedar',value:{...accountValue(product.customer.id),state:'NY'}});const buyer={as:await h.signIn('buyer@example.test')};
+ const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const ownerContext=await signedContext(browser,h),buyerContext=await signedContext(browser,h,buyer.as);t.after(()=>ownerContext.close());t.after(()=>buyerContext.close());const owner=await ownerContext.newPage(),page=await buyerContext.newPage();diagnosticPage=page;
+ await owner.goto(h.origin+'/app');if(new URL(owner.url()).pathname==='/setup'){await owner.getByLabel('Your name').fill('Supplier owner');await owner.getByRole('checkbox').check();await owner.getByRole('button',{name:'Finish setup',exact:true}).click()}
+ await owner.getByRole('button',{name:'Data',exact:true}).click();await owner.getByText('Payment settings',{exact:true}).click();const settings=owner.getByRole('region',{name:'Stripe card settings'});step='connect-form';diagnosticPage=owner;
+ step='connect-mode';await settings.getByLabel('Collection mode',{exact:true}).selectOption('test');step='connect-rate';await settings.getByLabel('Credit card surcharge (basis points)',{exact:true}).fill('200');step='connect-states';await settings.getByLabel('Reviewed state allowlist',{exact:true}).fill('NY');step='connect-reason';await settings.getByLabel('Connection or policy change reason',{exact:true}).fill('Authorized test-mode acceptance; merchant reviewed New York credit policy and separate provider custody.');step='connect-review-capture';await captureRegionWidths(owner,settings,'stripe-connection-review');
+ step='connect-secret';await settings.getByLabel('Stripe secret key',{exact:true}).fill(process.env.STRIPE_SECRET_KEY);step='connect-consent';await settings.getByRole('checkbox').check();step='connect-save';await settings.getByRole('button',{name:'Save Stripe connection',exact:true}).click();await expect(settings.getByText('Stripe connected · test mode · secret key configured (masked)',{exact:true})).toBeVisible();connected=true;await captureRegionWidths(owner,settings,'stripe-settings');diagnosticPage=page;
+ const cases=process.env.BARROW_SANDBOX_CASES?.split(',')??['credit','decline','authentication','debit','prohibited'];
+ for(const name of cases) {
+  let challengeCompleted=false;
+  if(name==='prohibited'){const current=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:'cedar',revision:current.revision,value:{...current.value,state:'MA'}});const refused=await h.command('card.connect',{secretKey:process.env.STRIPE_SECRET_KEY,consent:true,mode:'test',reason:'Verify the prohibited Massachusetts surcharge is refused.',surchargeBps:200,allowedStates:['MA']},{status:400});assert.equal(refused.error.code,'SURCHARGE');console.log('stripe_sandbox_prohibited_configuration_refused=true')}
+  step=name+'-order';const order=await h.command('order.prepare',{accountId:'cedar',reference:'Stripe sandbox '+name,lines:[{sku:'OAT-1',quantity:2}]},buyer);await h.command('order.submit',{orderId:order.id},buyer);await h.command('order.approve',{orderId:order.id});
+  let payment=await h.command('card.prepare',{orderId:order.id},buyer);assert.ok(payment.checkoutUrl);
+  step=name+'-checkout';await page.goto(payment.checkoutUrl);await page.waitForTimeout(3000);
+  await page.screenshot({path:`${directory}/${name}-checkout-start.png`,fullPage:true});
+  const card=name==='decline'?'4000000000009995':name==='authentication'?'4000000000003220':name==='debit'?'4000056655665556':'4242424242424242';
+  step=name+'-email';await page.getByPlaceholder('1234 1234 1234 1234').waitFor();if(await page.locator('#email').count())await page.locator('#email').fill('buyer@example.test');else await expect(page.getByText('buyer@example.test',{exact:true})).toBeVisible();
+  step=name+'-card-number';await page.getByPlaceholder('1234 1234 1234 1234').fill(card);step=name+'-card-expiry';await page.getByPlaceholder('MM / YY').fill('12 / 30');step=name+'-card-cvc';await page.getByPlaceholder('CVC').fill('123');
+  step=name+'-card-name';await page.getByLabel('Cardholder name',{exact:true}).fill('Cedar Pantry Buyer');
+  step=name+'-country';await page.locator('select').first().selectOption('US');await page.getByText('Enter address manually',{exact:true}).click();
+  step=name+'-address';await page.getByPlaceholder('Address line 1').fill('101 Main Street');await page.getByPlaceholder('City').fill(name==='prohibited'?'Boston':'New York');await page.getByPlaceholder('ZIP').fill(name==='prohibited'?'02108':'10001');await page.getByLabel('State',{exact:true}).selectOption(name==='prohibited'?'MA':'NY');
+  step=name+'-submit';await page.locator('#enableStripePass').uncheck();await page.getByRole('button',{name:'Save',exact:true}).click();
+  // Hosted bank authentication is completed in Stripe's own challenge frame.
+  const complete=page.getByRole('button',{name:new RegExp('^Complete(?: authentication)?$','i')});
+  await eventually(async()=>{if(await complete.count()){await complete.click();challengeCompleted=true;return true}for(const frame of page.frames()){const control=frame.getByRole('button',{name:new RegExp('^Complete(?: authentication)?$','i')});if(await control.count()){if(name==='authentication')await page.screenshot({path:`${directory}/stripe-authentication-challenge.png`,fullPage:true});await control.click();challengeCompleted=true;return true}}if(name==='decline'&&(await h.command('card.refresh',{paymentId:payment.id},buyer)).state==='declined')return true;return page.url().startsWith(h.origin)},Boolean,45000);
+  step=name+'-refresh';payment=await eventually(()=>h.command('card.refresh',{paymentId:payment.id},buyer),p=>!!p.card||p.state==='declined');
+  if(!payment.card&&payment.state!=='declined'){await page.screenshot({path:`${directory}/${name}-checkout-result.png`,fullPage:true});throw Error('Hosted card setup did not complete')}
+  if(payment.state!=='declined')assert.equal(payment.surchargeCents,name==='credit'||name==='decline'||name==='authentication'?260:0);
+  if(name==='debit')assert.equal(payment.card.funding,'debit');if(name==='prohibited')assert.equal(payment.card.state,'MA');
+  await page.goto(h.origin+'/app?cardPayment='+payment.id);await page.getByRole('button',{name:'Orders',exact:true}).click();let panel=page.getByRole('region',{name:'Card payment'}).filter({hasText:payment.id});await expect(panel.getByText(/Total card payment/)).toBeVisible();await captureRegionWidths(page,panel,`stripe-${name}-review`);
+  if(payment.state!=='declined'){const consent=panel.getByRole('checkbox');await consent.check();await panel.getByRole('button',{name:'Authorize card payment',exact:true}).click();
+  payment=await eventually(()=>h.api('/api/barrow/payments/'+payment.id,undefined,buyer),p=>p.state!=='prepared')}
+  if(payment.state==='requires_action') {
+   step=name+'-authenticate';assert.ok(payment.actionUrl);await panel.getByRole('link',{name:'Authenticate card with Stripe',exact:true}).click();await page.screenshot({path:`${directory}/${name}-authentication.png`,fullPage:true});
+   let done=false;await eventually(async()=>{for(const frame of page.frames()){const button=frame.getByRole('button',{name:new RegExp('^Complete(?: authentication)?$','i')});if(await button.count()){await button.click();done=true;challengeCompleted=true;return true}}return false},Boolean);assert.ok(done);
+   payment=await eventually(()=>h.command('card.refresh',{paymentId:payment.id},buyer),p=>p.state!=='requires_action');
+  }
+  if(name==='authentication')assert.ok(challengeCompleted);
+  step=name+'-result';if(name==='decline'){assert.equal(payment.state,'declined')}
+  else {
+   assert.equal(payment.state,'authorized');step=name+'-merchant-capture';diagnosticPage=owner;
+   await owner.goto(h.origin+'/app?cardPayment='+payment.id);await owner.getByRole('button',{name:'Orders',exact:true}).click();const merchant=owner.getByRole('region',{name:'Card payment'}).filter({hasText:payment.id});await merchant.getByLabel('Reason for capture or cancellation',{exact:true}).fill('Supplier approved this exact sandbox authorization after review.');await captureRegionWidths(owner,merchant,`stripe-${name}-merchant-authorized`);
+   const before=captureRequests;if(name==='credit')loseCapture=true;
+   await merchant.getByRole('button',{name:'Capture authorized payment',exact:true}).click();
+   if(name==='credit'){await expect(merchant.getByRole('alert')).toBeVisible();await captureRegionWidths(owner,merchant,'stripe-merchant-uncertain-capture');await merchant.getByRole('button',{name:'Capture authorized payment',exact:true}).click();console.log('stripe_sandbox_lost_capture_once=true')}
+   await expect(merchant.getByText('Payment captured',{exact:true})).toBeVisible();assert.equal(captureRequests,before+1);payment=await h.api('/api/barrow/payments/'+payment.id,undefined,buyer);assert.equal(payment.state,'captured');await captureRegionWidths(owner,merchant,`stripe-${name}-merchant-captured`);diagnosticPage=page;
+   await eventually(async()=>{const rows=await h.db.prepare("SELECT id FROM bw_card_events WHERE payment_id=? AND id NOT LIKE 'api:%'").bind(payment.id).all();return rows.results.length},n=>n>0);
+  }
+  await page.goto(h.origin+'/app?cardPayment='+payment.id);await page.getByRole('button',{name:'Orders',exact:true}).click();panel=page.getByRole('region',{name:'Card payment'}).filter({hasText:payment.id});await expect(panel.getByRole('status').first()).toBeVisible();await captureRegionWidths(page,panel,`stripe-${name}-result`);
+  const received=payment.providerPaymentId?await eventually(async()=>deliveredEvents.find(row=>JSON.parse(row.body).data?.object?.metadata?.barrowPaymentId===payment.id),Boolean):undefined;if(received){const replay=await h.raw('/api/barrow/card-webhook',{method:'POST',headers:{'stripe-signature':received.signature},body:received.body});assert.equal((await replay.json()).duplicate,true)}
+  if(name==='decline'){step='decline-owned-queue';diagnosticPage=owner;await owner.getByRole('button',{name:'Data',exact:true}).click();const queue=owner.locator('.br-card').filter({has:owner.getByRole('heading',{name:'Next actions',exact:true})}).first();await queue.getByLabel('Queue view').selectOption('all');const task=queue.getByRole('article').filter({hasText:payment.id});await expect(task).toBeVisible();await captureRegionWidths(owner,task,'stripe-decline-owned-exception');await owner.goto(h.origin+'/app?cardPayment='+payment.id);await owner.getByRole('button',{name:'Orders',exact:true}).click();const cancellation=owner.getByRole('region',{name:'Card payment'}).filter({hasText:payment.id});await cancellation.getByLabel('Reason for capture or cancellation',{exact:true}).fill('Owner ends the verified declined hosted card attempt.');await captureRegionWidths(owner,cancellation,'stripe-merchant-cancel-review');await cancellation.getByRole('button',{name:'Cancel card payment',exact:true}).click();await expect(cancellation.getByText('Card payment cancelled',{exact:true})).toBeVisible();await captureRegionWidths(owner,cancellation,'stripe-merchant-cancelled');const cancelled=await h.api('/api/barrow/payments/'+payment.id);await owner.getByRole('button',{name:'Data',exact:true}).click();await queue.getByLabel('Queue view').selectOption('all');await expect(task).toContainText(cancelled.exception.resolution);await captureRegionWidths(owner,task,'stripe-decline-resolved-exception');diagnosticPage=page}
+  console.log(`stripe_sandbox_${name}=true`);
+ }
+ step='statements';await page.getByRole('region',{name:'Account statement'}).scrollIntoViewIfNeeded();await captureRegionWidths(page,page.getByRole('region',{name:'Account statement'}),'stripe-statement');
+ await page.setViewportSize({width:390,height:1000});const balances=page.getByRole('region',{name:'Account statement'}).locator('.br-table-wrap');await balances.evaluate(element=>{element.scrollLeft=element.scrollWidth});await balances.screenshot({path:`${directory}/stripe-statement-balances-390.png`});await page.setViewportSize({width:1440,height:1000});
+ step='custody';diagnosticPage=owner;await owner.getByRole('button',{name:'Data',exact:true}).click();const retention=owner.getByRole('region',{name:'Account retention and erasure'});await retention.getByLabel('Trade account',{exact:true}).selectOption('cedar');await retention.getByRole('button',{name:'Preview account erasure',exact:true}).click();await expect(retention.getByRole('heading',{name:'Custody and copies',exact:true})).toBeVisible();await expect(retention).toContainText('Stripe retains');await captureRegionWidths(owner,retention,'stripe-financial-custody');
+ for(const screen of [page,owner])assert.equal(await screen.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
+ console.log('stripe_sandbox_signed_provider_events=true');
+} catch(error) {console.error(`stripe_sandbox_failed_step=${step}`);if(diagnosticPage){await diagnosticPage.screenshot({path:`${directory}/failure.png`,fullPage:true});await writeFile(`${directory}/fields.json`,JSON.stringify(await Promise.all(diagnosticPage.frames().map(async frame=>({name:frame.name(),fields:await frame.locator('input,select,button').evaluateAll(es=>es.map(e=>({tag:e.tagName,id:e.id,name:e.getAttribute('name'),placeholder:e.getAttribute('placeholder'),label:e.getAttribute('aria-label'),text:e.tagName==='BUTTON'?e.textContent:null})))}))),null,2))}if(providerErrors.length)console.error(JSON.stringify({providerErrors}));throw Error('Stripe sandbox journey failed; inspect its private screenshots and the named step.')} finally {
+ if(connected){try{await h.command('card.disconnect',{reason:'Completed authorized sandbox acceptance; remove temporary webhook and local secret custody.'});console.log('stripe_sandbox_endpoint_removed=true')}catch{console.error('stripe_sandbox_endpoint_removed=false')}}
+ for(const fn of after.reverse())await fn();
+}

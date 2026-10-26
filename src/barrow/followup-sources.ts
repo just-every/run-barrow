@@ -1,9 +1,10 @@
 import type { AccountValue, Order } from './model'
 import type { Quote } from './quotes'
+import type { CardPayment } from './card-model'
 import { applicationTaskId, escalatedView } from './application-followup'
 import { supplierDate } from './model'
 
-export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail' | 'application' | 'visit' | 'account-plan'
+export type FollowupKind = 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail' | 'application' | 'visit' | 'account-plan' | 'card-payment'
 export type FollowupSource = { id: string; kind: FollowupKind; accountId: string; sourceId: string; sourcePath: string; title: string; reason: string; priority: number }
 const day = 86400000
 /** AUTO-002: the exact reason a submitted order still waits for supplier approval, checked the way approval checks it. */
@@ -15,11 +16,12 @@ function supplierApprovalCause(order: Order, account: { value_json: string; revi
  return 'No supplier approver has approved it yet: an owner, an admin, or a sales manager or operations person with every warehouse approves it and reserves stock.'
 }
 export async function followupSources(db: D1Database, at: Date) {
- const [quoteRows, orderRows, accountRows, auditRows] = await Promise.all([
+ const [quoteRows, orderRows, accountRows, auditRows, paymentRows] = await Promise.all([
   db.prepare('SELECT value_json FROM bw_quotes').all<{ value_json: string }>(),
   db.prepare('SELECT value_json FROM bw_orders').all<{ value_json: string }>(),
   db.prepare('SELECT id,value_json,revision FROM bw_accounts').all<{ id: string; value_json: string; revision: string }>(),
   db.prepare("SELECT subject_id,action,MIN(created_at) AS created_at FROM bw_audit WHERE action IN ('account.saved','order.submitted','order.submitted-release') GROUP BY subject_id,action").all<{ subject_id: string; action: string; created_at: string }>(),
+  db.prepare('SELECT id,account_id,value_json FROM bw_card_payments').all<{ id: string; account_id: string; value_json: string }>(),
  ])
  const orders = orderRows.results.map(row => JSON.parse(row.value_json) as Order), accountsById = new Map(accountRows.results.map(row => [row.id, row]))
  const created = new Map(auditRows.results.filter(row => row.action === 'account.saved').map(row => [row.subject_id, row.created_at]))
@@ -29,6 +31,14 @@ export async function followupSources(db: D1Database, at: Date) {
  }
  const candidates: FollowupSource[] = [], resolved = new Map<string, string>(), unknownAge: string[] = []
  const age = (value: string) => at.getTime() - Date.parse(value)
+ for (const row of paymentRows.results) {
+  const payment = JSON.parse(row.value_json) as CardPayment, id = `card-payment:${row.id}`
+  const exception = payment.exception
+  // Only an explicitly verified exception is actionable; payment state or absence never proves resolution.
+  if (!exception?.verifiedAt) continue
+  if (exception.resolvedAt && exception.resolution) { resolved.set(id, exception.resolution); continue }
+  candidates.push({ id, kind: 'card-payment', accountId: row.account_id, sourceId: row.id, sourcePath: `/api/barrow/payments/${row.id}`, title: `Card payment exception ${row.id}`, reason: `${exception.reason} Verified ${exception.verifiedAt}.`, priority: 1 })
+ }
  for (const row of quoteRows.results) {
   const quote = JSON.parse(row.value_json) as Quote, id = `quote:${quote.id}`
   if (quote.status === 'accepted' || quote.accepted) { resolved.set(id, 'Quote accepted.'); continue }

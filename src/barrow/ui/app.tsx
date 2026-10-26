@@ -1,3 +1,4 @@
+import { CardSettings } from './card-settings'
 import { ProfileWorkspace, ProfileConfiguration } from './profile-workspace'
 import { DeltaCutoverReview } from './delta-cutover'
 import { ConfirmationSettings } from './confirmation-settings'
@@ -90,6 +91,7 @@ export function BarrowApp() {
     if ((new URLSearchParams(window.location.search).get('task') ?? '').startsWith('quote-mail:')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('reportRun')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('application') && (!staff || applicationRight==='review')) setTab('Accounts')
+    if (new URLSearchParams(window.location.search).has('cardPayment')) setTab('Orders')
     if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
     void load()
   }, [load])
@@ -192,6 +194,7 @@ export function BarrowApp() {
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && legacySupplier && <ProfileConfiguration accounts={state.accounts} version={state}/>}
+          {activeTab === 'Data' && state.actor.role==='owner' && <details className="br-details"><summary>Payment settings</summary><CardSettings /></details>}
           {activeTab === 'Data' && supplier && <DataTools owner={state.actor.role==='owner'} accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
         </>}
       </section></HydrationUnit>

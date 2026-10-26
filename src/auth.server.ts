@@ -17,6 +17,7 @@ export interface Bindings {
  RER_OWNER_CLAIM_PUBLIC_KEYS?: string
  ERASURE_JOURNAL?: R2Bucket
  DB: D1Database
+ CARD_WEBHOOK_ORIGIN?: string
  PIER_ORIGIN?: string
  PIER_SESSION?: string
  BARROW_SFTP_SECRETS?: string

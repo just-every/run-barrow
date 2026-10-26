@@ -1,3 +1,6 @@
+import { cardCommand,readCard,readCards } from './card-payments'
+import { cardSettings,cardConfiguration } from './card-settings'
+import { cardWebhook } from './card-webhook'
 import { buyingProfileCommand, readBuyingProfiles, resolveBuyingProfile } from './buying-profiles'
 import { accountFollowupCommand } from './account-followup'
 import { refreshCatalogIndex, searchCatalog } from './catalog-search'
@@ -107,6 +110,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(application)return application
   if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
   if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
+  if(path==='/api/barrow/card-webhook')return await cardWebhook(request,env)
   const actor=await current(request,env).catch(error=>{
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
@@ -124,6 +128,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
+  if(path==='/api/barrow/card-settings'&&request.method==='GET')return json(await cardSettings(env,actor))
+  if(path==='/api/barrow/payments'&&request.method==='GET')return json(await readCards(env,actor,url.searchParams.get('orderId')??''))
+  const cardPath=/^\/api\/barrow\/payments\/([-a-zA-Z0-9_]+)$/.exec(path)
+  if(cardPath&&request.method==='GET')return json(await readCard(env,actor,cardPath[1]))
   if(path==='/api/barrow/staff/members'&&request.method==='GET')return json({members:await readStaffMembers(env.DB,actor)})
   if(path==='/api/barrow/company/invitations'&&request.method==='GET')return json({invitations:await ownCompanyInvitations(env.DB,actor)})
   if(path==='/api/barrow/company/collisions'&&request.method==='GET')return json({collisions:await readCompanyCollisions(env.DB,actor)})
@@ -309,6 +317,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
+   if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
    if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
    if(body.type==='catalog.refresh')return json({result:await refreshCatalogIndex(env,actor,body.payload)})
