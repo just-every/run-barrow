@@ -1892,7 +1892,7 @@
       "executable": false
     },
     "src/barrow/ui/credit-panel.tsx": {
-      "sha256": "7cb8e831d14c613d49af8810902272cc69c3736665a1fc186ebfc54d04885c15",
+      "sha256": "4d187c789b542777282e846966b3629639a5f909b584ff410a4876c84c7fc597",
       "executable": false
     },
     "src/barrow/ui/current-rep.tsx": {
@@ -4488,7 +4488,7 @@
       "executable": false
     },
     "tests/journeys/credit-payments.test.mjs": {
-      "sha256": "7a5d41d8ff2abbfe6ef78133847f4c5b4ba9697eab7bed2adb31a1d0c05c1334",
+      "sha256": "8fe207a044f8391fcf63fe048b35fb571cd6183828043d7d3511c4cd46424c5a",
       "executable": false
     },
     "tests/journeys/cutover.test.mjs": {

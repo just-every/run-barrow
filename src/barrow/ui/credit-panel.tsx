@@ -156,17 +156,17 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
   }
 
   return <details className="br-details"><summary>Manage credits and refunds</summary><div className="br-stack">
-    <label>Action<select value={action} disabled={disabled} onChange={event => { setAction(event.target.value); setCreditId(''); setPaymentId(''); setAmount(''); setReason(''); setConsentKey('') }}>
+    <label>Action<select aria-label="Action" value={action} disabled={disabled} onChange={event => { setAction(event.target.value); setCreditId(''); setPaymentId(''); setAmount(''); setReason(''); setConsentKey('') }}>
       <option value="allocate">Apply captured card principal to invoice</option><option value="issue">Issue a linked credit note</option><option value="apply">Apply available company credit</option><option value="refund">Request a card refund</option>
     </select></label>
-    {(action === 'allocate' || action === 'refund') && <label>Captured receipt<select value={paymentId} disabled={disabled} onChange={event => { setPaymentId(event.target.value); setConsentKey('') }}>
+    {(action === 'allocate' || action === 'refund') && <label>Captured receipt<select aria-label="Captured receipt" value={paymentId} disabled={disabled} onChange={event => { setPaymentId(event.target.value); setConsentKey('') }}>
       <option value="">Choose a captured receipt</option>{receipts.map(row => <option key={row.id} value={row.id}>{receiptName(row)}</option>)}
     </select></label>}
-    {(action === 'apply' || action === 'refund') && <label>Available credit note<select value={creditId} disabled={disabled} onChange={event => { setCreditId(event.target.value); setConsentKey('') }}>
+    {(action === 'apply' || action === 'refund') && <label>Available credit note<select aria-label="Available credit note" value={creditId} disabled={disabled} onChange={event => { setCreditId(event.target.value); setConsentKey('') }}>
       <option value="">Choose a credit note</option>{credits.map(row => <option key={row.id} value={row.id}>{row.id} · order {orderNumber(row.orderId)} · {money(row.availableCents, row.currency)} available</option>)}
     </select></label>}
     {action === 'issue' ? <>
-      <label>Credit basis<select value={kind} disabled={disabled} onChange={event=>setKind(event.target.value)}><option value="return">Physical return</option><option value="price-correction">Price correction</option><option value="cancellation">Confirmed cancellation</option></select></label>
+      <label>Credit basis<select aria-label="Credit basis" value={kind} disabled={disabled} onChange={event=>setKind(event.target.value)}><option value="return">Physical return</option><option value="price-correction">Price correction</option><option value="cancellation">Confirmed cancellation</option></select></label>
       {kind==='return'&&<label>Pier physical return ID<input value={returnId} disabled={disabled} onChange={event => setReturnId(event.target.value)} /></label>}
       {kind==='price-correction'&&<label>Price correction reference<input value={sourceReference} disabled={disabled} onChange={event=>setSourceReference(event.target.value)}/></label>}
       <p className="br-quiet-text">Enter returned selling units. Credit uses the original approved line prices and first reduces this invoice’s unpaid amount.</p>
