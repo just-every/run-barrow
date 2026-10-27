@@ -1,12 +1,12 @@
 import { supplierZone } from '../model'
 export interface Price { msrpCents?:number; sku: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing }
-export interface AccountValue { currency?:'USD'|'CAD'; priceDisplay?:import('../imports/validation').AccountValue['priceDisplay'];
+export interface AccountValue { credit?:import('../credit-exposure').CreditPolicy; currency?:'USD'|'CAD'; priceDisplay?:import('../imports/validation').AccountValue['priceDisplay'];
   name: string; email: string; pierCustomerId: string; termsDays: number; minimumCents: number; prices: Price[]; city?: string; state?: string
   lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; warehouses?: string[]; providerReferences?: Record<string, string>
 }
 export interface CurrentRep { name: string; coverage: boolean; through?: string }
 export interface Account { buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot; id: string; value: AccountValue; revision: string }
-export interface Order {
+export interface Order { creditException?:import('../credit-exposure').CreditException;
   buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}
 

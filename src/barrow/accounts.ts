@@ -1,3 +1,4 @@
+import { creditAuthority } from './credit-access'
 import { deltaErasure } from './imports/delta-custody'
 import { cutoverErasure } from './imports/cutover-custody'
 import { prepareLegacyErasure } from './legacy-erasure-journal'
@@ -37,6 +38,7 @@ export async function prepareAccountSave(env:Bindings,actor:Actor,p:any) {
   const value=validateAccountValue(p.value),id=p.id??await freeId(env.DB,value.name),revision=crypto.randomUUID()
   if(typeof id!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(id)) fail('INPUT','Use a stable account ID with letters, digits, dash or underscore.',400)
   const prior=await env.DB.prepare('SELECT * FROM bw_accounts WHERE id=?').bind(id).first<any>()
+  if(JSON.stringify(prior?JSON.parse(prior.value_json).credit:undefined)!==JSON.stringify(value.credit)){creditAuthority(actor,id,Math.max(value.credit?.limitCents??0,prior?JSON.parse(prior.value_json).credit?.limitCents??0:0),value.credit?.currency??'USD');text(p.reason,'Credit policy reason',240)}
   if(prior && p.revision!==prior.revision) fail('CHANGED','This account changed. Refresh it before saving.')
   if(prior && JSON.parse(prior.value_json).email!==value.email) fail('ACCOUNT_EMAIL','Create a separate account to change the customer email; existing order access cannot be reassigned.')
   const directory=await accounts(env.DB,actor)

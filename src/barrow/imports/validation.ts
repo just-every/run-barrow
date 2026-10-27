@@ -3,6 +3,7 @@ import { validatePricing, type Pricing } from '../pricing';
 import { quantityMicro, formatMicro, type UnitDefinition } from '../units';
 
 export type AccountValue = {
+  credit?: import('../credit-exposure').CreditPolicy;
   currency?: 'USD' | 'CAD';
   priceDisplay?: { confirmation: 'wholesale'|'retail'|'both'; orderCsv: 'wholesale'|'retail'|'both' };
   name: string;
@@ -70,7 +71,7 @@ export function validatePriceUnits(input: unknown): UnitDefinition[] {
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
-  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses', 'currency', 'priceDisplay'];
+  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses', 'currency', 'priceDisplay', 'credit'];
   if (Object.keys(value).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !(key in value)))
     importError('ACCOUNT_VALUE', 'Use exactly the documented account fields.');
   const name = boundedText(value.name, 'name');
@@ -101,6 +102,11 @@ export function validateAccountValue(input: unknown): AccountValue {
   // The stockist's town, shown beside its name ("Columbia, SC"); both parts are optional.
   const town = Object.fromEntries(['city', 'state', 'channel', 'territory', 'assignedRep'].filter(key => value[key] !== undefined).map(key => [key, boundedText(value[key], key, key === 'state' ? 40 : key === 'assignedRep' ? 160 : 80)]));
   const profile: Partial<AccountValue> = {};
+  if(value.credit!==undefined){
+    const credit=value.credit as Record<string,unknown>;
+    if(!credit||Object.keys(credit).some(key=>!['currency','limitCents'].includes(key))||!['USD','CAD'].includes(credit.currency as string))importError('ACCOUNT_CREDIT','Credit needs a supported currency and limit in integer cents.');
+    profile.credit={currency:credit.currency as 'USD'|'CAD',limitCents:nonnegativeInteger(credit.limitCents,'credit limit')};
+  }
   if (value.lifecycle !== undefined) {
     if (!['active', 'on-hold', 'closed'].includes(value.lifecycle as string)) importError('ACCOUNT_LIFECYCLE', 'lifecycle must be active, on-hold or closed.');
     profile.lifecycle = value.lifecycle as AccountValue['lifecycle'];

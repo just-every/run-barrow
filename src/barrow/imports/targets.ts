@@ -68,6 +68,8 @@ export function accountTargets(reversing = false, review?: { plan: ImportPlan; j
       // compare the same JSON representation, including on before-image restore.
       const duplicateReviews = reviews.get(row.targetId) ?? [];
       return [...(directoryGuard ? [directoryGuard] : []),
+        // Source profile imports cannot grant, replace or remove a native finance policy.
+        sql("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT json_extract(value_json,'$.credit') FROM bw_accounts WHERE id=?),'null')=COALESCE(json_extract(?,'$.credit'),'null') THEN 1 ELSE 0 END",row.targetId,JSON.stringify(row.value)),
         sql("INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_accounts WHERE (id=? AND json_extract(value_json,'$.email')<>?) OR (id<>? AND json_extract(value_json,'$.email')=?)) THEN 1 ELSE 0 END", row.targetId, (row.value as Record<string, Json>).email, row.targetId, (row.value as Record<string, Json>).email),
         sql('INSERT INTO bw_accounts(id,value_json,revision) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision', row.targetId, JSON.stringify(row.value), row.revision),
         ...(eventActor ? [commercialAuditEvent(eventActor,row.targetId,reversing?'import.account-restored':'import.account-applied',{accountId:row.targetId,revision:row.revision,source:reversing?'import.undo':'import.apply',reason:reversing?`Restored the exact reviewed before-image from import ${operationId??'journal'}.`:`Applied reviewed account import ${review?.jobId??'journal'}.`})] : []),

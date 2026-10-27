@@ -32,6 +32,11 @@ const filters = [['All','all'], ['Drafts','draft'], ['Company approval','awaitin
 type HistoryPage = {accountRevisions:Record<string,string>;orders:Order[];people:Record<string,string>;page:number;hasNext:boolean;counts:Record<string,number>;duplicatePOs:string[];completedReplacements:string[]}
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
+function OrderCredit({order}:{order:Order}) {
+ const [value,setValue]=useState<{currency:string;limitCents:number|null;exposureCents:number;availableCents:number|null}|null>(null),[error,setError]=useState('')
+ useEffect(()=>{let active=true;void request<typeof value>(`/api/barrow/credit-exposure?${new URLSearchParams({accountId:order.accountId,orderId:order.id})}`).then(value=>{if(active)setValue(value)}).catch(cause=>{if(active)setError(errorMessage(cause))});return()=>{active=false}},[order.revision])
+ return error?<p role="alert">{error}</p>:value?.limitCents!==null&&value?<p>Credit before this order: available {money(value.availableCents!,value.currency as 'USD')} · exposure {money(value.exposureCents,value.currency as 'USD')} · limit {money(value.limitCents!,value.currency as 'USD')}</p>:null
+}
 export function Orders({ orders: all, accounts, people, viewer, supplier, stockExceptionLimitCents,canOperate=supplier,canExcept=supplier,canQuote=supplier, companyApprover=false, companyManager=false, canPurchase=true, finance=true, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean;stockExceptionLimitCents?:number;canOperate?:boolean;canExcept?:boolean;canQuote?:boolean;companyApprover?:boolean;companyManager?:boolean;canPurchase?:boolean;finance?:boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
   const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
   const [termsFor,setTermsFor]=useState<Record<string,TermsChoice>>({})
@@ -100,6 +105,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
         </div>
         <div className="br-order-side">
           <p className="br-order-amount">{money(order.totalCents, order.currency ?? 'AUD')}</p>
+          <OrderCredit order={order}/>
           <p className="br-quiet-text">{units} {order.lines.some(line=>line.baseQuantity) ? 'base units' : units === 1 ? 'unit' : 'units'} · {order.termsDays === 0 ? 'Due on receipt' : `${terms(order.termsDays)} payment terms`}</p>
           <div className="br-actions br-order-actions">
             {canPurchase&&['submitted','reserving','shortfall','approved'].includes(order.status) && <button className="br-secondary" disabled={busy} onClick={() => setReorder(order)}>Reorder selected lines</button>}

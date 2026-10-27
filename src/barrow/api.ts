@@ -1,3 +1,4 @@
+import { creditExposure, saveCreditPolicy } from './credit-exposure'
 import { faireState, faireConfigure, fairePoll, faireMatch } from './faire'
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
@@ -95,6 +96,8 @@ async function pierSkus(env:Bindings):Promise<PierSkus> {
 }
 const json=(value:unknown,status=200)=>Response.json(value,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}})
 export async function barrowResponse(request:Request,original:Bindings):Promise<Response|null> {
+ let creditStaff=false
+ const json=(value:unknown,status=200)=>Response.json(JSON.parse(JSON.stringify(value,(key,item)=>key==='creditException'&&!creditStaff?undefined:item)),{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}})
  const url=new URL(request.url),path=url.pathname
  if(!path.startsWith('/api/barrow/')) return null
  try {
@@ -133,6 +136,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(!(request.method==='POST'&&path==='/api/barrow/commands'))fail('FORBIDDEN','This credential may read its account catalogue/orders and submit structured proposals only.',403)
   }
   actor.staff=await readStaffGrant(env.DB,actor)
+  creditStaff=!actor.agent&&(['owner','admin'].includes(actor.role)||actor.staff?.role==='finance')
   await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
@@ -222,6 +226,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    return json(await shippingResponse(env,actor,url.searchParams.get('orderId')??''))
   }
   if(path==='/api/barrow/reports/fulfillment' && request.method==='GET') return json(await fulfillmentReport(env,actor,url.searchParams))
+  if(path==='/api/barrow/credit-exposure' && request.method==='GET')return json(await creditExposure(env,actor,url.searchParams.get('accountId')??'',url.searchParams.get('orderId')??''))
   if(path==='/api/barrow/reports/finance' && request.method==='GET') return json(await financeReport(env,actor,url.searchParams))
   if(path==='/api/barrow/reports/finance.csv' && request.method==='GET') return await financeCsv(env,actor,url.searchParams)
   if(path==='/api/barrow/reports/sales' && request.method==='GET') return json(await salesReport(env,actor,url.searchParams))
@@ -347,6 +352,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})
    if(['refund.request','refund.refresh'].includes(body.type))return json({result:await refundCommand(env,actor,body.type,body.payload)})
    if(['saved-card.save','saved-card.revoke','saved-card.prepare'].includes(body.type)){const result=await savedCardCommand(env,actor,body.type,body.payload);return json({result:body.type==='saved-card.prepare'?publicCard(result as import('./card-model').CardPayment):result})}
+   if(body.type==='credit.policy')return json({result:await saveCreditPolicy(env,actor,body.payload)})
    if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
    if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
@@ -376,7 +382,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.credit-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)

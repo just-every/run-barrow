@@ -13,3 +13,16 @@ Card financial events extend commercial retention by seven UTC calendar years, w
 The authorized local sandbox journey is `tests/journeys/card-stripe-sandbox.mjs`. Run it through the named secret injector and shared heavy slot after building the app. It uses real hosted Stripe checkout, bank authentication and signed events through a temporary tunnel, and removes its webhook endpoint when it finishes. Its screenshots belong outside this public repository. API tests fake only Stripe's network boundary. No live credential is used by the acceptance journey.
 
 The credit-refund sandbox segment supports a held test merchant without a US surcharge policy: set `BARROW_SANDBOX_SURCHARGE_BPS=0`, `BARROW_SANDBOX_CASES=credit` and `BARROW_SANDBOX_CREDIT=true`. The default remains the reviewed 200 basis point surcharge. The journey requires a public webhook tunnel with a registered connection before it connects Stripe; a URL in a failed tunnel request does not establish readiness. A host without callback ingress leaves the live refund and signed replay proof pending.
+
+
+## Account credit
+
+A captured card receipt reduces credit exposure only after finance explicitly allocates its verified principal to the source invoice. Unapplied captures remain separate. Applied credit notes reduce the original debt once; an open commitment and its later invoice are never counted twice.
+
+From an authenticated session, send `credit.policy` to `POST /api/barrow/commands` with `accountId`, the current account `revision`, `termsDays`, ISO `currency`, `limitCents` and a recorded `reason`. Zero days means due on receipt; a zero limit permits no unpaid exposure. The installation owner, admin or currently entitled finance person must authorize the amount. Existing accounts retain their prior terms until a policy is configured.
+
+`GET /api/barrow/credit-exposure?accountId=ACCOUNT` returns current availability and source amounts. The optional `orderId` excludes that order while reviewing its admission. A USD 10,000 limit with USD 3,000 owed permits USD 7,000 more; an USD 8,000 draft stays blocked until a verified allocation reduces the debt or finance approves the exact excess.
+
+Finance records an exception with `order.credit-exception`, the current `orderId` and `revision`, and a nonempty `reason`. Its authority and financial basis are rechecked at admission. A changed balance, policy or revoked grant requires fresh review. No exception collects funds or reserves stock by itself. The staff audit retains the decision; buyers and agents cannot read it.
+
+Checkout shows credit before the reviewed order. The finance report and its CSV show current exposure and source orders at the read time, separately from historical invoice aging. Amounts stay in their original currency; unresolved debt in another currency blocks admission rather than inventing a conversion. Deposits remain PAY-003’s separate capability.

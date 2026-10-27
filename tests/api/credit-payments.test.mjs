@@ -80,3 +80,57 @@ test('finance allowances bound source-priced corrections and refunds; confirmed 
  const refusedCredit=await h.command('credit.issue',{orderId:credit.orderId,kind:'price-correction',sourceReference:'Separate paid correction',lines:[{line:1,quantity:1,amountCents:100}],reason:'Correct the remaining paid original merchandise.'});edge.refuseRefund();const refused=await h.command('refund.request',{creditId:refusedCredit.id,revision:refusedCredit.revision,paymentId:payment.id,amountCents:100,consent:true,reason:'Explicit request that Stripe refuses before creation.'});assert.equal(refused.status,'failed');assert.equal(refused.providerRefundId,undefined);assert.equal((await h.api('/api/barrow/credits/'+refusedCredit.id)).availableCents,100);
 
 });
+
+test('net terms credit exposure blocks commitments and quotes, recalculates verified principal, revalidates drafts and binds private audited exceptions',async t=>{
+ const {exposureFixture}=await import('./credit-exposure-fixture.mjs');
+ const {h,pier,buyer,other,account,draft,owed,candidate,pay}=await exposureFixture(t);
+ assert.equal(account.value.termsDays,30);assert.deepEqual(account.value.credit,{currency:'USD',limitCents:1000000});
+ const read=()=>h.api('/api/barrow/credit-exposure?accountId=cedar',undefined,buyer);
+ let balance=await read();assert.deepEqual([balance.exposureCents,balance.availableCents],[300000,700000]);assert.deepEqual(balance.rows.map(row=>row.orderId),[owed.id]);
+ const refused=await h.command('order.submit',{orderId:candidate.id},{...buyer,status:409});assert.equal(refused.error.code,'CREDIT_LIMIT');assert.match(refused.error.message,/700000.*800000.*300000/);
+ assert.equal((await h.api('/api/barrow/orders/'+candidate.id,undefined,buyer)).status,'draft');assert.equal((await pier.api('/api/pier/state')).orders.length,1);
+ const contender=await draft(3,'Draft before credit is consumed');
+ const payment=await pay();assert.equal((await read()).availableCents,700000); // An unapplied capture is not guessed into an account receipt.
+ await h.command('card.allocate',{paymentId:payment.id,orderId:owed.id,amountCents:100000,reason:'Apply one thousand verified principal to the existing invoice.'});
+ balance=await read();assert.deepEqual([balance.exposureCents,balance.availableCents],[200000,800000]);assert.equal(balance.rows[0].paymentSources[0].path,'/api/barrow/payments/'+payment.id);
+ await h.command('order.submit',{orderId:candidate.id},buyer);const approved=await h.command('order.approve',{orderId:candidate.id});
+ assert.deepEqual([approved.totalCents,approved.currency,approved.termsDays,approved.lines[0].unitCents,approved.lines[0].quantity],[800000,'USD',30,100000,8]);assert.ok(approved.submittedBy);assert.ok(approved.approvedBy);assert.ok(approved.approvedAt);assert.equal(approved.status,'approved');
+ assert.equal((await h.command('order.approve',{orderId:candidate.id})).pierOrderId,approved.pierOrderId);assert.equal((await pier.api('/api/pier/state')).orders.length,2);
+ assert.deepEqual([(await read()).exposureCents,(await read()).availableCents],[1000000,0]);
+ assert.equal((await h.command('order.submit',{orderId:contender.id},{...buyer,status:409})).error.code,'CREDIT_LIMIT');
+ let quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:1}]},buyer);
+ quote=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:'2099-12-31',termsDays:30,lines:[{sku:'OAT-1',quantity:1}]});
+ assert.equal((await h.command('quote.accept',{quoteId:quote.id,number:1},{...buyer,status:409})).error.code,'CREDIT_LIMIT');
+ const policy={accountId:'cedar',revision:account.revision,termsDays:30,currency:'USD',limitCents:2000000,reason:'An unauthorized buyer cannot raise their own ceiling.'};
+ await h.command('credit.policy',policy,{...buyer,status:403});await h.api('/api/barrow/credit-exposure?accountId=cedar',undefined,{...other,status:404});
+ const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:'Bearer '+token}};
+ await h.command('order.credit-exception',{orderId:contender.id,revision:contender.revision,reason:'Agents cannot authorize credit.'},{...agent,status:403});
+ await h.command('order.credit-exception',{orderId:contender.id,revision:contender.revision,reason:'Buyers cannot authorize their own excess.'},{...buyer,status:403});
+ const finance=await activateStaff(h,'credit-finance@example.test',{role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:200000,refundLimitCents:0});
+ await h.command('order.credit-exception',{orderId:contender.id,revision:contender.revision,reason:'Current excess exceeds this finance allowance.'},{...finance.who,status:403});
+ await h.command('order.credit-exception',{orderId:approved.id,revision:approved.revision,reason:'Approved orders cannot gain a retrospective exception.'},{status:409});
+ await h.command('order.credit-exception',{orderId:contender.id,revision:'stale',reason:'A stale commercial revision cannot be approved.'},{status:409});
+ const enlarged=await h.command('staff.update',{userId:finance.id,revision:finance.grant.revision,policy:{role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:400000,refundLimitCents:0},reason:'Owner authorizes the current excess.'});
+ let reviewed=await h.command('order.credit-exception',{orderId:contender.id,revision:contender.revision,reason:'Finance reviews the exact current excess.'},finance.who);
+ await h.command('staff.revoke',{userId:finance.id,revision:enlarged.revision,reason:'Owner withdraws the finance authority before buyer submission.'});
+ assert.equal((await h.command('order.submit',{orderId:reviewed.id},{...buyer,status:409})).error.code,'CREDIT_LIMIT');
+ let exception=await h.command('order.credit-exception',{orderId:contender.id,revision:reviewed.revision,reason:'Owner explicitly accepts the exact three thousand dollar excess.'});
+ assert.equal(exception.creditException.excessCents,300000);assert.equal(exception.creditException.reason,'Owner explicitly accepts the exact three thousand dollar excess.');
+ await h.command('order.submit',{orderId:exception.id},buyer);assert.equal((await read()).exposureCents,1300000);assert.equal((await h.api('/api/barrow/orders/'+exception.id,undefined,buyer)).creditException,undefined);
+ const audit=await h.api('/api/barrow/audit?orderId='+exception.id);const event=audit.events.find(row=>row.action==='order.credit-exception');assert.ok(event);assert.equal(event.actorKind,'human');assert.ok(event.actorId);assert.ok(event.createdAt);assert.ok(event.revision);assert.equal(event.source,'order.command');assert.equal(event.reason,exception.creditException.reason);
+ const csv=await (await h.request('/api/barrow/audit.csv?orderId='+exception.id+'&limit=1')).text();assert.ok(csv.includes(event.id));assert.ok(csv.includes(event.reason));
+ await h.api('/api/barrow/audit?orderId='+exception.id,undefined,{...buyer,status:403});await h.api('/api/barrow/audit.csv',undefined,{...agent,status:403});await h.api('/api/barrow/audit/'+event.id,undefined,{method:'DELETE',status:404});
+ const report=await h.api('/api/barrow/reports/finance');const credit=report.creditAccounts.find(row=>row.accountId==='cedar');assert.deepEqual([credit.currency,credit.limitCents,credit.exposureCents,credit.availableCents],['USD',1000000,1300000,0]);assert.deepEqual(credit.rows.map(row=>row.orderId).sort(),[owed.id,approved.id,exception.id].sort());for(const row of credit.rows)assert.equal((await h.api(row.path)).id,row.orderId);
+ const financeCsv=await (await h.request('/api/barrow/reports/finance.csv')).text();assert.ok(financeCsv.includes('"1300000"'));assert.ok(financeCsv.includes(owed.id));assert.ok(financeCsv.includes('"USD"'));
+ // A later source-linked credit changes the reviewed basis, so the exception needs fresh review.
+ await h.command('credit.issue',{orderId:owed.id,kind:'price-correction',sourceReference:'synthetic-barrow-88',lines:[{line:1,quantity:1,amountCents:100000}],reason:'A verified original-price correction changes the reviewed exposure.'});
+ assert.equal((await h.command('order.approve',{orderId:exception.id},{status:409})).error.code,'CREDIT_LIMIT');
+ exception=await h.command('order.credit-exception',{orderId:exception.id,revision:(await h.api('/api/barrow/orders/'+exception.id)).revision,reason:'Review the smaller current excess after the new receipt.'});assert.equal(exception.creditException.excessCents,200000);await h.command('order.approve',{orderId:exception.id});
+ const updated=await h.command('credit.policy',{...policy,reason:'Owner increases the ceiling after finance review.'});assert.equal(updated.value.credit.limitCents,2000000);
+ const converted=await h.command('quote.accept',{quoteId:quote.id,number:1},buyer);assert.equal(converted.order.totalCents,100000);assert.equal(converted.order.currency,'USD');assert.equal(converted.order.termsDays,30);
+ const first=await draft(4,'Concurrent credit commitment one'),second=await draft(4,'Concurrent credit commitment two');
+ const results=await Promise.all([first,second].map(row=>h.request('/api/barrow/commands',{method:'POST',as:buyer.as,body:{type:'order.submit',payload:{orderId:row.id}}})));assert.deepEqual(results.map(row=>row.status).sort(),[200,409]);assert.equal((await read()).exposureCents,1700000);
+ const sourceCsv='accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\n'+`cedar,${account.value.name},${account.value.email},${account.value.pierCustomerId},30,0,OAT-1,100000,1\n`;
+ const preview=await h.api('/api/barrow/imports/preview',{csv:sourceCsv});await h.api('/api/barrow/imports/apply',{csv:sourceCsv,fingerprint:preview.fingerprint},{status:409});assert.equal((await h.api('/api/barrow/accounts/by-id/cedar')).value.credit.limitCents,2000000);
+ const archiveValue=await archive(h);assert.ok(JSON.stringify(archiveValue).includes('Owner explicitly accepts the exact three thousand dollar excess.'));
+});

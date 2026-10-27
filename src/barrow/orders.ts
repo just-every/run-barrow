@@ -1,3 +1,4 @@
+import { creditAdmission, creditException } from './credit-exposure'
 import { applyPromotions, promotionSettings } from './promotions'
 import { resolveBuyingProfile, orderBuyingProfile, buyingOrderGuards } from './buying-profiles'
 import { deltaEntryGuard, deltaMutationGuard } from './imports/delta-entry'
@@ -48,7 +49,7 @@ async function approvalEffects(env:Bindings,order:Order,action:string) {
 async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string,changes?:LineChange[]) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
  const confirmations = ['order.submitted','order.submitted-release','order.company-approved','order.approved','order.revised'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':action==='order.revised'?'revised':'submitted',changes) : []
- await commit(env.DB,actor,[await deltaMutationGuard(env.DB,order.accountId),...(['order.submitted','order.submitted-release','order.company-approved'].includes(action)?[await deltaEntryGuard(env.DB,order.accountId)]:[]),...guards,...(['order.submitted','order.submitted-release','order.company-approved','order.company-approval-requested','order.approved','order.revised','shipping.selected'].includes(action)?await buyingOrderGuards(env.DB,actor,order):[]),...confirmations,...await approvalEffects(env,order,action),env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
+ await commit(env.DB,actor,[await deltaMutationGuard(env.DB,order.accountId),...(['order.submitted','order.submitted-release','order.company-approved'].includes(action)?[await deltaEntryGuard(env.DB,order.accountId)]:[]),...guards,...(['order.submitted','order.submitted-release','order.company-approved','order.company-approval-requested','order.company-step-approved','order.approved'].includes(action)?await creditAdmission(env,await account(env.DB,actor,order.accountId),order):[]),...(['order.submitted','order.submitted-release','order.company-approved','order.company-approval-requested','order.approved','order.revised','shipping.selected'].includes(action)?await buyingOrderGuards(env.DB,actor,order):[]),...confirmations,...await approvalEffects(env,order,action),env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
   'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
   'order.document-attached':'Attached the supporting PO document to the draft.',
   'order.submitted-release':'Submitted as an explicitly authorized numbered release of a PO already on order.',
@@ -130,7 +131,8 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  }
  if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
- let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
+ let order:Order
+ if(type==='order.credit-exception'&&actor.staff?.role==='finance'){const row=await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(text(p.orderId,'Order')).first<{value_json:string;revision:string}>();if(!row)fail('NOT_FOUND','Order not found.',404);order={...JSON.parse(row.value_json),revision:row.revision};await account(env.DB,actor,order.accountId)}else order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
  if(['order.submit','order.attach','shipping.select','order.revise'].includes(type))await requireCompanyRight(env.DB,actor,order.accountId,'purchaser',order.shipTo?.id)
  if(type==='order.company-approve') {
   if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','This order is not awaiting company approval.')
@@ -149,6 +151,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    if(error instanceof Problem&&['PRICE_CHANGED','ADDRESS_CHANGED'].includes(error.code)) await voidApproval(env,actor,order,error.message)
    throw error
   }
+  await creditAdmission(env,selected,order)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now());if(stale)fail('STOCK_STALE',stale)
   const at=(await now()).toISOString(),entry=decision?decidedEntry(decision,actor,at):null,route=order.approvalRoute&&entry?{...order.approvalRoute,decided:[...order.approvalRoute.decided,entry]}:undefined
   const how=decision?`${decision.via==='delegate'?` as delegate for ${decision.delegatedFrom}`:decision.via==='escalation'?' by escalation':''}`:''
@@ -199,6 +202,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   return save(env,actor,{...order,document:{...meta,uploadedBy:actor.id,uploadedAt:(await now()).toISOString()}},'order.document-attached',[documentStatement(env,order.id,document)])
  }
  requireSupplier(actor)
+ if(type==='order.credit-exception'){const decision=await creditException(env,actor,order,p);return save(env,actor,{...order,creditException:decision.exception},'order.credit-exception',decision.guards,decision.exception.reason)}
  if(type==='order.stock-exception') {
   // STK-002: a supplier's recorded decision to accept this draft's stock observation past the freshness limit.
   if(order.status!=='draft') fail('STOCK_EXCEPTION','Record a stock exception on a draft before it is submitted.')

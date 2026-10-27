@@ -61,6 +61,7 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
       const id = String(data.get('id')).trim()
       const value = {
         ...profileFields(data),
+        ...(account?.value.credit?{credit:account.value.credit}:{}),
         name: String(data.get('name')).trim(), email: String(data.get('email')).trim().toLowerCase(),
         pierCustomerId: String(data.get('pierCustomerId')).trim(), termsDays: Number(data.get('termsDays')),
         minimumCents: Number(data.get('minimumCents')), currency: String(data.get('currency')) as 'USD'|'CAD', priceDisplay:{confirmation:String(data.get('confirmationDisplay')) as 'wholesale'|'retail'|'both',orderCsv:String(data.get('orderCsvDisplay')) as 'wholesale'|'retail'|'both'}, prices: applyRetail(applyPricing(parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),String(data.get('pricing')??'')),String(data.get('retail')??'')),
