@@ -17,4 +17,10 @@ test('Faire source quantities and unknown fulfillment facts remain visible witho
  assert.equal(await panel.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
  await panel.getByRole('button',{name:'Open late-line queue',exact:true}).click();await expect(first).toHaveCount(0);await panel.getByRole('button',{name:'Show all lines',exact:true}).click();await expect(first).toBeVisible();
  await captureRegionWidths(page,panel,'faire-fulfillment');
+ await panel.getByLabel('Warehouse evidence').selectOption('Unknown warehouse');await expect(first).toBeVisible();await expect(second).toBeVisible();
+ await panel.getByLabel('Warehouse evidence').selectOption('Unassigned backorder');
+ await expect(first).toHaveCount(0);await expect(second).toHaveCount(0);
+ assert.deepEqual((await f.h.api('/api/barrow/reports/fulfillment?warehouse=Unassigned+backorder')).channelLines,[]);
+ await captureRegionWidths(page,panel,'faire-warehouse-excluded');
+ await panel.getByLabel('Warehouse evidence').selectOption('');await expect(first).toBeVisible();await expect(second).toBeVisible();
 });

@@ -15,7 +15,8 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
   void request<Report>(`/api/barrow/reports/fulfillment?${new URLSearchParams({ accountId })}`).then(value => { if (current) setReport(value) }).catch(cause => { if (current) setError(errorMessage(cause)) })
   return () => { current = false }
  }, [accountId, refresh])
- const warehouses = [...new Set(report?.lines.flatMap(line => line.warehouses.map(row => row.warehouse)) ?? [])].sort()
+ const warehouses = [...new Set([...(report?.lines.flatMap(line => line.warehouses.map(row => row.warehouse)) ?? []), ...(report?.channelLines.length ? ['Unknown warehouse'] : [])])].sort()
+ const channelLines = !late && (!warehouse || warehouse === 'Unknown warehouse') ? report?.channelLines : []
  const lines = (late ? report?.lateLines : report?.lines)?.filter(line => !warehouse || line.warehouses.some(row => row.warehouse === warehouse) || (warehouse === 'Unassigned backorder' && line.unassignedBackorder !== '0'))
  async function saveZone() {
   setSaving(true); setError('')
@@ -31,7 +32,7 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
   {error && <Notice error>{error}</Notice>}
   {!report && !error && <p role="status">Reading Pier…</p>}
   {report && <><p>Report days: {report.timeZone} · Pier observed {when(report.checkedAt)} · {report.status === 'read' ? 'Source answered' : 'Unavailable'}</p><p className="br-quiet-text">{report.note}</p>
-   {!late&&report.channelLines.map(line=><article className="br-card br-stack" key={`${line.brand}:${line.orderId}:${line.lineId}`}><h3>Faire · {line.orderId} · {line.sku}</h3><p>Ordered {line.ordered} · shipped {line.shipped} · warehouse {line.warehouse}</p><p>Delivery {line.delivery} · settlement owned by {line.settlementOwner}</p>{line.reviewRequired&&<Notice>Source changed. Owner review required.</Notice>}</article>)}
+   {channelLines?.map(line=><article className="br-card br-stack" key={`${line.brand}:${line.orderId}:${line.lineId}`}><h3>Faire · {line.orderId} · {line.sku}</h3><p>Ordered {line.ordered} · shipped {line.shipped} · warehouse {line.warehouse}</p><p>Delivery {line.delivery} · settlement owned by {line.settlementOwner}</p>{line.reviewRequired&&<Notice>Source changed. Owner review required.</Notice>}</article>)}
    {report.status === 'unavailable' && <Notice>Fulfillment unknown. Reconnect Pier and refresh.</Notice>}
    {report.status === 'read' && lines?.length === 0 && <p>No matching {late ? 'late ' : ''}lines.</p>}
    {lines?.map(line => <article className="br-card br-stack" key={`${line.orderId}:${line.sku}`}>
