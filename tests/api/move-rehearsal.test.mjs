@@ -278,5 +278,7 @@ test('CAT-010: private batch preview, held style import and same-slot replacemen
  const buyer={as:await h.signIn('buyer@example.test')},credential=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${credential.token}`}};
  for(const who of [buyer,agent,{as:''}])for(const [path,body] of [[base,undefined],[base+'/preview',input],[base+'/apply',{...input,fingerprint:preview.fingerprint}]])await h.api(path,body,{...who,status:who.as===''&&!who.headers?401:403});
  await h.api(base+'/preview',input,{headers:{origin:'https://other.example.test'},status:403});
+ const admin={as:await h.signIn('admin@example.test','admin')};assert.deepEqual((await h.api(base,undefined,admin)).slots,(await h.api(base)).slots);
+ const adminPreview=await h.api(base+'/preview',input,admin);assert.deepEqual(adminPreview.rows[0].targets,['OAT-2']);
  assert.equal((await h.api('/api/barrow/audit')).events.filter(row=>row.action==='catalog.images-applied').length,6);
 });

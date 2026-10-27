@@ -4348,7 +4348,7 @@
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
-      "sha256": "530caf550181cfd1d43ee661fc8d53238f2f51f65786c148bb3af8208effef4f",
+      "sha256": "bfbca095aeb20ab53442785df1ad69e2cadf3555492df8f74285319862663cfe",
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
