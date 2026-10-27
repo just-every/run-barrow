@@ -47,3 +47,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-faire-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/faire.test.mjs
+      - name: Accepted sell-through plan screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-sellthrough-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/reorder.test.mjs
