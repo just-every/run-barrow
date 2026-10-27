@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { reorderFixture } from './reorder-fixture.mjs';
+import {cardEdge} from './card-fixture.mjs';
+import {archive,installation,restore} from './harness.mjs';
 
 test('ORD-003: search six-month history, selectively reorder with current SKU/price/minimum/stock review and preserve the original', async t => {
  const fixture=await reorderFixture(t);
@@ -52,4 +54,92 @@ test('ORD-003: search six-month history, selectively reorder with current SKU/pr
  await h.command('order.reorder',{orderId:original.id,selections},{as:'',headers:{authorization:`Bearer ${token}`},status:403});
  assert.equal(JSON.stringify((await h.api('/api/barrow/state',undefined,{as:buyer})).orders.find(order=>order.id===original.id)),snapshot);
  assert.equal((await pier.api('/api/pier/state')).orders.length,2); // Original approval plus explicit stock exhaustion; reordering reserved nothing.
+});
+
+test('buyer-authorized sell-through explains demand, outage uncertainty and open prebooks before an edited plan creates one human-reviewed draft', async t => {
+ const edge=cardEdge();
+ const {h,pier,account,buyer}=await reorderFixture(t,{clock:'2026-10-27T12:00:00Z',networkEdge:edge.networkEdge});
+ await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,state:'NY'}});
+ const day='2026-10-27',future='2026-11-26';
+ const prebook=await h.command('order.prepare',{accountId:account.id,requestedDate:future,lines:[{sku:'TEA-1',quantity:5}]},{as:buyer});
+ await h.command('order.submit',{orderId:prebook.id},{as:buyer});
+ const csv='sku,unit,sold,observedDays,onHand,status\nOAT-1,case,20,10,2,complete\nTEA-1,case,20,10,2,complete\nJAM-1,case,,10,1,outage';
+ const p={accountId:account.id,authorized:true,csv,observedOn:day,requestedDate:future,horizonDays:10,seasonalityBps:10000,budgetCents:200000};
+ const preview=extra=>h.command('order.sellthrough-preview',{...p,...extra},{as:buyer});
+ const stockBefore=(await pier.api('/api/pier/state')).orders,mailBefore=h.mail.deliveries.length;
+ let review=await preview();
+ assert.deepEqual(review.lines.map(line=>[line.sku,line.sold,line.demand,line.onHand,line.openBaseQuantity,line.suggested,line.quantity]),[['OAT-1',20,20,2,'3',15,15],['TEA-1',20,20,2,'8',10,10],['JAM-1',null,null,1,'3',null,0]]);
+ assert.equal(review.totalCents,162500);assert.deepEqual(review.blockers,[]);assert.equal(review.cadenceDays,183);
+ assert.match(review.lines[2].explanation,/unknown.*outage/);assert.equal(review.provenance.contacts,0);assert.equal(review.provenance.paidCostCents,0);
+ assert.deepEqual((await pier.api('/api/pier/state')).orders,stockBefore);assert.equal(h.mail.deliveries.length,mailBefore);
+ // Independently supplied seasonality changes the actual rate, without inventing a seasonal model.
+ const seasonal=await preview({seasonalityBps:15000});assert.deepEqual(seasonal.lines.map(line=>line.suggested),[25,20,null]);
+ const zero=await preview({csv:csv.replace('20,10,2,complete','0,10,2,complete')});assert.equal(zero.lines[0].demand,0);assert.equal(zero.lines[0].suggested,0);
+ const selections=[{sku:'OAT-1',unit:'case',quantity:14},{sku:'TEA-1',unit:'case',quantity:9},{sku:'JAM-1',unit:'case',quantity:2}];
+ const unacknowledged=await preview({selections});assert.ok(unacknowledged.blockers.some(reason=>reason.includes('unknown')));
+ const edited={...p,selections,acknowledgedOutage:true};
+ review=await h.command('order.sellthrough-preview',edited,{as:buyer});assert.deepEqual(review.lines.map(line=>line.quantity),[14,9,2]);assert.equal(review.totalCents,162500);
+ const accept={...edited,fingerprint:review.fingerprint,acknowledged:true,key:'synthetic-barrow-401',reference:'synthetic-barrow-402'};
+ await h.command('order.sellthrough',{...accept,acknowledged:false},{as:buyer,status:409});
+ const attempts=await Promise.all([h.command('order.sellthrough',accept,{as:buyer}),h.command('order.sellthrough',accept,{as:buyer})]);
+ const draft=attempts[0];assert.equal(attempts[1].id,draft.id);assert.equal(draft.status,'draft');assert.equal(draft.requestedDate,future);assert.equal(draft.totalCents,162500);
+ assert.deepEqual(draft.lines.map(line=>[line.sku,line.quantity]),[['OAT-1',14],['TEA-1',9],['JAM-1',2]]);assert.equal(draft.sellThrough.acceptedBy,(await h.api('/api/barrow/state',undefined,{as:buyer})).actor.id);
+ assert.equal(draft.sellThrough.fingerprint,review.fingerprint);assert.equal(JSON.stringify(draft).includes(csv),false);
+ assert.equal((await h.command('order.sellthrough',accept,{as:buyer})).id,draft.id);
+ assert.equal((await h.command('order.sellthrough',{...accept,requestedDate:day},{as:buyer,status:409})).error.code,'SELLTHROUGH_KEY');
+ assert.deepEqual((await pier.api('/api/pier/state')).orders,stockBefore);assert.equal(h.mail.deliveries.length,mailBefore);
+ const outcomes=await h.command('order.sellthrough-outcomes',{orderId:draft.id},{as:buyer});
+ assert.equal(outcomes.acceptedPlans,1);assert.deepEqual(outcomes.acceptedLines,[{sku:'OAT-1',unit:'case',quantity:14},{sku:'TEA-1',unit:'case',quantity:9},{sku:'JAM-1',unit:'case',quantity:2}]);assert.equal(outcomes.paidCents,0);assert.equal(outcomes.dispatchedBaseQuantity,'0');assert.equal(outcomes.deliveredQuantity,null);assert.match(outcomes.deliveryReason,/dispatch is not delivery/);
+ // Ordinary public checkout and supplier approval are still separate deliberate actions.
+ assert.equal((await h.command('order.submit',{orderId:draft.id},{as:buyer})).status,'submitted');
+ const approved=await h.command('order.approve',{orderId:draft.id});assert.equal(approved.status,'approved');
+ await h.configure({CARD_WEBHOOK_ORIGIN:'https://synthetic-barrow.example.test'});
+ await h.command('card.connect',{secretKey:'synthetic-barrow-1',consent:true,reason:'Owner approved Stripe custody and native credit-card collection.',surchargeBps:0,allowedStates:['NY']});
+ let payment=await h.command('card.prepare',{orderId:draft.id},{as:buyer});edge.complete(payment);payment=await h.command('card.refresh',{paymentId:payment.id},{as:buyer});
+ payment=await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},{as:buyer});
+ await h.command('card.capture',{paymentId:payment.id,reason:'Supplier approved capture of the accepted reorder invoice.'});
+ assert.equal((await h.command('order.sellthrough-outcomes',{orderId:draft.id},{as:buyer})).paidCents,0);
+ await h.command('card.allocate',{paymentId:payment.id,orderId:draft.id,amountCents:162500,reason:'Apply verified captured principal to this exact reorder invoice.'});
+ const upstream=(await pier.api('/api/pier/state')).orders.find(order=>order.id===approved.pierOrderId);
+ await pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'synthetic-barrow-406',lines:[{orderLineId:upstream.lines[0].id,quantity:'2'},{orderLineId:upstream.lines[1].id,quantity:'3'}]});
+ const measured=await h.command('order.sellthrough-outcomes',{orderId:draft.id},{as:buyer});assert.equal(measured.paidCents,162500);assert.equal(measured.dispatchedBaseQuantity,'5');assert.equal(measured.deliveredQuantity,null);
+ const exported=await h.api('/api/barrow/export.json',undefined,{as:buyer});assert.equal(exported.orders.find(order=>order.id===draft.id).sellThrough.fingerprint,review.fingerprint);
+ assert.equal(JSON.stringify(exported).includes(csv),false);
+ const exportCsv=await h.request('/api/barrow/export/orders.csv',{as:buyer});assert.equal(exportCsv.status,200);assert.match(await exportCsv.text(),/barrow-sell-through-arithmetic-v1/);
+
+ const stale=await h.command('order.sellthrough',{...accept,key:'synthetic-barrow-403'},{as:buyer,status:409});assert.equal(stale.error.code,'SELLTHROUGH_CHANGED');
+ const refusedBudget=await preview({budgetCents:1});assert.ok(refusedBudget.blockers.some(reason=>reason.includes('budget')));
+ await h.command('order.sellthrough',{...p,budgetCents:1,fingerprint:refusedBudget.fingerprint,acknowledged:true,key:'synthetic-barrow-404'},{as:buyer,status:409});
+ await h.command('order.sellthrough-preview',{...p,authorized:false},{as:buyer,status:403});
+ await h.command('order.sellthrough-preview',p,{status:403});
+ await h.command('order.sellthrough-preview',{...p,profileId:'synthetic-barrow-unapproved'},{as:buyer,status:404});
+ const stranger=await h.signIn('synthetic-barrow-405@example.test');await h.command('order.sellthrough-preview',p,{as:stranger,status:404});
+ await h.command('order.sellthrough-outcomes',{orderId:draft.id},{as:stranger,status:404});
+ const {token}=await h.api('/api/barrow/agent-token',{});await h.command('order.sellthrough',accept,{as:'',headers:{authorization:`Bearer ${token}`},status:403});
+ await h.configure({PIER_SESSION:'synthetic-barrow-407'});
+ await h.command('order.sellthrough-preview',p,{as:buyer,status:503});
+ const unavailable=await h.command('order.sellthrough-outcomes',{orderId:draft.id},{as:buyer});assert.equal(unavailable.dispatchedBaseQuantity,null);assert.equal(unavailable.paidCents,162500);
+ await h.configure({PIER_SESSION:pier.cookie});
+ for(const extra of [{csv:csv.replace('OAT-1','FOREIGN')},{csv:csv+'\nOAT-1,case,1,10,1,complete'},{csv:csv.replace('case,,10,1,outage','case,99,10,1,outage')},{selections:[{sku:'OAT-1',unit:'case',quantity:-1}]},{selections:[{sku:'FOREIGN',unit:'case',quantity:1}]},{observedOn:'2000-01-01'},{observedOn:'2026-02-31'}])await h.command('order.sellthrough-preview',{...p,...extra},{as:buyer,status:extra.observedOn==='2000-01-01'?409:400});
+ const current=await h.api('/api/barrow/accounts/by-id/'+account.id);
+ await h.command('account.save',{id:account.id,revision:current.revision,value:{...current.value,prices:current.value.prices.map(price=>price.sku==='OAT-1'?{...price,units:[{code:'pair',baseQuantity:'2',unitCents:13000,packContents:'Two base cases'}]}:price)}});
+ const converted=await preview({csv:'sku,unit,sold,observedDays,onHand,status\nOAT-1,pair,20,10,2,complete'});
+ assert.equal(converted.lines[0].openBaseQuantity,'15');assert.equal(converted.lines[0].suggested,11);assert.equal(converted.totalCents,143000);
+ const saved=await archive(h);assert.equal(JSON.stringify(saved).includes(csv),false);
+ const destination=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>destination.close());
+ await restore(destination,saved);
+ const restored=await destination.api('/api/barrow/orders/'+draft.id);assert.equal(restored.sellThrough.fingerprint,review.fingerprint);assert.equal(restored.status,'approved');
+ assert.equal(destination.mail.deliveries.length,0);
+ const brand=await h.command('brand.save',{id:'synthetic-barrow-510',revision:null,value:{name:'Synthetic second seller',seller:{legalName:'Synthetic Seller LLC',address:'25 Broadway, New York, NY 10004',registration:'synthetic-barrow-511'},currency:'USD'}});
+ const profile=await h.command('profile.save',{id:'synthetic-barrow-512',revision:null,accountId:account.id,value:{brandId:brand.id,name:'Second approved price book',prices:[{sku:'OAT-1',unitCents:6501,minQty:1}],minimumCents:0,termsDays:7}});
+ const profileInput={...p,profileId:profile.id,csv:'sku,unit,sold,observedDays,onHand,status\nOAT-1,case,20,10,2,complete'};
+ await h.command('order.sellthrough-preview',profileInput,{as:buyer,status:404});
+ const buyerId=(await h.api('/api/barrow/state',undefined,{as:buyer})).actor.id;
+ await h.command('profile.grant',{profileId:profile.id,userId:buyerId,approved:true,reason:'Owner approved this buyer for this exact seller and price book.'});
+ const profileReview=await h.command('order.sellthrough-preview',profileInput,{as:buyer});assert.equal(profileReview.lines[0].quantity,3);assert.equal(profileReview.totalCents,19503);assert.equal(profileReview.buyingProfile.seller.legalName,'Synthetic Seller LLC');
+ const profileDraft=await h.command('order.sellthrough',{...profileInput,fingerprint:profileReview.fingerprint,key:'synthetic-barrow-513',acknowledged:true},{as:buyer});assert.equal(profileDraft.buyingProfile.id,profile.id);assert.equal(profileDraft.totalCents,19503);
+ const roster=(await h.api('/api/barrow/company/members?accountId='+account.id)).members,member=roster.find(person=>person.userId===buyerId);
+ await h.command('company.update',{accountId:account.id,memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Company purchaser authority was withdrawn after the exact preview.'});
+ await h.command('order.sellthrough-preview',p,{as:buyer,status:403});
+ await h.command('order.sellthrough',accept,{as:buyer,status:403});
 });

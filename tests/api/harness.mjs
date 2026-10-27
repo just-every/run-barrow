@@ -20,13 +20,13 @@ export async function configurePierRouting(pier) {
  rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});
  await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
 }
-export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge}={}) {
+export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock}={}) {
  const connected=nativePiers.get(bindings.PIER_ORIGIN);
  if(!pier&&connected&&connected.cookie===bindings.PIER_SESSION)await configurePierRouting(connected);
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const tls=pier?await localTls(directory):undefined;
- const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
+ const bundled=await build({...(clock?{plugins:[{name:'fixed-business-clock',setup(builder){builder.onLoad({filter:/\/src\/barrow\/clock\.ts$/},()=>({contents:'export const now = async () => new Date('+JSON.stringify(clock)+')',loader:'ts'}))}}]}:{}),entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
  const logs=[];class CapturedLog extends Log {log(message){logs.push(String(message))}}
  const logger=captureLogs?new CapturedLog(LogLevel.DEBUG):undefined;
