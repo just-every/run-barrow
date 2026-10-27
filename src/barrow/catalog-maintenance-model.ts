@@ -5,6 +5,7 @@ export type CatalogListing = {
  sku: string; variantKey: string; style: string; color: string; size: string
  attributes: Record<string, string>; categories: string[]; assortments: string[]
  mediaSha256: string; listing: 'listed' | 'removed'
+ mediaSlots?:Array<{slot:number;name:string;sha256:string;width:number;height:number;size:number}>
  sourceItemId: string; source: 'Pier'; revision: string
 }
 export type CatalogStore = { listings: CatalogListing[]; revision: string | null }

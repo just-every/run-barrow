@@ -73,7 +73,8 @@ export async function prepareCatalogMaintenance(env: Bindings, actor: Actor, inp
   if (listing === 'removed' && mediaSha256) issue(row, 'mediaSha256', 'REMOVED_MEDIA', 'Clear mediaSha256 on an explicitly removed listing; retained order images stay unchanged.', sku)
   if (mediaSha256 && (!/^[a-f0-9]{64}$/.test(mediaSha256) || !media.has(mediaSha256))) issue(row, 'mediaSha256', 'BROKEN_MEDIA', 'Media reference must name an existing sanitized JPEG SHA-256 in this installation. External URLs are not fetched.', sku)
   if (listing === 'listed' && (!style || !color || !size)) issue(row, 'style', 'INVALID_ATTRIBUTES', 'Listed rows require style, color and size before assigning product media.', sku)
-  planned.push({ sku, variantKey, style, color, size, attributes, categories: list('categories'), assortments: list('assortments'), mediaSha256: listing === 'removed' ? '' : mediaSha256, listing: listing === 'removed' ? 'removed' : 'listed', sourceItemId: item?.id ?? '', source: 'Pier', revision: '' })
+  const mediaSlots=context.store.listings.find(prior=>prior.sku===sku)?.mediaSlots
+  planned.push({ sku, variantKey, style, color, size, attributes, categories: list('categories'), assortments: list('assortments'), mediaSha256: listing === 'removed' ? '' : mediaSha256, ...(mediaSlots?{mediaSlots}:{}), listing: listing === 'removed' ? 'removed' : 'listed', sourceItemId: item?.id ?? '', source: 'Pier', revision: '' })
  }
  const merged = new Map(context.store.listings.map(listing => [listing.sku, listing]))
  for (const listing of planned) merged.set(listing.sku, listing)
