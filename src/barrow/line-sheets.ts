@@ -1,7 +1,7 @@
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit, commit, changed } from './access'
-import { fail, integer, requirePerson, text, type Actor, type Account } from './model'
+import { supplierDate, fail, integer, requirePerson, text, type Actor, type Account } from './model'
 import { requireCompanyRight } from './company-policy'
 import { catalogue } from './pier'
 import { now } from './clock'
@@ -10,7 +10,7 @@ import { previewCart, orderForm } from './cart-import'
 import { displayMode, marginBps, priceLabels, type PriceDisplay } from './price-display'
 import { textPdf } from './pdf'
 
-export type Sheet = {id:string;revision:string;accountId:string;name:string;season:string;display:PriceDisplay;state:'published'|'revoked';publishedAt:string;publishedBy:string;bookRevision:string;currency:'USD'|'CAD';shipStart:string;shipEnd:string;items:Awaited<ReturnType<typeof catalogue>>['items'];packs:{id:string;name:string;kind:'run'|'assortment';lines:{sku:string;quantity:number}[]}[]}
+export type Sheet = {id:string;revision:string;accountId:string;name:string;season:string;display:PriceDisplay;state:'published'|'revoked';publishedAt:string;publishedBy:string;bookRevision:string;bookEffectiveFrom?:string;currency:'USD'|'CAD'|'EUR'|'GBP';shipStart:string;shipEnd:string;items:Awaited<ReturnType<typeof catalogue>>['items'];packs:{id:string;name:string;kind:'run'|'assortment';lines:{sku:string;quantity:number}[]}[]}
 function merchant(actor:Actor) {
  requirePerson(actor)
  if(!['owner','admin'].includes(actor.role)&&actor.staff?.role!=='sales-manager')fail('FORBIDDEN','Only the supplier owner, admin or scoped sales manager may publish or revoke line sheets.',403)
@@ -72,7 +72,7 @@ export async function sheetCommand(env:Bindings,actor:Actor,type:string,p:any) {
    return {id:text(pack.id,'Pack ID',100),name:text(pack.name,'Pack name',100),kind:pack.kind,lines}
   })
   if(new Set(packs.map(pack=>pack.id)).size!==packs.length)fail('INPUT','Use unique pack IDs.',400)
-  const id=crypto.randomUUID(),revision=crypto.randomUUID(),sheet:Sheet={id,revision,accountId:selected.id,name:text(p.name,'Sheet name',100),season:text(p.season,'Season',80),display:displayMode(p.display),state:'published',publishedAt:(await now()).toISOString(),publishedBy:actor.id,bookRevision:selected.revision,currency:live.currency,shipStart,shipEnd,items:live.items.filter(item=>skus.includes(item.sku)),packs}
+  const id=crypto.randomUUID(),revision=crypto.randomUUID(),sheet:Sheet={id,revision,accountId:selected.id,name:text(p.name,'Sheet name',100),season:text(p.season,'Season',80),display:displayMode(p.display),state:'published',publishedAt:(await now()).toISOString(),publishedBy:actor.id,bookRevision:selected.revision,bookEffectiveFrom:activeBookDate(selected,await now()),currency:live.currency,shipStart,shipEnd,items:live.items.filter(item=>skus.includes(item.sku)),packs}
   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN (SELECT revision FROM bw_accounts WHERE id=?)=? THEN 1 ELSE 0 END').bind(selected.id,selected.revision),env.DB.prepare('INSERT INTO bw_line_sheets VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(sheet),revision),audit(env.DB,actor,id,'sheet.published',{accountId:selected.id,revision,source:type,reason:`Published ${sheet.name} for this account only, using ${sheet.currency} book ${selected.revision}.`})])
   return {id,revision}
  }
@@ -107,7 +107,9 @@ export async function sheetCommand(env:Bindings,actor:Actor,type:string,p:any) {
 export async function sheetForOrder(env:Bindings,actor:Actor,p:any,selected:Account) {
  const sheet=await stored(env,actor,text(p.lineSheetId,'Line sheet'))
  if(sheet.accountId!==selected.id)fail('NOT_FOUND','Line sheet not found.',404)
- if(sheet.revision!==p.lineSheetRevision||sheet.bookRevision!==selected.revision)fail('CHANGED','The recipient book or sheet changed. Ask the supplier to publish a current sheet before preparing.')
+ if(sheet.revision!==p.lineSheetRevision||sheet.bookRevision!==selected.revision||sheet.bookEffectiveFrom!==activeBookDate(selected,await now()))fail('CHANGED','The recipient book or sheet changed. Ask the supplier to publish a current sheet before preparing.')
  if(!Array.isArray(p.lines)||p.lines.some((line:any)=>!sheet.items.some(item=>item.sku===line.sku)))fail('INPUT','Order only variants on this line sheet.',400)
  return sheet
 }
+
+function activeBookDate(account:Account,at:Date){return account.value.priceRevisions?.filter(row=>row.effectiveFrom<=supplierDate(at)).at(-1)?.effectiveFrom}

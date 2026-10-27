@@ -7,6 +7,8 @@ import {chromium,expect} from '@playwright/test';
 import {installation,stock,accountValue,activateStaff} from '../api/harness.mjs';
 import {signedContext,captureRegionWidths} from './browser-helpers.mjs';
 const after=[],t={after:fn=>after.push(fn)},directory=process.env.BARROW_JOURNEY_EVIDENCE??'/tmp/barrow-card-sandbox';
+const sandboxCurrency=process.env.BARROW_SANDBOX_CURRENCY??'USD';
+assert.ok(['USD','CAD'].includes(sandboxCurrency));
 const surchargeBps=Number(process.env.BARROW_SANDBOX_SURCHARGE_BPS??200);
 assert.ok([0,200].includes(surchargeBps),'Sandbox surcharge is disabled or the existing two-percent reviewed policy');
 let step='initialize',connected=false,h,diagnosticPage,loseCapture=false,captureRequests=0;const deliveredEvents=[],providerErrors=[];
@@ -32,8 +34,8 @@ try {
  const pier=await installation({pier:true});t.after(()=>pier.close());const product=await stock(pier,'200');
  h=await installation({built:true,https:true,networkEdge:stripeBoundary,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  step='webhook-tunnel';const publicOrigin=await tunnel(await webhookProxy());await h.configure({CARD_WEBHOOK_ORIGIN:publicOrigin});
- await h.command('account.save',{id:'cedar',value:{...accountValue(product.customer.id),state:'NY'}});const buyer={as:await h.signIn('buyer@example.test')};
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ await h.command('account.save',{id:'cedar',value:{...accountValue(product.customer.id),state:'NY',currency:sandboxCurrency,usdConversion:sandboxCurrency==='CAD'?{asOf:'2026-10-26',numerator:73,denominator:100,source:'Supplier recorded CAD reference'}:undefined}});const buyer={as:await h.signIn('buyer@example.test')};
+ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM?{executablePath:process.env.BARROW_CHROMIUM}:{}),args:['--use-mock-keychain','--password-store=basic','--no-sandbox']});t.after(()=>browser.close());
  const ownerContext=await signedContext(browser,h),buyerContext=await signedContext(browser,h,buyer.as);t.after(()=>ownerContext.close());t.after(()=>buyerContext.close());const owner=await ownerContext.newPage(),page=await buyerContext.newPage();diagnosticPage=page;
  await owner.goto(h.origin+'/app');if(new URL(owner.url()).pathname==='/setup'){await owner.getByLabel('Your name').fill('Supplier owner');await owner.getByRole('checkbox').check();await owner.getByRole('button',{name:'Finish setup',exact:true}).click()}
  await owner.getByRole('button',{name:'Data',exact:true}).click();await owner.getByText('Payment settings',{exact:true}).click();const settings=owner.getByRole('region',{name:'Stripe card settings'});step='connect-form';diagnosticPage=owner;
@@ -72,7 +74,7 @@ try {
   if(name==='authentication')assert.ok(challengeCompleted);
   step=name+'-result';if(name==='decline'){assert.equal(payment.state,'declined')}
   else {
-   assert.equal(payment.state,'authorized');step=name+'-merchant-capture';diagnosticPage=owner;
+   assert.equal(payment.state,'authorized');assert.equal(payment.currency,sandboxCurrency);assert.equal(payment.amountCents,13000);step=name+'-merchant-capture';diagnosticPage=owner;
    await owner.goto(h.origin+'/app?cardPayment='+payment.id);await owner.getByRole('button',{name:'Orders',exact:true}).click();const merchant=owner.getByRole('region',{name:'Card payment'}).filter({hasText:payment.id});await merchant.getByLabel('Reason for capture or cancellation',{exact:true}).fill('Supplier approved this exact sandbox authorization after review.');await captureRegionWidths(owner,merchant,`stripe-${name}-merchant-authorized`);
    const before=captureRequests;if(name==='credit')loseCapture=true;
    await merchant.getByRole('button',{name:'Capture authorized payment',exact:true}).click();
@@ -109,6 +111,11 @@ try {
    await page.reload();await page.getByRole('button',{name:'Orders',exact:true}).click();await captureRegionWidths(page,page.getByRole('region',{name:'Account statement',exact:true}),'stripe-credit-refund-statement');await owner.getByRole('button',{name:'Data',exact:true}).click();const finance=owner.locator('.br-card').filter({has:owner.getByRole('heading',{name:'Invoice aging and finance',exact:true})}).first();await finance.getByText('Refund status (1)',{exact:true}).click();await expect(finance).toContainText('succeeded');await captureRegionWidths(owner,finance,'stripe-refund-finance-completed');console.log('stripe_sandbox_linked_credit_application_refund_signed_replay_exact_balance=true');
   }
   console.log(`stripe_sandbox_${name}=true`);
+ }
+ if(sandboxCurrency==='CAD') {
+  const statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer);assert.equal(statement.sections[0].currency,'CAD');assert.equal(statement.sections[0].receivedCents,13000);assert.equal(statement.sections[0].closingCents,0);
+  const finance=await h.api('/api/barrow/reports/finance?asOf=2100-12-31');assert.equal(finance.rows[0].amountCents,13000);assert.equal(finance.rows[0].usdCents,9490);assert.equal(finance.rows[0].usdConversionDate,'2026-10-26');
+  console.log('stripe_sandbox_CAD_13000_received_USD_9490_basis_2026_10_26=true');
  }
  step='statements';await page.getByRole('region',{name:'Account statement'}).scrollIntoViewIfNeeded();await captureRegionWidths(page,page.getByRole('region',{name:'Account statement'}),'stripe-statement');
  await page.setViewportSize({width:390,height:1000});const balances=page.getByRole('region',{name:'Account statement'}).locator('.br-table-wrap');await balances.evaluate(element=>{element.scrollLeft=element.scrollWidth});await balances.screenshot({path:`${directory}/stripe-statement-balances-390.png`});await page.setViewportSize({width:1440,height:1000});

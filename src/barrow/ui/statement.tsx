@@ -5,7 +5,7 @@ import { money } from './types'
 import type { Account } from './types'
 
 type StatementEntry = { orderId: string; orderPath: string; date: string; amountCents: number } & ({ kind: 'invoice'; number: string; dueAt: string; reference: string; invoicePath: string } | { kind: 'card-payment' | 'card-surcharge' | 'credit-note' | 'refund'; id: string; paymentPath: string })
-interface Statement { customer: string; from: string | null; to: string; dates: string; note: string; sections: { currency: 'USD' | 'AUD' | 'CAD'; openingCents: number; closingCents: number; entries: StatementEntry[] }[] }
+interface Statement { customer: string; from: string | null; to: string; dates: string; note: string; sections: { currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'; openingCents: number; closingCents: number; entries: StatementEntry[] }[] }
 
 // Dated cash effects match the CSV and PDF downloads.
 const entryLabel = { 'card-surcharge': 'Card surcharge', 'card-payment': 'Card receipt', 'credit-note': 'Credit note', refund: 'Refund' }
