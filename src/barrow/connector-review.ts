@@ -1,6 +1,7 @@
 import type { Bindings } from '../auth.server'
 import { audit, commit } from './access'
 import { cutoverOwner } from './imports/cutover-targets'
+import { previewFaire } from './faire-review'
 import { previewPier, type ConnectorIssue } from './pier-review'
 import { fail, text, type Actor } from './model'
 import { openSftp } from './feeds/transport'
@@ -45,9 +46,12 @@ export async function inspectConnectors(env: Bindings, actor: Actor, input: {rev
   if(row.last_io_error)attention(row.id,'feed-operation',row.last_io_error,'Repair the destination or its permissions in Move in and explicitly retry the retained session.',row.created_by)
   feeds.push({connectionState,lastSuccessfulReadAt:row.last_read_at,lagSeconds:row.last_read_at?Math.max(0,Math.floor((Date.parse(at)-Date.parse(row.last_read_at))/1000)):null,sourceSystem:row.source_system,authorities:JSON.parse(row.authorities_json),totals,mappings:comparison?.mappings??{},balanceNote:comparison?.balanceNote??null,id:row.id,state:row.state,updatedAt:row.updated_at,mapping:feed.config?.mapping??null,files,deliveries,counts:feed.rehearsal?{products:feed.rehearsal.products,customers:feed.rehearsal.customers,ats:feed.rehearsal.ats,unresolvedErrors:feed.rehearsal.unresolvedErrors}:null})
  }
- const review={at,owner,pier,sync:sync?{...sync,lagSeconds:sync.completed_at?Math.max(0,Math.floor((Date.parse(at)-Date.parse(sync.completed_at))/1000)):null}:null,feeds,issues}
+ const fairePreviews=await previewFaire(env,owner,before.review?.faire)
+ issues.push(...fairePreviews.flatMap(brand=>brand.issues))
+ const faire=fairePreviews.map(({guards,issues,...brand})=>brand)
+ const review={at,owner,pier,faire,sync:sync?{...sync,lagSeconds:sync.completed_at?Math.max(0,Math.floor((Date.parse(at)-Date.parse(sync.completed_at))/1000)):null}:null,feeds,issues}
  const revision=crypto.randomUUID()
- await commit(env.DB,actor,[...preview.guards,
+ await commit(env.DB,actor,[...preview.guards,...fairePreviews.flatMap(brand=>brand.guards),
   env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key='connectorReview'),'')=? THEN 1 ELSE 0 END").bind(before.revision??''),
   env.DB.prepare("INSERT INTO bw_settings(key,value_json,revision) VALUES('connectorReview',?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision").bind(JSON.stringify(review),revision),
   audit(env.DB,actor,'connector:review','connector.inspected',{revision,source:'connector.review',reason}),

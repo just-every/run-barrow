@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e531523a2232ae5a8d363d9714fa2e1d0cb2dd02ca83aab3de21a7dcde3afc81",
+      "sha256": "05ab3be4ee9bdd76918a8e5861f029e11fd36ec9946005a6e48cf2f2102e5496",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4ce569ada87beeb1ee9240828c9959730aab7def72e52b2489c75dc9e2a5f998",
+      "sha256": "27b78b3aa2a7bf6c252a336cebb829c6b14ddbc13d46274ce1cdb38382f9cd40",
       "executable": false
     },
     "DEMO.md": {
@@ -185,6 +185,10 @@
     },
     "docs/CONNECTION-SECURITY.md": {
       "sha256": "f52b5eb05d9282c37340e57acba36e562e580ad98230b78325bad2a7140ad7d7",
+      "executable": false
+    },
+    "docs/CONNECTORS.md": {
+      "sha256": "60fb048ebd3eb9530fdc3cea3a96e5358aa1a999faba2e056540615b50c7a788",
       "executable": false
     },
     "docs/CUTOVER-DELTA.md": {
@@ -541,6 +545,10 @@
     },
     "migrations/core/0058_sellthrough_acceptance.sql": {
       "sha256": "470b5be7dd78501f6c94b14c6b378b1c9fe815c0face3d815af7451558a32309",
+      "executable": false
+    },
+    "migrations/core/0059_faire_reconciliation.sql": {
+      "sha256": "ef45deceb61b3396c7ed49febe21147c6a1b7a10479f64a4516f96d6c84a8fee",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1104,7 +1112,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "ecfa53ee7a0228e03c8aabd89d7d4897a38b2f083c7fd3af9884047d22251537",
+      "sha256": "e4946cc763af6a4c116c97aa6639f2b6459277ac8344384a5e831c569db07ae0",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1316,7 +1324,7 @@
       "executable": false
     },
     "src/barrow/connector-review.ts": {
-      "sha256": "fd140be237dc1a1b8fb8d4f0e0825e6213568b635126e43e99fcef359795589c",
+      "sha256": "6bcb463d686a9ccfe92e1359360df5e6e3f59d384234c1e3c86853abe2267cf6",
       "executable": false
     },
     "src/barrow/credit-access.ts": {
@@ -1371,8 +1379,12 @@
       "sha256": "d9a8f8a8fbf13d583529b9a72b0784505ddec22c7b365a419495aef8bd79b004",
       "executable": false
     },
+    "src/barrow/faire-review.ts": {
+      "sha256": "962b394722f4d17ad1097cbf12a1786b41f2fe4d8ce6528949074b5c6e824a3e",
+      "executable": false
+    },
     "src/barrow/faire.ts": {
-      "sha256": "19322d41eff495d7b01c290ed850a1ffb8b56e2343854b55f6170c4feac2f7aa",
+      "sha256": "4f749045a1f7035bde974c2c0b890e07511b1a0907b7a47c2a0fc815e48a09dc",
       "executable": false
     },
     "src/barrow/feeds/connection-settings.ts": {
@@ -1940,7 +1952,7 @@
       "executable": false
     },
     "src/barrow/ui/connector-review.tsx": {
-      "sha256": "a60b0ca8ec2f489db0e99b1bc686917eb2cf5a5560cc49d3d7688f64f20c957e",
+      "sha256": "e5b39deb2cbe7a54daa0b867f90fe8485af6a49248dff77cb38d8df175b40657",
       "executable": false
     },
     "src/barrow/ui/credit-panel.tsx": {
@@ -4312,11 +4324,11 @@
       "executable": false
     },
     "tests/api/faire-fixture.mjs": {
-      "sha256": "d9fbe3d6f204465994d8231b2e2e7b1897c0d050ae3864d3c9773eb6e7c581bb",
+      "sha256": "e07b5bb3bd0d54ed5fffd5bf70372428afbd1c556fef8299972750048a5873fb",
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "084756056c1617a896aee978336cfff0f1fd4eba299f0d945ce9ff40159bb9bd",
+      "sha256": "100ad13579aeac93842d75272dff2cc65fb0cd03065537eeea6d23dba7ab67d6",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
@@ -4576,7 +4588,7 @@
       "executable": false
     },
     "tests/journeys/faire.test.mjs": {
-      "sha256": "885ad5561cb23815a168990e0ab5d2faad94d201b3379b2d2cb3971f618a825f",
+      "sha256": "407dffec8cb9a2ae4aae0606b0eb8373bb959a09df63a9da47aa0c8c76bd9e52",
       "executable": false
     },
     "tests/journeys/install-harness.mjs": {

@@ -1,13 +1,14 @@
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { digest } from './digest'
+import { previewFaireBrand } from './faire-review'
 import { fail, integer, text, type Actor } from './model'
 
-type SourceLine = { id:string; sourceSku:string; quantity:number; unitCents:number }
-type SourceOrder = { id:string; retailerId:string; state:string; currency:string; lines:SourceLine[]; commissionBps:number|null; commissionFlatFee:unknown; payoutFee:unknown; shipments:unknown[] }
+export type SourceLine = { id:string; sourceSku:string; quantity:number; unitCents:number }
+export type SourceOrder = { id:string; retailerId:string; state:string; currency:string; lines:SourceLine[]; commissionBps:number|null; commissionFlatFee:unknown; payoutFee:unknown; shipments:unknown[] }
 type Row = { brand:string; source_id:string; revision:string; source_json:string; account_id:string|null; matched_json:string|null; state:'review'|'ingested' }
 function owner(actor:Actor) {if(actor.agent||actor.staff||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may operate Faire order intake.',403)}
-function connection(env:Bindings,brand:string) {
+export function faireConnection(env:Bindings,brand:string) {
  try {
   const connections=JSON.parse(env.FAIRE_CONNECTIONS??'{}'),config=connections[brand]
   if(Object.keys(connections).length>1&&!config?.appCredentials)throw Error()
@@ -46,20 +47,22 @@ export async function faireConfigure(env:Bindings,actor:Actor,input:any) {
  owner(actor)
  const brand=text(input.brand,'Configured Faire brand'),reason=text(input.reason,'Configuration reason',1000)
  if(typeof input.enabled!=='boolean')fail('INPUT','Choose whether intake is enabled.',400)
- const config=connection(env,brand),revision=await digest(JSON.stringify([config.origin,brand]))
+ const config=faireConnection(env,brand),revision=await digest(JSON.stringify([config.origin,brand]))
+ let activationGuards:D1PreparedStatement[]=[]
  const prior=await env.DB.prepare('SELECT * FROM bw_faire_sync WHERE brand=?').bind(brand).first<any>()
  if(prior&&prior.revision!==revision)fail('FAIRE_DESTINATION','The brand is already bound to a different Faire destination.')
+ if(input.enabled) {
+  if(!prior)fail('FAIRE_RECONCILIATION','Configure disabled intake, preview and reconcile the source before enabling it.')
+  const preview=await previewFaireBrand(env,actor.id,brand)
+  if(preview.state!=='answered'||!prior.complete||preview.issues.some((issue:{kind:string})=>issue.kind!=='duplicate-customer'))fail('FAIRE_RECONCILIATION','Preview current Faire records, repair mappings and reconcile differences before enabling intake.')
+  activationGuards=preview.guards
+ }
  const decisionRevision=await digest(JSON.stringify([revision,input.enabled,crypto.randomUUID()]))
- await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_faire_sync(brand,revision,enabled) VALUES(?,?,?) ON CONFLICT(brand) DO UPDATE SET enabled=excluded.enabled,generation=bw_faire_sync.generation+1').bind(brand,revision,input.enabled?1:0),audit(env.DB,actor,brand,'faire.configured',{revision:decisionRevision,source:input.enabled?'faire.configure.enable':'faire.configure.disable',reason})])
+ await commit(env.DB,actor,[...activationGuards,env.DB.prepare('INSERT INTO bw_faire_sync(brand,revision,enabled) VALUES(?,?,?) ON CONFLICT(brand) DO UPDATE SET enabled=excluded.enabled,generation=bw_faire_sync.generation+1').bind(brand,revision,input.enabled?1:0),audit(env.DB,actor,brand,'faire.configured',{revision:decisionRevision,source:input.enabled?'faire.configure.enable':'faire.configure.disable',reason})])
  return faireState(env,actor)
 }
-export async function fairePoll(env:Bindings,actor:Actor,input:any) {
- owner(actor)
- const brand=text(input.brand,'Configured Faire brand'),config=connection(env,brand)
- const sync=await env.DB.prepare('SELECT * FROM bw_faire_sync WHERE brand=? AND enabled=1').bind(brand).first<any>()
- if(!sync)fail('FAIRE_DISABLED','Explicitly enable this configured brand before reading its orders.')
- const cursor=input.restart===true?null:sync.cursor
- if(sync.complete&&!input.restart)return {...await faireState(env,actor),caughtUp:true}
+export async function faireSourcePage(env:Bindings,brand:string,cursor:string|null) {
+ const config=faireConnection(env,brand)
  const url=new URL(config.origin+'/external-api/v2/orders');url.searchParams.set('limit','50');if(cursor)url.searchParams.set('cursor',cursor)
  let response:Response
  try {response=await fetch(url,{headers:config.app?{'X-FAIRE-OAUTH-ACCESS-TOKEN':config.token,'X-FAIRE-APP-CREDENTIALS':config.app}:{'X-FAIRE-ACCESS-TOKEN':config.token},redirect:'manual',signal:AbortSignal.timeout(15000)})}catch{fail('FAIRE_UNAVAILABLE','Faire did not answer; the durable checkpoint is unchanged.',503)}
@@ -72,10 +75,21 @@ export async function fairePoll(env:Bindings,actor:Actor,input:any) {
  if(!Array.isArray(page.orders)||page.orders.length>50)fail('FAIRE_SOURCE','Faire returned an invalid order page.',502)
  const next=page.cursor===undefined||page.cursor===null?null:text(page.cursor,'Faire next cursor',2000)
  if(next===cursor&&next!==null)fail('FAIRE_SOURCE','Faire repeated its cursor; checkpoint retained.',502)
- const orders=page.orders.map(sourceOrder) as SourceOrder[],statements:D1PreparedStatement[]=[]
+ const orders=page.orders.map(sourceOrder) as SourceOrder[]
  if(new Set(orders.map(row=>row.id)).size!==orders.length)fail('FAIRE_SOURCE','Faire returned duplicate order IDs within a page.',502)
- // A monotonic generation rejects an old read even when a later poll revisits the same cursor.
- statements.push(env.DB.prepare('UPDATE bw_faire_sync SET cursor=?,complete=?,observed_at=?,generation=generation+1 WHERE brand=? AND enabled=1 AND revision=? AND cursor IS ? AND complete=? AND generation=?').bind(next,next?0:1,new Date().toISOString(),brand,sync.revision,sync.cursor,sync.complete,sync.generation),changed(env.DB))
+ return {orders,next}
+}
+export async function fairePoll(env:Bindings,actor:Actor,input:any) {return readFaire(env,actor,input)}
+export async function fairePreview(env:Bindings,actor:Actor,input:any) {return readFaire(env,actor,input,true)}
+async function readFaire(env:Bindings,actor:Actor,input:any,preview=false) {
+ owner(actor)
+ const brand=text(input.brand,'Configured Faire brand');faireConnection(env,brand)
+ const sync=await env.DB.prepare('SELECT * FROM bw_faire_sync WHERE brand=?').bind(brand).first<any>()
+ if(!sync||(!preview&&!sync.enabled))fail('FAIRE_DISABLED','Explicitly enable this configured brand before reading its orders.')
+ const cursor=input.restart===true?null:sync.cursor
+ if(sync.complete&&!input.restart)return {...await faireState(env,actor),caughtUp:true}
+ const {orders,next}=await faireSourcePage(env,brand,cursor),statements:D1PreparedStatement[]=[]
+ statements.push(env.DB.prepare('UPDATE bw_faire_sync SET cursor=?,complete=?,observed_at=?,generation=generation+1,completed_at=CASE WHEN ? IS NULL THEN ? ELSE completed_at END WHERE brand=? AND enabled=? AND revision=? AND cursor IS ? AND complete=? AND generation=?').bind(next,next?0:1,new Date().toISOString(),next,new Date().toISOString(),brand,sync.enabled,sync.revision,sync.cursor,sync.complete,sync.generation),changed(env.DB))
  for(const order of orders) {
   const value=JSON.stringify(order),revision=await digest(value)
   statements.push(env.DB.prepare("INSERT INTO bw_faire_orders(brand,source_id,revision,source_json,state) VALUES(?,?,?,?,'review') ON CONFLICT(brand,source_id) DO UPDATE SET revision=excluded.revision,source_json=excluded.source_json,state='review' WHERE bw_faire_orders.revision<>excluded.revision").bind(brand,order.id,revision,value))

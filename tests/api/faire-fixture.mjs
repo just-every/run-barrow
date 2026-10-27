@@ -23,11 +23,12 @@ export async function faireFixture(t,{built=false}={}) {
  await h.command('account.save',{id:'cedar',value:{...accountValue('synthetic-barrow-customer-1'),minimumCents:0}});
  const configure=(enabled=true,opts={})=>h.api('/api/barrow/faire/configure',{brand:'brand1',enabled,reason:'Owner authorizes the configured brand read boundary.'},opts);
  const poll=(payload={},opts={})=>h.api('/api/barrow/faire/poll',{brand:'brand1',...payload},opts);
+ const preview=(payload={},opts={})=>h.api('/api/barrow/faire/preview',{brand:'brand1',...payload},opts);
  const read=()=>h.api('/api/barrow/faire');
  const match=(row,skuMap,opts={},extras={})=>h.api('/api/barrow/faire/match',{brand:row.brand,id:row.source_id,revision:row.revision,accountId:'cedar',skuMap,reason:'Owner reviewed the exact retailer and SKU mapping.',...extras},opts);
  const holdNextPage=()=>{let release,received;const ready=new Promise(resolve=>{received=resolve});state.hold=send=>{release=send;received()};return {ready,release:()=>release()}};
- return {h,state,bindings,origin,configure,poll,read,match,holdNextPage};
+ return {h,state,bindings,origin,configure,poll,preview,read,match,holdNextPage};
 }
 export async function ingestFixture(f) {
- await f.configure();let result=await f.poll();await f.match(result.orders[0],{'OAT-1':'OAT-1'});f.state.failSecond=false;result=await f.poll();await f.match(result.orders.find(row=>row.source_id==='synthetic-barrow-order-2'),{'UNKNOWN-1':'OAT-1'});assert.equal((await f.read()).orders.length,2);
+ await f.configure(false);let result=await f.preview();await f.match(result.orders[0],{'OAT-1':'OAT-1'});f.state.failSecond=false;result=await f.preview();await f.match(result.orders.find(row=>row.source_id==='synthetic-barrow-order-2'),{'UNKNOWN-1':'OAT-1'});assert.equal((await f.read()).orders.length,2);await f.configure();
 }
