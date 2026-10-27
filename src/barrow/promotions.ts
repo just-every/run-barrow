@@ -18,6 +18,7 @@ export async function savePromotions(env:Bindings,actor:Actor,p:any) {
  promotionAdmin(actor)
  if(!Array.isArray(p.offers)||p.offers.length>50)fail('PROMOTION','Use at most 50 offers.',400)
  const seen=new Set<string>(),offers:Promotion[]=p.offers.map((v:any)=>{
+  if(!v||typeof v!=='object'||Array.isArray(v))fail('PROMOTION','Each offer must be an object.',400)
   const id=text(v.id,'Offer ID',80);if(seen.has(id))fail('PROMOTION','Offer IDs must be unique.',400);seen.add(id)
   if(!['fixed','mix'].includes(v.kind)||typeof v.stackable!=='boolean')fail('PROMOTION','Choose fixed or mix and explicit stacking.',400)
   for(const d of [v.from,v.to])if(typeof d!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(d)||!Number.isFinite(Date.parse(d))||new Date(d).toISOString().slice(0,10)!==d)fail('PROMOTION','Use valid inclusive calendar dates.',400)
@@ -34,7 +35,7 @@ export async function savePromotions(env:Bindings,actor:Actor,p:any) {
  return {offers,revision,rule:promotionRule}
 }
 export function applyPromotions(lines:Line[],offers:Promotion[],accountId:string,date:string):Line[] {
- const eligible=(offer:Promotion)=>lines.filter(line=>offer.skus.includes(line.sku)&&!line.quote&&!line.pricing?.rule.override)
+ const eligible=(offer:Promotion)=>lines.filter(line=>offer.skus.includes(line.sku)&&!line.quote&&!line.pricing?.reason.startsWith('Approved override:'))
  const candidates=offers.filter(o=>o.accounts.includes(accountId)&&date>=o.from&&date<=o.to).filter(o=>{const rows=eligible(o);return o.kind==='fixed'?o.skus.every(sku=>rows.filter(l=>l.sku===sku).reduce((s,l)=>s+Number(l.baseQuantity??l.quantity),0)>=o.quantities[sku]):rows.reduce((s,l)=>s+Number(l.baseQuantity??l.quantity),0)>=o.minimumUnits}).sort((a,b)=>b.priority-a.priority||a.id.localeCompare(b.id))
  const chosen=candidates[0]?.stackable?candidates.filter(o=>o.stackable):candidates.slice(0,1)
  return lines.map(line=>{

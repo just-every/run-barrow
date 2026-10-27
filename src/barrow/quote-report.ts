@@ -87,6 +87,7 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  try {
   const state = await pierState(env), origin = await pierOrigin(env)
   for (const order of records.filter(o=>periodQuotes.some(q=>q.accepted?.orderId===o.id)||periodOrders.some(p=>p.id===o.id&&p.lines.some(l=>l.promotion)))) {
+   if(order.pierOrderId&&order.pierOrigin!==origin&&order.lines.some(l=>l.promotion))returnsSource='unavailable'
    if (!order?.pierOrderId || order.pierOrigin !== origin) continue
    const shipped = new Set((state.shipments ?? []).filter((row: any) => row.orderId === order.pierOrderId).map((row: any) => row.id))
    returns.set(order.id, (state.returns ?? []).filter((row: any) => shipped.has(row.shipmentId)))

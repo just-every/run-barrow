@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c8fc3ffee6e280968f12e76b363dde02d0902774171081c7b769735ac5c47889",
+      "sha256": "d18b895b644fcbbeb5679004f587a278d7d0cf76913961efa4915b506c140a93",
       "executable": false
     },
     "DEMO.md": {
@@ -1580,7 +1580,7 @@
       "executable": false
     },
     "src/barrow/promotions.ts": {
-      "sha256": "6510999706d42dc71004028a7d39868aab12ef361b0afd8d72a73c34f20bf23c",
+      "sha256": "9863a5bb5ed886d0a750ac12e9a668d0f0f96f35e9fbf70c0223b1f3d079e8a6",
       "executable": false
     },
     "src/barrow/proposal-approval.ts": {
@@ -1636,7 +1636,7 @@
       "executable": false
     },
     "src/barrow/quote-report.ts": {
-      "sha256": "5683c2e3c0e7e195afedecb5e1aa93cd00bc7a5d3340f2707704570cc251ee51",
+      "sha256": "6cbae0b96fb4bea9b6f823e4b6015f51bf7f49cec6470d78fbcafebef3ea1113",
       "executable": false
     },
     "src/barrow/quote-routing.ts": {
