@@ -23,8 +23,8 @@ test('Faire HTTP intake resumes paged reads, holds unknown SKUs for owner review
  const report=await h.api('/api/barrow/reports/fulfillment?accountId=cedar');assert.deepEqual(report.channelLines.map(line=>[line.orderId,line.ordered,line.shipped,line.warehouse,line.delivery]),[['synthetic-barrow-order-1','3','unknown','unknown','unknown'],['synthetic-barrow-order-2','2','unknown','unknown','unknown']]);assert.deepEqual((await h.api('/api/barrow/reports/fulfillment?accountId=foreign')).channelLines,[]);assert.deepEqual((await h.api('/api/barrow/reports/fulfillment?warehouse=New+York')).channelLines,[]);
  await f.configure(false);await f.poll({},{status:409});
  const owner=(await h.api('/api/barrow/state')).actor;
- let reviewRevision=initialReview.revision;
- const inspect=async()=>{const result=await h.api('/api/barrow/connectors/inspect',{revision:reviewRevision,reason:'Owner compares original Faire orders before enabling intake.'});reviewRevision=result.revision;return result.review};
+ let reviewRevision=initialReview.revision;const reviewedRevisions=[initialReview.revision];
+ const inspect=async()=>{const result=await h.api('/api/barrow/connectors/inspect',{revision:reviewRevision,reason:'Owner compares original Faire orders before enabling intake.'});reviewRevision=result.revision;reviewedRevisions.push(result.revision);return result.review};
  state.orders[0].items[0].quantity=4;
  let review=await inspect(),brand=review.faire[0];
  assert.deepEqual(brand.authority,{orders:'Faire',prices:'Faire',settlement:'Faire',accounts:'Barrow',inventory:'Pier'});
@@ -34,13 +34,15 @@ test('Faire HTTP intake resumes paged reads, holds unknown SKUs for owner review
  await f.configure(true,{status:409});assert.equal((await f.read()).sync[0].enabled,0);
  result=await f.preview({restart:true});const current=result.orders[0];assert.equal(current.state,'review');await f.match(current,{'OAT-1':'OAT-1'});await f.preview();
  review=await inspect();brand=review.faire[0];assert.deepEqual(brand.totals,[{currency:'USD',sourceCount:2,nativeCount:2,sourceCents:36400,nativeCents:36400,differenceCents:0}]);assert.deepEqual(review.issues.filter(row=>row.kind!=='connection'),[]);
- assert.ok(brand.lastSyncAt);assert.ok(brand.lagSeconds>=0);await f.configure();
+ const completedAt=new Date(Date.now()-600000).toISOString();await h.db.prepare('UPDATE bw_faire_sync SET completed_at=? WHERE brand=?').bind(completedAt,'brand1').run();
+ review=await inspect();brand=review.faire[0];assert.equal(brand.lastSyncAt,completedAt);assert.ok(brand.lagSeconds>=600&&brand.lagSeconds<620);await f.configure();
  const priorSamples=brand.samples,priorRead=brand.lastSuccessfulAt,priorSync=brand.lastSyncAt;
  await h.configure({FAIRE_CONNECTIONS:undefined});review=await inspect();brand=review.faire[0];
  assert.equal(brand.state,'unavailable');assert.equal(brand.lastSuccessfulAt,priorRead);assert.equal(brand.lastSyncAt,priorSync);assert.deepEqual(brand.samples,priorSamples);
  assert.deepEqual(review.issues.filter(row=>row.kind==='faire-connection').map(row=>[row.record,row.owner]),[['brand1',owner.id]]);
  await f.configure(true,{status:503});await f.poll({restart:true},{status:503});assert.equal((await f.read()).orders.length,2);assert.equal((await f.read()).orders[0].matched.lines[0].quantity,4);
- const events=(await h.api('/api/barrow/audit?person='+encodeURIComponent(owner.id))).events.filter(row=>row.action==='connector.inspected');assert.equal(events.length,4);
+ assert.equal((await f.configure(false)).sync[0].enabled,0);assert.equal((await f.read()).orders.length,2);
+ const events=(await h.api('/api/barrow/audit?person='+encodeURIComponent(owner.id))).events.filter(row=>row.action==='connector.inspected');assert.equal(events.length,5);assert.deepEqual(events.map(event=>event.revision).sort(),reviewedRevisions.sort());
  const auditCsv=await (await h.request('/api/barrow/audit.csv?person='+encodeURIComponent(owner.id))).text();for(const event of events){assert.equal(event.actorId,owner.id);assert.equal(event.actorKind,'human');assert.equal(event.source,'connector.review');assert.equal(event.reason,'Owner compares original Faire orders before enabling intake.');assert.ok(event.createdAt);assert.ok(event.revision);assert.ok(auditCsv.includes(event.id))}
  assert.ok(!JSON.stringify(review).includes('accessToken'));assert.ok(!auditCsv.includes('synthetic-barrow-1'));
 
