@@ -43,7 +43,7 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
     <ul>{line.warehouses.map(row => <li key={row.warehouse}>{row.warehouse}: {row.allocated} allocated, {row.shipped} shipped</li>)}{line.unassignedBackorder !== '0' && <li>Unassigned backorder: {line.unassignedBackorder}</li>}</ul>
     <p>Source order <code>{line.sourceOrderId}</code></p>{line.action && <Notice>Owner: {line.owner}. {line.action}</Notice>}
    </article>)}
-   {!warehouse&&!late&&report.prebooks.map((r,i)=><article className="br-card br-stack" key={'prebook:'+i}><h3>{r.orderId} · {r.season} · window {r.windowId} · {r.sku}</h3><p>Prebook committed {r.committed} · released {r.released} · outstanding {r.outstanding??'unknown'} {r.unit}</p><p>Promise {r.promiseDate} · cancel after {r.cancelAfter} · {r.state}</p>{r.promiseHistory.map((h,n)=><p key={n}>Promise changed {h.from} → {h.to}: {h.reason}</p>)}</article>)}
+   {report.prebooks.filter(r=>(!warehouse||r.warehouse===warehouse||(warehouse==='Unassigned backorder'&&!r.sourceOrderId))&&(!late||r.promiseDate<report.today&&Number(r.outstanding)>0)).map((r,i)=><article className="br-card br-stack" key={'prebook:'+i}><h3>{r.orderId} · {r.season} · window {r.windowId} · {r.sku}</h3><p>Prebook committed {r.committed} · released {r.released} · outstanding {r.outstanding??'unknown'} {r.unit}</p><p>Promise {r.promiseDate} · cancel after {r.cancelAfter} · {r.state} · warehouse {r.warehouse??'Unassigned commitment'}</p>{r.promiseHistory.map((h,n)=><p key={n}>Promise changed {h.from} → {h.to}: {h.reason}</p>)}</article>)}
    {report.exceptions.map(item => <Notice key={item.orderId} error>{orderNumber(item.orderId)}: {item.reason} Owner: {item.owner}.</Notice>)}
   </>}
  </div>

@@ -230,7 +230,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The account changed. Prepare and submit a new draft before approval.')
    const pricingGuard=await assertCurrentPricing(env,actor,selected,order)
    const approvedAt=(await now()).toISOString(), commissions=await commissionSnapshot(env.DB,selected,order,approvedAt)
-   order=await save(env,actor,{...order,status:order.prebook?'approved':'reserving',approvedBy:actor.id,approvedAt},'order.approved',[...(pricingGuard?[pricingGuard]:[]),activeAccountGuard(env.DB,selected),commissions.guard,env.DB.prepare('INSERT INTO bw_order_commissions(order_id,value_json) VALUES(?,?)').bind(order.id,JSON.stringify(commissions.snapshot))])
+   order=await save(env,actor,{...order,status:order.prebook?'approved':'reserving',approvedBy:actor.id,approvedAt},'order.approved',[...(pricingGuard?[pricingGuard]:[]),activeAccountGuard(env.DB,selected),commissions.guard,env.DB.prepare('INSERT INTO bw_order_commissions(order_id,value_json) VALUES(?,?)').bind(order.id,JSON.stringify(commissions.snapshot))],order.prebook?'Supplier accepted future prebook commitments; no stock reservation or card collection.':undefined)
   }
   if(order.prebook&&order.status==='approved')return order
   if(order.status!=='reserving') fail('APPROVAL','The customer must review and submit this draft first.')

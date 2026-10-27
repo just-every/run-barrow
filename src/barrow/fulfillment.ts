@@ -13,7 +13,8 @@ export async function fulfillmentReport(env: Bindings, actor: Actor, params: URL
  const checkedAt = (await now()).toISOString(), timeZone = await reportZone(env.DB), today = calendarDate(new Date(checkedAt), timeZone), origin = await pierOrigin(env)
  const accountId = params.get('accountId') ?? '', warehouse = params.get('warehouse') ?? ''
  const records = (await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid DESC").bind(accountId,accountId).all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
- const prebooks=records.filter(o=>o.prebook&&o.approvedAt).flatMap(o=>prebookRows(o,undefined,origin))
+ const prebookSelection=(state:any)=>records.filter(o=>o.prebook&&o.approvedAt).flatMap(o=>prebookRows(o,state,origin)).filter(row=>!warehouse||row.warehouse===warehouse||(warehouse==='Unassigned backorder'&&!row.sourceOrderId))
+ const prebooks=prebookSelection(undefined)
  const orders = records.filter(order => order.approvedAt && (!accountId || order.accountId === accountId))
  const lines: ReturnType<typeof fulfillmentLines> = [], exceptions: { orderId: string; reason: string; owner: string }[] = []
  let state: any
@@ -28,6 +29,6 @@ export async function fulfillmentReport(env: Bindings, actor: Actor, params: URL
  const selected = lines.filter(line => !warehouse || line.warehouses.some(row => row.warehouse === warehouse) || (warehouse === 'Unassigned backorder' && line.unassignedBackorder !== '0'))
  const warehouses = actor.staff?.warehouses
  if (warehouses && warehouses !== 'all' && (prebooks.length || exceptions.length || selected.some(line => line.warehouses.some(row => !warehouses.includes(row.warehouse)) || (line.unassignedBackorder !== '0' && !warehouses.includes('Unassigned backorder'))))) fail('FORBIDDEN','The whole fulfillment report cannot be confirmed within your warehouse scope.',403)
- return { checkedAt, today, timeZone, prebooks: records.filter(o=>o.prebook&&o.approvedAt).flatMap(o=>prebookRows(o,state,origin)), source: 'Pier', status: 'read' as const, lines: selected, lateLines: selected.filter(line => line.overdue || (line.dispatchedLate !== null && line.dispatchedLate !== '0')), exceptions,
+ return { checkedAt, today, timeZone, prebooks: prebookSelection(state), source: 'Pier', status: 'read' as const, lines: selected, lateLines: selected.filter(line => line.overdue || (line.dispatchedLate !== null && line.dispatchedLate !== '0')), exceptions,
   note: 'Quantities are per SKU in base units. Fill = shipped / (ordered − cancelled). Warehouse filters select whole order lines with confirmed warehouse activity; backorders are unassigned. Dispatch by requested date uses inclusive days in the stated installation reporting time zone; delivery and complete promise history are not recorded.' }
 }

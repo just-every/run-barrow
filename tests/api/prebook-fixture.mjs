@@ -22,7 +22,7 @@ export async function prebookFixture(t,options={}) {
   return options.networkEdge?.(request);
  };
  const h=await installation({...options,networkEdge,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,...options.bindings}});t.after(()=>h.close());
- let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0,warehouses:['New York'],prices:[{sku:'OAT-1',unitCents:6500,minQty:1},{sku:'COAT-2',unitCents:7000,minQty:1}]}});
+ let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:10000,warehouses:['New York'],prices:[{sku:'OAT-1',unitCents:6500,minQty:2,units:[{code:'pair',baseQuantity:'2',unitCents:13000,packContents:'Two cases'}]},{sku:'COAT-2',unitCents:7000,minQty:2}]}});
  const buyer={as:await h.signIn(account.value.email)},other={as:await h.signIn('other@example.test')};
  const settings=await h.command('prebook.season-create',{revision:'',name:'Spring 2099',opensAt:'2000-01-01T00:00:00Z',closesAt:'2099-02-01T00:00:00Z',depositBps:2000,reason:'Published spring order intake and deposit requirement'});
  const season=settings.seasons[0],lines=[{sku:'OAT-1',quantity:4,requestedDate:'2099-03-10',cancelAfter:'2099-03-20'},{sku:'COAT-2',quantity:6,requestedDate:'2099-04-10',cancelAfter:'2099-04-30'}];

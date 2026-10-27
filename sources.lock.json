@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "3e2462b54338063f350336f95802aa98af57036e3147e3d506cee7661fa8d7b8",
+      "sha256": "e55aed6e8310906d1a361a67c231b4fdf103fb57f795725e2245a838c3bece3b",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d18b895b644fcbbeb5679004f587a278d7d0cf76913961efa4915b506c140a93",
+      "sha256": "f46714d7799b5cc1af3dafcbd009b341e513918f73f575fbd4fe4a2e9b283316",
       "executable": false
     },
     "DEMO.md": {
@@ -1176,7 +1176,7 @@
       "executable": false
     },
     "src/barrow/card-payments.ts": {
-      "sha256": "2d5a5701e86359c74cbde2a0013cf51e59c512ffe5fa0b17b7683f24fbc8931a",
+      "sha256": "52dcdb781b9af79ebcf7fcaca33de9ac5ade0462ccb20ca77c6d8b87f5d7e1c8",
       "executable": false
     },
     "src/barrow/card-provider.ts": {
@@ -1396,7 +1396,7 @@
       "executable": false
     },
     "src/barrow/fulfillment.ts": {
-      "sha256": "285c22fe08879eb3ca39d455f5cc656ec26a4eb8e5628cbd69610a9ce7e8dafc",
+      "sha256": "91c72ab6ef5eb692667526a781c47deda7ba1ce8b8f5ca8fd036b5a1d8007b16",
       "executable": false
     },
     "src/barrow/imports/context.ts": {
@@ -1544,7 +1544,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "25ab201f83851af9e17c0d11ea9dc599460f4a65eb89b603332262447a1215c3",
+      "sha256": "6bab2355eff5d75186237972b4c10321979cd9c024873bc0ed46085efb7fb57e",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -1852,7 +1852,7 @@
       "executable": false
     },
     "src/barrow/ui/card-payment.tsx": {
-      "sha256": "827203598bdd26609b816e0a5c1a6b1dfa97cfcf639df04f914d3eeb132e2137",
+      "sha256": "c19a7f48dea24a4f140427622e768e9c037b49442636135b61e0fcb6f809e180",
       "executable": false
     },
     "src/barrow/ui/card-settings.tsx": {
@@ -1972,7 +1972,7 @@
       "executable": false
     },
     "src/barrow/ui/fulfillment.tsx": {
-      "sha256": "ebdf2ede9d010af5406de5e3d453405d86f45e77a1ec786abfa37e3c17aedacb",
+      "sha256": "2ee51e67632d2d4f01d780d411975b6cfa762138710c8f37ec3505035de3d76a",
       "executable": false
     },
     "src/barrow/ui/import-journal.tsx": {
@@ -2016,7 +2016,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "83b40f2751a9d46484ec1f8102f2f91d1fab087a67bdd0d89d6cfa5dba276b8a",
+      "sha256": "c995488f30361c2121c9b79f534e565bb66640d092f2b72bb1c11515db639858",
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {
@@ -4240,7 +4240,7 @@
       "executable": false
     },
     "tests/api/confirmations.test.mjs": {
-      "sha256": "47ced7dfbd7fb22a6f657a743aed4c9bad2b4bae23030844f621c48528814216",
+      "sha256": "ab37223937463508ab18f8b31abccae4dc9a1f03fd859c3aef3ed7b4d0259ee2",
       "executable": false
     },
     "tests/api/credit-fixture.mjs": {
@@ -4328,7 +4328,7 @@
       "executable": false
     },
     "tests/api/prebook-fixture.mjs": {
-      "sha256": "52420f4eac368a6226441934eaa68b5c3b8ffeb774162f8156d585dfce16cd2f",
+      "sha256": "9069356b8cbc02ce546ceeb6cec343efbc5fc10f52b20272768a56ba0206828c",
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
@@ -4508,7 +4508,7 @@
       "executable": false
     },
     "tests/journeys/confirmations.test.mjs": {
-      "sha256": "f934a1bda1fe46cebd81542ef37781cb158f8222f37e0ab35c18f0c7b0a80700",
+      "sha256": "51675ddfc3402e2fa10054ffe8de7950ee6f8d5c563336b6c0155f8a5aa88d1b",
       "executable": false
     },
     "tests/journeys/credit-payments.test.mjs": {

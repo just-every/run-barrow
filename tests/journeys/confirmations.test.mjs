@@ -104,7 +104,7 @@ test('seasonal prebook buyer places two windows and operations closes intake, re
  await expect(ops).toContainText('Promise changed 2099-04-10 → 2099-04-20: Style delayed at supplier');await expect(ops).toContainText('COAT-2: committed 6 · released 0 · outstanding 6');
  await shot(page,ops,'prebook-operations-released');
  await bp.reload();await bp.getByRole('button',{name:'Orders',exact:true}).click();await expect(card).toContainText('COAT-2: committed 6 · released 0 · outstanding 6');
- await expect(card.getByRole('button',{name:'Release window 2',exact:true})).toHaveCount(0);await shot(bp,card,'prebook-buyer-released');
+ await expect(card.getByRole('button',{name:'Release window 2',exact:true})).toHaveCount(0);await expect(card.getByRole('region',{name:'Card payment',exact:true})).toContainText('USD 136.00 required');await shot(bp,card,'prebook-buyer-released');
  await page.getByRole('button',{name:'Data',exact:true}).click();
  const fulfillment=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).first();
  await expect(fulfillment).toContainText('Prebook committed 4 · released 4 · outstanding 4');await expect(fulfillment).toContainText('Promise changed 2099-04-10 → 2099-04-20');await shot(page,fulfillment,'prebook-fulfillment');

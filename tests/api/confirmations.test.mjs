@@ -273,6 +273,9 @@ test('seasonal prebook commitments distinguish incoming supply, close intake, re
  assert.equal((await h.command('order.prepare',{...payload,prebookSeasonId:undefined}, {...buyer,status:409})).error.code,'STOCK');
  assert.equal((await h.command('order.prepare',{...payload,lines:[{...payload.lines[0],quantity:21}]},{...buyer,status:409})).error.code,'PREBOOK_CAPACITY');
  assert.equal((await h.command('order.prepare',{...payload,lines:[{...payload.lines[0],requestedDate:'2099-02-10'}]},{...buyer,status:409})).error.code,'PREBOOK_CAPACITY');
+ assert.equal((await h.command('order.prepare',{...payload,lines:[{...payload.lines[0],quantity:1}]},{...buyer,status:409})).error.code,'MINIMUM');
+ const unitDraft=await h.command('order.prepare',{...payload,reference:'UNIT-PREBOOK',lines:[{...payload.lines[0],unit:'pair',quantity:2}]},buyer);
+ assert.deepEqual(unitDraft.lines.map(l=>[l.unit,l.quantity,l.baseQuantity,l.unitCents,l.lineCents]),[['pair',2,'4',13000,26000]]);
  let draft=await h.command('order.prepare',payload,buyer);
  assert.equal(draft.prebook.depositCents,13600);
  assert.deepEqual(draft.prebook.incoming,[{sku:'OAT-1',date:'2099-03-01',quantity:'20'},{sku:'COAT-2',date:'2099-04-01',quantity:'20'}]);
@@ -284,6 +287,10 @@ test('seasonal prebook commitments distinguish incoming supply, close intake, re
  let order=await h.command('order.submit',{orderId:draft.id},buyer);
  order=await h.command('order.approve',{orderId:order.id});
  assert.equal(order.status,'approved');assert.equal(order.invoice,undefined);assert.equal(order.pierOrderId,undefined);
+ const deposit=await h.api('/api/barrow/payments?orderId='+order.id,undefined,buyer);
+ assert.deepEqual(deposit.requirement,{kind:'prebook-deposit',orderId:order.id,amountCents:13600,currency:'USD',state:'required'});
+ assert.deepEqual(deposit.payments,[]);
+ assert.equal((await h.command('card.prepare',{orderId:order.id},{...buyer,status:409})).error.code,'PAYMENT_ORDER');
  assert.equal((await pier.api('/api/pier/state')).orders.length,0);
  const confirmations=(await h.api(`/api/barrow/orders/${order.id}/confirmations`,undefined,buyer)).confirmations;
  assert.deepEqual(confirmations.map(c=>c.stage),['submitted','accepted']);assert.equal(confirmations[1].snapshot.prebook.depositCents,13600);
@@ -311,14 +318,20 @@ test('seasonal prebook commitments distinguish incoming supply, close intake, re
  const sourceId=order.prebook.windows[0].pierOrderId;
  order=await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Safe retry'});
  assert.equal(order.prebook.windows[0].pierOrderId,sourceId);assert.equal((await pier.api('/api/pier/state')).orders.length,1);
- const source=(await pier.api('/api/pier/state')).orders[0];assert.equal(source.promiseDate,'2099-03-10');assert.equal(source.lines[0].quantity,'4');
+ const source=(await pier.api('/api/pier/state')).orders[0];assert.equal(source.promiseDate,'2099-03-10');assert.equal(source.lines[0].quantity,'4');assert.equal(source.warehouse,'New York');
  order=await h.command('prebook.delay',{orderId:order.id,windowId:'2',revision:order.revision,promiseDate:'2099-04-20',reason:'Style delayed at source'});
  assert.equal(order.prebook.windows[1].state,'backordered');
  assert.deepEqual(order.prebook.windows[1].history.map(h=>[h.from,h.to,h.reason]),[['2099-04-10','2099-04-20','Style delayed at source']]);
  rows=(await h.api(`/api/barrow/orders/${order.id}/prebook`,undefined,buyer)).rows;
  assert.deepEqual(rows.map(r=>[r.sku,r.committed,r.released,r.outstanding]),[['OAT-1','4','4','4'],['COAT-2','6','0','6']]);
  const report=await h.api('/api/barrow/reports/fulfillment');
- assert.deepEqual(report.prebooks,rows);assert.deepEqual(report.exceptions,[]);assert.equal(report.prebooks[1].promiseHistory[0].to,'2099-04-20');
+ assert.deepEqual(report.prebooks,rows);
+ assert.deepEqual((await h.api('/api/barrow/reports/fulfillment?warehouse=Newark')).prebooks,[]);
+ assert.deepEqual((await h.api('/api/barrow/reports/fulfillment?warehouse=New%20York')).prebooks.map(r=>[r.windowId,r.warehouse]),[['1','New York']]);assert.deepEqual(report.exceptions,[]);assert.equal(report.prebooks[1].promiseHistory[0].to,'2099-04-20');
+ await pier.command('dispatch.create',{orderId:source.id,shipmentReference:'Spring first partial dispatch',lines:[{orderLineId:source.lines[0].id,quantity:'2'}]});
+ const shipped=(await h.api(`/api/barrow/orders/${order.id}/prebook`,undefined,buyer)).rows;
+ assert.deepEqual(shipped.map(r=>[r.committed,r.released,r.outstanding,r.allocated]),[['4','4','2','2'],['6','0','6',null]]);
+
  assert.equal((await h.command('prebook.delay',{orderId:order.id,windowId:'1',revision:order.revision,promiseDate:'2099-03-15',reason:'Already released'},{status:409})).error.code,'PREBOOK_RELEASED');
  const audit=(await h.api(`/api/barrow/audit?orderId=${order.id}`)).events;
  assert.equal(audit.filter(e=>e.action==='prebook.released').length,1);assert.equal(audit.filter(e=>e.action==='prebook.delay').length,1);
