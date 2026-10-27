@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "68e88fd910ba22501ecf080a55666163adb0f76aa0b7e18721a5a7072244fef9",
+      "sha256": "4b296d1e559f6cc7e63a5457646d7a1cb64a37ad2f3fedef3379cc304c5e369f",
       "executable": false
     },
     ".gitignore": {
@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "3e2462b54338063f350336f95802aa98af57036e3147e3d506cee7661fa8d7b8",
+      "sha256": "521226ea9b945e830dc8af92c6c33ae297758d2447faf8f6b15e68a829bd4784",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d18b895b644fcbbeb5679004f587a278d7d0cf76913961efa4915b506c140a93",
+      "sha256": "8b57977de91eb539e95a7498bad58c785c10d9389b081bedb711d1f55dd2f2db",
       "executable": false
     },
     "DEMO.md": {
@@ -160,7 +160,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "4f9e1a4f37752e0fc58ff41ef0ee9600ff9eeb91bc6ac251e0f28b1650137895",
+      "sha256": "94814fd73793060b29681075e1a2d8e029e52b34059ebd8f30d5ae347b95bc8e",
       "executable": false
     },
     "docs/ACCOUNTS.md": {
@@ -193,6 +193,10 @@
     },
     "docs/CUTOVER.md": {
       "sha256": "04499892eafc0b5439efa5b5a6b288d20abb23b3884bba4cff7a212c0ad216b6",
+      "executable": false
+    },
+    "docs/FAIRE.md": {
+      "sha256": "45538c20d675893089a231362b74c78e1991df4579be32b9906ffbd14c92f371",
       "executable": false
     },
     "docs/GETTING-STARTED.md": {
@@ -288,7 +292,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "0eb44f51f1d0fb52ebc449a172d9c3775fee8b9986be0610b7a19ec82eff762d",
+      "sha256": "5ce977061e1b2fa65c67319a845716fde34fd735dfaae8d50fb4cb316a82e84b",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -517,6 +521,10 @@
     },
     "migrations/core/0056_credit_notes.sql": {
       "sha256": "f9b83d3ba3a41c467de172f0a18df42d8842255566850a591be40c979d749a95",
+      "executable": false
+    },
+    "migrations/core/0057_faire_orders.sql": {
+      "sha256": "bef92be48ceb9d55d69737a89c2317872b2a7e40cc0f6727f3e4f278869203f1",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1036,7 +1044,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "c2f4c18b622de7e771cb346e096610b76adeb68427c3763a3e1e010cd4e75933",
+      "sha256": "f4db9f898145b0bf17654c47fdcfa7eaae1bd5ba9fbbc688ae3c2fc0b5e1ef66",
       "executable": false
     },
     "src/barrow/access.ts": {
@@ -1068,7 +1076,7 @@
       "executable": false
     },
     "src/barrow/accounts.ts": {
-      "sha256": "b53358638e83888228e29f9a52ee34084c2fd24d488a7082a9c1c85f1014a64e",
+      "sha256": "22bf6665ddfc940251e743251f6c6ce54dc7ca8084e0997168a91d46be577126",
       "executable": false
     },
     "src/barrow/agent-proposal-model.ts": {
@@ -1080,7 +1088,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "c9feb1946c09e70d3958698ef6badd80c72d3386ccea2549d2ab806d2ff73a4a",
+      "sha256": "07bc3c55f27a03fd4b6b39e2aee8e97f8b92e7b7d110eaef53374d42306099eb",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1340,7 +1348,11 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "b3c88785c62e2cef3ae23f1431534825afc659b256b53addd61736c284dff45f",
+      "sha256": "b31e8f2764aca4fb5a0b250e05b18d7e682a324f56d78081cc0bb0c1283c8287",
+      "executable": false
+    },
+    "src/barrow/faire.ts": {
+      "sha256": "f9f6d8f807ba88dfb0655b641accdf5c86bb4a649e259d6e218d65619fe3003b",
       "executable": false
     },
     "src/barrow/feeds/connection-settings.ts": {
@@ -1396,7 +1408,7 @@
       "executable": false
     },
     "src/barrow/fulfillment.ts": {
-      "sha256": "7a0d99127051118bc96b3d26959b1f7a006aa56bd5f7fccc7b9b242668838eaa",
+      "sha256": "72652937ca0e0d59eb53d5609f59f35e42904c34b74db99c97aa76025d9adcee",
       "executable": false
     },
     "src/barrow/imports/context.ts": {
@@ -1560,7 +1572,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "1e6f84817d22eb99b6442745b96b9ec64616f7419e720d34c15daff5259a7f4e",
+      "sha256": "3d53034db71abb0588fa3617598519b6830be6a76892d17adbbee865349d42eb",
       "executable": false
     },
     "src/barrow/price-books.ts": {
@@ -1968,7 +1980,7 @@
       "executable": false
     },
     "src/barrow/ui/fulfillment.tsx": {
-      "sha256": "20beacb002654da985d22712a88c39338c10d68da6e9a90a23eef50821fc968e",
+      "sha256": "d2d10f0ee07d6e9ab0fe30b4fc16e89cb5b2a2d7767595d602fea0929882ce8f",
       "executable": false
     },
     "src/barrow/ui/import-journal.tsx": {
@@ -4259,6 +4271,14 @@
       "sha256": "f8a0d7f8c5eb042030bf28c50edfc27901cbcb11f2baf261161415e6e07bdbdf",
       "executable": false
     },
+    "tests/api/faire-fixture.mjs": {
+      "sha256": "75ae84be6915e7b8ab5b2c714262496b14e84eec111a8cfbeab04e368bbdded1",
+      "executable": false
+    },
+    "tests/api/faire.test.mjs": {
+      "sha256": "d536058085fc3afbd9d619cd1f1b13b3e5102ba2b59d86d42a4ae759aea012cd",
+      "executable": false
+    },
     "tests/api/finance-report.test.mjs": {
       "sha256": "9f9ed78c0988c5631caa22d2ce1c45158c91c242ef654bd6bbe2ac9d48866e13",
       "executable": false
@@ -4509,6 +4529,10 @@
     },
     "tests/journeys/delta-cutover.test.mjs": {
       "sha256": "5cea8e5901abfdde98c36383460d736870394200750e397a5f7e812cedaf9dd0",
+      "executable": false
+    },
+    "tests/journeys/faire.test.mjs": {
+      "sha256": "ef8e19ddcb89b312cfa49615ffd5b42062097d8a77feaea5872bb4dc0c00d0e8",
       "executable": false
     },
     "tests/journeys/install-harness.mjs": {

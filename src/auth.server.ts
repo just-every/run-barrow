@@ -21,6 +21,7 @@ export interface Bindings {
  PIER_ORIGIN?: string
  PIER_SESSION?: string
  BARROW_SFTP_SECRETS?: string
+ FAIRE_CONNECTIONS?: string
  /** Built browser files; hosted deploys run the Worker first (staticAssetResponse). */
  ASSETS?: Fetcher
  RER_DEPLOY_SOURCE?: string
