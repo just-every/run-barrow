@@ -135,3 +135,72 @@ No test suite, build, dev server or heavy process was run by this subsystem
 lane; the integrating parent owns the targeted real-D1 and transport checks.
 
 Account price books use USD integer cents; the catalog API labels that currency and each new order snapshots it. CSV amounts are not converted. Legacy order records retain their recorded currency (AUD when the old record has no currency field), including after restore.
+
+## NuORDER reviewed source batch
+
+The owner selects **NuORDER** in the existing Move in manifest form. The native
+HTTP doors are `POST /api/barrow/imports/nuorder/preview` and
+`POST /api/barrow/imports/nuorder/apply`. This is a supplied export adapter,
+not a claim that every brand uses one standard NuORDER archive.
+
+The JSON manifest contains `tenant`, `products`, `orders`, `authority`, `scope`
+and optional `images` and `lists`. Each source table is either `{name,csv}` or
+`{name,base64,sheet}` for an XLSX workbook, with an exact sheet name. Binary legacy
+XLS is not accepted: save it as XLSX or CSV first. Each table accepts `columns`,
+a mapping from the logical field below to the brand's actual source header.
+Unrecognized source columns are retained verbatim and reported as retained only.
+CSV files are bounded to 256 KiB and 500 rows; XLSX files to 1 MiB before parsing,
+with formula and unsafe archive refusal inherited from the existing workbook reader.
+
+| Logical product field | Default source header |
+| --- | --- |
+| id, style, color, size | Product ID, Style Number, Color, Size |
+| upc, season, archived | UPC, Season, Archived |
+| casePack, increment | Case Pack, Increment |
+
+`Archived` is explicitly `true` or `false`. Active products must map to existing
+active Pier SKUs; source UPC must match Pier's barcode. Archived product metadata
+is retained as a removed listing. Pier remains the product and stock authority;
+this importer creates neither stock nor Pier items. Style, color, size, UPC and
+season remain in the retained source and catalog metadata. Case packs and
+increments feed the existing account quantity rules for entitled SKUs, including
+products absent from the imported order lines. No source product adds an account price.
+
+| Logical order field | Default source header |
+| --- | --- |
+| id, customerId, productId | Order Number, Company Code, Product ID |
+| currency, total, shipping | Currency, Order Total, Shipping |
+| status, date, quantity | Status, Order Date, Quantity |
+| unitPrice, openQuantity | Wholesale Price, Open Quantity |
+| po, shipStart, shipEnd | Customer PO, Ship Start, Ship End |
+
+Order rows repeat their header and contain one mapped product each. An optional
+`type` mapping defaults to `Type`; a supplied value other than `Order` refuses. Currency is
+an explicit ISO code, amounts are exact decimal currency units, and open quantity
+is a nonnegative whole number no larger than ordered quantity. Conflicting repeated
+headers and duplicate mapped order lines refuse. `authority` uses `system: supplied`
+with explicit `customers` from source company IDs to native account IDs and
+`products` from source product IDs to Pier SKUs. `scope` declares ISO dates or
+null in `from` and `to`, `filters` and `fullTenant`. Optional `lists` use the
+existing supplied list CSV shape: desired quantities only, initially private,
+repriced through the current cart preview, included in reconciliation and export.
+
+Downloaded JPEGs use `images: [{name,base64}]`; the supported primary filename is
+`STYLE_COLOR_1.jpg`, matched exactly against source style and color. It attaches
+to all supplied sizes of that style and color. Existing ORD-014 sanitization,
+200 KiB limit, installation-only custody and content deduplication apply. Other
+slots and unmatched files are reported without automatic attachment. Remote URLs,
+held unmatched media and full CAT-010 naming rules are still pending; no remote
+media fetch or malware verdict is claimed. Missing remote images cannot yet be
+reported as successfully attempted retrievals.
+
+Preview writes nothing. It names original columns, product and archived counts,
+primary image targets, retained-only fields, missing entities, line and list counts,
+per-currency order value and open quantities. Apply requires the exact fingerprint
+and a nonempty owner reason; stale source or native data refuses. Approval is
+recorded as `import.approved`. All order records are labeled retained source
+history, including open ones. Replay creates no second history record or list,
+and imports never reserve stock, issue an invoice, collect payment or send mail.
+NuORDER retailer-network orders stop arriving at cutover. Companies and buyers
+remain MOVE-009's, while document rebuilding through CAT-003 and CAT-004, broader
+image-slot custody and a complete receivable rehearsal remain unfinished.

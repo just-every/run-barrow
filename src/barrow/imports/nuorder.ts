@@ -1,0 +1,89 @@
+import { Buffer } from 'node:buffer'
+import { csvText } from '../cart-csv'
+import { fail, text } from '../model'
+import { decodedImage } from '../product-images'
+import { platformCsv, sourceQuantity } from './platform-csv'
+import { parseSparkLayer, type PlatformSource, type SourceFile, type SparkInput } from './sparklayer'
+import { workbookSheets } from './wizcommerce'
+
+type Table = SourceFile | {name:string;base64:string;sheet:string;columns?:Record<string,string>}
+export type NuorderInput = {
+ tenant:string; products:Table; orders:Table; authority:SparkInput['authority']; scope:SparkInput['scope']
+ lists?:SparkInput['lists']; images?:Array<{name:string;base64:string}>
+}
+export type NuorderProduct = {id:string;sku:string;style:string;color:string;size:string;upc:string;season:string;archived:boolean;casePack?:number;increment?:number;original:Record<string,string>}
+export type NuorderCatalog = {products:NuorderProduct[];images:Array<{sku:string;name:string;image:{sha256:string;width:number;height:number;size:number;components:1|3;base64:string}}>;missingImages:Array<{style:string;name:string;reason:string}>;columns:{products:string[];orders:string[]}}
+const productColumns = {id:'Product ID',style:'Style Number',color:'Color',size:'Size',upc:'UPC',season:'Season',archived:'Archived',casePack:'Case Pack',increment:'Increment'}
+const orderColumns = {type:'Type',id:'Order Number',customerId:'Company Code',currency:'Currency',total:'Order Total',shipping:'Shipping',status:'Status',date:'Order Date',productId:'Product ID',quantity:'Quantity',unitPrice:'Wholesale Price',openQuantity:'Open Quantity',po:'Customer PO',shipStart:'Ship Start',shipEnd:'Ship End'}
+async function table(file:Table) {
+ if (!file || typeof file !== 'object') fail('IMPORT_SOURCE','Supply product and order exports.',400)
+ if ('csv' in file) return platformCsv(file)
+ const sheets=await workbookSheets(file),sheet=sheets.find(sheet=>sheet.sheet===file.sheet)
+ if (!sheet) fail('IMPORT_SHEET','Select an existing source sheet by its exact name.',400)
+ const rows=sheet.data as unknown[][],headers=rows[0]
+ if (!headers?.length || headers.some(value=>typeof value!=='string')) fail('IMPORT_COLUMNS','Workbook headers must be text.',400)
+ if (rows.some(row=>row.some(value=>value!==null&&typeof value!=='string'))) fail('IMPORT_CELL','Unsupported source cell.',400)
+ return platformCsv({name:file.name.replace(/\.xlsx$/i,'.csv'),csv:csvText([headers as string[],...rows.slice(1).map(row=>headers.map((_,i)=>String(row[i]??'')))])})
+}
+function mapping(defaults:Record<string,string>,file:Table,rows:Array<{fields:Record<string,string>}>) {
+ for (const [key,column] of Object.entries(file.columns??{})) if (!Object.hasOwn(defaults,key)||typeof column!=='string'||!rows.some(row=>Object.hasOwn(row.fields,column))) fail('IMPORT_COLUMNS',`Map ${key} to an existing source column.`,400)
+ return {...defaults,...file.columns}
+}
+export async function parseNuorder(input:NuorderInput):Promise<PlatformSource> {
+ const [productRows,orderRows]=await Promise.all([table(input?.products),table(input?.orders)])
+ if (!productRows.length||!orderRows.length) fail('IMPORT_EMPTY','Supply nonempty product and order exports.',400)
+ const pc=mapping(productColumns,input.products,productRows),oc=mapping(orderColumns,input.orders,orderRows)
+ const resolve=(map:Record<string,string>|undefined,id:string)=>map&&Object.hasOwn(map,id)?text(map[id],'Mapped SKU',100):fail('IMPORT_MAPPING',`Unmapped product ${id}.`,400)
+ const seen=new Set<string>(),skus=new Set<string>(),rejectedFields:string[]=[]
+ const products=productRows.map(({fields,row})=>{
+  const get=(key:string,required=false)=>required?text(fields[pc[key]],`Product row ${row} ${pc[key]}`,100):fields[pc[key]]??''
+  const id=get('id',true),sku=resolve(input.authority?.products,id)
+  if (seen.has(id)||skus.has(sku)) fail('IMPORT_DUPLICATE','Product IDs and mapped SKUs must be distinct.',400)
+  seen.add(id);skus.add(sku)
+  const archived=get('archived')
+  if (!['true','false'].includes(archived)) fail('IMPORT_FIELD','Archived must explicitly be true or false.',400)
+  const product:NuorderProduct={id,sku,style:get('style',true),color:get('color',true),size:get('size',true),upc:get('upc'),season:get('season'),archived:archived==='true',original:fields}
+  for (const key of ['casePack','increment'] as const) if (get(key)) product[key]=sourceQuantity(get(key),key)
+  return product
+ })
+ const joined:Record<string,string>[]=[]
+ for (const {fields,row} of orderRows) {
+  const get=(key:string,required=false)=>required?text(fields[oc[key]],`Order row ${row} ${oc[key]}`,200):fields[oc[key]]??''
+  if (get('type')&&get('type').toLowerCase()!=='order') fail('IMPORT_TYPE','Only order exports may enter this door; retain quotes separately.',400)
+  const date=get('date');if(date&&(!/^\d{4}-\d{2}-\d{2}/.test(date)||!Number.isFinite(Date.parse(date.slice(0,10)))||new Date(date.slice(0,10)).toISOString().slice(0,10)!==date.slice(0,10)))fail('IMPORT_DATE','Order dates must name a valid ISO calendar day.',400)
+  const productId=get('productId',true),product=products.find(p=>p.id===productId)
+  if (!product) fail('IMPORT_MAPPING',`Order row ${row} references absent product ${productId}.`,400)
+  const quantity=sourceQuantity(get('quantity',true),'Order quantity'),remaining=get('openQuantity',true)
+  if (!/^(0|[1-9]\d*)$/.test(remaining)||!Number.isSafeInteger(Number(remaining))||Number(remaining)>quantity) fail('IMPORT_QUANTITY','Open quantity must be between zero and ordered quantity.',400)
+  for (const key of ['shipStart','shipEnd'] as const) if (get(key)&&(!/^\d{4}-\d{2}-\d{2}$/.test(get(key))||!Number.isFinite(Date.parse(get(key)))||new Date(get(key)).toISOString().slice(0,10)!==get(key))) fail('IMPORT_DATE','Ship windows require ISO calendar dates.',400)
+  if (get('shipStart')&&get('shipEnd')&&get('shipStart')>get('shipEnd')) fail('IMPORT_DATE','Ship window end precedes its start.',400)
+  joined.push({ID:get('id',true),'Customer ID':get('customerId',true),Type:'Order',Currency:get('currency',true),Total:get('total',true),Shipping:get('shipping')||'0',Status:get('status',true),Date:get('date'), 'Product ID':productId,Quantity:String(quantity),'Unit Price':get('unitPrice',true),'Case Pack':String(product.casePack??''),Increment:String(product.increment??'')})
+ }
+ const headers=Object.keys(joined[0]),source=parseSparkLayer({tenant:input.tenant,activity:{name:'nuorder-joined.csv',mode:'detailed',csv:csvText([headers,...joined.map(row=>headers.map(h=>row[h]))])},authority:input.authority,scope:input.scope,lists:input.lists})
+ source.system='nuorder';source.artifacts=[input.products,input.orders,...input.lists??[]]
+ for (const doc of source.documents) {
+  const rows=orderRows.filter(row=>row.fields[oc.id]===doc.id)
+  doc.originals=rows
+  doc.lines.forEach(line=>{const original=rows.find(row=>input.authority.products[row.fields[oc.productId]]===line.sku)!;line.original=original.fields;line.row=original.row;line.openQuantity=Number(original.fields[oc.openQuantity])})
+  doc.sourceFacts={po:rows[0].fields[oc.po]??'',shipStart:rows[0].fields[oc.shipStart]??'',shipEnd:rows[0].fields[oc.shipEnd]??''}
+  for (const row of rows) for (const key of ['po','shipStart','shipEnd']) if ((row.fields[oc[key]]??'')!==doc.sourceFacts[key]) fail('IMPORT_JOIN',`Repeated header ${doc.id} disagrees on ${key}.`,400)
+ }
+ const images:NuorderCatalog['images']=[],missingImages:NuorderCatalog['missingImages']=[]
+ if (input.images!==undefined&&(!Array.isArray(input.images)||input.images.length>50)) fail('IMPORT_IMAGES','Supply at most fifty downloaded JPEG files per batch.',400)
+ const names=new Set<string>()
+ for (const file of input.images??[]) {
+  const name=text(file?.name,'Image filename',200)
+  if (/[\\/]/.test(name)||names.has(name)) fail('IMPORT_IMAGES','Image filenames must be distinct plain filenames.',400)
+  names.add(name)
+  const matches=products.filter(p=>name===`${p.style}_${p.color}_1.jpg`)
+  if (!matches.length) {missingImages.push({style:'unmatched',name,reason:'No exact style_color_1.jpg match; other slots are not supported yet'});continue}
+  const image=await decodedImage(file.base64)
+  for (const product of matches) images.push({sku:product.sku,name,image:{sha256:image.sha256,width:image.width,height:image.height,size:image.bytes.length,components:image.components,base64:Buffer.from(image.bytes).toString('base64')}})
+ }
+ const columns={products:Object.keys(productRows[0].fields),orders:Object.keys(orderRows[0].fields)}
+ for (const [kind,actual,mapped] of [['products',columns.products,pc],['orders',columns.orders,oc]] as const) for (const field of actual) if (!Object.values(mapped).includes(field)) rejectedFields.push(`${kind}: ${field} retained only`)
+ source.catalog={products,images,missingImages,columns}
+ source.rejectedFields=rejectedFields
+ source.missing=['NuORDER retailer-network orders stop arriving at cutover; open orders remain labeled source history, never submitted to Pier','Companies, buyers and locations require MOVE-009; source prices remain history, not a new account price book','Releases, invoices and balances not supplied; no financial authority is activated','Downloaded JPEG primary images only; URL retrieval, other slots and held unmatched files remain unimplemented','CAT-004 presentations and rebuilding CAT-003 documents from this source remain unimplemented',...source.incomplete?['Filtered source scope remains incomplete']:[]]
+ return source
+}
