@@ -42,3 +42,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promotion-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs
+      - name: Seasonal commitment screens
+        if: matrix.shard == 3
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-prebook-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/prebooks.test.mjs

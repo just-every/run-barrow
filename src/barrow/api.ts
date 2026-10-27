@@ -1,3 +1,5 @@
+import { requirePerson } from './model'
+import { seasonCommand, prebookOperation, prebookView, seasons } from './prebooks'
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
@@ -323,6 +325,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await commit(env.DB,actor,[env.DB.prepare('DELETE FROM bw_agent_tokens WHERE actor_id=?').bind(actor.id),audit(env.DB,actor,actor.id,'agent.revoked',{revision:`operator:${actor.version}`,source:'agent-token.revoke',reason:'Supplier revoked every agent grant issued under this identity.'})])
    return json({revoked:true})
   }
+  if(path==='/api/barrow/prebook-seasons' && request.method==='GET'){requirePerson(actor);return json({seasons:await seasons(env)})}
+  const prebookPath=/^\/api\/barrow\/orders\/([-A-Za-z0-9_]+)\/prebook$/.exec(path)
+  if(prebookPath&&request.method==='GET'){requirePerson(actor);return json(await prebookView(env,await readOrder(env.DB,actor,prebookPath[1]))??null)}
   if(path==='/api/barrow/promotions' && request.method==='GET'){promotionAdmin(actor);return json(await promotionSettings(env.DB))}
   if(path==='/api/barrow/commands' && request.method==='POST') {
    // A command carries at most one 1 MB PO document as base64.
@@ -333,6 +338,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['prebook.season','prebook.close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
+   if(['prebook.release','prebook.delay'].includes(body.type))return json({result:await prebookOperation(env,actor,body.type,body.payload)})
    if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})
    if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})

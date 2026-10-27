@@ -24,7 +24,7 @@ export const promiseDate = (order: Order) => [order.requestedDate, ...order.line
 export const buyerSku = (line: any) => line?.buyerSku ? { buyerSku: text(line.buyerSku, 'Buyer SKU', 60) } : {}
 /** POs match within one trade account after trimming, collapsing spaces and ignoring case. */
 export const poKey = (reference: string) => reference.trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US')
-const live = ['submitted', 'reserving', 'shortfall', 'approved', 'releasing']
+const live = ['prebook', 'submitted', 'reserving', 'shortfall', 'approved', 'releasing']
 /**
  * Submitting a PO already on a live order of the same account is refused unless the person explicitly authorizes a
  * numbered release. Release numbers count every submitted order with that PO, cancelled ones included; the first is 1.

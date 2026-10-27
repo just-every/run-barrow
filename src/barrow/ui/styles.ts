@@ -52,8 +52,8 @@ export const rowCents = (row: StyleRow, quantities: Record<string, string>, pric
 
 /** An order's lines read back as styles: "S2 M4 L4 XL2", units, the prices paid and the style's total. */
 export function orderStyles(lines: Order['lines'], currency: 'USD' | 'AUD' | 'CAD') {
-  if(lines.some(line=>line.unit && line.unit!==line.baseUnit)) return lines.map(line=>({
-    key:JSON.stringify([line.sku,line.unit]),name:`${line.name} · ${line.unit??'units'}`,units:line.quantity,
+  if(lines.some(line=>line.unit && line.unit!==line.baseUnit)||new Set(lines.map(line=>line.sku)).size!==lines.length) return lines.map((line,index)=>({
+    key:JSON.stringify([line.sku,line.unit,line.requestedDate,index]),name:`${line.name} · ${line.unit??'units'}${line.requestedDate?` · ${line.requestedDate}`:''}`,units:line.quantity,
     cents:line.lineCents??line.quantity*line.unitCents,sizes:`${line.quantity} ${line.unit??'units'} = ${line.baseQuantity??line.quantity} ${line.baseUnit??'base units'}`,
     prices:`${money(line.unitCents,currency)} / ${line.unit??'unit'}`,
   }))
