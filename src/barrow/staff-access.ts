@@ -49,6 +49,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
  if(method==='GET'&&/^payments(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&(role==='finance'||selling.includes(role)))return
  if(method==='GET'&&/^(?:credits|refunds)(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&role==='finance')return
+ if(method==='GET'&&relative==='account-credit'&&(role==='finance'||selling.includes(role)))return
  if(method==='GET'&&relative==='saved-cards'&&role==='finance')return
  if(method==='GET'&&relative==='locations')return
  if(method==='GET'&&relative==='visits'&&(selling.includes(role)||role==='operations'))return // REP-005: scoped per account by the read itself
@@ -61,6 +62,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 }
 
 const commandRoles:Record<string,string[]>={
+ 'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
  'credit.issue':['finance'],'credit.apply':['finance'],'card.allocate':['finance'],'refund.request':['finance'],'refund.refresh':['finance'],
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
  'price-book.import':['sales-manager'],'sheet.publish':['sales-manager'],'sheet.revoke':['sales-manager'],

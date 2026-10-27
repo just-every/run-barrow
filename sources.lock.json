@@ -1052,7 +1052,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "c36b2e2c8d0828e931698fabe54f43bc02b0b9c56b92fa1b558a43cbb2b5a068",
+      "sha256": "5c7d9051240f615db386cfa1739892a9bbcd4946675269fe848bcfc45d2cfccc",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1068,7 +1068,7 @@
       "executable": false
     },
     "src/barrow/accounts.ts": {
-      "sha256": "b53358638e83888228e29f9a52ee34084c2fd24d488a7082a9c1c85f1014a64e",
+      "sha256": "c88aaab2a2ab328c3ec88f02f88d7fbb25819b65479240a69e0da474cc2ecee0",
       "executable": false
     },
     "src/barrow/agent-proposal-model.ts": {
@@ -1080,7 +1080,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "b854a30a086c2d45b6bfd428090c13d9a54efa830b644492bf250d106d37de9e",
+      "sha256": "f40cf223b3a761d1d59253c810dd101f5ac3e016f4a94fc715008cda522d73e1",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1376,7 +1376,7 @@
       "executable": false
     },
     "src/barrow/finance-report.ts": {
-      "sha256": "ce8cc73715e638d8b6c10d2360c3615a55e9c3e88d9e7fdbd799ade95b5212f1",
+      "sha256": "1085303e82a186c7c83a1b2e7c3c5242ab7d1930dfcd46428d0323c627b823d0",
       "executable": false
     },
     "src/barrow/followup-sources.ts": {
@@ -1544,7 +1544,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "8267d53b6b3a64cc0d4bed48aa874da08800277ce85046d1e03bbc8ed71f625d",
+      "sha256": "09953b08257ef2e8c64eba9be4bf31b6d713b39e41b3e3f5b937c6c9eb39ca42",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -1560,7 +1560,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "1e6f84817d22eb99b6442745b96b9ec64616f7419e720d34c15daff5259a7f4e",
+      "sha256": "1ce08524cb519dc8fcb3ed6be174c0aa1706001f4f8b22644d047eb0848e76a8",
       "executable": false
     },
     "src/barrow/price-books.ts": {
@@ -1644,7 +1644,7 @@
       "executable": false
     },
     "src/barrow/quotes.ts": {
-      "sha256": "cf3c3e2635a4db22cc79d5b81406d62455ca1fc061eb59ccf0c960d3606f9c60",
+      "sha256": "ab662268930e788a564051d281e2a91459be4483e6603add31726fa0e9aac92d",
       "executable": false
     },
     "src/barrow/reorders.ts": {
@@ -1724,7 +1724,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "a7643b5189fe853e20e9fc0d23dd88151f454bf080ec97c86994be000bdc474e",
+      "sha256": "525de7f5a27e16798d686b6971669d3a977e048dca3ad87ff870278e5559d0ce",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -1756,11 +1756,11 @@
       "executable": false
     },
     "src/barrow/substitutions.ts": {
-      "sha256": "da7e91172a09c2b7e86b5487e0c639e5d3d5bf7769916b2d5d433da9796f1fea",
+      "sha256": "dde130a45bfa7a9adfb70a5600b4edffa75854f2fbe3dc6b97ba0e0c099701a0",
       "executable": false
     },
     "src/barrow/timeline.ts": {
-      "sha256": "42845a0b38a97ac00918806737f7821e8eb805e8fb4668db1a0e07e3780ba52e",
+      "sha256": "85182741f9968387d18e4f46368b7da4fb10618ad59ef6da447b3b3f923c0150",
       "executable": false
     },
     "src/barrow/ui/account-erasure.tsx": {
@@ -1796,7 +1796,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "56cc1edc393128627be4fa99cf4b4203df5557355ef62e3a19cda13d41ca21ac",
+      "sha256": "4bcb270cf3ff57186c1f0647200499aa6a50dc83fbc4bfc6693feb34e3fe4c07",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -1944,7 +1944,7 @@
       "executable": false
     },
     "src/barrow/ui/finance-report.tsx": {
-      "sha256": "09069968c4f50edaeb325c2b37c7fe9132905d3e33d7dc7481df5e7f2548c51e",
+      "sha256": "41f14295f2b82c11321092da6566ee7686aceee625708acfbfcededa9d072019",
       "executable": false
     },
     "src/barrow/ui/flat.tsx": {
@@ -4252,7 +4252,7 @@
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
-      "sha256": "9f9ed78c0988c5631caa22d2ce1c45158c91c242ef654bd6bbe2ac9d48866e13",
+      "sha256": "48ae52c92eff246b944d0ff018000e8e49947e8f9c0d7687b904f39112f5ae9c",
       "executable": false
     },
     "tests/api/flat-file-feed.test.mjs": {
@@ -4320,7 +4320,7 @@
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
-      "sha256": "ed96b770270eb9eec34bcf52f60220ac6e5c1df3d71efa68dca8d1592b6887c9",
+      "sha256": "f1fdd8b47ceff6ab75e34650752027a3c6003ab3bf7f735a5a15ed00e8e5385d",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {

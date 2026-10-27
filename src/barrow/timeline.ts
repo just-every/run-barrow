@@ -4,6 +4,7 @@ import type { Bindings } from '../auth.server'
 import { pierState, pierOrigin } from './pier'
 import type { Order } from './model'
 const states: Record<string, string> = {
+ 'credit-policy.hold':'Credit hold imposed; contact finance', 'credit-policy.release':'Finance recorded a conditional credit release',
  'order.confirmation':'Order confirmation recorded',
  'substitution.offered':'Substitution offered for buyer review', 'substitution.declined':'Substitution declined by buyer', 'substitution.accepted':'Exact substitution accepted by buyer', 'substitution.replacement':'Replacement linked to accepted substitution',
  'order.prepared': 'Draft prepared', 'order.document-attached': 'PO document attached', 'order.superseded': 'Replaced by a newer draft',
@@ -13,7 +14,7 @@ const states: Record<string, string> = {
 }
 export type TimelineEntry = { state: string; at: string; source: 'Barrow' | 'Pier'; owner: string; detail?: string; confirmation?: number }
 export async function orderTimeline(env: Bindings, order: Order) {
- const events = (await env.DB.prepare(`SELECT e.action,e.created_at,e.actor_id,o.display_name,c.number AS confirmation FROM bw_audit e LEFT JOIN oa_operators o ON o.id=e.actor_id LEFT JOIN bw_confirmations c ON e.action='order.confirmation' AND c.order_id=e.subject_id AND json_extract(c.value_json,'$.orderRevision')=json_extract(e.context_json,'$.revision') WHERE e.subject_id=? OR json_extract(e.context_json,'$.orderId')=? ORDER BY e.created_at,e.rowid`).bind(order.id, order.id).all<{ action: string; created_at: string; actor_id: string; display_name: string | null; confirmation: number | null }>()).results
+ const events = (await env.DB.prepare(`SELECT e.action,e.created_at,e.actor_id,o.display_name,c.number AS confirmation FROM bw_audit e LEFT JOIN oa_operators o ON o.id=e.actor_id LEFT JOIN bw_confirmations c ON e.action='order.confirmation' AND c.order_id=e.subject_id AND json_extract(c.value_json,'$.orderRevision')=json_extract(e.context_json,'$.revision') WHERE e.subject_id=? OR json_extract(e.context_json,'$.orderId')=? OR (e.subject_id=? AND e.action='credit-policy.hold') ORDER BY e.created_at,e.rowid`).bind(order.id, order.id, order.accountId).all<{ action: string; created_at: string; actor_id: string; display_name: string | null; confirmation: number | null }>()).results
  const entries: TimelineEntry[] = events.filter(event => states[event.action]).map(event => ({ state: states[event.action], at: event.created_at, source: 'Barrow', owner: event.actor_id.startsWith('agent:') ? 'An agent' : event.display_name ?? 'A former user', ...(event.confirmation ? {confirmation:event.confirmation,detail:`${order.id}-C${event.confirmation}`} : {}) }))
  let pier: 'read' | 'none' | 'unavailable' = 'none'
  if (order.pierOrderId && order.pierOrigin === await pierOrigin(env)) {
@@ -29,6 +30,6 @@ export async function orderTimeline(env: Bindings, order: Order) {
  }
  entries.sort((a, b) => a.at.localeCompare(b.at))
  // States with no connected source today; SHIP-003, PAY-005 and PAY-007/SHIP-004 bring their records.
- const unrecorded = ['Delivered', 'Held', 'Closed'].map(state => ({ state, detail: 'Not recorded: no connected source reports it.' }))
+ const unrecorded = ['Delivered', 'Closed'].map(state => ({ state, detail: 'Not recorded: no connected source reports it.' }))
  return { orderId: order.id, revision: order.revision, status: order.status, entries, unrecorded, pier }
 }

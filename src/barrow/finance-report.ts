@@ -1,3 +1,4 @@
+import { readAccountCredit } from './credit-policy'
 import { requireStaffReport } from './staff-policy'
 import { creditRecords } from './credit-ledger'
 // RPT-004: frozen invoice dates, verified principal allocations and applied credits.
@@ -61,12 +62,13 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
   const order = entitledOrders.get(refund.orderId)
   return order && order.accountId === refund.accountId && order.currency === refund.currency && recorded(refund.createdAt) && recorded(refund.updatedAt)
  }).map(refund => ({ id: refund.id, creditId: refund.creditId, accountId: refund.accountId, orderId: refund.orderId, paymentId: refund.paymentId, providerPaymentId: refund.providerPaymentId, providerRefundId: refund.providerRefundId ?? '', currency: refund.currency, amountCents: refund.amountCents, status: refund.status, createdAt: refund.createdAt, updatedAt: refund.updatedAt, completedAt: refund.completedAt ?? '', latestFinancialAt: refund.latestFinancialAt, path: `/api/barrow/refunds/${refund.id}`, creditPath: `/api/barrow/credits/${refund.creditId}` }))
- return { asOf, timeZone, checkedAt: at.toISOString(), filter, rows, totals,
-  availableCredit: null, exposure: null, deposits: null, failedPayments: null, disputedBalances: null, refundStatus, ledgerReconciliation: null,
+ const creditAccounts=await Promise.all(accountRows.filter(row=>(!filter.accountId||row.id===filter.accountId)&&(!filter.territory||row.value.territory===filter.territory)&&(!filter.assignedRep||row.value.assignedRep===filter.assignedRep)).map(row=>readAccountCredit(env,actor,row.id)))
+ return { creditAccounts, asOf, timeZone, checkedAt: at.toISOString(), filter, rows, totals,
+  deposits: null, failedPayments: null, disputedBalances: null, refundStatus, ledgerReconciliation: null,
   notes: {
    amounts: `${statementNote} Aging buckets contain invoice principal less explicit card allocations and applied credits, never summed across currencies; original invoice cents remain separate. Amounts include recorded delivery and handling; tax is not calculated. Pending, failed and succeeded refunds do not restore invoice debt.`,
    dates: `Invoices issued on or before ${asOf}, inclusive. Frozen issue and due dates retain their original calendar-day semantics. Default as-of day uses ${timeZone}. Due today is current; overdue days are whole calendar days.`,
-   unrecorded: 'Available credit and exposure (PAY-004), deposits and other payment types (PAY-003), failed payments and disputed balances (PAY-011), and ledger reconciliation (INT-002 and INT-003) are not recorded. PAY-010 refunds show their latest verified status only when that snapshot is on or before the as-of day; later status snapshots are omitted.',
+   unrecorded: 'Credit availability and source-linked exposure are current at checkedAt, separate from historical invoice aging. Deposits and other payment types (PAY-003), failed payments and disputed balances (PAY-011), and ledger reconciliation (INT-002 and INT-003) are not recorded. PAY-010 refunds show their latest verified status only when that snapshot is on or before the as-of day; later status snapshots are omitted.',
    access: 'Owner, admins and entitled finance staff. A rep with the finance report right reads only an account they hold today, or a territory they hold completely, through the page and CSV; another rep’s account is refused, never trimmed. Assigned rep is account metadata, not an access restriction or historical attribution.',
   },
  }
@@ -75,7 +77,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
 export async function financeCsv(env: Bindings, actor: Actor, params: URLSearchParams) {
  const report = await financeReport(env, actor, params)
  const refundColumns = ['id', 'creditId', 'accountId', 'orderId', 'paymentId', 'providerPaymentId', 'providerRefundId', 'currency', 'amountCents', 'status', 'createdAt', 'updatedAt', 'completedAt', 'latestFinancialAt', 'path', 'creditPath'] as const
- return new Response(csvText([[...financeColumns], ...report.rows.map(row => financeColumns.map(column => row[column])), [], ['refunds'], [...refundColumns], ...report.refundStatus.map(row => refundColumns.map(column => row[column])), [], ['asOf', report.asOf, 'timeZone', report.timeZone], ...Object.entries(report.notes).map(([name, note]) => [name, note])]), {
+ return new Response(csvText([[...financeColumns], ...report.rows.map(row => financeColumns.map(column => row[column])), [], ['current credit exposure'], ['accountId','currency','limitCents','exposureCents','availableCents','openOrdersCents','unpaidInvoicesCents','depositsCents','checkedAt','sources'], ...report.creditAccounts.map(row=>[row.accountId,row.currency,row.limitCents,row.exposureCents,row.availableCents,row.openOrdersCents,row.unpaidInvoicesCents,row.depositsCents,report.checkedAt,JSON.stringify(row.sources)]), [], ['refunds'], [...refundColumns], ...report.refundStatus.map(row => refundColumns.map(column => row[column])), [], ['asOf', report.asOf, 'timeZone', report.timeZone], ...Object.entries(report.notes).map(([name, note]) => [name, note])]), {
   headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="barrow-finance-${report.asOf}.csv"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' },
  })
 }
