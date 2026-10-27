@@ -47,3 +47,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-faire-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/faire.test.mjs
+      - name: Seasonal prebook windows and release screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-prebook-screens
+        run: timeout 1200 node --test --test-concurrency=1 --test-name-pattern='seasonal prebook buyer' tests/journeys/confirmations.test.mjs

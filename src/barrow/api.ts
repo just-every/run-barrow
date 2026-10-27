@@ -1,4 +1,6 @@
 import { faireState, faireConfigure, fairePoll, faireMatch } from './faire'
+import { pierOrigin as pierOriginForPrebook } from './pier'
+import { seasons, seasonCommand, prebookRows } from './prebooks'
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
@@ -208,6 +210,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/price-book.csv'&&request.method==='GET')return await priceBookCsv(env,actor,url.searchParams.get('accountId')??'')
   const sheetRoute=/^\/api\/barrow\/line-sheets\/([a-f0-9-]+)(?:\.(pdf|csv))?$/.exec(path)
   if(sheetRoute&&request.method==='GET')return sheetRoute[2]?await sheetDownload(env,actor,sheetRoute[1],sheetRoute[2] as 'pdf'|'csv'):json(await readSheet(env,actor,sheetRoute[1]))
+  if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){if(actor.agent)fail('PERSON_REQUIRED','A person reviews prebook seasons.',403);return json(await seasons(env.DB))}
+  const prebookRoute=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/prebook$/.exec(path)
+  if(prebookRoute&&request.method==='GET'){if(actor.agent)fail('PERSON_REQUIRED','A person reviews prebooks.',403);const order=await readOrder(env.DB,actor,prebookRoute[1]);let state:any;try{state=await pierState(env)}catch{}return json({rows:prebookRows(order,state,await pierOriginForPrebook(env))})}
   if(path==='/api/barrow/state' && request.method==='GET') {
    const directory=await accountPage(env.DB,actor,new URLSearchParams())
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
@@ -340,6 +345,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})
    if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
+   if(['prebook.season-create','prebook.season-close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
@@ -376,7 +382,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['prebook.release','prebook.delay','order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)

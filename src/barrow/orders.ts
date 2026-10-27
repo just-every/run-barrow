@@ -1,3 +1,4 @@
+import { openSeason, preparePrebook, prebookCapacity, prebookOrderCommand, seasonGuard } from './prebooks'
 import { applyPromotions, promotionSettings } from './promotions'
 import { resolveBuyingProfile, orderBuyingProfile, buyingOrderGuards } from './buying-profiles'
 import { deltaEntryGuard, deltaMutationGuard } from './imports/delta-entry'
@@ -48,7 +49,7 @@ async function approvalEffects(env:Bindings,order:Order,action:string) {
 async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1PreparedStatement[]=[],reason?:string,changes?:LineChange[]) {
  const previous=order.revision,next=crypto.randomUUID(); order={...order,revision:next}
  const confirmations = ['order.submitted','order.submitted-release','order.company-approved','order.approved','order.revised'].includes(action) ? await confirmationStatements(env.DB,actor,order,action==='order.approved'?'accepted':action==='order.revised'?'revised':'submitted',changes) : []
- await commit(env.DB,actor,[await deltaMutationGuard(env.DB,order.accountId),...(['order.submitted','order.submitted-release','order.company-approved'].includes(action)?[await deltaEntryGuard(env.DB,order.accountId)]:[]),...guards,...(['order.submitted','order.submitted-release','order.company-approved','order.company-approval-requested','order.approved','order.revised','shipping.selected'].includes(action)?await buyingOrderGuards(env.DB,actor,order):[]),...confirmations,...await approvalEffects(env,order,action),env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
+ await commit(env.DB,actor,[await deltaMutationGuard(env.DB,order.accountId),...(['order.submitted','order.submitted-release','order.company-approved'].includes(action)?[await deltaEntryGuard(env.DB,order.accountId)]:[]),...guards,...(order.prebook&&['order.submitted','order.submitted-release','order.company-approved','order.company-approval-requested'].includes(action)?[seasonGuard(env.DB,order.prebook.seasonId)]:[]),...(['order.submitted','order.submitted-release','order.company-approved','order.company-approval-requested','order.approved','order.revised','shipping.selected'].includes(action)?await buyingOrderGuards(env.DB,actor,order):[]),...confirmations,...await approvalEffects(env,order,action),env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),next,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision:next,source:'order.command',reason:reason??({
   'order.submitted':'Buyer submitted the prepared commercial snapshot for supplier review.',
   'order.document-attached':'Attached the supporting PO document to the draft.',
   'order.submitted-release':'Submitted as an explicitly authorized numbered release of a PO already on order.',
@@ -115,9 +116,11 @@ async function assertCurrentPricing(env:Bindings,actor:Actor,selected:Account,or
   if(current.unitCents!==basis.unitCents || current.lineCents!==(basis.lineCents??line.quantity*line.unitCents) || current.pricing?.reason!==line.pricing?.reason || JSON.stringify(current.pricing?.segments)!==JSON.stringify(line.pricing?.segments) || current.pricing?.discountBps!==line.pricing?.discountBps) fail('PRICE_CHANGED','The effective pricing rule changed. Prepare a new draft for review.')
  }
  if(submission) {
-  const lines=prepareLines(order.lines,offers.items,date)
+  const lines=prepareLines(order.lines,offers.items,date,!order.prebook)
+  if(order.prebook)await openSeason(env.DB,order.prebook.seasonId)
   if(lines.reduce((sum,line)=>sum+line.lineCents!,0)<selected.value.minimumCents)fail('MINIMUM','The order is below this customer’s minimum order value.')
  }
+ return order.prebook?prebookCapacity(env,order,offers.items):undefined
 }
 export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.reorder-preview' || type==='order.reorder') {
@@ -132,6 +135,12 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
  if(['order.submit','order.attach','shipping.select','order.revise'].includes(type))await requireCompanyRight(env.DB,actor,order.accountId,'purchaser',order.shipTo?.id)
+ if(type.startsWith('prebook.')) {
+  const selected=(await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected
+  requireActiveAccount(selected)
+  return prebookOrderCommand(env,actor,type,p,order,selected)
+ }
+ if(order.prebook&&['order.revise','shipping.select','shipping.quote','order.cancel','order.refresh'].includes(type))fail('PREBOOK_LOCKED','Use the prebook window controls; ordinary order edits cannot change this commitment.')
  if(type==='order.company-approve') {
   if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','This order is not awaiting company approval.')
   if(p.revision!==order.revision)fail('CHANGED','Refresh the exact order before company approval.')
@@ -140,9 +149,10 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const decision=order.approvalRoute?await routeDecision(env.DB,actor,order as Order&{approvalRoute:NonNullable<Order['approvalRoute']>}):null
   const approval=await requireCompanyApproval(env.DB,actor,{...order,preparedBy:order.companyPreparedBy??order.preparedBy})
   const selected=(await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected;requireActiveAccount(selected)
+  let pricingGuard:D1PreparedStatement|undefined
   try {
    if(selected.revision!==order.accountRevision)fail('PRICE_CHANGED','The account changed. The purchaser must prepare a new draft.')
-   await assertCurrentPricing(env,actor,selected,order,true)
+   pricingGuard=await assertCurrentPricing(env,actor,selected,order,true)
    await assertSameAddress(env.DB,order)
   } catch(error) {
    // A material price or address change voids every approval so far: the request returns to a draft for a fresh review.
@@ -152,9 +162,9 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const stale=staleStock(order,await freshnessLimit(env.DB),await now());if(stale)fail('STOCK_STALE',stale)
   const at=(await now()).toISOString(),entry=decision?decidedEntry(decision,actor,at):null,route=order.approvalRoute&&entry?{...order.approvalRoute,decided:[...order.approvalRoute.decided,entry]}:undefined
   const how=decision?`${decision.via==='delegate'?` as delegate for ${decision.delegatedFrom}`:decision.via==='escalation'?' by escalation':''}`:''
-  if(decision&&!decision.last)return save(env,actor,{...order,approvalRoute:{...route!,stepRequestedAt:at}},'order.company-step-approved',[approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery)],`Step ${decision.step} (${decision.label}) approved${how}: ${text(p.reason,'Company approval reason',1000)}`)
+  if(decision&&!decision.last)return save(env,actor,{...order,approvalRoute:{...route!,stepRequestedAt:at}},'order.company-step-approved',[...(pricingGuard?[pricingGuard]:[]),approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery)],`Step ${decision.step} (${decision.label}) approved${how}: ${text(p.reason,'Company approval reason',1000)}`)
   const release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtCompanyRelease(env,actor,selected,order,p.termsAcceptance,at)
-  return save(env,actor,{...order,status:'submitted',...(route?{approvalRoute:route}:{}),...(release.poRelease?{poRelease:release.poRelease}:{}),companyApprovedBy:actor.id,companyApprovedAt:at,...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})},'order.company-approved',[release.guard,approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery),terms.guard,...terms.statements],`${decision?`Final step ${decision.step} (${decision.label}) approved${how}: `:''}${text(p.reason,'Company approval reason',1000)}`)
+  return save(env,actor,{...order,status:'submitted',...(route?{approvalRoute:route}:{}),...(release.poRelease?{poRelease:release.poRelease}:{}),companyApprovedBy:actor.id,companyApprovedAt:at,...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})},'order.company-approved',[...(pricingGuard?[pricingGuard]:[]),release.guard,approval.guard,approval.preparerGuard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,order.delivery),terms.guard,...terms.statements],`${decision?`Final step ${decision.step} (${decision.label}) approved${how}: `:''}${text(p.reason,'Company approval reason',1000)}`)
  }
  if(type==='order.withdraw') {
   if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','Only a request waiting for company approval can be withdrawn.')
@@ -178,7 +188,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const selected=(await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected
   requireActiveAccount(selected)
   if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The price list or terms changed. Prepare a new draft for review.')
-  await assertCurrentPricing(env,actor,selected,order,true)
+  const pricingGuard=await assertCurrentPricing(env,actor,selected,order,true)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
   if(order.delivery && (['owner','admin'].includes(actor.role)||actor.staff))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
@@ -187,7 +197,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const delivery=await acceptDelivery(env,actor,{currency:order.currency??'AUD',account:selected,lines:order.lines,shipTo:order.shipTo,quotes:order.freightQuotes},order.delivery,p.deliveryAcknowledged)
   const at=(await now()).toISOString(),release=await purchaseRelease(env.DB,actor,order,p.release,at),terms=await termsAtSubmission(env,actor,selected,order.id,p.termsAcceptance,at)
   const submission=await companySubmission(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery),status:'submitted',submittedBy:actor.id,...(release.poRelease?{poRelease:release.poRelease}:{}),...(terms.acceptance?{termsAcceptance:terms.acceptance}:{})})
-  return save(env,actor,submission.order,submission.waiting?'order.company-approval-requested':release.poRelease?'order.submitted-release':'order.submitted',[submission.guard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard,terms.guard,...terms.statements],terms.acceptance?`Buyer submitted the prepared commercial snapshot for supplier review, with sales terms "${terms.acceptance.series}" version ${terms.acceptance.version} accepted (${terms.acceptance.how==='buyer'?'buyer acceptance in the portal':'on-device signature captured by supplier staff'}).`:undefined)
+  return save(env,actor,submission.order,submission.waiting?'order.company-approval-requested':release.poRelease?'order.submitted-release':'order.submitted',[...(pricingGuard?[pricingGuard]:[]),submission.guard,activeAccountGuard(env.DB,selected),shippingGuard(env.DB,delivery),release.guard,terms.guard,...terms.statements],terms.acceptance?`Buyer submitted the prepared commercial snapshot for supplier review, with sales terms "${terms.acceptance.series}" version ${terms.acceptance.version} accepted (${terms.acceptance.how==='buyer'?'buyer acceptance in the portal':'on-device signature captured by supplier staff'}).`:undefined)
  }
  if(type==='order.revise') {
   const revision=await revisedOrder(env,actor,order,p)
@@ -207,6 +217,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  }
  if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
  if(type==='order.approve') {
+  if(order.prebook&&order.status==='approved')return order
   await linkedReplacementGuard(env,actor,order)
   if(order.fromSubstitution) {
    const original=await readOrder(env.DB,actor,order.fromSubstitution.orderId),offer=original.substitutions?.find(offer=>offer.number===order.fromSubstitution!.number)
@@ -217,10 +228,11 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    const selected=(await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected
    requireActiveAccount(selected)
    if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The account changed. Prepare and submit a new draft before approval.')
-   await assertCurrentPricing(env,actor,selected,order)
+   const pricingGuard=await assertCurrentPricing(env,actor,selected,order)
    const approvedAt=(await now()).toISOString(), commissions=await commissionSnapshot(env.DB,selected,order,approvedAt)
-   order=await save(env,actor,{...order,status:'reserving',approvedBy:actor.id,approvedAt},'order.approved',[activeAccountGuard(env.DB,selected),commissions.guard,env.DB.prepare('INSERT INTO bw_order_commissions(order_id,value_json) VALUES(?,?)').bind(order.id,JSON.stringify(commissions.snapshot))])
+   order=await save(env,actor,{...order,status:order.prebook?'approved':'reserving',approvedBy:actor.id,approvedAt},'order.approved',[...(pricingGuard?[pricingGuard]:[]),activeAccountGuard(env.DB,selected),commissions.guard,env.DB.prepare('INSERT INTO bw_order_commissions(order_id,value_json) VALUES(?,?)').bind(order.id,JSON.stringify(commissions.snapshot))],order.prebook?'Supplier accepted future prebook commitments; no stock reservation or card collection.':undefined)
   }
+  if(order.prebook&&order.status==='approved')return order
   if(order.status!=='reserving') fail('APPROVAL','The customer must review and submit this draft first.')
   // Current approver authority must still hold before an external stock effect.
   const approver=await env.DB.prepare("SELECT id,email,role,version FROM oa_operators WHERE id=? AND status='active'").bind(order.approvedBy!).first<any>()
@@ -263,13 +275,14 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   const base=context?.selected ?? await account(env.DB,actor,text(p.accountId,'Account'))
   const profile=await resolveBuyingProfile(env.DB,actor,base,p.profileId??base.buyingProfile?.id),selected=profile.selected
   requireActiveAccount(selected)
+  if(p.prebookSeasonId&&p.lineSheetId)fail('PREBOOK_SOURCE','Prepare prebooks from their published season; line-sheet ordering is separate.',400)
   const sheet=p.lineSheetId===undefined?undefined:await (await import('./line-sheets')).sheetForOrder(env,actor,p,selected)
   const entryGuard=await deltaEntryGuard(env.DB,selected.id)
   const member=await requireCompanyRight(env.DB,actor,selected.id,'purchaser')
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
   if(p.lines.some((line:any)=>line.profileId!==undefined&&line.profileId!==(selected.buyingProfile?.id??'')||line.brandId!==undefined&&line.brandId!==selected.buyingProfile?.brandId))fail('SELLER_MIX','Every cart line must belong to its selected buying profile.')
   const available=context?.available ?? await catalogue(env,selected)
-  const today=supplierDate(await now()),unpromoted=await withVariantAttributes(env.DB,prepareLines(p.lines,available.items,today).map((line,index)=>({...line,...buyerSku(p.lines[index]),...lineWindow(p.lines[index],today)}))),details=purchaseDetails(p,today)
+  const today=supplierDate(await now()),unpromoted=await withVariantAttributes(env.DB,prepareLines(p.lines,available.items,today,!p.prebookSeasonId).map((line,index)=>({...line,...buyerSku(p.lines[index]),...lineWindow(p.lines[index],today)}))),details=purchaseDetails(p,today)
   const lines=applyPromotions(unpromoted,(await promotionSettings(env.DB)).offers,selected.id,today)
   const totalCents=lines.reduce((sum,line)=>sum+line.lineCents!,0)
   if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
@@ -287,9 +300,10 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   await requireCompanyRight(env.DB,actor,selected.id,'purchaser',shipTo?.id)
   if(member&&member.locations!=='all'&&!shipTo)fail('FORBIDDEN','Choose one of your permitted ship-to locations.',403)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
-  const order:Order={...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
+  const prebook=p.prebookSeasonId?await preparePrebook(env,id,text(p.prebookSeasonId,'Season'),lines,totalCents,available.items):undefined
+  const order:Order={...(prebook?{prebook,season:prebook.seasonName}:{}),...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`}),env.DB.prepare('UPDATE bw_approval_notices SET closed_at=?,closed_reason=? WHERE order_id=? AND closed_at IS NULL').bind(new Date().toISOString(),`Superseded by revised request ${id}; it needs fresh approval at every step.`,replaced.id)]:[]
-  await commit(env.DB,actor,[profile.guard,entryGuard,companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),...(sheet?[env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_line_sheets WHERE id=? AND revision=? AND json_extract(value_json,'$.state')='published') THEN 1 ELSE 0 END").bind(sheet.id,sheet.revision)]:[]),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])
+  await commit(env.DB,actor,[...(prebook?[seasonGuard(env.DB,prebook.seasonId)]:[]),profile.guard,entryGuard,companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),...(sheet?[env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_line_sheets WHERE id=? AND revision=? AND json_extract(value_json,'$.state')='published') THEN 1 ELSE 0 END").bind(sheet.id,sheet.revision)]:[]),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])
   return order
 }

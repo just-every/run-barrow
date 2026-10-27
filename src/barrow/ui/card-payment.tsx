@@ -21,7 +21,7 @@ export type CardPayment = {
   updatedAt: string
   exception?: { reason: string }
 }
-type PaymentList = { payments: CardPayment[]; configured: boolean }
+type PaymentList = { requirement?:{kind:'prebook-deposit';orderId:string;amountCents:number;currency:'USD'|'AUD'|'CAD';state:'required'}; payments: CardPayment[]; configured: boolean }
 const stateNames: Record<CardPayment['state'], string> = {
   prepared: 'Card authorization not yet requested',
   requires_action: 'Card authentication required',
@@ -88,6 +88,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string;
     finally { setBusy(false) }
   }
 
+  if(data?.requirement)return <section className="br-card br-stack" aria-label="Card payment"><h4>Prebook deposit requirement</h4><p>{money(data.requirement.amountCents,data.requirement.currency)} required for {data.requirement.orderId}. This is a recorded requirement, with no card authorization, capture or allocation recorded by the prebook.</p><p>Payment collection and allocations remain separate from this commitment.</p></section>
   return <section className="br-card br-stack" aria-label="Card payment" aria-busy={busy}>
     <h4>Card payment</h4>
     {error && <Notice error>{error}</Notice>}
