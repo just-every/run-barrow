@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "93a8222625924c446d3a33be24db5f459191d977d517c5c05466259d992b4aea",
+      "sha256": "2b2bf9061e2da08723a7d206aa52e500ef75b893da54d5795cbe7bf773888644",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8f1b215f04a5cfbbae630a6065cb9141bf89635bcf41acc5c6d9b5c64a8413d4",
+      "sha256": "4d38d9bacb0fb98236c00f622b45da4b19eebe1e3b0c220e992b9b41d4ef8442",
       "executable": false
     },
     "DEMO.md": {
@@ -252,7 +252,7 @@
       "executable": false
     },
     "docs/SELL-THROUGH.md": {
-      "sha256": "d17897a79ab00f26d7a54c7725950c9a96ccff9d49f53ba1a2523cf329f5372a",
+      "sha256": "1f1a57b4e7774e73a6330f42db2360b562b23ab03edb22c6220453adbcee48c3",
       "executable": false
     },
     "docs/SELLING-UNITS.md": {
@@ -1100,7 +1100,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "abcaa3fdf132c785a737d3efa200b7fda24c7ae6dd86f336f2aea0c4dee60b0d",
+      "sha256": "528c52dd31c09ab9d99dfd9909169eac05ac3b98d14691e5e4d6f768e82c26a3",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1568,7 +1568,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "278804948ab86fbf20096c9ea97f0c2f0a7a38df14dbaa9fecdf1336c52bac5d",
+      "sha256": "259a826af5a1b28765b03f0aab3c4077b78b8064611f8a142385c946e7294f35",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -1740,7 +1740,7 @@
       "executable": false
     },
     "src/barrow/sell-through.ts": {
-      "sha256": "0f40ed7b2c9b207d2f5d92d750605d500604dfa53d64befe3573b23be80592a4",
+      "sha256": "7c644cf1d908fc257ee8f2cdda0a9a34bf0e3b0e0416c6096d489fb12b49eca8",
       "executable": false
     },
     "src/barrow/seller-identity.ts": {
@@ -1756,7 +1756,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "a7643b5189fe853e20e9fc0d23dd88151f454bf080ec97c86994be000bdc474e",
+      "sha256": "f01b07184ab30f891377f0c2fbb6bc7875e47a1f0358457c8309d9fbd743ed88",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -2040,7 +2040,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "ad32d219ac518e8e79494515089faaa6da8c34464c93c7375c8c199a6b9988d7",
+      "sha256": "2b94caa0a64cb868d69c97587eabfc720b7d1cb66ef78a4d69536631733b1e60",
       "executable": false
     },
     "src/barrow/ui/pricing-settings.tsx": {
@@ -4388,7 +4388,7 @@
       "executable": false
     },
     "tests/api/reorder.test.mjs": {
-      "sha256": "5281847e7dd417f350b65cd1d21ceafca28be7a9f6ce5b02bd5204e3fe8edf52",
+      "sha256": "f9de235ddbbe656baaf37a120d1a0a015d42b0ba018171e3f83ec85b496cf436",
       "executable": false
     },
     "tests/api/rep-ordering.test.mjs": {
@@ -4576,7 +4576,7 @@
       "executable": false
     },
     "tests/journeys/reorder.test.mjs": {
-      "sha256": "5809a1a70cbd1e023d5a2cdbfb1df76774afda1059a568c7232a537d7e58da3c",
+      "sha256": "80d979c86541c1c87748596be4d8b395307854f3c90449a9e6ba0150ea358544",
       "executable": false
     },
     "tests/journeys/rep-ordering.test.mjs": {

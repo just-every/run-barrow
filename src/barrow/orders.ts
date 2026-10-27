@@ -1,5 +1,5 @@
 import { digest } from './access'
-import { sellThroughReview, sellThroughBuyer, sellThroughOutcomes, type SellThroughAcceptance } from './sell-through'
+import { sellThroughReview, sellThroughDate, sellThroughBuyer, sellThroughOutcomes, type SellThroughAcceptance } from './sell-through'
 import { applyPromotions, promotionSettings } from './promotions'
 import { resolveBuyingProfile, orderBuyingProfile, buyingOrderGuards } from './buying-profiles'
 import { deltaEntryGuard, deltaMutationGuard } from './imports/delta-entry'
@@ -155,6 +155,18 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='order.prepare') return prepareOrder(env,actor,p)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
+ if(type==='order.sellthrough-contact') {
+  requireSupplier(actor)
+  if(actor.staff&&!['rep','sales-manager'].includes(actor.staff.role))fail('FORBIDDEN','Only sales staff may review contact cadence.',403)
+  if(!order.sellThrough)fail('NOT_FOUND','This order has no accepted sell-through plan.',404)
+  if(['cancelled','superseded','releasing'].includes(order.status))fail('SELLTHROUGH_CLOSED','Review contact only for an active plan.')
+  if(p.revision!==order.revision)fail('CHANGED','Refresh the order before reviewing its contact date.')
+  if(p.acknowledged!==true)fail('SELLTHROUGH_REVIEW','Explicitly review the next contact date; no outreach is sent.')
+  const nextContactDate=sellThroughDate(p.nextContactDate,'Next contact date'),at=await now()
+  if(nextContactDate<supplierDate(at))fail('INPUT','Choose today or a later contact date.',400)
+  return save(env,actor,{...order,sellThrough:{...order.sellThrough,contact:{nextContactDate,reviewedBy:actor.id,reviewedAt:at.toISOString()}}},'sellthrough.contact-reviewed',[],`Rep reviewed next contact on ${nextContactDate}; zero messages sent and no purchase executed.`)
+ }
+
  if(['order.submit','order.attach','shipping.select','order.revise'].includes(type))await requireCompanyRight(env.DB,actor,order.accountId,'purchaser',order.shipTo?.id)
  if(type==='order.company-approve') {
   if(order.status!=='awaiting-company-approval')fail('COMPANY_APPROVAL','This order is not awaiting company approval.')

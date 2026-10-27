@@ -14,7 +14,7 @@ import { creditRecords } from './credit-ledger'
 
 export type SellThroughAcceptance = {
  key: string; requestHash: string; fingerprint: string; acceptedBy: string; acceptedAt: string
- requestedDate: string; totalCents: number; review: SellThroughReview; guards: D1PreparedStatement[]
+ requestedDate: string; totalCents: number; contact?: {nextContactDate: string; reviewedBy: string; reviewedAt: string}; review: SellThroughReview; guards: D1PreparedStatement[]
 }
 export type SellThroughReview = {
  accountId: string; accountRevision: string; buyingProfile?: BuyingProfileSnapshot; feedSha256: string; observedOn: string; requestedDate: string
@@ -24,7 +24,7 @@ export type SellThroughReview = {
  blockers: string[]; fingerprint: string
  provenance: {runId: string; model: string; tools: string[]; paidCostCents: number; contacts: number; authority: string}
 }
-function date(value: unknown, name: string) {
+export function sellThroughDate(value: unknown, name: string) {
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value+'T00:00:00Z'))||new Date(value+'T00:00:00Z').toISOString().slice(0,10)!==value)fail('INPUT',`${name} must be a real YYYY-MM-DD date.`,400)
  return value
 }
@@ -41,7 +41,7 @@ export async function sellThroughReview(env: Bindings, actor: Actor, p: any) {
  const {selected:base,member}=await sellThroughBuyer(env,actor,text(p.accountId,'Account'))
  const profile=await resolveBuyingProfile(env.DB,actor,base,p.profileId),selected=profile.selected
  if(p.authorized!==true)fail('SELLTHROUGH_CONSENT','Explicitly authorize this account’s POS export for this calculation.',403)
- const today=supplierDate(await now()),observedOn=date(p.observedOn,'Stock observation date'),requestedDate=date(p.requestedDate,'Requested replenishment date')
+ const today=supplierDate(await now()),observedOn=sellThroughDate(p.observedOn,'Stock observation date'),requestedDate=sellThroughDate(p.requestedDate,'Requested replenishment date')
  const age=(Date.parse(today)-Date.parse(observedOn))/86400000
  if(age<0||age>7)fail('SELLTHROUGH_STALE','Use a stock observation from the last seven calendar days.')
  if(requestedDate<today)fail('INPUT','Choose today or a later replenishment date.',400)

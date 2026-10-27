@@ -11,6 +11,7 @@ import { Empty } from './primitives'
 import { orderStyles } from './styles'
 import { OrderShipping } from './order-shipping'
 import { Reorder } from './reorder'
+import { SellThroughPlanner, SellThroughContact } from './sell-through'
 import { CancelOrder } from './cancel-order'
 import { OrderTimeline } from './order-timeline'
 import { OrderSearch } from './order-search'
@@ -65,6 +66,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
     <div className="br-heading-row"><h2>{supplier ? 'All orders' : 'Your orders'}</h2>
       <div className="br-segments" role="group" aria-label="Show orders">{filters.map(([name, status]) => <button key={name} type="button" aria-pressed={filter === status} disabled={loading} onClick={() => {setPage(1);setFilter(status)}}>{name} <span>{count(status)}</span></button>)}</div>
     </div>
+    {!supplier && canPurchase && <SellThroughPlanner accounts={accounts} busy={busy} run={run} />}
     <OrderSearch />
     <div className="br-card br-stack" role="search" aria-label="Order history search">
       <h3>Find a previous order</h3>
@@ -89,6 +91,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
             <p>Buyer accepted this calculation for {day(order.sellThrough.requestedDate)}. It prepared one draft; submission and supplier approval remain separate.</p>
             <p>Observed {day(order.sellThrough.review.observedOn)} · {order.sellThrough.review.horizonDays} demand days · buyer seasonality {order.sellThrough.review.seasonalityBps} basis points · merchandise budget {money(order.sellThrough.review.budgetCents,order.currency??'USD')}.</p>
             {order.sellThrough.review.lines.map(line=><div className="br-card" key={line.sku}><p><strong>{line.sku}</strong> · chosen {line.quantity} {line.unit} · suggested {line.suggested??'Unknown'}</p><p>Sold {line.sold??'Unknown'} in {line.observedDays} days · on hand {line.onHand} {line.unit} · open commitments {line.openBaseQuantity} base units.</p><p>{line.explanation}</p></div>)}
+            <SellThroughContact key={order.revision} order={order} canReview={supplier && canPurchase} busy={busy} run={run} />
             <p>Carrier delivery is not recorded. Dispatch is not delivery. No automatic contact or purchase is authorized by this plan.</p>
           </section></details>}
           <table className="br-order-lines"><caption className="br-sr-only">Order {orderNumber(order.id)} lines</caption><thead><tr><th scope="col">Style</th><th scope="col">Sizes</th><th scope="col">Units</th><th scope="col">Unit price</th><th scope="col">Total</th></tr></thead>

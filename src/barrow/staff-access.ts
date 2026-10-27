@@ -65,6 +65,7 @@ const commandRoles:Record<string,string[]>={
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
  'price-book.import':['sales-manager'],'sheet.publish':['sales-manager'],'sheet.revoke':['sales-manager'],
  'account.save':['sales-manager'], 'terms.assign':['sales-manager'], 'terms.publish':['sales-manager'], 'commission.settings':['sales-manager'],
+ 'order.sellthrough-contact':selling,
  'order.prepare':selling,'order.reorder':selling,'order.reorder-preview':selling,'order.submit':selling,'order.attach':selling,
  'sheet.view':selling,'sheet.preview':selling,
  'cart.preview':selling,'cart.form':selling,'list.save':selling,'list.duplicate':selling,'list.delete':selling,

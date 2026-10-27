@@ -1,10 +1,12 @@
 # Buyer-authorized sell-through planning
 
-The current public HTTP commands calculate a replenishment draft. Orders shows
-the accepted calculation in a disclosure. Interactive planning controls, rep
-contact-cadence review and verified carrier-delivery outcomes remain unfinished under
-AGT-004. No external model is called and no message, payment or stock reservation
-occurs when previewing or accepting a plan.
+In Orders, open **Plan from sell-through** to authorize a normalized POS export,
+choose a stock observation date, replenishment date, horizon, seasonality and
+merchandise budget, and compare demand with stock and open prebooks. Edit the
+chosen quantities and recalculate before accepting the exact basket for one draft.
+An outage needs an explicit manual-quantity acknowledgment. The accepted plan
+remains visible on the order. No external model is called and no message, payment
+or stock reservation occurs when previewing or accepting a plan.
 
 Use a current company purchaser's session at `POST /api/barrow/commands`.
 Supplier identity and agent credentials cannot authorize a buyer's POS export.
@@ -82,3 +84,21 @@ submitted commercial snapshot, including the accepted plan, remains unchanged
 within its seven-year financial floor. Restoring an older archive reapplies the
 independent erasure journal before serving the account. Verified delivery needs
 SHIP-003 and an owner-provisioned EasyPost account; no delivery receipt is claimed.
+
+## Rep contact review
+
+On an accepted plan, the owner, an admin or currently scoped sales staff may
+choose the next contact date and explicitly review it. Use
+`order.sellthrough-contact` with `orderId`, the current order `revision`,
+`nextContactDate` and `acknowledged: true`. Dates are Eastern calendar dates,
+today or later. This records the reviewer, time and an attributed audit event.
+It changes neither the accepted basket nor the order's purchase state and sends
+no message. Changing the date requires a fresh review. Buyers, agents, staff
+outside sales and people outside the account scope are refused. Cancelled,
+superseded and releasing orders cannot receive a new contact review. Archives
+restore the recorded review without activating outreach.
+
+Verified delivered outcomes remain unproved pending SHIP-003 and the
+owner-provisioned EasyPost account named in the campaign dependency. The
+normalized export door implements the other-POS-export option; native Shopify
+and Lightspeed intake remain unavailable. No delivery is inferred from dispatch.

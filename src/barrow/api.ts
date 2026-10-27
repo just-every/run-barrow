@@ -376,7 +376,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.sellthrough-preview','order.sellthrough','order.sellthrough-outcomes','order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.sellthrough-contact','order.sellthrough-preview','order.sellthrough','order.sellthrough-outcomes','order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
