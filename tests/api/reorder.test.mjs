@@ -138,6 +138,31 @@ test('buyer-authorized sell-through explains demand, outage uncertainty and open
  await h.command('profile.grant',{profileId:profile.id,userId:buyerId,approved:true,reason:'Owner approved this buyer for this exact seller and price book.'});
  const profileReview=await h.command('order.sellthrough-preview',profileInput,{as:buyer});assert.equal(profileReview.lines[0].quantity,3);assert.equal(profileReview.totalCents,19503);assert.equal(profileReview.buyingProfile.seller.legalName,'Synthetic Seller LLC');
  const profileDraft=await h.command('order.sellthrough',{...profileInput,fingerprint:profileReview.fingerprint,key:'synthetic-barrow-513',acknowledged:true},{as:buyer});assert.equal(profileDraft.buyingProfile.id,profile.id);assert.equal(profileDraft.totalCents,19503);
+ // Sell-through may use only the same location-scoped orders the purchaser can read.
+ const places=[];
+ for(const name of ['Permitted store','Restricted store'])places.push(await h.command('location.save',{accountId:account.id,kind:'ship-to',value:{name,line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'}},{as:buyer}));
+ const commitments=[];
+ for(const [index,quantity] of [4,11].entries()) {
+  const order=await h.command('order.prepare',{accountId:account.id,shipToId:places[index].id,requestedDate:future,lines:[{sku:'TEA-1',quantity}]},{as:buyer});
+  commitments.push(await h.command('order.submit',{orderId:order.id},{as:buyer}));
+ }
+ const currentMember=(await h.api('/api/barrow/company/members?accountId='+account.id)).members.find(person=>person.userId===buyerId);
+ await h.command('company.update',{accountId:account.id,memberId:currentMember.id,revision:currentMember.revision,policy:{rights:currentMember.rights,locations:[places[0].id],perOrderLimitCents:null,approvalLimitCents:null},reason:'Limit the purchaser to the permitted store.'});
+ await h.api('/api/barrow/orders/'+commitments[1].id,undefined,{as:buyer,status:403});
+ await h.command('order.sellthrough-outcomes',{orderId:draft.id},{as:buyer,status:403});
+ assert.deepEqual((await h.api('/api/barrow/orders/history',undefined,{as:buyer})).orders.map(order=>order.id),[commitments[0].id]);
+ const scopedInput={...p,budgetCents:300000};
+ const scoped=await preview(scopedInput);
+ assert.deepEqual(scoped.sourceOrders,[{id:commitments[0].id,revision:commitments[0].revision}]);
+ assert.deepEqual(scoped.lines.map(line=>[line.sku,line.openBaseQuantity,line.suggested]),[['OAT-1','0',18],['TEA-1','4',14],['JAM-1','0',null]]);
+ assert.equal(scoped.cadenceDays,null);
+ // A hidden commitment changing cannot invalidate or alter the visible calculation.
+ const hidden=await h.command('order.prepare',{accountId:account.id,shipToId:places[1].id,requestedDate:future,lines:[{sku:'TEA-1',quantity:12}]});
+ await h.command('order.submit',{orderId:hidden.id});
+ assert.equal((await preview(scopedInput)).fingerprint,scoped.fingerprint);
+ const scopedDraft=await h.command('order.sellthrough',{...scopedInput,shipToId:places[0].id,fingerprint:scoped.fingerprint,acknowledged:true,key:'synthetic-barrow-514'},{as:buyer});
+ assert.deepEqual(scopedDraft.sellThrough.review.sourceOrders,scoped.sourceOrders);
+ assert.equal((await h.api('/api/barrow/orders/'+scopedDraft.id,undefined,{as:buyer})).id,scopedDraft.id);
  const roster=(await h.api('/api/barrow/company/members?accountId='+account.id)).members,member=roster.find(person=>person.userId===buyerId);
  await h.command('company.update',{accountId:account.id,memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Company purchaser authority was withdrawn after the exact preview.'});
  await h.command('order.sellthrough-preview',p,{as:buyer,status:403});

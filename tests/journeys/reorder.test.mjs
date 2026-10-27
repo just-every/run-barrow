@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
 import {reorderFixture} from '../api/reorder-fixture.mjs';
-import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
+import {captureWidths,signedContext} from './browser-helpers.mjs';
 
 test('a buyer inspects the accepted sell-through quantities, prebook commitments and outage uncertainty on the native order at desktop and phone',async t=>{
  const {h,account,buyer}=await reorderFixture(t,{built:true,https:true});
@@ -25,5 +25,5 @@ test('a buyer inspects the accepted sell-through quantities, prebook commitments
  await expect(plan).toContainText('Sell-through unknown: export outage');
  // The added disclosure has no icon-only controls; other order actions retain their labels.
  assert.equal(await plan.locator('button').count(),0);
- await captureRegionWidths(page,plan,'accepted-sellthrough-plan');
+ await captureWidths(page,'accepted-sellthrough-plan');
 });
