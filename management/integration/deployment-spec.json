@@ -388,7 +388,8 @@
     "MAIL_API_KEY",
     "MAIL_WEBHOOK_SECRET",
     "PIER_SESSION",
-    "BARROW_SFTP_SECRETS"
+    "BARROW_SFTP_SECRETS",
+    "FAIRE_CONNECTIONS"
   ],
   "schedules": [
     "0 * * * *"
