@@ -12,7 +12,9 @@ export async function faireFixture(t,{built=false}={}) {
   if(request.method!=='GET'||url.pathname!=='/external-api/v2/orders'){response.writeHead(404).end();return}
   if(url.searchParams.get('cursor')==='synthetic-barrow-cursor-2'&&state.failSecond){response.writeHead(503).end('synthetic-barrow-unavailable');return}
   if(request.headers['x-faire-oauth-access-token']==='synthetic-barrow-4'){response.setHeader('content-type',['application','json'].join('/'));response.end(JSON.stringify({orders:[{...state.orders[0],id:'synthetic-barrow-order-3'}],cursor:null}));return}
-  response.setHeader('content-type',['application','json'].join('/'));response.end(JSON.stringify(url.searchParams.has('cursor')?{orders:[state.orders[1]],cursor:null}:{orders:[state.orders[0]],cursor:'synthetic-barrow-cursor-2'}));
+  response.setHeader('content-type',['application','json'].join('/'));const body=JSON.stringify(url.searchParams.has('cursor')?{orders:[state.orders[1]],cursor:null}:{orders:[state.orders[0]],cursor:'synthetic-barrow-cursor-2'});
+  if(state.hold){const held=state.hold;state.hold=null;held(()=>response.end(body));return}
+  response.end(body);
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));
  const origin='http://127.0.0.1:'+server.address().port;
@@ -23,7 +25,8 @@ export async function faireFixture(t,{built=false}={}) {
  const poll=(payload={},opts={})=>h.api('/api/barrow/faire/poll',{brand:'brand1',...payload},opts);
  const read=()=>h.api('/api/barrow/faire');
  const match=(row,skuMap,opts={},extras={})=>h.api('/api/barrow/faire/match',{brand:row.brand,id:row.source_id,revision:row.revision,accountId:'cedar',skuMap,reason:'Owner reviewed the exact retailer and SKU mapping.',...extras},opts);
- return {h,state,bindings,origin,configure,poll,read,match};
+ const holdNextPage=()=>{let release,received;const ready=new Promise(resolve=>{received=resolve});state.hold=send=>{release=send;received()};return {ready,release:()=>release()}};
+ return {h,state,bindings,origin,configure,poll,read,match,holdNextPage};
 }
 export async function ingestFixture(f) {
  await f.configure();let result=await f.poll();await f.match(result.orders[0],{'OAT-1':'OAT-1'});f.state.failSecond=false;result=await f.poll();await f.match(result.orders.find(row=>row.source_id==='synthetic-barrow-order-2'),{'UNKNOWN-1':'OAT-1'});assert.equal((await f.read()).orders.length,2);

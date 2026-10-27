@@ -11,7 +11,9 @@ function connection(env:Bindings,brand:string) {
  try {
   const connections=JSON.parse(env.FAIRE_CONNECTIONS??'{}'),config=connections[brand]
   if(Object.keys(connections).length>1&&!config?.appCredentials)throw Error()
-  if(Object.entries(connections).some(([key,value])=>key!==brand&&JSON.stringify(value)===JSON.stringify(config)))throw Error()
+  // Compare the effective credential tuple, independent of property insertion order.
+  const identity=(value:any)=>JSON.stringify([new URL(value.origin??'https://www.faire.com').origin,value.accessToken,value.appCredentials??null])
+  if(Object.entries(connections).some(([key,value])=>key!==brand&&identity(value)===identity(config)))throw Error()
   const origin=new URL(config.origin??'https://www.faire.com')
   if(origin.pathname!=='/'||origin.search||origin.hash||origin.username||origin.password||!['https://www.faire.com','https://www.staging.faire.dev'].includes(origin.origin)&&!(env.AUTH_LOCAL==='true'&&origin.protocol==='http:'&&origin.hostname==='127.0.0.1'))throw Error()
   if(typeof config.accessToken!=='string'||!config.accessToken||/[\r\n]/.test(config.accessToken))throw Error()
@@ -47,7 +49,8 @@ export async function faireConfigure(env:Bindings,actor:Actor,input:any) {
  const config=connection(env,brand),revision=await digest(JSON.stringify([config.origin,brand]))
  const prior=await env.DB.prepare('SELECT * FROM bw_faire_sync WHERE brand=?').bind(brand).first<any>()
  if(prior&&prior.revision!==revision)fail('FAIRE_DESTINATION','The brand is already bound to a different Faire destination.')
- await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_faire_sync(brand,revision,enabled) VALUES(?,?,?) ON CONFLICT(brand) DO UPDATE SET enabled=excluded.enabled').bind(brand,revision,input.enabled?1:0),audit(env.DB,actor,brand,'faire.configured',{revision,source:'faire.configure',reason})])
+ const decisionRevision=await digest(JSON.stringify([revision,input.enabled,crypto.randomUUID()]))
+ await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_faire_sync(brand,revision,enabled) VALUES(?,?,?) ON CONFLICT(brand) DO UPDATE SET enabled=excluded.enabled,generation=bw_faire_sync.generation+1').bind(brand,revision,input.enabled?1:0),audit(env.DB,actor,brand,'faire.configured',{revision:decisionRevision,source:input.enabled?'faire.configure.enable':'faire.configure.disable',reason})])
  return faireState(env,actor)
 }
 export async function fairePoll(env:Bindings,actor:Actor,input:any) {
@@ -71,7 +74,8 @@ export async function fairePoll(env:Bindings,actor:Actor,input:any) {
  if(next===cursor&&next!==null)fail('FAIRE_SOURCE','Faire repeated its cursor; checkpoint retained.',502)
  const orders=page.orders.map(sourceOrder) as SourceOrder[],statements:D1PreparedStatement[]=[]
  if(new Set(orders.map(row=>row.id)).size!==orders.length)fail('FAIRE_SOURCE','Faire returned duplicate order IDs within a page.',502)
- statements.push(env.DB.prepare('UPDATE bw_faire_sync SET cursor=?,complete=?,observed_at=? WHERE brand=? AND enabled=1 AND revision=? AND cursor IS ? AND complete=?').bind(next,next?0:1,new Date().toISOString(),brand,sync.revision,sync.cursor,sync.complete),changed(env.DB))
+ // A monotonic generation rejects an old read even when a later poll revisits the same cursor.
+ statements.push(env.DB.prepare('UPDATE bw_faire_sync SET cursor=?,complete=?,observed_at=?,generation=generation+1 WHERE brand=? AND enabled=1 AND revision=? AND cursor IS ? AND complete=? AND generation=?').bind(next,next?0:1,new Date().toISOString(),brand,sync.revision,sync.cursor,sync.complete,sync.generation),changed(env.DB))
  for(const order of orders) {
   const value=JSON.stringify(order),revision=await digest(value)
   statements.push(env.DB.prepare("INSERT INTO bw_faire_orders(brand,source_id,revision,source_json,state) VALUES(?,?,?,?,'review') ON CONFLICT(brand,source_id) DO UPDATE SET revision=excluded.revision,source_json=excluded.source_json,state='review' WHERE bw_faire_orders.revision<>excluded.revision").bind(brand,order.id,revision,value))
