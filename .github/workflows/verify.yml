@@ -57,3 +57,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-connector-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/connector-review.test.mjs tests/journeys/delta-cutover.test.mjs
+      - name: NuORDER reviewed source and history screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-nuorder-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/move-nuorder.test.mjs
