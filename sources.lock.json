@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d4bc4aaaaa0a3b28e8b51341ef5ef61582f0fc9d8b7a848a7ee2ede841e4637a",
+      "sha256": "332fd7d07c814093e265cc189591d6d24eed72dea8d9014e09faee8224e834f0",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ffa1c97b15dfad5efb27004a316f54c1338505fe733d42ebbcf6bbe3a6652e2f",
+      "sha256": "e7d21209061f2256e821bdf0a44e60b106bcdd921239bf23357c8e8e9c86762d",
       "executable": false
     },
     "DEMO.md": {
@@ -228,7 +228,7 @@
       "executable": false
     },
     "docs/ORDERS.md": {
-      "sha256": "4e0522e2b1085753475e37320b3eff065b8c6d424d8a5e5c360e2fd2a6eb3549",
+      "sha256": "e0837b5b8ac06079b3598711870dadc2a9059ffb03e61a72383d3485c4f6ddef",
       "executable": false
     },
     "docs/QUOTE-NOTIFICATIONS.md": {
@@ -4292,11 +4292,11 @@
       "executable": false
     },
     "tests/api/faire-fixture.mjs": {
-      "sha256": "d9fbe3d6f204465994d8231b2e2e7b1897c0d050ae3864d3c9773eb6e7c581bb",
+      "sha256": "de775dd77a9a7b1595a8e1e51f26db0e24ea0cb5d391409fb2aa0915d54f2489",
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "084756056c1617a896aee978336cfff0f1fd4eba299f0d945ce9ff40159bb9bd",
+      "sha256": "a2158be7deb0ecc1c69ab43daa9925b58950fbac138c22573d95986990162311",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
@@ -4360,7 +4360,7 @@
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
-      "sha256": "21268f990b35e99c5ad780dde9d6d9f45ff44b74fdcfeb67a2a861b594cc5c7d",
+      "sha256": "1f822bfb70ea6d0a3f2909fa58aa7b0bf880556654af711a9f432cf159aea100",
       "executable": false
     },
     "tests/api/promotion-fixture.mjs": {
@@ -4552,7 +4552,7 @@
       "executable": false
     },
     "tests/journeys/faire.test.mjs": {
-      "sha256": "885ad5561cb23815a168990e0ab5d2faad94d201b3379b2d2cb3971f618a825f",
+      "sha256": "eda577e1f6762bd43779287b778cbf75170795f9a116b87bdc4a2a0838bf0be7",
       "executable": false
     },
     "tests/journeys/install-harness.mjs": {
