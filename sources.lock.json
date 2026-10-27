@@ -300,7 +300,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "9bfa36515a37e1b68b09f5cc9455c1fd9ecd3b4ef27e9fb7c12266bd785c4a2c",
+      "sha256": "88bd50349ba85c6e4e81a12fcb9d9b3c1d1f1b1e0ea39a81d989bb6c2f48e651",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -4328,7 +4328,7 @@
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "e1744fb3f9896957ea1dcc909c12b8873708fd8fa306d9b208225d8a41938da5",
+      "sha256": "747e814354f8462f5f0c4a9f580ae458212185ec273b55c3be368bf877f9f1cb",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
