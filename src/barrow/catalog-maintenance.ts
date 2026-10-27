@@ -1,4 +1,5 @@
 import { releaseImage } from './product-images'
+import { reconcileHeldImages } from './bulk-images'
 import type { Bindings } from '../auth.server'
 import { audit, commit } from './access'
 import { fail, text, type Actor } from './model'
@@ -22,11 +23,15 @@ export async function applyCatalogMaintenance(env: Bindings, actor: Actor, input
  const variants = Object.assign(Object.create(null) as typeof context.attributes.variants, context.attributes.variants)
  for (const row of report.rows) if (row.listing === 'listed') {
   const image = context.media.find(image => image.sha256 === row.mediaSha256)
-  variants[row.sku] = { style: row.style, color: row.color, size: row.size, ...(image ? { image } : {}) }
+  const imageSlots = { ...context.attributes.variants[row.sku]?.imageSlots }
+  if (image) imageSlots['1'] = image
+  else delete imageSlots['1']
+  variants[row.sku] = { style: row.style, color: row.color, size: row.size, imageSlots, ...(image ? { image } : {}) }
  }
  if (Object.keys(variants).length > 20000) fail('CATALOG_LIMIT', 'Variant attributes are limited to 20,000 SKUs.', 400)
  const released=[...new Set(report.rows.flatMap(row=>[context.attributes.variants[row.sku]?.image?.sha256,context.store.listings.find(before=>before.sku===row.sku)?.mediaSha256]).filter((value):value is string=>Boolean(value)))]
  const approval = { fingerprint, reconciliation: report.reconciliation, artifact: report.artifact, reason, approvedBy: actor.id, approvedAt: at }
+ const heldStatements = await reconcileHeldImages(env.DB, variants, revision)
  await commit(env.DB, actor, [
   env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key=?),\'\')=? THEN 1 ELSE 0 END').bind(catalogSetting, context.store.revision ?? ''),
   env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key='variant-attributes'),'')=? THEN 1 ELSE 0 END").bind(context.attributes.revision ?? ''),
@@ -34,6 +39,7 @@ export async function applyCatalogMaintenance(env: Bindings, actor: Actor, input
   env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN (SELECT count(*) FROM bw_product_images WHERE sha256 IN (SELECT value FROM json_each(?)))=? THEN 1 ELSE 0 END').bind(JSON.stringify([...new Set(report.rows.map(row => row.mediaSha256).filter(Boolean))]), new Set(report.rows.map(row => row.mediaSha256).filter(Boolean)).size),
   env.DB.prepare('INSERT INTO bw_settings(key,value_json,revision) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision').bind(catalogSetting, JSON.stringify(listings), revision),
   env.DB.prepare("INSERT INTO bw_settings(key,value_json,revision) VALUES('variant-attributes',?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision").bind(JSON.stringify(variants), revision),
+  ...heldStatements,
   ...released.map(sha256=>releaseImage(env.DB,sha256)),
   audit(env.DB, actor, catalogSetting, 'import.approved', { revision, source: 'catalog-maintenance.apply', reason: JSON.stringify(approval) }),
  ])

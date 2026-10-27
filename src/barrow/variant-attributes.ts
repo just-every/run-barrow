@@ -4,8 +4,9 @@ import { audit, commit } from './access'
 import { fail, requirePerson, text, type Actor, type Line } from './model'
 import { now } from './clock'
 import { decodedImage, releaseImage, storeImage, type ImageRef } from './product-images'
+import { reconcileHeldImages } from './bulk-images'
 
-export type VariantAttributes = { style: string; color: string; size: string; image?: ImageRef }
+export type VariantAttributes = { style: string; color: string; size: string; image?: ImageRef; imageSlots?: Record<string, ImageRef> }
 export async function variantAttributes(db: D1Database): Promise<{ variants: Record<string, VariantAttributes>; revision: string | null }> {
  const row = await db.prepare("SELECT value_json,revision FROM bw_settings WHERE key='variant-attributes'").first<{ value_json: string; revision: string }>()
  return row ? { variants: JSON.parse(row.value_json), revision: row.revision } : { variants: {}, revision: null }
@@ -29,13 +30,15 @@ export async function saveVariantAttributes(db: D1Database, actor: Actor, p: any
   const sku = text(row?.sku, 'SKU', 100)
   if (seen.has(sku)) fail('INPUT', `${sku} appears more than once.`, 400)
   seen.add(sku)
-  variants[sku] = { style: text(row.style, 'Style', 100), color: text(row.color, 'Color', 60), size: text(row.size, 'Size', 30), ...(variants[sku]?.image ? { image: variants[sku].image } : {}) }
+  variants[sku] = { style: text(row.style, 'Style', 100), color: text(row.color, 'Color', 60), size: text(row.size, 'Size', 30), ...(variants[sku]?.image ? { image: variants[sku].image } : {}), ...(variants[sku]?.imageSlots ? { imageSlots: variants[sku].imageSlots } : {}) }
  }
  if (Object.keys(variants).length > 20000) fail('INPUT', 'Barrow records attributes for at most 20,000 variants.', 400)
  const revision = crypto.randomUUID()
+ const heldStatements = await reconcileHeldImages(db, variants, revision)
  await commit(db, actor, [
   db.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key='variant-attributes'),'')=? THEN 1 ELSE 0 END").bind(prior.revision ?? ''),
   db.prepare("INSERT INTO bw_settings VALUES('variant-attributes',?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision").bind(JSON.stringify(variants), revision),
+  ...heldStatements,
   ...released.map(sha256 => releaseImage(db, sha256)),
   audit(db, actor, 'variant-attributes', 'variant.attributes-saved', { revision, source: 'variant.attributes', reason: `Recorded style, color and size for ${rows.length} variant(s) and cleared ${remove.length}; existing order lines keep their copies.` }),
  ])
@@ -50,7 +53,10 @@ export async function saveVariantImage(db: D1Database, actor: Actor, p: any) {
  if (!current) fail('NOT_FOUND', 'Record this variant’s style, color and size before adding its image.', 404)
  const image = p.remove === true ? undefined : await decodedImage(p.contentBase64), previous = current.image?.sha256
  const { image: _replaced, ...attributes } = current
- const variants = { ...prior.variants, [sku]: { ...attributes, ...(image ? { image: { sha256: image.sha256, width: image.width, height: image.height, size: image.bytes.length } } : {}) } }
+ const imageSlots = { ...attributes.imageSlots }
+ if (image) imageSlots['1'] = { sha256: image.sha256, width: image.width, height: image.height, size: image.bytes.length }
+ else delete imageSlots['1']
+ const variants = { ...prior.variants, [sku]: { ...attributes, imageSlots, ...(image ? { image: imageSlots['1'] } : {}) } }
  const revision = crypto.randomUUID()
  await commit(db, actor, [
   db.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key='variant-attributes'),'')=? THEN 1 ELSE 0 END").bind(prior.revision ?? ''),
