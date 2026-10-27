@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "2fdb0be395601069b1c80022b0337ff44f85070af8000f4813b071eb72fd474b",
+      "sha256": "8298b3a38d693ba83fa9744b898d9f6d90de1cdb98fd5658c671604849822ce2",
       "executable": false
     },
     "DEMO.md": {
@@ -4280,7 +4280,7 @@
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "d2cc9502875f0985b4429f5e1a539ad649e02cd696ee4691c9a437a45a8700b0",
+      "sha256": "084756056c1617a896aee978336cfff0f1fd4eba299f0d945ce9ff40159bb9bd",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {

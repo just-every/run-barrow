@@ -64,9 +64,11 @@ test('Faire refuses an older overlapping page after a newer complete poll return
  await held.ready;
  f.state.orders[0].items[0].quantity=8;
  await f.poll({restart:true});await f.poll();
+ const reconciledBefore=(await f.h.api('/api/barrow/audit')).events.filter(row=>row.action==='faire.page-reconciled').map(row=>row.id);
  const before=await f.read();assert.equal(before.orders[0].source.lines[0].quantity,8);assert.equal(before.sync[0].cursor,null);assert.equal(before.sync[0].complete,1);
  held.release();const response=await older;assert.equal(response.status,409,'An older page must not overwrite a newer complete poll');
  const after=await f.read();assert.equal(after.orders[0].source.lines[0].quantity,8);assert.deepEqual(after.sync,before.sync);
+ assert.deepEqual((await f.h.api('/api/barrow/audit')).events.filter(row=>row.action==='faire.page-reconciled').map(row=>row.id),reconciledBefore,'A refused stale page leaves no reconciliation event');
  const reviewed=await f.match(after.orders[0],{'OAT-1':'OAT-1'});assert.equal(reviewed.orders[0].matched.lines[0].quantity,8);
  const withdrawn=f.holdNextPage(),pending=f.h.request('/api/barrow/faire/poll',{method:'POST',body:{brand:'brand1',restart:true}});await withdrawn.ready;
  await f.configure(false);await f.configure(true);withdrawn.release();assert.equal((await pending).status,409,'A consent change invalidates every in-flight read');
