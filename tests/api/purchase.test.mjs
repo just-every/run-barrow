@@ -110,6 +110,10 @@ test('credit terms and exposure block an exhausted draft and quote, then verifie
  policy=await h.command('credit-policy.release',overrideRequest,finance.who);await h.command('order.submit',{orderId:override.id},buyer);await h.command('order.approve',{orderId:override.id});
  const events=(await h.api('/api/barrow/audit?accountId=cedar',undefined,finance.who)).events;const event=events.find(row=>row.action==='credit-policy.release');
  assert.ok(event);assert.equal(event.actorId,finance.id);assert.equal(event.actorKind,'human');assert.equal(event.source,'credit-policy.release');assert.equal(event.reason,overrideRequest.reason);assert.ok(event.createdAt);assert.ok(event.revision);
+ const wren=await h.api('/api/barrow/accounts/by-id/wren');await h.command('account.save',{id:'wren',revision:wren.revision,value:{...wren.value,currency:'CAD'}});
+ await h.command('credit-policy.save',{accountId:'wren',revision:null,currency:'CAD',limitCents:100000,termsDays:0,reason:'Owner configures due on receipt in the account currency.'});
+ const cadDraft=await h.command('order.prepare',{accountId:'wren',reference:'CAD due on receipt',lines:[{sku:'OAT-1',quantity:2}]},f.other);await h.command('order.submit',{orderId:cadDraft.id},f.other);const cad=await h.command('order.approve',{orderId:cadDraft.id});assert.equal(cad.currency,'CAD');assert.equal(cad.termsDays,0);assert.equal(cad.invoice.dueAt,cad.invoice.issuedAt);
+ const cadBalance=await h.api('/api/barrow/account-credit?accountId=wren');assert.equal(cadBalance.currency,'CAD');assert.equal(cadBalance.exposureCents,13000);assert.equal(cadBalance.availableCents,87000);assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,1100000);
  await h.command('credit-policy.save',{accountId:'cedar',revision:policy.revision,currency:'CAD',limitCents:1000000,termsDays:0,reason:'Attempt unsupported currency.'},{...finance.who,status:409});
 });
 
@@ -120,6 +124,7 @@ test('finance hold and exact-order release refuse buyers and reps, audit decisio
  const rep=await activateStaff(h,'hold-rep@example.test',{role:'rep',accounts:['cedar'],warehouses:[],reports:[],discountLimitCents:0,stockExceptionLimitCents:0});
  let state=await h.command('credit-policy.save',{accountId:'cedar',revision:null,currency:'USD',limitCents:100000,termsDays:30,reason:'Approved finance limit.'},finance.who);
  const prior=await f.order('Existing overdue invoice');
+ await h.db.prepare('UPDATE bw_orders SET value_json=? WHERE id=?').bind(JSON.stringify({...prior,invoice:{...prior.invoice,issuedAt:'2000-01-01',dueAt:'2000-01-31'}}),prior.id).run();
  const draft=await h.command('order.prepare',{accountId:'cedar',reference:'Held buyer draft',lines:[{sku:'OAT-1',quantity:2}]},buyer);
  const owner=(await h.api('/api/barrow/state')).actor.id;
  state=await h.command('credit-policy.hold',{accountId:'cedar',revision:state.revision,kind:'overdue',expiresAt:'2099-12-31T00:00:00Z',ownerId:owner,reason:'Overdue invoice requires a reviewed partial payment.'},finance.who);
@@ -127,7 +132,11 @@ test('finance hold and exact-order release refuse buyers and reps, audit decisio
  assert.equal((await h.command('order.submit',{orderId:draft.id},{...rep.who,status:409})).error.code,'CREDIT_HOLD');
  let heldQuote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},buyer);heldQuote=await h.command('quote.propose',{quoteId:heldQuote.id,revision:heldQuote.revision,lines:[{sku:'OAT-1',quantity:2}],validUntil:'2099-12-31'});
  assert.equal((await h.command('quote.accept',{quoteId:heldQuote.id,number:1},{...buyer,status:409})).error.code,'CREDIT_HOLD');
- const decision={accountId:'cedar',revision:state.revision,orderId:draft.id,ceilingCents:26000,reason:'Finance approves this exact resulting exposure.'};
+ const requested=await h.command('credit-policy.request',{accountId:'cedar'},buyer);assert.equal(requested.status,'open');assert.deepEqual(await h.command('credit-policy.request',{accountId:'cedar'},rep.who),requested);
+ const tasks=(await h.api('/api/barrow/followups?view=all',undefined,finance.who)).tasks.filter(row=>row.kind==='credit');assert.equal(tasks.length,1);assert.equal(tasks[0].accountId,'cedar');assert.equal(tasks[0].ownerId,owner);assert.equal(tasks[0].status,'open');
+ let receipt=await h.command('card.prepare',{orderId:prior.id},buyer);f.edge.complete(receipt);receipt=await h.command('card.refresh',{paymentId:receipt.id},buyer);receipt=await h.command('card.authorize',{paymentId:receipt.id,consent:true,amountCents:receipt.amountCents,surchargeCents:receipt.surchargeCents},buyer);receipt=await h.command('card.capture',{paymentId:receipt.id,reason:'Partial collection against the overdue invoice.'});
+ await h.command('card.allocate',{paymentId:receipt.id,orderId:prior.id,amountCents:5000,reason:'Apply fifty dollars before a bounded release.'},finance.who);assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,8000);
+ const decision={accountId:'cedar',revision:state.revision,orderId:draft.id,ceilingCents:21000,reason:'Finance approves this exact resulting exposure.'};
  await h.command('credit-policy.release',decision,{...rep.who,status:403});await h.command('credit-policy.release',decision,{...buyer,status:403});
  state=await h.command('credit-policy.release',decision,finance.who);await h.command('order.submit',{orderId:draft.id},buyer);
  // A new hold invalidates the old release before acceptance.
@@ -135,9 +144,9 @@ test('finance hold and exact-order release refuse buyers and reps, audit decisio
  assert.equal((await h.command('order.approve',{orderId:draft.id},{status:409})).error.code,'CREDIT_HOLD');
  state=await h.command('credit-policy.release',{...decision,revision:state.revision},finance.who);
  const other=await h.command('order.prepare',{accountId:'cedar',reference:'Concurrent commitment',lines:[{sku:'OAT-1',quantity:2}]},buyer);
- state=await h.command('credit-policy.release',{...decision,revision:state.revision,orderId:other.id,ceilingCents:39000},finance.who);await h.command('order.submit',{orderId:other.id},buyer);
+ state=await h.command('credit-policy.release',{...decision,revision:state.revision,orderId:other.id,ceilingCents:34000},finance.who);await h.command('order.submit',{orderId:other.id},buyer);
  assert.equal((await h.command('order.approve',{orderId:draft.id},{status:409})).error.code,'CREDIT_HOLD');
- state=await h.command('credit-policy.release',{...decision,revision:state.revision,ceilingCents:39000},finance.who);const approved=await h.command('order.approve',{orderId:draft.id});assert.equal(approved.totalCents,13000);
+ state=await h.command('credit-policy.release',{...decision,revision:state.revision,ceilingCents:34000},finance.who);const approved=await h.command('order.approve',{orderId:draft.id});assert.equal(approved.totalCents,13000);
  const timeline=await h.api(`/api/barrow/orders/${draft.id}/timeline`,undefined,buyer);assert.ok(timeline.entries.some(row=>row.state==='Credit hold imposed; contact finance'));assert.ok(timeline.entries.some(row=>row.state==='Finance recorded a conditional credit release'));
  const audit=await h.api('/api/barrow/audit?accountId=cedar',undefined,finance.who);assert.ok(JSON.stringify(audit).includes('credit-policy.release'));const csv=await (await h.request('/api/barrow/audit.csv?accountId=cedar',finance.who)).text();assert.ok(csv.includes('credit-policy.release'));assert.ok(csv.includes('Finance approves this exact resulting exposure.'));
  const {token}=await h.api('/api/barrow/agent-token',{});const agent={as:'',headers:{authorization:`Bearer ${token}`}};await h.api('/api/barrow/account-credit?accountId=cedar',undefined,{...agent,status:403});await h.api('/api/barrow/audit',undefined,{...agent,status:403});

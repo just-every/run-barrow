@@ -4,6 +4,8 @@ import { audit, commit, digest } from './access'
 import { creditAuthority } from './credit-access'
 import { creditRecords, financialGuard, invoiceOutstanding } from './credit-ledger'
 import { fail, integer, requirePerson, text, type Actor, type Order } from './model'
+import { requireCompanyRight, companyRightsGuard } from './company-policy'
+import { supplierDate } from './model'
 import { now } from './clock'
 
 type Hold = { kind:'overdue'|'manual'|'provider'; reason:string; expiresAt:string; ownerId:string }
@@ -69,6 +71,17 @@ export async function admitCredit(env:Bindings,order:Order) {
 }
 export async function creditPolicyCommand(env:Bindings,actor:Actor,type:string,p:any) {
  requirePerson(actor);const id=text(p.accountId,'Account'),selected=await account(env.DB,actor,id),before=await creditPolicy(env.DB,id)
+ if(type==='credit-policy.request') {
+  const member=await requireCompanyRight(env.DB,actor,id,'purchaser'),taskId=`credit-review:${id}`
+  const existing=await env.DB.prepare('SELECT value_json FROM bw_followups WHERE id=?').bind(taskId).first<{value_json:string}>()
+  if(existing&&JSON.parse(existing.value_json).status==='open')return {id:taskId,status:'open'}
+  const owner=await env.DB.prepare("SELECT id FROM oa_operators WHERE status='active' AND role='owner' ORDER BY id LIMIT 1").first<{id:string}>()
+  if(!owner)fail('CREDIT_REVIEW','An active installation owner must receive this request.')
+  const at=await now(),revision=crypto.randomUUID(),reason='Buyer or rep requested a finance credit review from checkout.'
+  const task={id:taskId,kind:'credit',accountId:id,sourceId:id,sourcePath:`/api/barrow/account-credit?accountId=${encodeURIComponent(id)}`,title:`Credit review for ${selected.value.name}`,reason,priority:1,createdAt:at.toISOString(),ownerId:owner.id,nextContactDate:supplierDate(at),status:'open',contacts:[]}
+  await commit(env.DB,actor,[companyRightsGuard(env.DB,member),env.DB.prepare("INSERT INTO bw_followups(id,account_id,value_json,revision) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision WHERE json_extract(bw_followups.value_json,'$.status')='closed'").bind(taskId,id,JSON.stringify(task),revision),audit(env.DB,actor,id,type,{accountId:id,revision,source:type,reason})])
+  return {id:taskId,status:'open'}
+ }
  if(p.revision!==(before?.revision??null))fail('CHANGED','Reload current credit settings before deciding.')
  const reason=text(p.reason,'Finance decision reason',500),revision=crypto.randomUUID(),at=(await now()).toISOString()
  const guards=await creditGuards(env.DB,id,before)

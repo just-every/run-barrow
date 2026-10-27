@@ -62,7 +62,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 }
 
 const commandRoles:Record<string,string[]>={
- 'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
+ 'credit-policy.request':selling,'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
  'credit.issue':['finance'],'credit.apply':['finance'],'card.allocate':['finance'],'refund.request':['finance'],'refund.refresh':['finance'],
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
  'price-book.import':['sales-manager'],'sheet.publish':['sales-manager'],'sheet.revoke':['sales-manager'],

@@ -335,7 +335,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    let result
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
-   if(['credit-policy.save','credit-policy.hold','credit-policy.release'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
+   if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
    if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})

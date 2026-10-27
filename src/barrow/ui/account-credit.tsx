@@ -5,9 +5,10 @@ import { money, type Account } from './types'
 import type { readAccountCredit } from '../credit-policy'
 type Credit=Awaited<ReturnType<typeof readAccountCredit>>
 export function CreditBalance({accountId,version}:{accountId:string;version?:unknown}) {
- const [value,setValue]=useState<Credit|null>(null),[error,setError]=useState('')
+ const [value,setValue]=useState<Credit|null>(null),[error,setError]=useState(''),[requested,setRequested]=useState(false),[requesting,setRequesting]=useState(false)
  useEffect(()=>{let live=true;setValue(null);setError('');void request<Credit>(`/api/barrow/account-credit?accountId=${encodeURIComponent(accountId)}`).then(value=>{if(live)setValue(value)}).catch(error=>{if(live)setError(errorMessage(error))});return()=>{live=false}},[accountId,version])
- return <section aria-label="Available account credit" className="br-card br-stack">{error&&<Notice error>{error}</Notice>}{value&&<><p>Credit exposure: {money(value.exposureCents,value.currency as 'USD')} · Available credit: {value.availableCents===null?'not configured':money(value.availableCents,value.currency as 'USD')} · Net {value.termsDays} days</p><p>{value.explanation}</p></>}</section>
+ async function review(){setRequesting(true);setError('');try{await request('/api/barrow/commands',{type:'credit-policy.request',payload:{accountId}});setRequested(true)}catch(error){setError(errorMessage(error))}finally{setRequesting(false)}}
+ return <section aria-label="Available account credit" className="br-card br-stack">{error&&<Notice error>{error}</Notice>}{value&&<><p>Credit exposure: {money(value.exposureCents,value.currency as 'USD')} · Available credit: {value.availableCents===null?'not configured':money(value.availableCents,value.currency as 'USD')} · Net {value.termsDays} days</p><p>{value.explanation}</p>{value.policy===undefined&&value.configured&&<button type="button" disabled={requesting||requested} onClick={()=>void review()}>{requested?'Finance review requested':'Request finance review'}</button>}</>}</section>
 }
 export function CreditSettings({accounts,ownerId}:{accounts:Account[];ownerId:string}) {
  const [notice,setNotice]=useState('')
