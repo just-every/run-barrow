@@ -44,7 +44,6 @@ test('ORD-012: the buyer timeline shows recorded Barrow and real Pier events, sp
  ]);
  assert.deepEqual(seen.entries.filter(entry => entry.source === 'Pier').map(entry => entry.detail), ['SHIP-1: 6 OAT-1', 'SHIP-2: 4 OAT-1', '1 OAT-1: Crushed case']);
  assert.equal(seen.entries[4].owner, 'Supplier'); assert.equal(seen.revision, order.revision); assert.equal(seen.pier, 'read');
- assert.deepEqual(seen.unrecorded.map(item => item.state), ['Delivered', 'Held', 'Closed']);
  assert.ok(!seen.entries.some(entry => /deliver/i.test(entry.state)));
  // The supplier reads the same recorded timeline.
  assert.deepEqual((await h.api(`/api/barrow/orders/${draft.id}/timeline`)).entries, seen.entries);

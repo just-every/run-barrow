@@ -9,8 +9,8 @@ import { supplierDate } from './model'
 import { now } from './clock'
 
 type Hold = { kind:'overdue'|'manual'|'provider'; reason:string; expiresAt:string; ownerId:string }
-type Release = { orderId:string; commercial:string; fingerprint:string; ceilingCents:number; by:string; at:string; reason:string }
-export type CreditPolicy = { currency:string; limitCents:number; termsDays:number; hold?:Hold; releases:Release[]; revision:string }
+type Release = { orderId?:string; commercial?:string; fingerprint:string; ceilingCents:number; by:string; at:string; reason:string }
+export type CreditPolicy = { currency:string; limitCents:number; termsDays:number; hold?:Hold; releases:Release[]; accountRelease?:Release; revision:string }
 const key = (id:string) => `credit-policy:${id}`
 export async function creditPolicy(db:D1Database,id:string):Promise<CreditPolicy|null> {
  const row=await db.prepare('SELECT value_json,revision FROM bw_settings WHERE key=?').bind(key(id)).first<{value_json:string;revision:string}>()
@@ -40,11 +40,27 @@ async function creditGuards(db:D1Database,id:string,policy:CreditPolicy|null) {
  const rows=await db.prepare('SELECT id,revision FROM bw_orders WHERE account_id=? ORDER BY id').bind(id).all<{id:string;revision:string}>()
  return [db.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key=?),'')=? THEN 1 ELSE 0 END").bind(key(id),policy?.revision??''),db.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN (SELECT json_group_array(json_array(id,revision)) FROM (SELECT id,revision FROM bw_orders WHERE account_id=? ORDER BY id))=? THEN 1 ELSE 0 END').bind(id,JSON.stringify(rows.results.map(row=>[row.id,row.revision]))),...await financialGuard(db)]
 }
+async function releaseGuards(db:D1Database,release:Release,accountId:string) {
+ // A revoked or narrowed finance grant cannot authorize acceptance later.
+ const guards:D1PreparedStatement[]=[]
+  const person=await db.prepare("SELECT role,status,version FROM oa_operators WHERE id=?").bind(release.by).first<{role:string;status:string;version:number}>()
+  if(!person||person.status!=='active')fail('CREDIT_RELEASE_STALE','Finance release authority ended. Request a new decision.')
+  guards.push(db.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND version=? AND role=?) THEN 1 ELSE 0 END").bind(release.by,person.version,person.role))
+  if(!['owner','admin'].includes(person.role)) {
+   const grant=await db.prepare("SELECT policy_json,state,native_version,revision FROM bw_staff_members WHERE user_id=?").bind(release.by).first<{policy_json:string;state:string;native_version:number;revision:string}>()
+   const policy=grant?JSON.parse(grant.policy_json):null
+   if(!grant||grant.state!=='active'||grant.native_version!==person.version||policy?.role!=='finance'||policy.creditLimitCents<release.ceilingCents||policy.accounts!=='all'&&!policy.accounts?.includes(accountId))fail('CREDIT_RELEASE_STALE','Finance release authority changed. Request a new decision.')
+   guards.push(db.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_staff_members WHERE user_id=? AND revision=? AND state='active') THEN 1 ELSE 0 END").bind(release.by,grant.revision))
+  }
+ return guards
+}
 export async function readAccountCredit(env:Bindings,actor:Actor,id:string) {
  requirePerson(actor);const selected=await account(env.DB,actor,id),policy=await creditPolicy(env.DB,id)
  const value=await creditExposure(env.DB,id,policy?.currency??selected.value.currency??'USD')
- const held=!!policy?.hold&&Date.parse(policy.hold.expiresAt)>(await now()).getTime()
- return {...value,configured:!!policy,limitCents:policy?.limitCents??null,availableCents:policy?policy.limitCents-value.exposureCents:null,termsDays:policy?.termsDays??selected.value.termsDays,revision:policy?.revision??null,held,explanation:held?'Credit hold: contact finance to request a reviewed release.':'Orders above available credit require a finance decision.',...(['owner','admin'].includes(actor.role)||actor.staff?.role==='finance'?{policy}:{}),sources:actor.staff||['owner','admin'].includes(actor.role)?value.sources:[]}
+ let released=!!policy?.accountRelease&&policy.accountRelease.fingerprint===value.fingerprint&&value.exposureCents<=policy.accountRelease.ceilingCents
+ if(released)try{await releaseGuards(env.DB,policy!.accountRelease!,id)}catch{released=false}
+ const held=!!policy?.hold&&Date.parse(policy.hold.expiresAt)>(await now()).getTime()&&!released
+ return {...value,configured:!!policy,limitCents:policy?.limitCents??null,availableCents:policy?policy.limitCents-value.exposureCents:null,termsDays:policy?.termsDays??selected.value.termsDays,revision:policy?.revision??null,held,released,releaseCeilingCents:released?policy!.accountRelease!.ceilingCents:null,explanation:released?'Finance recorded a conditional release. Current exposure is rechecked on acceptance.':held?'Credit hold: contact finance to request a reviewed release.':'Orders above available credit require a finance decision.',...(['owner','admin'].includes(actor.role)||actor.staff?.role==='finance'?{policy}:{}),sources:actor.staff||['owner','admin'].includes(actor.role)?value.sources:[]}
 }
 export async function admitCredit(env:Bindings,order:Order) {
  const policy=await creditPolicy(env.DB,order.accountId),guards=await creditGuards(env.DB,order.accountId,policy)
@@ -52,20 +68,12 @@ export async function admitCredit(env:Bindings,order:Order) {
  await assertCreditSignature(env.DB,order)
  if(order.currency!==policy.currency)fail('CREDIT_CURRENCY','The order currency differs from the finance credit currency. Ask finance to review it.')
  const value=await creditExposure(env.DB,order.accountId,policy.currency,order.id),projected=value.exposureCents+order.totalCents
+ if(!Number.isSafeInteger(projected))fail('MONEY','Resulting exposure exceeds the exact-cent range.')
  const held=!!policy.hold&&Date.parse(policy.hold.expiresAt)>(await now()).getTime()
  if(held||projected>policy.limitCents) {
-  const release=policy.releases.find(row=>row.orderId===order.id&&row.commercial===commercial(order)&&row.fingerprint===value.fingerprint&&projected<=row.ceilingCents)
+  const release=policy.releases.find(row=>row.orderId===order.id&&row.commercial===commercial(order)&&row.fingerprint===value.fingerprint&&projected<=row.ceilingCents)??(policy.accountRelease?.fingerprint===value.fingerprint&&projected<=policy.accountRelease.ceilingCents?policy.accountRelease:undefined)
   if(!release)fail(held?'CREDIT_HOLD':'CREDIT_LIMIT',`${held?'Credit hold: contact finance for release.':'Available credit is insufficient; request finance approval.'} Current exposure ${value.exposureCents} ${policy.currency} cents; this order ${order.totalCents}; limit ${policy.limitCents}.`)
-  // A revoked or narrowed finance grant cannot authorize acceptance later.
-  const person=await env.DB.prepare("SELECT role,status,version FROM oa_operators WHERE id=?").bind(release.by).first<{role:string;status:string;version:number}>()
-  if(!person||person.status!=='active')fail('CREDIT_RELEASE_STALE','Finance release authority ended. Request a new decision.')
-  guards.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND status='active' AND version=? AND role=?) THEN 1 ELSE 0 END").bind(release.by,person.version,person.role))
-  if(!['owner','admin'].includes(person.role)) {
-   const grant=await env.DB.prepare("SELECT policy_json,state,native_version,revision FROM bw_staff_members WHERE user_id=?").bind(release.by).first<{policy_json:string;state:string;native_version:number;revision:string}>()
-   const policy=grant?JSON.parse(grant.policy_json):null
-   if(!grant||grant.state!=='active'||grant.native_version!==person.version||policy?.role!=='finance'||policy.creditLimitCents<release.ceilingCents||policy.accounts!=='all'&&!policy.accounts?.includes(order.accountId))fail('CREDIT_RELEASE_STALE','Finance release authority changed. Request a new decision.')
-   guards.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_staff_members WHERE user_id=? AND revision=? AND state='active') THEN 1 ELSE 0 END").bind(release.by,grant.revision))
-  }
+  guards.push(...await releaseGuards(env.DB,release,order.accountId))
  }
  return guards
 }
@@ -82,6 +90,7 @@ export async function creditPolicyCommand(env:Bindings,actor:Actor,type:string,p
   await commit(env.DB,actor,[companyRightsGuard(env.DB,member),env.DB.prepare("INSERT INTO bw_followups(id,account_id,value_json,revision) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision WHERE json_extract(bw_followups.value_json,'$.status')='closed'").bind(taskId,id,JSON.stringify(task),revision),audit(env.DB,actor,id,type,{accountId:id,revision,source:type,reason})])
   return {id:taskId,status:'open'}
  }
+ if(!['owner','admin'].includes(actor.role)&&actor.staff?.role!=='finance')fail('FORBIDDEN','Only authorized finance may change credit settings, holds or releases.',403)
  if(p.revision!==(before?.revision??null))fail('CHANGED','Reload current credit settings before deciding.')
  const reason=text(p.reason,'Finance decision reason',500),revision=crypto.randomUUID(),at=(await now()).toISOString()
  const guards=await creditGuards(env.DB,id,before)
@@ -93,7 +102,7 @@ export async function creditPolicyCommand(env:Bindings,actor:Actor,type:string,p
   after={currency,limitCents,termsDays,releases:[],...(before?.hold?{hold:before.hold}:{}),revision}
  } else {
   if(!before)fail('CREDIT_POLICY','Finance must configure terms and limit first.')
-  after={...before,revision,releases:[]}
+  after={...before,revision,releases:[],accountRelease:undefined}
   if(type==='credit-policy.hold') {
    creditAuthority(actor,id,before.limitCents,before.currency)
    if(!['manual','overdue','provider'].includes(p.kind)||!Number.isFinite(Date.parse(p.expiresAt))||Date.parse(p.expiresAt)<=Date.parse(at))fail('INPUT','Choose a hold kind and a future expiry.',400)
@@ -102,15 +111,17 @@ export async function creditPolicyCommand(env:Bindings,actor:Actor,type:string,p
    if(!owner||!['owner','admin'].includes(owner.role)&&ownerId!==actor.id)fail('INPUT','Name yourself as the authorized finance owner, or an active supplier owner or admin.',400)
    after.hold={kind:p.kind,reason,expiresAt:new Date(p.expiresAt).toISOString(),ownerId}
   } else if(type==='credit-policy.release') {
-   const row=await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE id=? AND account_id=?').bind(p.orderId,id).first<{value_json:string;revision:string}>()
-   if(!row)fail('NOT_FOUND','Release order not found.',404)
-   const order={...JSON.parse(row.value_json),revision:row.revision} as Order
-   if(!['draft','awaiting-company-approval','submitted'].includes(order.status))fail('CREDIT_RELEASE','Only a current unaccepted order may receive a release.')
-   if(order.currency!==before.currency)fail('CREDIT_CURRENCY','Release cannot change currency.')
-   const value=await creditExposure(env.DB,id,before.currency,order.id),ceilingCents=integer(p.ceilingCents,'Maximum resulting exposure cents')
+   const row=p.orderId?await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE id=? AND account_id=?').bind(p.orderId,id).first<{value_json:string;revision:string}>():null
+   if(p.orderId&&!row)fail('NOT_FOUND','Release order not found.',404)
+   const order=row?{...JSON.parse(row.value_json),revision:row.revision} as Order:null
+   if(order&&!['draft','awaiting-company-approval','submitted'].includes(order.status))fail('CREDIT_RELEASE','Only a current unaccepted order may receive a release.')
+   if(order&&order.currency!==before.currency)fail('CREDIT_CURRENCY','Release cannot change currency.')
+   const value=await creditExposure(env.DB,id,before.currency,order?.id),ceilingCents=integer(p.ceilingCents,'Maximum resulting exposure cents')
    creditAuthority(actor,id,ceilingCents,before.currency)
-   if(ceilingCents<value.exposureCents+order.totalCents)fail('CREDIT_LIMIT','The release ceiling is below current resulting exposure.')
-   after.releases=[...before.releases.filter(row=>row.orderId!==order.id),{orderId:order.id,commercial:commercial(order),fingerprint:value.fingerprint,ceilingCents,by:actor.id,at,reason}]
+   if(ceilingCents<value.exposureCents+(order?.totalCents??0))fail('CREDIT_LIMIT','The release ceiling is below current resulting exposure.')
+   const release={...(order?{orderId:order.id,commercial:commercial(order)}:{}),fingerprint:value.fingerprint,ceilingCents,by:actor.id,at,reason}
+   if(order)after.releases=[...before.releases.filter(row=>row.orderId!==order.id),release]
+   else after.accountRelease=release
   } else fail('COMMAND','Unknown credit policy decision.',404)
  }
  await commit(env.DB,actor,[...guards,env.DB.prepare('INSERT INTO bw_settings(key,value_json,revision) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision').bind(key(id),JSON.stringify(after),revision),audit(env.DB,actor,id,type,{accountId:id,...(p.orderId?{orderId:p.orderId}:{}),revision,source:type,reason})])

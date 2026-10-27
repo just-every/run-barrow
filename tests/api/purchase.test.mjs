@@ -157,4 +157,13 @@ test('finance hold and exact-order release refuse buyers and reps, audit decisio
  assert.ok((await destination.api('/api/barrow/audit?accountId=cedar')).events.some(row=>row.id===internalEvent.id));
  await h.api('/api/barrow/audit',undefined,{...buyer,status:403});
  assert.equal((await h.api('/api/barrow/account-credit?accountId=wren',undefined,{...finance.who,status:404})).error.code,'NOT_FOUND');
+ const expired={accountId:'cedar',revision:state.revision,kind:'provider',expiresAt:'2000-01-01T00:00:00Z',ownerId:finance.id,reason:'A past expiry cannot create a new hold.'};await h.command('credit-policy.hold',expired,{...finance.who,status:400});
+ state=await h.command('credit-policy.hold',{...expired,expiresAt:'2099-12-31T00:00:00Z',reason:'Finance records a provider-origin hold with itself as responsible owner.'},finance.who);assert.equal(state.policy.hold.kind,'provider');assert.equal(state.policy.hold.ownerId,finance.id);
+ state=await h.command('credit-policy.release',{accountId:'cedar',revision:state.revision,ceilingCents:47000,reason:'Finance conditionally releases this account against its current exposure.'},finance.who);assert.equal(state.held,false);
+ const accountReleased=(await h.command('quote.accept',{quoteId:heldQuote.id,number:1},buyer)).order;assert.equal(accountReleased.totalCents,13000);await h.command('order.approve',{orderId:accountReleased.id});assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).held,true);
+ const pending=await h.command('order.prepare',{accountId:'cedar',reference:'Revoked finance release',lines:[{sku:'OAT-1',quantity:2}]},buyer);state=await h.command('credit-policy.release',{...decision,revision:state.revision,orderId:pending.id,ceilingCents:60000},finance.who);
+ await h.command('staff.revoke',{userId:finance.id,revision:finance.grant.revision,reason:'Owner ends finance authority before acceptance.'});
+ assert.equal((await h.command('order.submit',{orderId:pending.id},{...buyer,status:409})).error.code,'CREDIT_RELEASE_STALE');
+ const storedPolicy=await h.db.prepare('SELECT value_json FROM bw_settings WHERE key=?').bind('credit-policy:cedar').first();const historical=JSON.parse(storedPolicy.value_json);historical.hold.expiresAt='2000-01-01T00:00:00Z';await h.db.prepare('UPDATE bw_settings SET value_json=? WHERE key=?').bind(JSON.stringify(historical),'credit-policy:cedar').run();
+ assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar',undefined,buyer)).held,false);await h.command('order.submit',{orderId:pending.id},buyer);
 });
