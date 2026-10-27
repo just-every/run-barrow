@@ -20,7 +20,7 @@ function sheetRows(name:string,rows:unknown[][]):Row[] {
   return {row:index+2,fields:Object.fromEntries(headers.map((header,i)=>[header,(cells[i]??'') as string]))}
  })
 }
-async function workbookSheets(file:{name:string;base64:string}) {
+export async function workbookSheets(file:{name:string;base64:string}) {
  const name=text(file.name,'Workbook name',200)
  if(!/\.xlsx$/i.test(name)||/[\\/]/.test(name)||typeof file.base64!=='string'||file.base64.length>1398104||!/^[A-Za-z0-9+/]*={0,2}$/.test(file.base64))fail('IMPORT_WORKBOOK','Supply a plain XLSX filename and canonical base64 of at most 1 MiB.',400)
  const bytes=Buffer.from(file.base64,'base64')
