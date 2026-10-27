@@ -57,3 +57,8 @@
 }
 
 .br-orders .br-status,.br-orders .br-agent-tag,.br-orders .br-facts dt{font-size:13px}
+
+.br-report-result{overflow-wrap:anywhere}
+.br-report-result dl{margin:0}
+.br-report-result dd{margin:0 0 12px;min-width:0}
+.br-report-result ul{padding-inline-start:18px}

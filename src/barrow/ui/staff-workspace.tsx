@@ -34,7 +34,7 @@ function ReportResult({ report, type,canOpenSource }: { report: RecordValue; typ
   const [group, setGroup] = useState('byRep')
   const rowsValue = type === 'quotes' ? report[group] : report[type === 'fulfillment' ? 'lines' : 'rows']
   const rows = Array.isArray(rowsValue) ? rowsValue.filter(object) : []
-  return <div className="br-stack">
+  return <div className="br-stack br-report-result">
     <p className="br-quiet-text">{typeof report.checkedAt === 'string' && `Read ${when(report.checkedAt)}. `}{typeof report.timeZone === 'string' && `Reporting zone: ${report.timeZone}. `}{typeof report.currency === 'string' && `Currency: ${report.currency}.`}</p>
     {(report.status === 'unavailable' || report.source === 'unavailable' || report.returnsSource === 'unavailable') && <Notice>Source information is unavailable. Unconfirmed measures remain unknown.</Notice>}
     {report.totals !== undefined && <section aria-label="Report totals"><h3>Report totals</h3><Fact sourceLinks={canOpenSource} value={report.totals} currency={report.currency} /></section>}

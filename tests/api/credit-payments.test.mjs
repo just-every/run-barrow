@@ -101,7 +101,9 @@ test('net terms credit exposure blocks commitments and quotes, recalculates veri
   offered=await propose(4);const accepted=await h.command('substitution.accept',{orderId:owed.id,number:offered.substitutions.at(-1).number,acknowledged:true},buyer),offer=accepted.substitutions.at(-1);
   assert.equal((await h.api('/api/barrow/orders/'+offer.replacementId)).totalCents,400000);
   const finance=await activateStaff(h,'source-finance@example.test',{role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:1000000,refundLimitCents:0});
-  const sources=(await h.api('/api/barrow/reports/finance?accountId=cedar',undefined,finance.who)).creditAccounts[0].rows;
+  const currentCredit=(await h.api('/api/barrow/reports/finance?accountId=cedar',undefined,finance.who)).creditAccounts;
+  assert.equal(currentCredit.length,1);assert.deepEqual([currentCredit[0].limitCents,currentCredit[0].exposureCents,currentCredit[0].availableCents],[1000000,900000,100000]);
+  const sources=currentCredit[0].rows;
   assert.deepEqual(sources.map(row=>row.orderId),[owed.id,submitted.id,offer.replacementId]);
   for(const row of sources)assert.equal((await h.api(row.path,undefined,finance.who)).id,row.orderId);
 
