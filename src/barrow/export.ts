@@ -18,10 +18,11 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['prebooks','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
+ prebooks:['id','accountId','revision','state','season','currency','totalCents','depositRequiredCents','snapshot'],
  ...buyingProfileColumns,
  faireorders:['brand','source_id','revision','source_json','account_id','matched_json','state'],
  creditnotes:['kind','sourceId','freightCents','freightBasis','taxCents','taxBasis','id','revision','accountId','orderId','orderRevision','currency','amountCents','returnId','createdAt','actorId','reason','path'],
@@ -114,7 +115,8 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const credits = financial.credits.filter(inScope), applications = financial.applications.filter(inScope), allocations = financial.allocations.filter(inScope), refunds = financial.refunds.filter(inScope)
  const refundById = new Map(refunds.map(refund => [refund.id, refund]))
  const refundEvents = (await env.DB.prepare('SELECT id,refund_id,created_at,value_json FROM bw_refund_events ORDER BY created_at,id').all<{id:string;refund_id:string;created_at:string;value_json:string}>()).results.filter(row => refundById.has(row.refund_id))
- const records = { ...stockRecords,
+ const prebooks=!actor.staff&&!financeOnly&&(!actor.company||actor.company.locations==='all')?(await env.DB.prepare('SELECT value_json,revision FROM bw_prebooks WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY id').bind(JSON.stringify(ids)).all<{value_json:string;revision:string}>()).results.map(row=>{const value=JSON.parse(row.value_json);return {id:value.id,accountId:value.accountId,revision:row.revision,state:value.state,season:value.season.name,currency:value.currency,totalCents:value.totalCents,depositRequiredCents:value.deposit.requiredCents,snapshot:row.value_json}}):[]
+ const records = { ...stockRecords,prebooks,
   creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit,freightBasis:json(credit.freightBasis), path: `/api/barrow/credits/${credit.id}` })),
   creditlines: credits.flatMap(credit => credit.lines.map((line, index) => ({ id: `${credit.id}:${index + 1}`, creditId: credit.id, revision: credit.revision, accountId: credit.accountId, orderId: credit.orderId, orderRevision: credit.orderRevision, returnId: credit.returnId, line: line.line, sku: line.sku, quantity: line.quantity, currency: credit.currency, amountCents: line.amountCents, basis: json(line.basis), original: json(line.original) }))),
   creditapplications: applications.map(application => financialFields('creditapplications', application)),

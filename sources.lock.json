@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "5d20dc75eb92f1b879b7426a2bc83761a4379047449ddb8ffadf09dea9a9893c",
+      "sha256": "2b1b04485c2f3dd01d540abad7e24cd3b2a68500af82f0c391efe411d6687d58",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d40abb12ade1f48171c258fbf18afcc955e19275a9db9127ca8505cf08c7603d",
+      "sha256": "268c68e859a34f5cd16cf61ceef512ab612e91aa088366cff776178ff8e41ce6",
       "executable": false
     },
     "DEMO.md": {
@@ -233,6 +233,10 @@
     },
     "docs/ORDERS.md": {
       "sha256": "4e0522e2b1085753475e37320b3eff065b8c6d424d8a5e5c360e2fd2a6eb3549",
+      "executable": false
+    },
+    "docs/PREBOOKS.md": {
+      "sha256": "28683c04830250b795d1ce940c0d72580f6ce7430d933af2d3c343ef067c6c5d",
       "executable": false
     },
     "docs/QUOTE-NOTIFICATIONS.md": {
@@ -541,6 +545,10 @@
     },
     "migrations/core/0058_faire_poll_generation.sql": {
       "sha256": "f0708f7bc99dadff349e970ae7793a9212267a22aaf00d77479b7c72a2793a88",
+      "executable": false
+    },
+    "migrations/core/0058_prebooks.sql": {
+      "sha256": "5c9730c0dcab39ff6475b251f9d362df211ad07d4234d56fff5c821fc3d2d7cf",
       "executable": false
     },
     "migrations/core/0058_sellthrough_acceptance.sql": {
@@ -1100,7 +1108,7 @@
       "executable": false
     },
     "src/barrow/accounts.ts": {
-      "sha256": "22bf6665ddfc940251e743251f6c6ce54dc7ca8084e0997168a91d46be577126",
+      "sha256": "2cffef18ccbcf1a4ddc26923a51410c93b47f98ffdcf328451ef18a3f8e8fe42",
       "executable": false
     },
     "src/barrow/agent-proposal-model.ts": {
@@ -1112,7 +1120,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "63781b0419137a3457f187c42d982cdfae5cc8c691fc50aaf9d7419242635349",
+      "sha256": "95d13c5fec1f580237b43d332f9b25bee9e5c0d062285d36eb9d8868d777ea19",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1376,7 +1384,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "d9a8f8a8fbf13d583529b9a72b0784505ddec22c7b365a419495aef8bd79b004",
+      "sha256": "50332bbbee2c98a7de8fa7d7e585e08ee8db3addcbdcef29b64065d1edf76093",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -1620,7 +1628,11 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "b789631df3d980c60965310f13e3f538649f38203df2245b4876c747f7331643",
+      "sha256": "aec8418fa9f31654416384d4158f955866192a58ef825feeab902be9c6ecc898",
+      "executable": false
+    },
+    "src/barrow/prebooks.ts": {
+      "sha256": "c4851a1ad99baba4b1adb532c525f8f7ad031db4ec85671429305e1662411805",
       "executable": false
     },
     "src/barrow/price-books.ts": {
@@ -4304,7 +4316,7 @@
       "executable": false
     },
     "tests/api/confirmations.test.mjs": {
-      "sha256": "5839c049851785209ffbc7e2c0a86d2dfb49193473929cd056de6f8fd56b45dc",
+      "sha256": "8ed653a1f3f6e8cf71fc3db42f1d663667c6ac2153ed982272fb747f86fd4569",
       "executable": false
     },
     "tests/api/credit-fixture.mjs": {
