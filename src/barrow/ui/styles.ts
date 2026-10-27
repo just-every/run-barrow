@@ -53,13 +53,13 @@ export const rowCents = (row: StyleRow, quantities: Record<string, string>, pric
 /** An order's lines read back as styles: "S2 M4 L4 XL2", units, the prices paid and the style's total. */
 export function orderStyles(lines: Order['lines'], currency: 'USD' | 'AUD' | 'CAD') {
   if(lines.some(line=>line.unit && line.unit!==line.baseUnit)||new Set(lines.map(line=>line.sku)).size!==lines.length) return lines.map((line,index)=>({
-    key:JSON.stringify([line.sku,line.unit,line.requestedDate,index]),name:`${line.name} · ${line.unit??'units'}${line.requestedDate?` · ${line.requestedDate}`:''}`,units:line.quantity,
+    key:JSON.stringify([line.sku,line.unit,line.requestedDate,index]),label:line.sku,name:`${line.name} · ${line.unit??'units'}${line.requestedDate?` · ${line.requestedDate}`:''}`,units:line.quantity,
     cents:line.lineCents??line.quantity*line.unitCents,sizes:`${line.quantity} ${line.unit??'units'} = ${line.baseQuantity??line.quantity} ${line.baseUnit??'base units'}`,
     prices:`${money(line.unitCents,currency)} / ${line.unit??'unit'}`,
   }))
   const quantities = Object.fromEntries(lines.map(line => [line.sku, String(line.quantity)]))
   return groupStyles(lines.map(({pricing,...line}) => ({ ...line, unit: '', available: '' }))).rows.map(row => ({
-    key: row.key, name: row.name, units: rowUnits(row, quantities), cents: lines.filter(line=>Object.values(row.cells).some(cell=>cell.sku===line.sku)).reduce((sum,line)=>sum+(line.lineCents??line.quantity*line.unitCents),0),
+    key: row.key, label:row.key, name: row.name, units: rowUnits(row, quantities), cents: lines.filter(line=>Object.values(row.cells).some(cell=>cell.sku===line.sku)).reduce((sum,line)=>sum+(line.lineCents??line.quantity*line.unitCents),0),
     sizes: row.sizes.map(size => size === oneSize ? quantities[row.cells[size].sku] : `${size}${quantities[row.cells[size].sku]}`).join(' '),
     prices: [...new Set(row.sizes.map(size => money(row.cells[size].unitCents, currency)))].join(' / '),
   }))

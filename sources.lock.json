@@ -2020,7 +2020,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "a442503c6ce4afc139a5c8b02d6b057b52164e6031ebc80863fd4709a4066956",
+      "sha256": "6331afb891f15cf9817ca887a646a12d25dab492061d52e19271fc0959283c6c",
       "executable": false
     },
     "src/barrow/ui/pricing-settings.tsx": {
@@ -2132,7 +2132,7 @@
       "executable": false
     },
     "src/barrow/ui/styles.ts": {
-      "sha256": "f6a93a094261a0ce2485722f09ab3a2cd620103cc312cd12e664731ba1a6631e",
+      "sha256": "228106ab3277768e752c963771e731a0a0916b550f805ca341a243968c9a637c",
       "executable": false
     },
     "src/barrow/ui/types.ts": {
