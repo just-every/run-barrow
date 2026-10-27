@@ -4328,7 +4328,7 @@
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
-      "sha256": "d440cbee84594eb3e2adc78540244c3eb6344e4f9062c43e1e1f50f981bb5f36",
+      "sha256": "aff0cc6f638f181962334f102fc385afbff6fb9f6a608c7587e802ab630a554b",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {
