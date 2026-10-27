@@ -82,7 +82,7 @@ test('seasonal prebook buyer places two windows and operations closes intake, re
  await page.getByRole('button',{name:'Data',exact:true}).click();await page.getByText('Prebook season settings',{exact:true}).click();
  const settings=page.getByRole('region',{name:'Prebook season settings',exact:true});await expect(settings).toContainText('Spring 2099');await shot(page,settings,'prebook-season-settings');
  const buyer=await signedContext(browser,h,f.buyer.as);t.after(()=>buyer.close());const bp=await buyer.newPage();await app(bp,h);
- await bp.getByRole('button',{name:'Catalog',exact:true}).click();await bp.getByLabel('Order timing',{exact:true}).selectOption(f.season.id);
+ await bp.getByRole('button',{name:'Catalog',exact:true}).click();try {await bp.getByLabel('Order timing',{exact:true}).selectOption(f.season.id,{timeout:5000})}catch(error){await bp.screenshot({path:(process.env.BARROW_JOURNEY_EVIDENCE??'/tmp')+'/prebook-debug.png',fullPage:true});console.log((await bp.locator('body').innerText()).slice(0,5000));throw error}
  await bp.getByRole('spinbutton',{name:'Qty quantity for Toasted oat granola',exact:true}).fill('4');
  await bp.getByRole('spinbutton',{name:'Qty quantity for Spring coat',exact:true}).fill('6');
  for(const [sku,date,cancel] of [['OAT-1','2099-03-10','2099-03-20'],['COAT-2','2099-04-10','2099-04-30']]){
