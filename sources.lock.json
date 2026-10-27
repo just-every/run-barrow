@@ -1311,6 +1311,10 @@
       "sha256": "db5b04e6e924bb1f6a9b6e03a759a0b852439456c4aa06b749b96b4d7ff85c0e",
       "executable": false
     },
+    "src/barrow/credit-policy.ts": {
+      "sha256": "ec1aa777e39335e14a5c4292ff7b59ba57a2b165834435fdc26817e3b92d82fb",
+      "executable": false
+    },
     "src/barrow/credit-refunds.ts": {
       "sha256": "2f1a6f6633f1b2e3df2cd13818bde51506f28adb98baf95a4fa1be749b6aea4e",
       "executable": false
@@ -1761,6 +1765,10 @@
     },
     "src/barrow/timeline.ts": {
       "sha256": "85182741f9968387d18e4f46368b7da4fb10618ad59ef6da447b3b3f923c0150",
+      "executable": false
+    },
+    "src/barrow/ui/account-credit.tsx": {
+      "sha256": "30d1c0b74b1ee89429e28d00debbc76dfbded4ec9c5be2300bcad204c95f14ae",
       "executable": false
     },
     "src/barrow/ui/account-erasure.tsx": {
@@ -4489,6 +4497,10 @@
     },
     "tests/journeys/credit-payments.test.mjs": {
       "sha256": "cec8c0461e22668440d5bd74df19acdea7845ebf808a5514114aa8f86c56c489",
+      "executable": false
+    },
+    "tests/journeys/credit-policy.test.mjs": {
+      "sha256": "97ef0a310f67baa59be94719b631161a1504ebf34ca699df0bba8321e0494b55",
       "executable": false
     },
     "tests/journeys/cutover.test.mjs": {
