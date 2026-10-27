@@ -367,7 +367,7 @@ These references identify real source doors and formats, not implementation stat
 
 ## Status
 
-Status reflects the code and assertions in this committed candidate (27 October 2026); the exact candidate identity and landing receipts accompany the change. ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance/shipment/physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged.
+Judged from the code and tests at commit `4b5ce7cc104a403dd160d17977bb0a671b2b8778` (27 October 2026). The following metadata update preserves those implementation and assertion bytes; exact landing receipts accompany the candidate. ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance/shipment/physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged.
 
 
 | Clauses | Done | Partial | Missing | Total |

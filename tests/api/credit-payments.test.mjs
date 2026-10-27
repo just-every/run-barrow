@@ -133,4 +133,9 @@ test('net terms credit exposure blocks commitments and quotes, recalculates veri
  const sourceCsv='accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\n'+`cedar,${account.value.name},${account.value.email},${account.value.pierCustomerId},30,0,OAT-1,100000,1\n`;
  const preview=await h.api('/api/barrow/imports/preview',{csv:sourceCsv});await h.api('/api/barrow/imports/apply',{csv:sourceCsv,fingerprint:preview.fingerprint},{status:409});assert.equal((await h.api('/api/barrow/accounts/by-id/cedar')).value.credit.limitCents,2000000);
  const archiveValue=await archive(h);assert.ok(JSON.stringify(archiveValue).includes('Owner explicitly accepts the exact three thousand dollar excess.'));
+ const currentAccount=await h.api('/api/barrow/accounts/by-id/cedar');
+ const cadAccount=await h.command('account.save',{id:'cedar',revision:currentAccount.revision,value:{...currentAccount.value,currency:'CAD'}});
+ await h.command('credit.policy',{accountId:'cedar',revision:cadAccount.revision,termsDays:30,currency:'CAD',limitCents:2000000,reason:'Finance records a separate currency without converting existing debt.'});
+ assert.equal((await read()).foreign,true);const foreignDraft=await draft(1,'Foreign debt cannot disappear through currency selection');assert.equal(foreignDraft.currency,'CAD');
+ assert.equal((await h.command('order.submit',{orderId:foreignDraft.id},{...buyer,status:409})).error.code,'CREDIT_CURRENCY');
 });

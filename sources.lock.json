@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d13845bc23acd62a3170efa37543f069a08632af446bf062225df47c84e7b42a",
+      "sha256": "e6e6ffb53269ac833a2cd7c4a925ee4260547f7179159546d679ebe7550b3450",
       "executable": false
     },
     "DEMO.md": {
@@ -4260,7 +4260,7 @@
       "executable": false
     },
     "tests/api/credit-payments.test.mjs": {
-      "sha256": "a4be62dddc5258ef26c67541bb2ff9722bf17181ba0afdf03f0adce0b7dfe149",
+      "sha256": "8a9fab2a00eeb869d8c59603d1cc4af0c25f57eaf38529371fbe13d66c9295e7",
       "executable": false
     },
     "tests/api/cutover-fixture.mjs": {
