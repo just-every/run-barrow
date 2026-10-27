@@ -4380,7 +4380,7 @@
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
-      "sha256": "78d9a68b8f00154867a1a551648c43c4847bf95b12070ca99d12dd5537153aa3",
+      "sha256": "a9cb69acf81e270e17e7f2a1e93e08094de6df917439cb8b449af9e413835a0f",
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
