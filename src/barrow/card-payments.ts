@@ -20,7 +20,7 @@ function payable(order:Order) {if(order.status!=='approved'||!order.invoice||!or
 export async function readCards(env:Bindings,actor:Actor,orderId:string) {
  const order=await readOrder(env.DB,actor,orderId);await permitted(env,actor,{accountId:order.accountId,orderId:order.id} as CardPayment)
  const rows=await env.DB.prepare('SELECT value_json FROM bw_card_payments WHERE order_id=?').bind(orderId).all<{value_json:string}>()
- return {configured:!!await env.DB.prepare('SELECT 1 FROM bw_card_connection').first(),payments:rows.results.map(row=>publicCard(JSON.parse(row.value_json)))}
+ return {...(order.prebook?{requirement:{kind:'prebook-deposit' as const,orderId:order.id,amountCents:order.prebook.depositCents,currency:order.currency??'AUD',state:'required' as const}}:{}),configured:!!await env.DB.prepare('SELECT 1 FROM bw_card_connection').first(),payments:rows.results.map(row=>publicCard(JSON.parse(row.value_json)))}
 }
 export async function readCard(env:Bindings,actor:Actor,id:string) {const p=(await storedCard(env,id)).value;await permitted(env,actor,p);return publicCard(p)}
 async function save(env:Bindings,actor:Actor,value:CardPayment,previous:string,action:string,reason:string) {

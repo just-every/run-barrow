@@ -7,6 +7,7 @@ export interface AccountValue { currency?:'USD'|'CAD'; priceDisplay?:import('../
 export interface CurrentRep { name: string; coverage: boolean; through?: string }
 export interface Account { buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot; id: string; value: AccountValue; revision: string }
 export interface Order {
+  prebook?: import("../prebooks").Prebook
   buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}
 
