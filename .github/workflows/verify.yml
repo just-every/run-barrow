@@ -96,6 +96,7 @@ jobs:
             node scripts/ci/chromium-probe.mjs
           }
       - run: pnpm exec rer check --profile first-party
+        if: matrix.shard == 1
       - run: pnpm exec rer verify --no-queue
       - name: Credit notes and finance allowance screens
         if: matrix.shard == 1
