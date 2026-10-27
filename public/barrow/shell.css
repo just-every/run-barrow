@@ -29,5 +29,5 @@ body:has(.barrow){margin:0;padding:0;background:var(--br-canvas)}
  .br-nav{gap:0}.barrow .br-nav button{min-height:38px;padding:7px 9px;font-size:14px}
  .br-main,.br-main-pad{padding:16px 16px 24px}
  .br-page-title{align-items:flex-start;flex-direction:column;gap:10px;margin-bottom:16px}
- .br-footer{width:calc(100% - 32px);font-size:12px}
+ .br-footer{width:calc(100% - 32px);font-size:13px}
 }
