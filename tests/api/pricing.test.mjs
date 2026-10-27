@@ -259,6 +259,12 @@ test('scheduled book revisions quote exact USD prices on either side of midnight
  assert.equal(a.value.prices[0].unitCents,1201);assert.equal(a.value.priceRevisions[0].prices[0].unitCents,1409);
  const revisedQuote=await h.command('quote.request',{accountId:a.id,lines:[{sku:'OAT-1',quantity:3}]},buyer);assert.deepEqual(revisedQuote.request.map(l=>[l.unitCents,l.lineCents]),[[1409,4227]]);
  assert.deepEqual((await request()).request.map(l=>[l.unitCents,l.lineCents]),[[1303,3909]],'The independent brand book is unchanged by the account CSV import.');
+ const basis={asOf:'2030-01-01',numerator:1,denominator:1,source:'Synthetic recorded USD reference'};
+ a=await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,usdConversion:basis,priceRevisions:[...a.value.priceRevisions,{effectiveFrom:'2030-02-01',prices:[{sku:'OAT-1',unitCents:1709,minQty:1}]}]}});
+ const csv=`accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\ncedar,${a.value.name},${a.value.email},${source.customer.id},30,0,OAT-1,1411,1\n`;
+ const preview=await h.api('/api/barrow/imports/preview',{csv});await h.api('/api/barrow/imports/apply',{csv,fingerprint:preview.fingerprint});
+ const imported=await h.api('/api/barrow/accounts/by-id/cedar');assert.deepEqual(imported.value.priceRevisions,a.value.priceRevisions);assert.deepEqual(imported.value.usdConversion,basis);assert.equal(imported.value.prices[0].unitCents,1411);
+ assert.deepEqual((await h.command('quote.request',{accountId:a.id,lines:[{sku:'OAT-1',quantity:3}]},buyer)).request.map(l=>[l.unitCents,l.lineCents]),[[1409,4227]]);
  const backup=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,backup);assert.deepEqual((await restored.api('/api/barrow/accounts/by-id/cedar')).value.priceRevisions,a.value.priceRevisions);
 });
 
@@ -270,6 +276,10 @@ test('explicit foreign currency books preserve exact cents in every commercial d
  const buyer={as:await h.signIn(a.value.email)},records=[];
  for(const currency of ['CAD','EUR','GBP']) {
   a=await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,currency}});
+  const csv=`accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\ncedar,${a.value.name},${a.value.email},${source.customer.id},30,0,OAT-1,${currency==='EUR'?1411:1423},1\n`;
+  assert.equal((await h.api('/api/barrow/imports/preview',{csv},{status:409})).error.code,'ACCOUNT_CURRENCY');
+  const unchanged=await h.api('/api/barrow/accounts/by-id/cedar');assert.equal(unchanged.revision,a.revision);assert.equal(unchanged.value.prices[0].unitCents,1303);assert.deepEqual(unchanged.value.usdConversion,basis);
+
   const quote=await h.command('quote.request',{accountId:a.id,lines:[{sku:'OAT-1',quantity:3}]},buyer);
   assert.equal(quote.currency,currency);assert.deepEqual(quote.request.map(l=>[l.unitCents,l.lineCents]),[[1303,3909]]);
   const proposed=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:'2030-01-31',lines:[{sku:'OAT-1',quantity:3}]});assert.equal(proposed.currency,currency);assert.equal(proposed.revisions[0].totalCents,3909);
