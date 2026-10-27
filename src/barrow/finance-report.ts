@@ -1,3 +1,4 @@
+import { usdReporting } from './currency'
 import { requireStaffReport } from './staff-policy'
 import { creditRecords } from './credit-ledger'
 // RPT-004: frozen invoice dates, verified principal allocations and applied credits.
@@ -11,13 +12,13 @@ import { statementNote } from './statements'
 
 export const financeBuckets = ['current', '1-30', '31-60', '61-90', '91+'] as const
 export type FinanceBucket = typeof financeBuckets[number]
-export type FinanceRow = {
+export type FinanceRow = ReturnType<typeof usdReporting> & {
  orderId: string; accountId: string; account: string; assignedRep: string; reference: string
  invoiceNumber: string; issuedAt: string; dueAt: string; currency: string; amountCents: number
  paidCents: number; appliedCreditCents: number; outstandingCents: number; paymentSources: string; creditSources: string
  overdueDays: number; bucket: FinanceBucket; invoicePath: string; orderPath: string; statementPath: string
 }
-export const financeColumns = ['orderId', 'accountId', 'account', 'assignedRep', 'reference', 'invoiceNumber', 'issuedAt', 'dueAt', 'currency', 'amountCents', 'paidCents', 'appliedCreditCents', 'outstandingCents', 'paymentSources', 'creditSources', 'overdueDays', 'bucket', 'invoicePath', 'orderPath', 'statementPath'] as const
+export const financeColumns = ['orderId', 'accountId', 'account', 'assignedRep', 'reference', 'invoiceNumber', 'issuedAt', 'dueAt', 'currency', 'amountCents', 'paidCents', 'appliedCreditCents', 'outstandingCents', 'paymentSources', 'creditSources', 'overdueDays', 'bucket', 'invoicePath', 'orderPath', 'statementPath', 'usdCents', 'usdConversionDate', 'usdConversionSource', 'usdRateNumerator', 'usdRateDenominator'] as const
 const date = (value: string) => {
  const parsed = Date.parse(value + 'T00:00:00Z')
  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0, 10) !== value) fail('INPUT', 'As of must be a valid YYYY-MM-DD date.', 400)
@@ -44,7 +45,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
   const allocations = financial.allocations.filter(row => row.accountId === order.accountId && row.orderId === order.id && row.currency === currency && recorded(row.createdAt))
   const applications = financial.applications.filter(row => row.accountId === order.accountId && row.orderId === order.id && row.currency === currency && recorded(row.createdAt))
   const paidCents = allocations.reduce((sum, row) => sum + row.amountCents, 0), appliedCreditCents = applications.reduce((sum, row) => sum + row.amountCents, 0)
-  rows.push({ orderId: order.id, accountId: order.accountId, account: order.customerName, assignedRep: profile.assignedRep ?? '', reference: order.reference,
+  rows.push({ ...usdReporting(order,order.totalCents), orderId: order.id, accountId: order.accountId, account: order.customerName, assignedRep: profile.assignedRep ?? '', reference: order.reference,
    invoiceNumber: invoice.number, issuedAt: invoice.issuedAt, dueAt: invoice.dueAt, currency, amountCents: order.totalCents, paidCents, appliedCreditCents, outstandingCents: Math.max(0, order.totalCents - paidCents - appliedCreditCents),
    paymentSources: JSON.stringify(allocations.map(row => ({ allocationId: row.id, paymentId: row.paymentId, amountCents: row.amountCents, path: `/api/barrow/payments/${row.paymentId}` }))),
    creditSources: JSON.stringify(applications.map(row => ({ applicationId: row.id, creditId: row.creditId, amountCents: row.amountCents, path: `/api/barrow/credits/${row.creditId}` }))), overdueDays, bucket: bucketFor(overdueDays),
@@ -64,6 +65,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
  return { asOf, timeZone, checkedAt: at.toISOString(), filter, rows, totals,
   availableCredit: null, exposure: null, deposits: null, failedPayments: null, disputedBalances: null, refundStatus, ledgerReconciliation: null,
   notes: {
+   conversion: 'USD conversion uses the frozen, supplier-recorded dated ratio of USD cents to original currency cents, rounded half up once per displayed amount. It is not a live exchange quote; missing historical basis is not recorded. Original amounts remain unchanged.',
    amounts: `${statementNote} Aging buckets contain invoice principal less explicit card allocations and applied credits, never summed across currencies; original invoice cents remain separate. Amounts include recorded delivery and handling; tax is not calculated. Pending, failed and succeeded refunds do not restore invoice debt.`,
    dates: `Invoices issued on or before ${asOf}, inclusive. Frozen issue and due dates retain their original calendar-day semantics. Default as-of day uses ${timeZone}. Due today is current; overdue days are whole calendar days.`,
    unrecorded: 'Available credit and exposure (PAY-004), deposits and other payment types (PAY-003), failed payments and disputed balances (PAY-011), and ledger reconciliation (INT-002 and INT-003) are not recorded. PAY-010 refunds show their latest verified status only when that snapshot is on or before the as-of day; later status snapshots are omitted.',

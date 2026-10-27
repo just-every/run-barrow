@@ -3,7 +3,9 @@ import { validatePricing, type Pricing } from '../pricing';
 import { quantityMicro, formatMicro, type UnitDefinition } from '../units';
 
 export type AccountValue = {
-  currency?: 'USD' | 'CAD';
+  currency?: 'USD' | 'CAD' | 'EUR' | 'GBP';
+  priceRevisions?: {effectiveFrom:string;prices:AccountValue['prices']}[];
+  usdConversion?: import('../currency').UsdConversion;
   priceDisplay?: { confirmation: 'wholesale'|'retail'|'both'; orderCsv: 'wholesale'|'retail'|'both' };
   name: string;
   email: string;
@@ -67,10 +69,15 @@ export function validatePriceUnits(input: unknown): UnitDefinition[] {
   });
 }
 
+function validBookDate(value:unknown):string {
+ if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value))||new Date(value).toISOString().slice(0,10)!==value)importError('ACCOUNT_DATE','Use a valid YYYY-MM-DD book date.');
+ return value;
+}
+
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
-  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses', 'currency', 'priceDisplay'];
+  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses', 'currency', 'priceDisplay', 'priceRevisions', 'usdConversion'];
   if (Object.keys(value).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !(key in value)))
     importError('ACCOUNT_VALUE', 'Use exactly the documented account fields.');
   const name = boundedText(value.name, 'name');
@@ -122,13 +129,29 @@ export function validateAccountValue(input: unknown): AccountValue {
     profile.providerReferences = Object.fromEntries(Object.entries(value.providerReferences).map(([key, reference]) => [stableId(key, 'provider'), boundedText(reference, 'provider reference')]));
   }
   if(value.currency!==undefined) {
-    if(!['USD','CAD'].includes(value.currency as string))importError('ACCOUNT_CURRENCY','Choose USD or CAD; no currency conversion is inferred.');
-    profile.currency=value.currency as 'USD'|'CAD';
+    if(!['USD','CAD','EUR','GBP'].includes(value.currency as string))importError('ACCOUNT_CURRENCY','Choose USD, CAD, EUR or GBP; no currency conversion is inferred.');
+    profile.currency=value.currency as 'USD'|'CAD'|'EUR'|'GBP';
   }
   if(value.priceDisplay!==undefined) {
     const settings=value.priceDisplay as Record<string,unknown>;
     if(!settings||typeof settings!=='object'||Array.isArray(settings)||Object.keys(settings).some(k=>!['confirmation','orderCsv'].includes(k))||!['wholesale','retail','both'].includes(settings.confirmation as string)||!['wholesale','retail','both'].includes(settings.orderCsv as string))importError('ACCOUNT_DISPLAY','Choose wholesale, retail or both for confirmation and orderCsv.');
     profile.priceDisplay=settings as AccountValue['priceDisplay'];
+  }
+  if(value.priceRevisions!==undefined) {
+    if(!Array.isArray(value.priceRevisions)||value.priceRevisions.length>24)importError('ACCOUNT_REVISIONS','Use at most 24 dated book revisions.');
+    let previous='';
+    profile.priceRevisions=value.priceRevisions.map((entry:any)=>{
+      if(!entry||Object.keys(entry).some(key=>!['effectiveFrom','prices'].includes(key)))importError('ACCOUNT_REVISIONS','Each revision needs effectiveFrom and a complete prices array.');
+      const effectiveFrom=validBookDate(entry.effectiveFrom);
+      if(effectiveFrom<=previous)importError('ACCOUNT_REVISIONS','Revision dates must be unique and ascending.');previous=effectiveFrom;
+      const {priceRevisions,usdConversion,...base}=value;
+      return {effectiveFrom,prices:validateAccountValue({...base,prices:entry.prices}).prices};
+    });
+  }
+  if(value.usdConversion!==undefined) {
+    const basis=value.usdConversion as any;
+    if(!basis||Object.keys(basis).some(key=>!['asOf','numerator','denominator','source'].includes(key)))importError('ACCOUNT_FX','Record a dated USD conversion basis.');
+    profile.usdConversion={asOf:validBookDate(basis.asOf),numerator:nonnegativeInteger(basis.numerator,'USD rate numerator',1),denominator:nonnegativeInteger(basis.denominator,'USD rate denominator',1),source:boundedText(basis.source,'USD rate source',240)};
   }
   return { name, email, pierCustomerId, termsDays, minimumCents, prices, ...town, ...profile };
 }

@@ -57,3 +57,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-connector-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/connector-review.test.mjs tests/journeys/delta-cutover.test.mjs
+      - name: Effective book and currency reporting screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-currency-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs

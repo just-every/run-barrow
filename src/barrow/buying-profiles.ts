@@ -6,9 +6,9 @@ import { validateAccountValue } from './imports/validation'
 import { fail, requirePerson, requireSupplier, supplier, text, type Account, type Actor, type Order, type Price } from './model'
 import type { SellerIdentity } from './seller-identity'
 
-export type BrandValue={name:string;seller:SellerIdentity;currency:'USD'|'CAD';termsSeries?:string;requireAcceptance?:boolean}
-export type ProfileValue={brandId:string;name:string;prices:Price[];minimumCents:number;termsDays:number}
-export type BuyingProfileSnapshot={id:string;name:string;revision:string;brandId:string;brandRevision:string;brandName:string;seller:SellerIdentity;currency:'USD'|'CAD';termsSeries?:string;requireAcceptance?:boolean}
+export type BrandValue={name:string;seller:SellerIdentity;currency:'USD'|'CAD'|'EUR'|'GBP';termsSeries?:string;requireAcceptance?:boolean}
+export type ProfileValue={brandId:string;name:string;prices:Price[];minimumCents:number;termsDays:number;priceRevisions?:Account['value']['priceRevisions'];usdConversion?:Account['value']['usdConversion']}
+export type BuyingProfileSnapshot={id:string;name:string;revision:string;brandId:string;brandRevision:string;brandName:string;seller:SellerIdentity;currency:'USD'|'CAD'|'EUR'|'GBP';termsSeries?:string;requireAcceptance?:boolean}
 type Row={id:string;value_json:string;revision:string;account_id?:string}
 const read=async(db:D1Database,table:string,id:string)=>db.prepare(`SELECT * FROM ${table} WHERE id=?`).bind(id).first<Row>()
 const owner=(actor:Actor)=>{requirePerson(actor);requireSupplier(actor);if(actor.staff||!['owner','admin'].includes(actor.role))fail('FORBIDDEN','Only the supplier owner or admin manages brands and buying approvals.',403)}
@@ -32,7 +32,7 @@ export async function resolveBuyingProfile(db:D1Database,actor:Actor,base:Accoun
  const clauses=["EXISTS(SELECT 1 FROM bw_buying_profiles WHERE id=? AND account_id=? AND revision=?)","EXISTS(SELECT 1 FROM bw_brands WHERE id=? AND revision=?)"]
  const args:(string|number)[]=[row.id,base.id,row.revision,brand.id,brand.revision]
  if(!supplier(actor)){clauses.push(`EXISTS(${approvedSql})`);args.push(row.id,actor.id,base.id)}
- return {selected:{...base,value:{...base.value,prices:value.prices,minimumCents:value.minimumCents,termsDays:value.termsDays,currency:brandValue.currency},buyingProfile:snapshot},guard:guard(db,clauses.join(' AND '),args)}
+ return {selected:{...base,value:{...base.value,prices:value.prices,priceRevisions:value.priceRevisions,usdConversion:value.usdConversion,minimumCents:value.minimumCents,termsDays:value.termsDays,currency:brandValue.currency},buyingProfile:snapshot},guard:guard(db,clauses.join(' AND '),args)}
 }
 export async function orderBuyingProfile(db:D1Database,actor:Actor,base:Account,order:Pick<Order,'buyingProfile'>) {
  const context=await resolveBuyingProfile(db,actor,base,order.buyingProfile?.id)
@@ -69,7 +69,7 @@ export async function buyingProfileCommand(env:Bindings,actor:Actor,type:string,
  if(type==='brand.save') {
   const brandId=id(p.id,'Brand ID'),before=await read(env.DB,'bw_brands',brandId)
   if((before?.revision??null)!==(p.revision??null))fail('REVISION','Refresh the brand before editing it.')
-  if(!['USD','CAD'].includes(p.value?.currency))fail('CURRENCY','Choose an explicitly priced USD or CAD book.',400)
+  if(!['USD','CAD','EUR','GBP'].includes(p.value?.currency))fail('CURRENCY','Choose an explicitly priced USD, CAD, EUR or GBP book.',400)
   const value:BrandValue={name:text(p.value?.name,'Brand name',160),seller:{legalName:text(p.value?.seller?.legalName,'Seller legal name',160),address:text(p.value?.seller?.address,'Seller registered address',400),...(p.value?.seller?.registration?{registration:text(p.value.seller.registration,'Seller registration',80)}:{})},currency:p.value.currency}
   if(before&&JSON.parse(before.value_json).currency!==value.currency)fail('CURRENCY_IMMUTABLE','Create a separately priced brand for a different currency. Existing cents cannot be relabeled.')
   if(p.value.termsSeries){value.termsSeries=text(p.value.termsSeries,'Brand terms series',80);value.requireAcceptance=p.value.requireAcceptance!==false;if(!await env.DB.prepare('SELECT 1 FROM bw_sales_terms WHERE series=?').bind(value.termsSeries).first())fail('TERMS_SERIES','Publish the brand terms before assigning them.')}
@@ -81,8 +81,8 @@ export async function buyingProfileCommand(env:Bindings,actor:Actor,type:string,
   if(before&&(before.account_id!==selected.id||before.revision!==p.revision))fail('REVISION','Refresh the account-owned profile before editing it.')
   const brand=await read(env.DB,'bw_brands',id(p.value?.brandId,'Brand'));if(!brand)fail('NOT_FOUND','Brand not found.',404)
   if(before&&JSON.parse(before.value_json).brandId!==brand.id)fail('SELLER_IMMUTABLE','Create a separate profile for another seller; an existing profile cannot change ownership.')
-  const validated=validateAccountValue({...selected.value,prices:p.value?.prices,minimumCents:p.value?.minimumCents,termsDays:p.value?.termsDays,currency:JSON.parse(brand.value_json).currency})
-  const value:ProfileValue={brandId:brand.id,name:text(p.value?.name,'Profile name',160),prices:validated.prices,minimumCents:validated.minimumCents,termsDays:validated.termsDays}
+  const validated=validateAccountValue({...selected.value,prices:p.value?.prices,priceRevisions:p.value?.priceRevisions,usdConversion:p.value?.usdConversion,minimumCents:p.value?.minimumCents,termsDays:p.value?.termsDays,currency:JSON.parse(brand.value_json).currency})
+  const value:ProfileValue={brandId:brand.id,name:text(p.value?.name,'Profile name',160),prices:validated.prices,...(validated.priceRevisions?{priceRevisions:validated.priceRevisions}:{}),...(validated.usdConversion?{usdConversion:validated.usdConversion}:{}),minimumCents:validated.minimumCents,termsDays:validated.termsDays}
   await commit(env.DB,actor,[guard(env.DB,'EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?)',[selected.id,selected.revision]),before?env.DB.prepare('UPDATE bw_buying_profiles SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(value),revision,profileId,before.revision):env.DB.prepare('INSERT INTO bw_buying_profiles VALUES(?,?,?,?)').bind(profileId,selected.id,JSON.stringify(value),revision),changed(env.DB),audit(env.DB,actor,profileId,'profile.saved',{accountId:selected.id,revision,source:type,reason:'Supplier explicitly configured this account-owned brand assortment and independent exact-cent price book.'})])
   return {id:profileId,accountId:selected.id,value,revision}
  }

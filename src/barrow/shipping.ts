@@ -19,7 +19,7 @@ export async function saveShipping(env:Bindings,actor:Actor,p:any) {
  await commit(env.DB,actor,[statement,changed(env.DB),audit(env.DB,actor,'settings:shipping','shipping.configured',{revision,source:'shipping.settings',reason:`Configured ${methods.length} merchant delivery methods. Rates are merchant quotes, not live carrier rates.`})])
  return {methods,revision}
 }
-export type ShippingContext={currency?:'USD'|'AUD'|'CAD';account:Account;lines:Line[];shipTo?:Order['shipTo'];quotes?:FreightQuote[]}
+export type ShippingContext={currency?:'USD'|'AUD'|'CAD'|'EUR'|'GBP';account:Account;lines:Line[];shipTo?:Order['shipTo'];quotes?:FreightQuote[]}
 export async function deliveryOptions(env:Bindings,context:ShippingContext) {
  const settings=await shippingSettings(env.DB),today=supplierDate(await now()),subtotal=context.lines.reduce((sum,line)=>sum+(line.lineCents??line.quantity*line.unitCents),0)
  if(settings.methods.length&&(context.currency??context.account.value.currency??'USD')!=='USD')fail('SHIPPING_CURRENCY','These delivery methods are priced in USD and cannot be applied to another currency. The order or quote retains its recorded currency.')
