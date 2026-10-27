@@ -1,3 +1,4 @@
+import { prebookCommand, readPrebook } from './prebooks'
 import { faireState, faireConfigure, fairePoll, faireMatch } from './faire'
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
@@ -328,6 +329,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await commit(env.DB,actor,[env.DB.prepare('DELETE FROM bw_agent_tokens WHERE actor_id=?').bind(actor.id),audit(env.DB,actor,actor.id,'agent.revoked',{revision:`operator:${actor.version}`,source:'agent-token.revoke',reason:'Supplier revoked every agent grant issued under this identity.'})])
    return json({revoked:true})
   }
+  const prebook=/^\/api\/barrow\/prebooks\/([-a-zA-Z0-9]+)$/.exec(path)
+  if(prebook && request.method==='GET')return json(await readPrebook(env,actor,prebook[1]))
   if(path==='/api/barrow/promotions' && request.method==='GET'){promotionAdmin(actor);return json(await promotionSettings(env.DB))}
   if(path==='/api/barrow/commands' && request.method==='POST') {
    // A command carries at most one 1 MB PO document as base64.
@@ -338,6 +341,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['prebook.season','prebook.close','prebook.prepare','prebook.commit'].includes(body.type))return json({result:await prebookCommand(env,actor,body.type,body.payload)})
    if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})
    if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})

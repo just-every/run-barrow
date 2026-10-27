@@ -2,6 +2,7 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_prebook_seasons')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
   if(table==='bw_faire_sync')return {...row,enabled:0,cursor:null,complete:0};
   if(table==='bw_stock_sync')return {...row,restored:1,enabled:0,checkpoint:null,pending:null,lease_until:0,next_at:0,rate_until:0,has_more:1};
   if(table==='bw_stock_watches')return {...row,active:0};
@@ -24,7 +25,7 @@ export const portabilityPolicy = {
   return row;
  },
  // Catalog search rows are rebuildable observations, never the catalog or stock authority.
- excludeTables: ['bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
+ excludeTables: ['bw_prebook_frontier','bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
  requiredConfiguration: ['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
 };
 
