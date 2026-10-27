@@ -63,6 +63,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   }, [account.id, refresh])
   // Opening a draft fills the pad with its quantities; a new order starts empty.
   useEffect(() => {
+    setPrebookSeason(draft?.prebook?.seasonId??'');setPrebookDates(Object.fromEntries((draft?.lines??[]).map(l=>[l.sku,{requestedDate:l.requestedDate,cancelAfter:l.cancelAfter}])));
     setQuantities(Object.fromEntries((draft?.lines ?? []).map(line => [line.sku, String(line.quantity)])))
     setUnitOrder(false);setUnitLines(undefined);setAliases(Object.fromEntries((draft?.lines ?? []).filter(line => line.buyerSku).map(line => [line.sku, line.buyerSku!])));setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setDetails({ requestedDate: draft?.requestedDate ?? '', cancelAfter: draft?.cancelAfter ?? '', instructions: draft?.instructions ?? '' }); setKept(new Set()); setSelected('')
   }, [draft?.id, account.id])
@@ -149,6 +150,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
         {supplier && <AccountPicker accounts={accounts} value={account.id} onChange={id => id && onAccount(id)} />}
         {shipTos.length > 0 && <label>Ship to<select value={shipToId} onChange={event => setShipToId(event.target.value)} disabled={busy}><option value="">Default ship-to</option>{shipTos.map(location => <option key={location.id} value={location.id}>{location.value.name} · {location.value.city}, {location.value.state}{location.isDefault ? ' (default)' : ''}</option>)}</select></label>}
         <label>Delivery location label<input value={deliveryLocation} maxLength={240} onChange={event => setDeliveryLocation(event.target.value)} disabled={busy} placeholder="Store or delivery location" /></label>
+    <PrebookChoice value={prebookSeasonId} onChange={setPrebookSeason}/>{prebookSeasonId&&<section className="br-stack" style={{flexBasis:'100%'}} aria-label="Prebook ship windows"><p>Use future ship and cancel dates for each selected SKU. Incoming supply is checked separately; no stock is reserved.</p>{chosen.map(item=><PrebookWindowFields key={item.sku} sku={item.sku} onChange={dates=>setPrebookDates(current=>({...current,[item.sku]:dates}))}/>)}</section>}
         {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
       </div>
       <div className="br-pad-find" role="search">
@@ -157,7 +159,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
         {skuMessage && <p className="br-sku-message" role="status">{skuMessage}</p>}
       </div>
     </div>
-    <PrebookChoice onChange={setPrebookSeason}/>{prebookSeasonId&&<section aria-label="Prebook ship windows"><p>Use future ship and cancel dates for each selected SKU. Incoming supply is checked separately; no stock is reserved.</p>{chosen.map(item=><PrebookWindowFields key={item.sku} sku={item.sku} onChange={dates=>setPrebookDates(current=>({...current,[item.sku]:dates}))}/>)}</section>}
+
     <div className="br-pad-send">
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setListing(true)}>Saved lists</button>}

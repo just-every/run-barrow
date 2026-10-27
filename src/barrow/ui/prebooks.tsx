@@ -24,10 +24,10 @@ export function PrebookSettings() {
   {settings?.seasons.map(s=><article key={s.id}><h3>{s.name}</h3><p>{s.opensAt} to {s.closesAt} · deposit {s.depositBps/100}% · {s.closedAt?'Closed':'Published'}</p>{!s.closedAt&&<button disabled={busy} className="br-secondary" onClick={()=>{const reason=window.prompt('Reason for closing this season?');if(reason)void act('prebook.season-close',{id:s.id,reason})}}>Close {s.name}</button>}</article>)}
  </section></details>
 }
-export function PrebookChoice({onChange}:{onChange:(id:string)=>void}) {
+export function PrebookChoice({value,onChange}:{value:string;onChange:(id:string)=>void}) {
  const [settings,setSettings]=useState<Settings|null>(null)
  useEffect(()=>{void request<Settings>('/api/barrow/prebook-seasons').then(setSettings).catch(()=>{})},[])
- return <label>Order timing<select defaultValue="" onChange={e=>onChange(e.target.value)}><option value="">Available-now order</option>{settings?.seasons.filter(s=>!s.closedAt&&s.opensAt<=new Date().toISOString()&&s.closesAt>new Date().toISOString()).map(s=><option key={s.id} value={s.id}>{s.name} prebook · {s.depositBps/100}% deposit required</option>)}</select></label>
+ return <label>Order timing<select aria-label="Order timing" value={value} onChange={e=>onChange(e.target.value)}><option value="">Available-now order</option>{settings?.seasons.filter(s=>!s.closedAt&&s.opensAt<=new Date().toISOString()&&s.closesAt>new Date().toISOString()).map(s=><option key={s.id} value={s.id}>{s.name} prebook · {s.depositBps/100}% deposit required</option>)}</select></label>
 }
 export function PrebookWindowFields({sku,onChange}:{sku:string;onChange:(dates:{requestedDate?:string;cancelAfter?:string})=>void}) {
  const [requestedDate,setDate]=useState(''),[cancelAfter,setCancel]=useState('')

@@ -1996,7 +1996,7 @@
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
-      "sha256": "958a7e0314ab6b6d5ea165c16a4eccaed2185451ccc86c180ae8ab014415226b",
+      "sha256": "eb22677d5107d444f6df78e1388951a21ac4b658bb2d451ab39e3dc84178228c",
       "executable": false
     },
     "src/barrow/ui/order-revision.tsx": {
@@ -2020,7 +2020,7 @@
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {
-      "sha256": "79d739f32cc8cd42bb7493734855f51f07bb1d5dc7e90f04c18dab7d52e991bb",
+      "sha256": "ece60d949b3d50e5322d9f848916d4bf39dab854b0d6e0d0cbce90411cf4cf5f",
       "executable": false
     },
     "src/barrow/ui/pricing-settings.tsx": {
@@ -4508,7 +4508,7 @@
       "executable": false
     },
     "tests/journeys/confirmations.test.mjs": {
-      "sha256": "6c17b3f1260007c50feac871d4d11946b59c26e1edb895f477ecf5298a62c3ee",
+      "sha256": "f934a1bda1fe46cebd81542ef37781cb158f8222f37e0ab35c18f0c7b0a80700",
       "executable": false
     },
     "tests/journeys/credit-payments.test.mjs": {
