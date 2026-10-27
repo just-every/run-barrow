@@ -370,6 +370,12 @@
       "name": "0058_faire_poll_generation.sql",
       "sha256": "f0708f7bc99dadff349e970ae7793a9212267a22aaf00d77479b7c72a2793a88",
       "sql": "ALTER TABLE bw_faire_sync ADD COLUMN generation INTEGER NOT NULL DEFAULT 0;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0059_faire_reconciliation.sql",
+      "sha256": "ef45deceb61b3396c7ed49febe21147c6a1b7a10479f64a4516f96d6c84a8fee",
+      "sql": "ALTER TABLE bw_faire_sync ADD COLUMN completed_at TEXT;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
