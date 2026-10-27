@@ -60,10 +60,10 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
     try {
       const id = String(data.get('id')).trim()
       const value = {
-        ...profileFields(data),
+        ...profileFields(data), priceRevisions:JSON.parse(String(data.get('priceRevisions')||'[]')), usdConversion:data.get('usdConversion')?JSON.parse(String(data.get('usdConversion'))):undefined,
         name: String(data.get('name')).trim(), email: String(data.get('email')).trim().toLowerCase(),
         pierCustomerId: String(data.get('pierCustomerId')).trim(), termsDays: Number(data.get('termsDays')),
-        minimumCents: Number(data.get('minimumCents')), currency: String(data.get('currency')) as 'USD'|'CAD', priceDisplay:{confirmation:String(data.get('confirmationDisplay')) as 'wholesale'|'retail'|'both',orderCsv:String(data.get('orderCsvDisplay')) as 'wholesale'|'retail'|'both'}, prices: applyRetail(applyPricing(parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),String(data.get('pricing')??'')),String(data.get('retail')??'')),
+        minimumCents: Number(data.get('minimumCents')), currency: String(data.get('currency')) as 'USD'|'CAD'|'EUR'|'GBP', priceDisplay:{confirmation:String(data.get('confirmationDisplay')) as 'wholesale'|'retail'|'both',orderCsv:String(data.get('orderCsvDisplay')) as 'wholesale'|'retail'|'both'}, prices: applyRetail(applyPricing(parsePrices(String(data.get('prices')), String(data.get('units') ?? '')),String(data.get('pricing')??'')),String(data.get('retail')??'')),
         ...Object.fromEntries(['city', 'state'].map(key => [key, String(data.get(key)).trim()]).filter(([, value]) => value)),
       }
       if (checking || checkError || hasNext || !reviewed) throw new Error('Review the possible duplicate companies before saving.')
@@ -93,6 +93,8 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
       <label className="br-full">Selling units (optional JSON)<textarea name="units" rows={8} defaultValue={configuredUnits(account?.value.prices ?? [])} placeholder={'[{"sku":"JV-2214-S","units":[{"code":"case","baseQuantity":"12","unitCents":48000,"packContents":"12 each per case"}]}]'} spellCheck={false} /><small>List each SKU with its selling units. Each unit needs a unique code, an exact baseQuantity conversion to Pier stock units, a unitCents price and a packContents description. Base quantities must be positive, at most 1000000 and have at most six decimal places. Use quantityKind "measured" for decimal quantities; case and pallet stay whole. Unit codes must differ from the stock unit. Leave blank to use the agreed prices without configured units.</small></label>
       <label className="br-full">Reason for change (optional)<input name="reason" maxLength={240} /><small>Recorded in the supplier audit with this revision. An override retains its approved reason when this field is empty.</small></label>
       <RetailSettings account={account} />
+      <label className="br-full">Scheduled book revisions (optional JSON)<textarea name="priceRevisions" rows={4} defaultValue={JSON.stringify(account?.value.priceRevisions??[],null,2)} spellCheck={false} /><small>Each revision has effectiveFrom (YYYY-MM-DD, midnight Eastern) and a complete prices array in this book’s currency. Dates ascend. Existing documents retain agreed prices.</small></label>
+      <label className="br-full">Dated USD conversion basis (optional JSON)<textarea name="usdConversion" rows={3} defaultValue={account?.value.usdConversion?JSON.stringify(account.value.usdConversion,null,2):''} spellCheck={false} placeholder={'{"asOf":"2026-10-27","numerator":73,"denominator":100,"source":"Supplier recorded reference"}'} /><small>The ratio records USD cents per original currency cent. Orders freeze this date, ratio and source for reports; original prices are never converted.</small></label>
       <PricingSettings prices={account?.value.prices??[]} />
     </fieldset>
     {checking && <p role="status">Checking possible duplicate companies…</p>}

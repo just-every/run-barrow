@@ -79,7 +79,7 @@ test('a company finance viewer exports only invoiced orders, never drafts, quote
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const products = await stock(pier, '20');
  const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
- await h.command('account.save', { id: 'cedar', value: { ...accountValue(products.customer.id), prices: [{ sku: 'OAT-1', unitCents: 6500, minQty: 2 }] } });
+ await h.command('account.save', { id: 'cedar', value: { ...accountValue(products.customer.id), prices: [{ sku: 'OAT-1', unitCents: 6500, minQty: 2 }], priceRevisions: [{effectiveFrom:'2098-01-01',prices:[{sku:'OAT-1',unitCents:998877,minQty:2}]}] } });
  const buyer = { as: await h.signIn('buyer@example.test') };
  await h.command('company.invite', { accountId: 'cedar', email: 'finance@example.test', name: 'Company Finance', policy: { rights: ['finance'], locations: 'all', perOrderLimitCents: null, approvalLimitCents: null }, reason: 'Administrator assigned the finance viewer right.' }, buyer);
  const finance = { as: await h.signIn('finance@example.test', 'existing') };
@@ -99,13 +99,14 @@ test('a company finance viewer exports only invoiced orders, never drafts, quote
  const exported = await h.api('/api/barrow/export.json', undefined, finance);
  assert.deepEqual(exported.manifest.accountIds, ['cedar']);
  assert.deepEqual(exported.orders.map(order => order.id), [invoiced.id]);
+ assert.ok(!JSON.stringify(exported).includes('998877'),'Company finance cannot export future agreed prices.');
  assert.deepEqual(exported.invoices.map(invoice => invoice.orderId), [invoiced.id]);
  assert.ok(exported.lines.every(line => line.orderId === invoiced.id));
  for (const kind of ['quotes', 'quotelines', 'quotemessages', 'prices']) assert.deepEqual(exported[kind], [], kind);
- for (const kind of ['orders', 'lines', 'quotes', 'quotelines', 'quotemessages', 'prices']) {
+ for (const kind of ['accounts', 'orders', 'lines', 'quotes', 'quotelines', 'quotemessages', 'prices']) {
   const csv = await h.request(`/api/barrow/export/${kind}.csv`, finance);
   assert.equal(csv.status, 200, kind);
   const text = await csv.text();
-  for (const hidden of [draft.id, quote.id, '6100']) assert.ok(!text.includes(hidden), `${kind}.csv discloses ${hidden}`);
+  for (const hidden of [draft.id, quote.id, '6100', '998877']) assert.ok(!text.includes(hidden), `${kind}.csv discloses ${hidden}`);
  }
 });
