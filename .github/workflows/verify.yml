@@ -32,11 +32,11 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm exec rer check --profile first-party
       - run: pnpm exec rer verify --no-queue
-      - name: Credit notes and finance allowance screens
+      - name: Credit notes, limits and finance allowance screens
         if: matrix.shard == 1
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-credit-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs tests/journeys/credit-policy.test.mjs
       - name: Promotion preview and return attribution screens
         if: matrix.shard == 2
         env:

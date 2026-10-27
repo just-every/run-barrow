@@ -1,4 +1,5 @@
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
+import { readAccountCredit, creditPolicyCommand } from './credit-policy'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
 import { savedCardCommand,readSavedCards } from './saved-cards'
@@ -138,6 +139,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/account-credit'&&request.method==='GET')return json(await readAccountCredit(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/credits'&&request.method==='GET')return json(await readCredits(env,actor,url.searchParams.get('orderId')??''))
   const creditPath=/^\/api\/barrow\/credits\/([-a-zA-Z0-9_]+)$/.exec(path),refundPath=/^\/api\/barrow\/refunds\/([-a-zA-Z0-9_]+)$/.exec(path)
   if(creditPath&&request.method==='GET')return json(await readCredit(env,actor,creditPath[1]))
@@ -337,6 +339,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
+   if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
    if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})
