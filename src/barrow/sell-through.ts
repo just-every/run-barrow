@@ -22,7 +22,7 @@ export type SellThroughReview = {
  sourceOrders: {id: string; revision: string}[]; cadenceDays: number|null
  lines: {sku: string; unit: string; sold: number|null; observedDays: number; onHand: number; openBaseQuantity: string; demand: number|null; suggested: number|null; quantity: number; explanation: string}[]
  blockers: string[]; fingerprint: string
- provenance: {model: string; tools: string[]; paidCostCents: number; contacts: number; authority: string}
+ provenance: {runId: string; model: string; tools: string[]; paidCostCents: number; contacts: number; authority: string}
 }
 function date(value: unknown, name: string) {
  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(Date.parse(value+'T00:00:00Z'))||new Date(value+'T00:00:00Z').toISOString().slice(0,10)!==value)fail('INPUT',`${name} must be a real YYYY-MM-DD date.`,400)
@@ -112,7 +112,7 @@ export async function sellThroughReview(env: Bindings, actor: Actor, p: any) {
  const value={accountId:selected.id,accountRevision:selected.revision,...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),feedSha256:await digest(csv),observedOn,requestedDate,horizonDays,seasonalityBps,budgetCents,currency:available.currency,totalCents,sourceOrders:orders.map(order=>({id:order.id,revision:order.revision})),cadenceDays,lines,blockers,provenance:{model:'barrow-sell-through-arithmetic-v1',tools:['buyer-authorized-export','account-catalogue','native-orders','live-Pier'],paidCostCents:0,contacts:0,authority:'Current company purchaser; no external agent, model call, outreach or purchase execution.'}}
  // Live prices, availability and open source revisions participate in exact human review.
  const fingerprint=await digest(JSON.stringify({value,offers:available.items}))
- return {review:{...value,fingerprint} as SellThroughReview,guards:[profile.guard,companyRightsGuard(env.DB,member),env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${orderSnapshot.replace(' AS value','')})=? THEN 1 ELSE 0 END`).bind(selected.id,snapshot)]}
+ return {review:{...value,provenance:{...value.provenance,runId:fingerprint},fingerprint} as SellThroughReview,guards:[profile.guard,companyRightsGuard(env.DB,member),env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${orderSnapshot.replace(' AS value','')})=? THEN 1 ELSE 0 END`).bind(selected.id,snapshot)]}
 }
 export async function sellThroughOutcomes(env: Bindings, actor: Actor, order: Order) {
  await sellThroughBuyer(env,actor,order.accountId)
