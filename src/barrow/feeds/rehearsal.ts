@@ -61,7 +61,7 @@ export async function runRehearsal(config:FeedConfiguration,secrets:string|undef
    const id=await digest(`${kind}\0${sha256}`)
    const mappingHash=await digest(JSON.stringify([Object.entries(config.mapping[kind]).sort(([a],[b])=>a.localeCompare(b)),kind==='ats'?result.rehearsal.productRows:kind==='customers'?[...config.accountIds].sort():null]))
    const prior=result.rehearsal.files.find(file=>file.id===id)
-   if(prior?.mappingHash===mappingHash)continue
+   if(prior?.mappingHash===mappingHash&&[...result.rehearsal.files].reverse().find(file=>file.kind===kind)?.id===id)continue
    if(!prior&&result.rehearsal.files.reduce((sum,file)=>sum+Buffer.from(file.bytesBase64,'base64').byteLength,bytes.byteLength)>768*1024)fail('FEED_CUSTODY_LIMIT','This rehearsal has reached its retained source-byte limit. Start a new isolated rehearsal.',409)
    const errors:FeedError[]=[],accepted:Array<ProductRow|AtsRow|CustomerRow>=[],seen=new Set<string>()
    try {
@@ -80,7 +80,7 @@ export async function runRehearsal(config:FeedConfiguration,secrets:string|undef
     }
    }catch(error){errors.push(rowError(error,1,owner))}
    const record={id,sha256,kind,name,bytesBase64:Buffer.from(bytes).toString('base64'),receivedAt:prior?.receivedAt??at,owner:prior?.owner??owner,mappingHash,rowsAccepted:accepted.length,errors}
-   result.rehearsal.files=prior?result.rehearsal.files.map(file=>file.id===id?record:file):[...result.rehearsal.files,record]
+   result.rehearsal.files=[...result.rehearsal.files.filter(file=>file.id!==id),record]
    if(kind==='products')result.rehearsal.productRows=accepted as ProductRow[]
    if(kind==='ats')result.rehearsal.atsRows=accepted as AtsRow[]
    if(kind==='customers')result.rehearsal.customerRows=accepted as CustomerRow[]

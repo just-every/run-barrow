@@ -28,6 +28,7 @@ export type FeedDelivery = {
  state:'pending'|'sent'|'processed';sentAt?:string;processedAt?:string;error?:string
 }
 export type FeedSnapshot = {
+ permissions?:{configHash:string;checkedAt:string;read:boolean;write:boolean;removed:boolean}
  consent:boolean;config:FeedConfiguration
  rehearsal:{products:number;ats:number;customers:number;files:FeedFile[];unresolvedErrors:number;productRows:ProductRow[];atsRows:AtsRow[];customerRows:CustomerRow[]}
  deliveries:FeedDelivery[]
