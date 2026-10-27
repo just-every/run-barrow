@@ -1,4 +1,4 @@
-import { admitCredit, creditPolicy } from './credit-policy'
+import { admitCredit, creditPolicy, creditSignature, assertCreditSignature } from './credit-policy'
 import { resolveBuyingProfile, orderBuyingProfile, buyingOrderGuards } from './buying-profiles'
 import { deltaEntryGuard, deltaMutationGuard } from './imports/delta-entry'
 import { linkedReplacementGuard } from './proposal-approval'
@@ -142,9 +142,10 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    if(selected.revision!==order.accountRevision)fail('PRICE_CHANGED','The account changed. The purchaser must prepare a new draft.')
    await assertCurrentPricing(env,actor,selected,order,true)
    await assertSameAddress(env.DB,order)
+   await assertCreditSignature(env.DB,order)
   } catch(error) {
    // A material price or address change voids every approval so far: the request returns to a draft for a fresh review.
-   if(error instanceof Problem&&['PRICE_CHANGED','ADDRESS_CHANGED'].includes(error.code)) await voidApproval(env,actor,order,error.message)
+   if(error instanceof Problem&&['PRICE_CHANGED','ADDRESS_CHANGED','CREDIT_CHANGED'].includes(error.code)) await voidApproval(env,actor,order,error.message)
    throw error
   }
   const stale=staleStock(order,await freshnessLimit(env.DB),await now());if(stale)fail('STOCK_STALE',stale)
@@ -179,6 +180,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   await assertCurrentPricing(env,actor,selected,order,true)
   const stale=staleStock(order,await freshnessLimit(env.DB),await now())
   if(stale) fail('STOCK_STALE',stale)
+  await admitCredit(env,order)
   if(order.delivery && (['owner','admin'].includes(actor.role)||actor.staff))fail('BUYER_REQUIRED','The account buyer must accept the final delivery before ordering.',403)
   // REP-001: a rep prepares for the buyer's approval. Where the account has a signed-in buyer, that buyer submits, so the company's own limits and approvers apply and a rep cannot stand in for them.
   if(actor.staff&&await activeBuyerExists(env.DB,order.accountId))fail('BUYER_REQUIRED','This account has a buyer. Your prepared order waits for the buyer to review and submit it under the company’s own approval policy.',403)
@@ -284,7 +286,8 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   await requireCompanyRight(env.DB,actor,selected.id,'purchaser',shipTo?.id)
   if(member&&member.locations!=='all'&&!shipTo)fail('FORBIDDEN','Choose one of your permitted ship-to locations.',403)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
-  const order:Order={...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:(await creditPolicy(env.DB,selected.id))?.termsDays??selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
+  const policy=await creditPolicy(env.DB,selected.id)
+  const order:Order={creditPolicySnapshot:creditSignature(policy),...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:policy?.termsDays??selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`}),env.DB.prepare('UPDATE bw_approval_notices SET closed_at=?,closed_reason=? WHERE order_id=? AND closed_at IS NULL').bind(new Date().toISOString(),`Superseded by revised request ${id}; it needs fresh approval at every step.`,replaced.id)]:[]
   await commit(env.DB,actor,[profile.guard,entryGuard,companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),...(sheet?[env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_line_sheets WHERE id=? AND revision=? AND json_extract(value_json,'$.state')='published') THEN 1 ELSE 0 END").bind(sheet.id,sheet.revision)]:[]),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...supersede])

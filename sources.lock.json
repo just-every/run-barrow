@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "af421e06e1dedfa58d90432828f8f223ee65d4c5aeea1ebdbdefed1cec5f86e2",
+      "sha256": "bd4538591224d05b19b8d4142b83612469f879b3e8090a817eed82c67b4751e2",
       "executable": false
     },
     ".gitignore": {
@@ -1312,7 +1312,7 @@
       "executable": false
     },
     "src/barrow/credit-policy.ts": {
-      "sha256": "ec1aa777e39335e14a5c4292ff7b59ba57a2b165834435fdc26817e3b92d82fb",
+      "sha256": "3865d481855d9eca8674b81afa597d150582295cb85fdc2bff10efd3c5ecd7c9",
       "executable": false
     },
     "src/barrow/credit-refunds.ts": {
@@ -1536,7 +1536,7 @@
       "executable": false
     },
     "src/barrow/model.ts": {
-      "sha256": "87936a1309a6bc8d8652d4c8c444727d50cb5939d9f7247f91b2382969cbfc22",
+      "sha256": "630e5da72134a07bdcbc99170072bb047beceeaae4efc59a464b47eba61ac154",
       "executable": false
     },
     "src/barrow/order-revisions.ts": {
@@ -1548,7 +1548,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "09953b08257ef2e8c64eba9be4bf31b6d713b39e41b3e3f5b937c6c9eb39ca42",
+      "sha256": "b630e1a98cd5440aa0f17b6e54997e74c9f54fc91192ef2c806302c3eeb2135d",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -1648,7 +1648,7 @@
       "executable": false
     },
     "src/barrow/quotes.ts": {
-      "sha256": "ab662268930e788a564051d281e2a91459be4483e6603add31726fa0e9aac92d",
+      "sha256": "9755ae3cda9f6ff3f3972026087d94e201dbe7cc01d52fb7c6ced6fa4abea10c",
       "executable": false
     },
     "src/barrow/reorders.ts": {
@@ -1760,7 +1760,7 @@
       "executable": false
     },
     "src/barrow/substitutions.ts": {
-      "sha256": "dde130a45bfa7a9adfb70a5600b4edffa75854f2fbe3dc6b97ba0e0c099701a0",
+      "sha256": "7fd3cdc4a6ada89445dffbffab1e8d676ee20d31bec716f8d7e54e4aed18eca2",
       "executable": false
     },
     "src/barrow/timeline.ts": {
@@ -1768,7 +1768,7 @@
       "executable": false
     },
     "src/barrow/ui/account-credit.tsx": {
-      "sha256": "30d1c0b74b1ee89429e28d00debbc76dfbded4ec9c5be2300bcad204c95f14ae",
+      "sha256": "2f67f045ad9630e945e6ead71ae4496c2bd1418e4c42abacc32a3ade8e7c4a9d",
       "executable": false
     },
     "src/barrow/ui/account-erasure.tsx": {
@@ -4228,7 +4228,7 @@
       "executable": false
     },
     "tests/api/company-approvals.test.mjs": {
-      "sha256": "9f68d8d281897da062f12b4600c83147c52a2a94ce7ca47702be38f74ad591c8",
+      "sha256": "57f72d9c4e688e304b265ad059af3d7755b9c669d32fc9062bcf9825deddf4b4",
       "executable": false
     },
     "tests/api/confirmations.test.mjs": {
@@ -4328,7 +4328,7 @@
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
-      "sha256": "f1fdd8b47ceff6ab75e34650752027a3c6003ab3bf7f735a5a15ed00e8e5385d",
+      "sha256": "9884802afc2dd919c4d142136a926d4408937dfde151944172d155936e7ec3f9",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {

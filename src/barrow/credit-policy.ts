@@ -14,6 +14,10 @@ export async function creditPolicy(db:D1Database,id:string):Promise<CreditPolicy
  const row=await db.prepare('SELECT value_json,revision FROM bw_settings WHERE key=?').bind(key(id)).first<{value_json:string;revision:string}>()
  return row?{...JSON.parse(row.value_json),revision:row.revision}:null
 }
+export const creditSignature=(policy:CreditPolicy|null)=>policy?JSON.stringify([policy.currency,policy.limitCents,policy.termsDays]):'unconfigured'
+export async function assertCreditSignature(db:D1Database,order:Order) {
+ if((order.creditPolicySnapshot??'unconfigured')!==creditSignature(await creditPolicy(db,order.accountId)))fail('CREDIT_CHANGED','Finance credit policy changed. Prepare a fresh draft and obtain fresh company approvals.')
+}
 const commercial=(order:Order)=>JSON.stringify([order.id,order.currency,order.totalCents,order.termsDays,order.lines,order.delivery])
 export async function creditExposure(db:D1Database,accountId:string,currency:string,excludeOrderId='') {
  const financial=await creditRecords(db)
@@ -43,6 +47,7 @@ export async function readAccountCredit(env:Bindings,actor:Actor,id:string) {
 export async function admitCredit(env:Bindings,order:Order) {
  const policy=await creditPolicy(env.DB,order.accountId),guards=await creditGuards(env.DB,order.accountId,policy)
  if(!policy)return guards
+ await assertCreditSignature(env.DB,order)
  if(order.currency!==policy.currency)fail('CREDIT_CURRENCY','The order currency differs from the finance credit currency. Ask finance to review it.')
  const value=await creditExposure(env.DB,order.accountId,policy.currency,order.id),projected=value.exposureCents+order.totalCents
  const held=!!policy.hold&&Date.parse(policy.hold.expiresAt)>(await now()).getTime()
