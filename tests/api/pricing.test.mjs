@@ -6,8 +6,8 @@ import { installation, stock, accountValue, archive, restore } from './harness.m
 
 test('PRI-002 / PRI-007: dated volume/graduated breaks, account/group precedence and approved overrides explain and freeze exact commercial totals',async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());const source=await stock(pier,'500');
- const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
- const easternDay=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,BARROW_TEST_CLOCK:'2026-10-27T12:00:00Z'}});t.after(()=>h.close());
+ const easternDay='2026-10-27';
  const period={effectiveFrom:'2000-01-01',effectiveTo:'2099-12-31'};
  const rule={...period,mode:'volume',breaks:[{fromQuantity:'10',unitCents:800}],groupDiscount:{name:'Independent stores',bps:2000},accountDiscountBps:1000};
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),minimumCents:0,prices:[{sku:'OAT-1',unitCents:1000,minQty:1,pricing:rule,units:[{code:'pallet',baseQuantity:'12',unitCents:10000,packContents:'12 cases',pricing:{...period,mode:'graduated',breaks:[{fromQuantity:'2',unitCents:9000}]}},{code:'measured',baseQuantity:'1',unitCents:333,packContents:'Measured cases',quantityKind:'measured',pricing:{...period,accountDiscountBps:5000}}]}]}});
@@ -229,4 +229,64 @@ test('fixed bundle requirements, dated account eligibility, ordered stacking and
  await h.command('promotion.save',{revision:f.settings.revision,offers:[offer]}, {...buyer,status:403});await h.command('promotion.preview',{accountId:'cedar',lines},{...buyer,status:403});assert.equal((await h.request('/api/barrow/promotions',buyer)).status,403);
  const revise=await f.prepare();await h.command('order.submit',{orderId:revise.id},buyer);const submitted=await h.api('/api/barrow/orders/'+revise.id,undefined,buyer);const revised=await h.command('order.revise',{orderId:submitted.id,revision:submitted.revision,changes:[{line:0,quantity:1}]},buyer);assert.equal(revised.totalCents,2403);assert.ok(revised.lines.every(l=>!l.promotion));
  await h.command('promotion.save',{revision:null,offers:[]},{status:409});await h.command('promotion.save',{revision:f.settings.revision,offers:[{...offer,bps:10001}]},{status:400});
+});
+
+test('scheduled book revisions quote exact USD prices on either side of midnight Eastern and refuse stale cart and quote acceptance',async t=>{
+ const pier=await installation({pier:true});t.after(()=>pier.close());const source=await stock(pier,'500');
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,BARROW_TEST_CLOCK:'2030-01-02T04:59:59Z'}});t.after(()=>h.close());
+ const prices=[{sku:'OAT-1',unitCents:1201,minQty:1}],revised=[{sku:'OAT-1',unitCents:1303,minQty:1}];
+ const a=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),minimumCents:0,currency:'USD',prices,priceRevisions:[{effectiveFrom:'2030-01-02',prices:revised}]}});
+ const buyer={as:await h.signIn(a.value.email)};
+ await h.command('brand.save',{id:'scheduled-usd',value:{name:'Scheduled seller',currency:'USD',seller:{legalName:'Synthetic Barrow Seller',address:'101 Main Street, New York NY 10001'}}});
+ const profile=await h.command('profile.save',{id:'scheduled-profile',accountId:a.id,value:{brandId:'scheduled-usd',name:'Scheduled buyer book',minimumCents:0,termsDays:30,prices,priceRevisions:a.value.priceRevisions}});
+ const buyerId=(await h.api('/api/barrow/state',undefined,buyer)).actor.id;await h.command('profile.grant',{profileId:profile.id,userId:buyerId,approved:true,reason:'Supplier approves the scheduled USD book.'});
+ const request=()=>h.command('quote.request',{accountId:a.id,profileId:profile.id,lines:[{sku:'OAT-1',quantity:3}]},buyer);
+ const before=await request();assert.deepEqual(before.request.map(l=>[l.unitCents,l.lineCents]),[[1201,3603]]);assert.equal(before.currency,'USD');
+ await h.command('quote.propose',{quoteId:before.id,revision:before.revision,lines:[{sku:'OAT-1',quantity:3}],termsDays:30,shipping:'No delivery charge',validUntil:'2030-01-30'});
+ const sheet=await h.command('sheet.publish',{accountId:a.id,name:'Before scheduled prices',season:'Winter',skus:['OAT-1'],display:'wholesale',shipStart:'2030-01-01',shipEnd:'2030-01-31'});
+ const draft=await h.command('order.prepare',{accountId:a.id,reference:'Before effective book',lines:[{sku:'OAT-1',quantity:3}]},buyer);assert.equal(draft.totalCents,3603);
+ await h.configure({BARROW_TEST_CLOCK:'2030-01-02T05:00:00Z'});
+ const after=await request();assert.deepEqual(after.request.map(l=>[l.unitCents,l.lineCents]),[[1303,3909]]);assert.equal(after.currency,'USD');assert.ok((await(await h.request('/api/barrow/price-book.csv?accountId=cedar')).text()).includes('1303'));
+ assert.equal((await h.command('order.submit',{orderId:draft.id},{...buyer,status:409})).error.code,'PRICE_CHANGED');
+ assert.equal((await h.command('order.prepare',{accountId:a.id,lineSheetId:sheet.id,lineSheetRevision:sheet.revision,lines:[{sku:'OAT-1',quantity:3}]},{...buyer,status:409})).error.code,'CHANGED');
+ assert.equal((await h.command('quote.accept',{quoteId:before.id,number:1},{...buyer,status:409})).error.code,'QUOTE_STALE');
+ assert.deepEqual((await h.api('/api/barrow/quotes/'+before.id,undefined,buyer)).request.map(l=>[l.unitCents,l.lineCents]),[[1201,3603]]);
+ await h.command('quote.propose',{quoteId:after.id,revision:after.revision,lines:[{sku:'OAT-1',quantity:3}],termsDays:30,shipping:'No delivery charge',validUntil:'2030-01-30'});
+ const accepted=(await h.command('quote.accept',{quoteId:after.id,number:1},buyer)).order;assert.equal(accepted.totalCents,3909);
+ await h.command('account.save',{id:a.id,revision:a.revision,value:a.value},{...buyer,status:403});
+ for(const priceRevisions of [[{effectiveFrom:'2030-02-30',prices}],[{effectiveFrom:'2030-01-02',prices},{effectiveFrom:'2030-01-02',prices}],[{effectiveFrom:'2030-01-02',prices:[{...prices[0],unitCents:1.5}]}]])await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,priceRevisions}},{status:409});
+ const backup=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,backup);assert.deepEqual((await restored.api('/api/barrow/accounts/by-id/cedar')).value.priceRevisions,a.value.priceRevisions);
+});
+
+test('explicit foreign currency books preserve exact cents in every commercial document and disclose a frozen dated USD reporting basis',async t=>{
+ const pier=await installation({pier:true});t.after(()=>pier.close());const source=await stock(pier,'500');
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,BARROW_TEST_CLOCK:'2030-01-03T12:00:00Z'}});t.after(()=>h.close());
+ const basis={asOf:'2030-01-02',numerator:73,denominator:100,source:'Synthetic supplier daily reference'};
+ let a=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),minimumCents:0,currency:'CAD',prices:[{sku:'OAT-1',unitCents:1303,minQty:1}],usdConversion:basis}});
+ const buyer={as:await h.signIn(a.value.email)},records=[];
+ for(const currency of ['CAD','EUR','GBP']) {
+  a=await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,currency}});
+  const quote=await h.command('quote.request',{accountId:a.id,lines:[{sku:'OAT-1',quantity:3}]},buyer);
+  assert.equal(quote.currency,currency);assert.deepEqual(quote.request.map(l=>[l.unitCents,l.lineCents]),[[1303,3909]]);
+  const proposed=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,validUntil:'2030-01-31',lines:[{sku:'OAT-1',quantity:3}]});assert.equal(proposed.currency,currency);assert.equal(proposed.revisions[0].totalCents,3909);
+  let order=await h.command('order.prepare',{accountId:a.id,reference:'Original '+currency,lines:[{sku:'OAT-1',quantity:3,unitCents:1}],currency:'USD'},buyer);
+  assert.equal(order.currency,currency);assert.equal(order.totalCents,3909);assert.deepEqual(order.lines.map(l=>[l.quantity,l.unitCents,l.lineCents]),[[3,1303,3909]]);assert.deepEqual(order.usdConversion,basis);
+  await h.command('order.submit',{orderId:order.id},buyer);order=await h.command('order.approve',{orderId:order.id});assert.equal(order.status,'approved');
+  const invoice=await(await h.request(`/api/barrow/invoices/${order.id}.csv`,buyer)).text();assert.ok(invoice.includes(currency));assert.ok(invoice.includes('3909'));
+  const confirmation=await(await h.request(`/api/barrow/orders/${order.id}/confirmations/1.csv`,buyer)).text();assert.ok(confirmation.includes(currency));assert.ok(confirmation.includes('3909'));assert.ok(confirmation.includes('1303'));
+  const pdf=await(await h.request(`/api/barrow/orders/${order.id}/confirmations/1.pdf`,buyer)).text();assert.ok(pdf.includes(currency+' 39.09'));
+  const statement=await h.api('/api/barrow/statements/cedar?to=2030-01-31',undefined,buyer);assert.equal(statement.sections.find(s=>s.currency===currency).closingCents,3909);
+  for(const suffix of ['.csv','.pdf']){const document=await(await h.request('/api/barrow/statements/cedar'+suffix+'?to=2030-01-31',buyer)).text();assert.ok(document.includes(currency));assert.ok(document.includes(suffix==='.csv'?'3909':'39.09'))}
+  records.push({order,invoice,confirmation,pdf});
+ }
+ a=await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,usdConversion:{...basis,numerator:99},prices:[{sku:'OAT-1',unitCents:9999,minQty:1}]}});
+ const finance=await h.api('/api/barrow/reports/finance?asOf=2030-01-31'),sales=await h.api('/api/barrow/reports/sales?from=2030-01-01&to=2030-01-31');
+ assert.equal(finance.rows.length,3);assert.equal(sales.rows.length,3);
+ for(const report of [finance,sales])assert.deepEqual(report.rows.map(row=>[row.currency,row.usdCents,row.usdConversionDate,row.usdRateNumerator,row.usdRateDenominator,row.usdConversionSource]).sort(),['CAD','EUR','GBP'].map(currency=>[currency,2854,'2030-01-02',73,100,basis.source]));
+ for(const report of ['finance','sales']){const csv=await(await h.request(`/api/barrow/reports/${report}.csv?asOf=2030-01-31&from=2030-01-01&to=2030-01-31`)).text();assert.ok(csv.includes('2854'));assert.ok(csv.includes('2030-01-02'));assert.ok(csv.includes(basis.source))}
+ const exported=await h.api('/api/barrow/export.json',undefined,buyer);assert.deepEqual(exported.orders.map(o=>[o.currency,o.totalCents]).sort(),[['CAD',3909],['EUR',3909],['GBP',3909]]);assert.ok(exported.lines.every(l=>l.unitCents===1303&&l.lineCents===3909));
+ for(const {order,invoice,confirmation,pdf}of records){assert.equal(await(await h.request(`/api/barrow/invoices/${order.id}.csv`,buyer)).text(),invoice);assert.equal(await(await h.request(`/api/barrow/orders/${order.id}/confirmations/1.csv`,buyer)).text(),confirmation);assert.equal(await(await h.request(`/api/barrow/orders/${order.id}/confirmations/1.pdf`,buyer)).text(),pdf)}
+ const noBasis=await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,usdConversion:undefined}});
+ const plain=await h.command('order.prepare',{accountId:a.id,reference:'No inferred conversion',lines:[{sku:'OAT-1',quantity:1}]},buyer);await h.command('order.submit',{orderId:plain.id},buyer);await h.command('order.approve',{orderId:plain.id});assert.equal((await h.api('/api/barrow/reports/finance?asOf=2030-01-31')).rows.find(r=>r.orderId===plain.id).usdCents,null);
+ await h.command('account.save',{id:a.id,revision:noBasis.revision,value:{...noBasis.value,usdConversion:{...basis,denominator:0}}},{status:409});
 });

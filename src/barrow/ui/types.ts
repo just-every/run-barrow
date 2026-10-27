@@ -1,6 +1,6 @@
 import { supplierZone } from '../model'
 export interface Price { msrpCents?:number; sku: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing }
-export interface AccountValue { currency?:'USD'|'CAD'; priceDisplay?:import('../imports/validation').AccountValue['priceDisplay'];
+export interface AccountValue { priceRevisions?:import('../imports/validation').AccountValue['priceRevisions']; usdConversion?:import('../currency').UsdConversion; currency?:'USD'|'CAD'|'EUR'|'GBP'; priceDisplay?:import('../imports/validation').AccountValue['priceDisplay'];
   name: string; email: string; pierCustomerId: string; termsDays: number; minimumCents: number; prices: Price[]; city?: string; state?: string
   lifecycle?: 'active' | 'on-hold' | 'closed'; channel?: string; territory?: string; assignedRep?: string; catalogs?: string[]; warehouses?: string[]; providerReferences?: Record<string, string>
 }
@@ -15,7 +15,7 @@ export interface Order {
   poRelease?: { number: number; of: string; authorizedBy: string; authorizedAt: string }; requestedDate?: string; cancelAfter?: string; instructions?: string; document?: { name: string; type: string; size: number; sha256: string; uploadedBy: string; uploadedAt: string }
   lines: { promotion?:import('../promotions').PromotionLine; sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number; pricing?:import('../pricing').PricingSnapshot; buyerSku?:string; style?:string; color?:string; size?:string; requestedDate?:string; cancelAfter?:string }[]
   season?: string
-  totalCents: number; currency?: 'USD' | 'AUD' | 'CAD'; termsDays: number; accountRevision: string; preparedAt: string
+  totalCents: number; currency?: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'awaiting-company-approval' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded' | 'releasing' | 'cancelled'
   replaces?: string; supersededBy?: string; stockException?: { by: string; at: string; reason: string }; quote?: { id: string; revision: number; shipping: string; validUntil: string }
   companyPreparedBy?: string; companyRequestedAt?: string; companyApprovedBy?: string; companyApprovedAt?: string; preparedBy: string; preparedAs?: 'rep'|'sales-manager'|'owner'|'admin'; approvalStatus?: import('../company-approval').ApprovalStatus; approvalVoided?: { at: string; reason: string }; submittedBy?: string; approvedBy?: string; approvedAt?: string
@@ -30,10 +30,10 @@ export interface BarrowState {
 export interface CatalogueItem { msrpCents?:number;
   sku: string; itemId: string; name: string; unit: string; barcode?: string; available: string; warehouses?: { warehouse: string; available: string; promised: boolean }[]; incoming?: { date: string | null; quantity: string }[]; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
 }
-export interface Catalogue { currency: 'USD'|'CAD'; account: Account; items: CatalogueItem[]; observedAt: string }
+export interface Catalogue { currency: 'USD'|'CAD'|'EUR'|'GBP'; account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>
 /** Shift the decimal point as text so large exact-cent amounts never lose a cent to division. */
-export const money = (cents: number, currency: 'USD' | 'AUD' | 'CAD' = 'USD') => {
+export const money = (cents: number, currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP' = 'USD') => {
   const [coefficient, exponent = '0'] = String(cents).split('e')
   const negative = coefficient.startsWith('-'), [whole, fraction = ''] = coefficient.replace('-', '').split('.')
   const digits = whole + fraction, point = whole.length + Number(exponent) - 2

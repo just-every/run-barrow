@@ -73,7 +73,7 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  const to = day(params.get('to'), 'To') ?? reportDay, from = day(params.get('from'), 'From') ?? shift(to, -89)
  if (from > to) fail('INPUT', 'From must not be after To.', 400)
  const currency=params.get('currency')??'USD'
- if(!['USD','CAD','AUD'].includes(currency))fail('INPUT','Choose a recorded ISO currency.',400)
+ if(!['USD','CAD','EUR','GBP','AUD'].includes(currency))fail('INPUT','Choose a recorded ISO currency.',400)
  const list = await accounts(env.DB, actor), byId = new Map(list.map(row => [row.id, row]))
  const accountId = params.get('accountId') ?? ''
  const quotes = (await env.DB.prepare("SELECT value_json,revision FROM bw_quotes WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid").bind(accountId,accountId).all<any>()).results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Quote)
