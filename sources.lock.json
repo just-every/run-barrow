@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "cd67e87137f872e5d0c2560760260c713c81309e4ae73ba3009628ddb7a1419b",
+      "sha256": "eb446dc8dad6da5c5aa49750e09d09e2e9eefcee31c7ea3b8592d97917f8684e",
       "executable": false
     },
     ".gitignore": {
@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d4bc4aaaaa0a3b28e8b51341ef5ef61582f0fc9d8b7a848a7ee2ede841e4637a",
+      "sha256": "5692f1136402481c1e200521f9871c746dfb0e98e21df0b8fb253ade72ed952c",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ffa1c97b15dfad5efb27004a316f54c1338505fe733d42ebbcf6bbe3a6652e2f",
+      "sha256": "04c765d8ed77d04cf70ccb91a0877c7ce7580289596163990fb5e5159291ec3a",
       "executable": false
     },
     "DEMO.md": {
@@ -1171,6 +1171,10 @@
       "sha256": "2e538430c64f84395c00beec0d183411b959c202da4cf482fd4436c3eac3f60f",
       "executable": false
     },
+    "src/barrow/bulk-images.ts": {
+      "sha256": "7b30e06365b7d98dd9de0219f9101ce1d0485107118bd5d42e5cca2352bb0aa4",
+      "executable": false
+    },
     "src/barrow/buying-profile-export.ts": {
       "sha256": "3fb762a54f68091929a6379fd8ba51536b70fffddb09fe70c1fe1a27b3968d68",
       "executable": false
@@ -1224,7 +1228,7 @@
       "executable": false
     },
     "src/barrow/catalog-maintenance-http.ts": {
-      "sha256": "7e4c89f0199daa4e618f2b767ffa4759ec3409206e1005e483e60372f067c888",
+      "sha256": "083cb409284d543085358d129f107ab4bdc29543f32e5740a0851a6470a6e4f9",
       "executable": false
     },
     "src/barrow/catalog-maintenance-model.ts": {
@@ -1240,7 +1244,7 @@
       "executable": false
     },
     "src/barrow/catalog-maintenance.ts": {
-      "sha256": "839f83b2367fcb0df56094fe0071d20d11efdd21ba3bc4f31599ef3a1ab7c42c",
+      "sha256": "b22daa4ce716722aca9232b0933473fc83796030da368a6b2d969243c30173c3",
       "executable": false
     },
     "src/barrow/catalog-search.ts": {
@@ -1423,6 +1427,10 @@
       "sha256": "72652937ca0e0d59eb53d5609f59f35e42904c34b74db99c97aa76025d9adcee",
       "executable": false
     },
+    "src/barrow/image-archive.ts": {
+      "sha256": "87f60729aa9536d41415e48af4bfaaace1e69184b1f6e7876f264aded182ab7a",
+      "executable": false
+    },
     "src/barrow/imports/context.ts": {
       "sha256": "b4ad0a7e92408cfd3a4e27efcfd14b1428e21d6dfe95ec2ba6619cde9f18e776",
       "executable": false
@@ -1600,7 +1608,7 @@
       "executable": false
     },
     "src/barrow/product-images.ts": {
-      "sha256": "94e3076a838653fd8a3e6a9f26bb471a5a70fcaccb1f4d085b00da1738b54a88",
+      "sha256": "b3375a9b16146d4fafbac30dcfaea053e4ca2072dc717f80b4f557b626f58318",
       "executable": false
     },
     "src/barrow/promotions.ts": {
@@ -1888,7 +1896,7 @@
       "executable": false
     },
     "src/barrow/ui/catalog-maintenance.tsx": {
-      "sha256": "45c198605ccca57814442a981a2985eb2bc18eb5c7ae6dfe4235697f32c155d4",
+      "sha256": "9cebc2be0d27f10abf5c04602802c8cf19e202689b26e21f37a6eaaa3fb0e52b",
       "executable": false
     },
     "src/barrow/ui/commercial-audit.tsx": {
@@ -2204,7 +2212,7 @@
       "executable": false
     },
     "src/barrow/variant-attributes.ts": {
-      "sha256": "076888bfe88fff5869ee63e9930b72f2c753dc7f4e14de985059175ea5d2a262",
+      "sha256": "d82710bf3268604c9a92012a9bce84313b44c25a07312cf08b0e1f561e3ebcb7",
       "executable": false
     },
     "src/barrow/visits.ts": {
@@ -4340,7 +4348,7 @@
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
-      "sha256": "7eadae9ec80742dc31742103b3327cf6eda4e2ae53da4396212a7b7aad99bd25",
+      "sha256": "530caf550181cfd1d43ee661fc8d53238f2f51f65786c148bb3af8208effef4f",
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
@@ -4524,7 +4532,7 @@
       "executable": false
     },
     "tests/journeys/catalog-maintenance.test.mjs": {
-      "sha256": "795b68ad07ff147da89469b245a44d4b4d0a9c3c0ba9966a8d06fcca18000432",
+      "sha256": "d394ea5475456b2318958cbc1cbac335ca4d769bd64c327aabc599a663b7053b",
       "executable": false
     },
     "tests/journeys/catalog-search-scale.test.mjs": {

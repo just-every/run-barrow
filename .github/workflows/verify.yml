@@ -52,3 +52,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-sellthrough-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/reorder.test.mjs
+      - name: Catalog workbook and private image batch screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-catalog-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/catalog-maintenance.test.mjs
