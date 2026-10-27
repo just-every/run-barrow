@@ -180,7 +180,7 @@ test('buyer-authorized sell-through explains demand, outage uncertainty and open
  const profileDraft=await h.command('order.sellthrough',{...profileInput,fingerprint:profileReview.fingerprint,key:'synthetic-barrow-513',acknowledged:true},{as:buyer});assert.equal(profileDraft.buyingProfile.id,profile.id);assert.equal(profileDraft.totalCents,19503);
  await h.command('order.submit',{orderId:profileDraft.id},{as:buyer});
  await h.command('order.approve',{orderId:profileDraft.id});
- await h.command('order.cancel',{orderId:profileDraft.id});
+ await h.command('order.cancel',{orderId:profileDraft.id,reason:'Buyer no longer needs this test replenishment.'});
  await h.command('order.sellthrough-contact',{orderId:profileDraft.id,revision:(await h.api('/api/barrow/orders/'+profileDraft.id)).revision,nextContactDate:'2026-11-09',acknowledged:true},{status:409});
  const roster=(await h.api('/api/barrow/company/members?accountId='+account.id)).members,member=roster.find(person=>person.userId===buyerId);
  await h.command('company.update',{accountId:account.id,memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Company purchaser authority was withdrawn after the exact preview.'});

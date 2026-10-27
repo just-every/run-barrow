@@ -2040,7 +2040,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "2b94caa0a64cb868d69c97587eabfc720b7d1cb66ef78a4d69536631733b1e60",
+      "sha256": "27b99eadf83db174bbb7beb7f19919155bbecf89e146849baf2a580042c48c47",
       "executable": false
     },
     "src/barrow/ui/pricing-settings.tsx": {
@@ -2113,6 +2113,10 @@
     },
     "src/barrow/ui/scheduled-reports.tsx": {
       "sha256": "7c622edc6919550b9dd491025706ba66b5b6d3a8934a21c9b6d8f69a58ef2347",
+      "executable": false
+    },
+    "src/barrow/ui/sell-through.tsx": {
+      "sha256": "a4cf5819ab87e5c977cdd0022f149e06003dbbf15d0eece9954213e8e826aebe",
       "executable": false
     },
     "src/barrow/ui/shipping-settings.tsx": {
@@ -4388,7 +4392,7 @@
       "executable": false
     },
     "tests/api/reorder.test.mjs": {
-      "sha256": "f9de235ddbbe656baaf37a120d1a0a015d42b0ba018171e3f83ec85b496cf436",
+      "sha256": "fd2dfd4225764afc8f4e902fa4d39480f7e7244f191418ae9abfe7c7e018c731",
       "executable": false
     },
     "tests/api/rep-ordering.test.mjs": {
