@@ -373,8 +373,8 @@ Previously judged clauses retain their provenance from the code and tests at com
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 60 | 25 | 48 | 133 |
-| All | 66 | 25 | 48 | 139 |
+| Target and push further | 60 | 26 | 47 | 133 |
+| All | 66 | 26 | 47 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
