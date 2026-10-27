@@ -13,7 +13,7 @@ In Accounts, edit the trade account’s **Price book currency** and enter indepe
 ]
 ```
 
-Save these fields through the normal account editor or the `account.save` HTTP command. Account-owned brand books support the same `priceRevisions` field through `profile.save`. Existing supplier permissions, revision checks, audit attribution and archive custody apply. A revision is a complete assortment, including any configured selling units and pricing rules. Future rows do not affect today’s quotes or carts. New carts and quotes use the active prices; submission, supplier approval and quote acceptance recheck current prices. A newly activated revision requires republication before preparing from an older line sheet. Issued documents keep their original agreed currency and integer cents.
+Save these fields through the normal account editor or the `account.save` HTTP command. Account-owned brand books support the same `priceRevisions` field through `profile.save`. Existing supplier permissions, revision checks, audit attribution and archive custody apply. A revision is a complete assortment, including any configured selling units and pricing rules. Future rows do not affect today’s quotes or carts. A price-book CSV import edits the active revision when one exists; it preserves the base book, future revisions and independent brand books. New carts and quotes use the active prices; submission, supplier approval and quote acceptance recheck current prices. A newly activated revision requires republication before preparing from an older line sheet. Issued documents keep their original agreed currency and integer cents.
 
 **Dated USD conversion basis** optionally records a supplier’s reporting reference:
 
