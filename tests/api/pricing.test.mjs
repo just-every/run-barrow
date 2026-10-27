@@ -235,7 +235,7 @@ test('scheduled book revisions quote exact USD prices on either side of midnight
  const pier=await installation({pier:true});t.after(()=>pier.close());const source=await stock(pier,'500');
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,BARROW_TEST_CLOCK:'2030-01-02T04:59:59Z'}});t.after(()=>h.close());
  const prices=[{sku:'OAT-1',unitCents:1201,minQty:1}],revised=[{sku:'OAT-1',unitCents:1303,minQty:1}];
- const a=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),minimumCents:0,currency:'USD',prices,priceRevisions:[{effectiveFrom:'2030-01-02',prices:revised}]}});
+ let a=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),minimumCents:0,currency:'USD',prices,priceRevisions:[{effectiveFrom:'2030-01-02',prices:revised}]}});
  const buyer={as:await h.signIn(a.value.email)};
  await h.command('brand.save',{id:'scheduled-usd',value:{name:'Scheduled seller',currency:'USD',seller:{legalName:'Synthetic Barrow Seller',address:'101 Main Street, New York NY 10001'}}});
  const profile=await h.command('profile.save',{id:'scheduled-profile',accountId:a.id,value:{brandId:'scheduled-usd',name:'Scheduled buyer book',minimumCents:0,termsDays:30,prices,priceRevisions:a.value.priceRevisions}});
@@ -255,6 +255,10 @@ test('scheduled book revisions quote exact USD prices on either side of midnight
  const accepted=(await h.command('quote.accept',{quoteId:after.id,number:1},buyer)).order;assert.equal(accepted.totalCents,3909);
  await h.command('account.save',{id:a.id,revision:a.revision,value:a.value},{...buyer,status:403});
  for(const priceRevisions of [[{effectiveFrom:'2030-02-30',prices}],[{effectiveFrom:'2030-01-02',prices},{effectiveFrom:'2030-01-02',prices}],[{effectiveFrom:'2030-01-02',prices:[{...prices[0],unitCents:1.5}]}]])await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,priceRevisions}},{status:409});
+ a=await h.command('price-book.import',{accountId:a.id,revision:a.revision,csv:'sku,currency,unitCents,msrpCents,minQty\nOAT-1,USD,1409,,1\n'});
+ assert.equal(a.value.prices[0].unitCents,1201);assert.equal(a.value.priceRevisions[0].prices[0].unitCents,1409);
+ const revisedQuote=await h.command('quote.request',{accountId:a.id,lines:[{sku:'OAT-1',quantity:3}]},buyer);assert.deepEqual(revisedQuote.request.map(l=>[l.unitCents,l.lineCents]),[[1409,4227]]);
+ assert.deepEqual((await request()).request.map(l=>[l.unitCents,l.lineCents]),[[1303,3909]],'The independent brand book is unchanged by the account CSV import.');
  const backup=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,backup);assert.deepEqual((await restored.api('/api/barrow/accounts/by-id/cedar')).value.priceRevisions,a.value.priceRevisions);
 });
 
