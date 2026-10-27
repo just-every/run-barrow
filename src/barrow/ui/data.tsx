@@ -10,6 +10,7 @@ import { request, errorMessage } from './api'
 import { Dialog } from './dialog'
 import { AgentCredential } from './agent-credential'
 import { DiagnosticsCard } from './diagnostics'
+import { ConnectorReview } from './connector-review'
 import { ExportLinks } from './export-links'
 import { FreshnessSetting } from './freshness'
 import { FulfillmentReport } from './fulfillment'
@@ -49,6 +50,7 @@ export function DataTools({ accounts, freshness, busy, run, owner=false }: { own
     <Followups />
     <ShippingSettings />
     <DiagnosticsCard />
+    {owner && <ConnectorReview />}
     <Webhooks />
     <AgentCredential />
     {owner&&<section className="br-card br-stack" aria-label="Account-scoped proposal authority"><h2>Approve an agent’s substitution scope</h2><AccountPicker accounts={accounts} value={accountId} onChange={setAccountId}/><ProposalGrant accountId={accountId}/></section>}

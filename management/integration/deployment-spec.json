@@ -361,6 +361,12 @@
     },
     {
       "binding": "DB",
+      "name": "0058_connector_health.sql",
+      "sha256": "4964b53206b805e10d87b4eebfd263b343b2d32b12302dc16134815aa738bddd",
+      "sql": "-- A successful full reconciliation advances only after the final page acknowledgment.\nALTER TABLE bw_stock_sync ADD COLUMN completed_at TEXT;\nALTER TABLE bw_delta_cutovers ADD COLUMN last_read_at TEXT;\nALTER TABLE bw_delta_cutovers ADD COLUMN last_io_error TEXT;\n"
+    },
+    {
+      "binding": "DB",
       "name": "0058_faire_poll_generation.sql",
       "sha256": "f0708f7bc99dadff349e970ae7793a9212267a22aaf00d77479b7c72a2793a88",
       "sql": "ALTER TABLE bw_faire_sync ADD COLUMN generation INTEGER NOT NULL DEFAULT 0;\n"

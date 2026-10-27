@@ -83,11 +83,11 @@ test('scheduled stock synchronization resumes an interrupted ACK, sends one requ
  assert.equal((await f.read()).notices.length,0);
  const before=(await h.api('/api/barrow/stock-sync')).sync;
  await f.restock();f.interruptAck();
- const interrupted=await f.sync();assert.equal(interrupted.checkpoint,before.checkpoint);assert.ok(interrupted.pending);assert.equal((await f.read()).notices.length,1);
+ const interrupted=await f.sync();assert.equal(interrupted.checkpoint,before.checkpoint);assert.equal(interrupted.completed_at,before.completed_at);assert.ok(interrupted.pending);assert.equal((await f.read()).notices.length,1);
  const replay1=await f.pier.api('/api/pier/stock-changes?'+new URLSearchParams({consumer:interrupted.consumer,limit:'2',checkpoint:interrupted.checkpoint}));
  const replay2=await f.pier.api('/api/pier/stock-changes?'+new URLSearchParams({consumer:interrupted.consumer,limit:'2',checkpoint:interrupted.checkpoint}));
  assert.deepEqual(replay1.events.map(row=>row.eventId),replay2.events.map(row=>row.eventId));
- const resumed=await f.sync();assert.equal(resumed.failures,0);assert.equal(resumed.pending,null);assert.equal(resumed.has_more,0);assert.equal((await f.read()).notices.length,1);
+ const resumed=await f.sync();assert.equal(resumed.failures,0);assert.equal(resumed.completed_at,resumed.observed_at);assert.ok(resumed.completed_at);assert.equal(resumed.pending,null);assert.equal(resumed.has_more,0);assert.equal((await f.read()).notices.length,1);
  assert.equal((await f.read()).watches[0].active,0);
  await h.command('stock.watch',{accountId:f.account.id,sku:'OAT-1',kind:'prebook'},buyer);
  const at=Date.now();
