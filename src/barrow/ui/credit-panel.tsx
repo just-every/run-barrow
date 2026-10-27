@@ -31,15 +31,15 @@ const cents = (value: string) => {
 }
 const receiptName = (payment: CardPayment) => `${payment.card ? `${payment.card.brand} ending ${payment.card.last4}` : 'Captured card receipt'} · ${money(payment.amountCents, payment.currency)} principal · ${payment.id}`
 
-export function CreditPanel({ order }: { order: Order }) {
+export function CreditPanel({ order, onChanged }: { order: Order; onChanged?: () => void }) {
   const [opened, setOpened] = useState(false)
   return <details className="br-details" onToggle={event => { if (event.currentTarget.open) setOpened(true) }}>
     <summary>Credit notes and refunds</summary>
-    {opened && <CreditReportPanel order={order} />}
+    {opened && <CreditReportPanel order={order} onChanged={onChanged} />}
   </details>
 }
 
-function CreditReportPanel({ order }: { order: Order }) {
+function CreditReportPanel({ order, onChanged }: { order: Order; onChanged?: () => void }) {
   const [report, setReport] = useState<Report | null>(null)
   const [busy, setBusy] = useState(false), [stale, setStale] = useState(false)
   const [error, setError] = useState(''), [message, setMessage] = useState('')
@@ -77,6 +77,7 @@ function CreditReportPanel({ order }: { order: Order }) {
     setBusy(true); setError(''); setMessage('')
     try {
       await request('/api/barrow/commands', { type, payload })
+      onChanged?.()
       setStale(true)
       try { setReport(await load()); setStale(false); setMessage('Credit report refreshed. Review the recorded amounts and status below.') }
       catch (cause) { setError(`The command response was received, but the credit report could not be refreshed. Reload before another action. ${errorMessage(cause)}`) }

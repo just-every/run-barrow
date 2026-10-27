@@ -115,6 +115,6 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
  }
 }
 
-export function staffCanReadOrder(grant:StaffGrant,order:{accountId:string;invoice?:unknown}) {
- return staffAccountAllowed(grant,order.accountId)&&grant.role!=='analyst'&&(grant.role!=='finance'||Boolean(order.invoice))
+export function staffCanReadOrder(grant:StaffGrant,order:{accountId:string;invoice?:unknown;status?:string}) {
+ return staffAccountAllowed(grant,order.accountId)&&grant.role!=='analyst'&&(grant.role!=='finance'||Boolean(order.invoice)||['awaiting-company-approval','submitted','reserving','shortfall','approved','releasing'].includes(order.status??''))
 }

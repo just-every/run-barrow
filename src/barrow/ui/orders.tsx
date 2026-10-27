@@ -32,12 +32,13 @@ const filters = [['All','all'], ['Drafts','draft'], ['Company approval','awaitin
 type HistoryPage = {accountRevisions:Record<string,string>;orders:Order[];people:Record<string,string>;page:number;hasNext:boolean;counts:Record<string,number>;duplicatePOs:string[];completedReplacements:string[]}
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
-function OrderCredit({order}:{order:Order}) {
+function OrderCredit({order,refresh}:{order:Order;refresh:number}) {
  const [value,setValue]=useState<{currency:string;limitCents:number|null;exposureCents:number;availableCents:number|null}|null>(null),[error,setError]=useState('')
- useEffect(()=>{let active=true;void request<typeof value>(`/api/barrow/credit-exposure?${new URLSearchParams({accountId:order.accountId,orderId:order.id})}`).then(value=>{if(active)setValue(value)}).catch(cause=>{if(active)setError(errorMessage(cause))});return()=>{active=false}},[order.revision])
+ useEffect(()=>{let active=true;void request<typeof value>(`/api/barrow/credit-exposure?${new URLSearchParams({accountId:order.accountId,orderId:order.id})}`).then(value=>{if(active)setValue(value)}).catch(cause=>{if(active)setError(errorMessage(cause))});return()=>{active=false}},[order,refresh])
  return error?<p role="alert">{error}</p>:value?.limitCents!==null&&value?<p>Credit before this order: available {money(value.availableCents!,value.currency as 'USD')} · exposure {money(value.exposureCents,value.currency as 'USD')} · limit {money(value.limitCents!,value.currency as 'USD')}</p>:null
 }
 export function Orders({ orders: all, accounts, people, viewer, supplier, stockExceptionLimitCents,canOperate=supplier,canExcept=supplier,canQuote=supplier, companyApprover=false, companyManager=false, canPurchase=true, finance=true, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean;stockExceptionLimitCents?:number;canOperate?:boolean;canExcept?:boolean;canQuote?:boolean;companyApprover?:boolean;companyManager?:boolean;canPurchase?:boolean;finance?:boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
+  const [creditRefresh,setCreditRefresh] = useState(0)
   const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
   const [termsFor,setTermsFor]=useState<Record<string,TermsChoice>>({})
   const [filter, setFilter] = useState('all')
@@ -99,13 +100,13 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
           {order.fromSubstitution && <p>Replacement for {order.fromSubstitution.orderId}, buyer-accepted substitution {order.fromSubstitution.number}. Original and replacement lines remain linked in the commercial export.</p>}
           {order.substitutions?.map(offer=><details className="br-details" key={offer.number}><summary>Substitution {offer.number}: {offer.status}{offer.replacementId?` · replacement ${offer.replacementId}`:''}</summary><p>{offer.reason}</p><ul>{offer.lines.map((line,index)=><li key={index}>{line.fromSku}{line.fromUnit?` (${line.fromUnit})`:''} → {line.sku}: {line.quantity} {line.unit}, {money(line.unitCents)} per unit; {money(line.lineCents??line.quantity*line.unitCents)} total</li>)}</ul><p>Replacement total: {money(offer.totalCents)}. Original total: {money(order.totalCents,order.currency??'AUD')}.</p><p>{offer.delivery?`${offer.delivery.name}: ${money(offer.delivery.totalCents??0)}, ${day(offer.delivery.windowStart)}–${day(offer.delivery.windowEnd)}`:'No delivery method or delivery charge recorded.'}</p><p>{offer.taxNote}</p>{offer.declineReason&&<p>Declined: {offer.declineReason}</p>}{offer.number===order.substitutions!.at(-1)!.number && offer.status==='offered' && !supplier && canPurchase && <div className="br-actions"><button disabled={busy} onClick={()=>{if(window.confirm('Accept this exact substitution, including its quantities, units, USD prices, delivery and unverified tax difference?'))void run('substitution.accept',{orderId:order.id,number:offer.number,acknowledged:true})}}>Accept exact substitution</button><button className="br-secondary" disabled={busy} onClick={()=>{const reason=window.prompt('Why decline this substitution?');if(reason?.trim())void run('substitution.decline',{orderId:order.id,number:offer.number,reason:reason.trim()})}}>Decline substitution</button></div>}{canOperate && offer.status==='accepted' && !history?.completedReplacements.includes(offer.replacementId??'') && <button disabled={busy} onClick={()=>void run('substitution.execute',{orderId:order.id,number:offer.number})}>{order.status==='releasing'?'Retry accepted substitution':'Execute accepted substitution'}</button>}</details>)}
           {order.status==='approved'&&finance&&<CardPaymentPanel orderId={order.id} merchant={supplier} canAct={canOperate}/>}
-          {['approved','cancelled'].includes(order.status)&&!!order.invoice&&finance&&<CreditPanel order={order}/>}
+          {['approved','cancelled'].includes(order.status)&&!!order.invoice&&finance&&<CreditPanel order={order} onChanged={()=>setCreditRefresh(value=>value+1)}/>}
           <OrderShipping order={order} supplier={canQuote} canSelect={canPurchase} busy={busy} run={run} />
           <p className="br-order-explain">{order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' :order.status==='approved'&&!finance?'Stock is reserved in full.':explanations[order.status]}</p>
         </div>
         <div className="br-order-side">
           <p className="br-order-amount">{money(order.totalCents, order.currency ?? 'AUD')}</p>
-          <OrderCredit order={order}/>
+          <OrderCredit order={order} refresh={creditRefresh}/>
           <p className="br-quiet-text">{units} {order.lines.some(line=>line.baseQuantity) ? 'base units' : units === 1 ? 'unit' : 'units'} · {order.termsDays === 0 ? 'Due on receipt' : `${terms(order.termsDays)} payment terms`}</p>
           <div className="br-actions br-order-actions">
             {canPurchase&&['submitted','reserving','shortfall','approved'].includes(order.status) && <button className="br-secondary" disabled={busy} onClick={() => setReorder(order)}>Reorder selected lines</button>}

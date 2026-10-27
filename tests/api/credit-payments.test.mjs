@@ -83,6 +83,36 @@ test('finance allowances bound source-priced corrections and refunds; confirmed 
 
 test('net terms credit exposure blocks commitments and quotes, recalculates verified principal, revalidates drafts and binds private audited exceptions',async t=>{
  const {exposureFixture}=await import('./credit-exposure-fixture.mjs');
+ // Revision and substitution commitments must fail before changing commercial or inventory state.
+ {
+  const {h,pier,buyer,draft,owed}=await exposureFixture(t);
+  let submitted=await draft(3,'Submitted credit revision');submitted=await h.command('order.submit',{orderId:submitted.id},buyer);
+  const inventory=(await pier.api('/api/pier/state')).orders;
+  const revise=quantity=>({orderId:submitted.id,revision:submitted.revision,changes:[{line:0,quantity}]});
+  assert.equal((await h.command('order.revise',revise(8),{...buyer,status:409})).error.code,'CREDIT_LIMIT');
+  assert.deepEqual(await h.api('/api/barrow/orders/'+submitted.id),submitted);
+  submitted=await h.command('order.revise',revise(2),buyer);assert.equal(submitted.totalCents,200000);
+  const propose=async quantity=>h.command('substitution.propose',{orderId:owed.id,orderRevision:(await h.api('/api/barrow/orders/'+owed.id)).revision,lines:[{fromSku:'OAT-1',sku:'OAT-1',quantity}],reason:'Buyer reviews a replacement within current credit.'});
+  let offered=await propose(16);
+  assert.equal((await h.command('substitution.accept',{orderId:owed.id,number:offered.substitutions.at(-1).number,acknowledged:true},{...buyer,status:409})).error.code,'CREDIT_LIMIT');
+  assert.equal((await h.api('/api/barrow/orders/'+owed.id)).substitutions.at(-1).status,'offered');
+  assert.equal((await h.api('/api/barrow/state')).orders.length,3);
+  assert.deepEqual((await pier.api('/api/pier/state')).orders,inventory);
+  offered=await propose(4);const accepted=await h.command('substitution.accept',{orderId:owed.id,number:offered.substitutions.at(-1).number,acknowledged:true},buyer),offer=accepted.substitutions.at(-1);
+  assert.equal((await h.api('/api/barrow/orders/'+offer.replacementId)).totalCents,400000);
+  const finance=await activateStaff(h,'source-finance@example.test',{role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:1000000,refundLimitCents:0});
+  const sources=(await h.api('/api/barrow/reports/finance?accountId=cedar',undefined,finance.who)).creditAccounts[0].rows;
+  assert.deepEqual(sources.map(row=>row.orderId),[owed.id,submitted.id,offer.replacementId]);
+  for(const row of sources)assert.equal((await h.api(row.path,undefined,finance.who)).id,row.orderId);
+
+  let competitor=await draft(3,'Later explicitly authorized commitment');competitor=await h.command('order.credit-exception',{orderId:competitor.id,revision:competitor.revision,reason:'Owner approves this separate current excess.'});competitor=await h.command('order.submit',{orderId:competitor.id},buyer);
+  assert.equal((await h.command('substitution.execute',{orderId:owed.id,number:offer.number},{status:409})).error.code,'CREDIT_LIMIT');
+  assert.deepEqual((await pier.api('/api/pier/state')).orders,inventory);
+  assert.equal((await h.api('/api/barrow/orders/'+owed.id)).status,'approved');
+  assert.equal((await h.api('/api/barrow/orders/'+offer.replacementId)).status,'submitted');
+  await h.command('order.revise',{orderId:competitor.id,revision:competitor.revision,changes:[{line:0,quantity:1}]},buyer);
+  const executed=await h.command('substitution.execute',{orderId:owed.id,number:offer.number});assert.equal(executed.status,'approved');assert.equal(executed.totalCents,400000);assert.ok((await h.api('/api/barrow/orders/'+owed.id)).release.confirmedAt);
+ }
  const {h,pier,buyer,other,account,draft,owed,candidate,pay}=await exposureFixture(t);
  assert.equal(account.value.termsDays,30);assert.deepEqual(account.value.credit,{currency:'USD',limitCents:1000000});
  const read=()=>h.api('/api/barrow/credit-exposure?accountId=cedar',undefined,buyer);
@@ -107,6 +137,10 @@ test('net terms credit exposure blocks commitments and quotes, recalculates veri
  await h.command('order.credit-exception',{orderId:contender.id,revision:contender.revision,reason:'Agents cannot authorize credit.'},{...agent,status:403});
  await h.command('order.credit-exception',{orderId:contender.id,revision:contender.revision,reason:'Buyers cannot authorize their own excess.'},{...buyer,status:403});
  const finance=await activateStaff(h,'credit-finance@example.test',{role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:200000,refundLimitCents:0});
+ const financeExposure=await h.api('/api/barrow/credit-exposure?accountId=cedar',undefined,finance.who);
+ assert.deepEqual(financeExposure.rows.map(row=>row.orderId),[owed.id,approved.id]);
+ for(const row of financeExposure.rows)assert.equal((await h.api(row.path,undefined,finance.who)).id,row.orderId);
+ await h.api('/api/barrow/orders/'+contender.id,undefined,{...finance.who,status:404});
  await h.command('order.credit-exception',{orderId:contender.id,revision:contender.revision,reason:'Current excess exceeds this finance allowance.'},{...finance.who,status:403});
  await h.command('order.credit-exception',{orderId:approved.id,revision:approved.revision,reason:'Approved orders cannot gain a retrospective exception.'},{status:409});
  await h.command('order.credit-exception',{orderId:contender.id,revision:'stale',reason:'A stale commercial revision cannot be approved.'},{status:409});

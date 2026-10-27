@@ -1,3 +1,5 @@
+import { account } from './accounts'
+import { creditAdmission } from './credit-exposure'
 import { buyingOrderGuards } from './buying-profiles'
 import {deltaEntryGuard} from './imports/delta-entry'
 import {linkedProposal,proposalReplacementBasis} from './proposal-approval'
@@ -17,7 +19,7 @@ import { carryDocument } from './documents'
 import { previewSubstitution, revalidateSubstitution, type Substitution } from './substitution-preview'
 async function store(env:Bindings,actor:Actor,order:Order,offers:Substitution[],action:string,reason:string,extra:D1PreparedStatement[]=[]) {
  const revision=crypto.randomUUID(),updated={...order,revision,substitutions:offers}
- await commit(env.DB,actor,[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(updated),revision,order.id,order.revision),changed(env.DB),...extra,audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision,source:'substitution.command',reason})])
+ await commit(env.DB,actor,[...extra,env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(updated),revision,order.id,order.revision),changed(env.DB),audit(env.DB,actor,order.id,action,{accountId:order.accountId,orderId:order.id,revision,source:'substitution.command',reason})])
  return updated
 }
 export async function substitutionCommand(env:Bindings,actor:Actor,type:string,p:any,context?:{proposal:AgentProposal;statements?:D1PreparedStatement[]}) {
@@ -43,6 +45,8 @@ export async function substitutionCommand(env:Bindings,actor:Actor,type:string,p
   if(['approved','shortfall'].includes(replacement.status))return replacement
   // Once release has started, its exact request is always recoverable, even after an account edit.
   if(!['releasing','cancelled'].includes(order.status))await revalidateSubstitution(env,actor,order,latest,true)
+  // Validate the current receivables snapshot before releasing any original stock.
+  await commit(env.DB,actor,await creditAdmission(env,await account(env.DB,actor,replacement.accountId),replacement))
   await orderCommand(env,actor,'order.cancel',{orderId:order.id,reason:`Accepted substitution ${latest.number}: ${latest.reason}`})
   return orderCommand(env,actor,'order.approve',{orderId:replacement.id})
  }
@@ -62,7 +66,7 @@ export async function substitutionCommand(env:Bindings,actor:Actor,type:string,p
  let replacement:Order={...(order.buyingProfile?{buyingProfile:order.buyingProfile}:{}),...(latest.agentProposal?{agentProposal:latest.agentProposal}:{}),id,revision,accountId:order.accountId,accountRevision:current.selected.revision,customerName:current.selected.value.name,pierCustomerId:current.selected.value.pierCustomerId,pierOrigin:order.pierOrigin,reference:order.reference,requestedDate:order.requestedDate,cancelAfter:order.cancelAfter,instructions:order.instructions,deliveryLocation:order.deliveryLocation,billTo:order.billTo,shipTo:order.shipTo,document:order.document,lines:latest.lines.map(({fromSku,fromUnit,fromLine,...line})=>({...line,substitutedFrom:{orderId:order.id,line:fromLine,sku:fromSku,unit:fromUnit}})),totalCents:latest.totalCents,currency:'USD',termsDays:current.selected.value.termsDays,delivery,freightQuotes:latest.freightQuotes,preparedBy:latest.proposedBy,preparedAt:latest.proposedAt,submittedBy:actor.id,status:'submitted',fromSubstitution:{orderId:order.id,number:latest.number}}
  const submission=await companySubmission(env,actor,replacement);replacement=submission.order
  const accepted:Substitution={...latest,...(latest.agentProposal?{replacementBasis:await proposalReplacementBasis(replacement)}:{}),status:'accepted',decidedBy:actor.id,decidedVersion:actor.version,decidedAt:at,replacementId:id}
- const stored=await store(env,actor,order,[...offers.slice(0,-1),accepted],'substitution.accepted',`Buyer accepted exact offer ${latest.number}; replacement ${id}; original stock must be released first.`,[...await buyingOrderGuards(env.DB,actor,replacement),await deltaEntryGuard(env.DB,order.accountId),submission.guard,activeAccountGuard(env.DB,current.selected),shippingGuard(env.DB,delivery),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,order.accountId,JSON.stringify(replacement),revision),...(submission.waiting?[]:await confirmationStatements(env.DB,actor,replacement,'submitted')),...(order.document?[carryDocument(env,order.id,id)]:[]),audit(env.DB,actor,id,'substitution.replacement',{accountId:order.accountId,orderId:id,revision,source:'substitution.accept',reason:`Replacement for ${order.id}, exact accepted offer ${latest.number}; no stock effect yet.`})])
+ const stored=await store(env,actor,order,[...offers.slice(0,-1),accepted],'substitution.accepted',`Buyer accepted exact offer ${latest.number}; replacement ${id}; original stock must be released first.`,[...await creditAdmission(env,current.selected,replacement),...await buyingOrderGuards(env.DB,actor,replacement),await deltaEntryGuard(env.DB,order.accountId),submission.guard,activeAccountGuard(env.DB,current.selected),shippingGuard(env.DB,delivery),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,order.accountId,JSON.stringify(replacement),revision),...(submission.waiting?[]:await confirmationStatements(env.DB,actor,replacement,'submitted')),...(order.document?[carryDocument(env,order.id,id)]:[]),audit(env.DB,actor,id,'substitution.replacement',{accountId:order.accountId,orderId:id,revision,source:'substitution.accept',reason:`Replacement for ${order.id}, exact accepted offer ${latest.number}; no stock effect yet.`})])
  if(!submission.waiting)await emailLatestConfirmation(env,id)
  return stored
 }
