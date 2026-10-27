@@ -358,6 +358,12 @@
       "name": "0057_faire_orders.sql",
       "sha256": "bef92be48ceb9d55d69737a89c2317872b2a7e40cc0f6727f3e4f278869203f1",
       "sql": "CREATE TABLE bw_faire_sync (\n brand TEXT PRIMARY KEY,\n revision TEXT NOT NULL,\n enabled INTEGER NOT NULL DEFAULT 0,\n cursor TEXT,\n complete INTEGER NOT NULL DEFAULT 0,\n observed_at TEXT\n);\nCREATE TABLE bw_faire_orders (\n brand TEXT NOT NULL,\n source_id TEXT NOT NULL,\n revision TEXT NOT NULL,\n source_json TEXT NOT NULL CHECK(json_valid(source_json)),\n account_id TEXT REFERENCES bw_accounts(id),\n matched_json TEXT CHECK(matched_json IS NULL OR json_valid(matched_json)),\n state TEXT NOT NULL CHECK(state IN ('review','ingested')),\n PRIMARY KEY(brand,source_id)\n);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0058_faire_poll_generation.sql",
+      "sha256": "f0708f7bc99dadff349e970ae7793a9212267a22aaf00d77479b7c72a2793a88",
+      "sql": "ALTER TABLE bw_faire_sync ADD COLUMN generation INTEGER NOT NULL DEFAULT 0;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -382,7 +388,8 @@
     "MAIL_API_KEY",
     "MAIL_WEBHOOK_SECRET",
     "PIER_SESSION",
-    "BARROW_SFTP_SECRETS"
+    "BARROW_SFTP_SECRETS",
+    "FAIRE_CONNECTIONS"
   ],
   "schedules": [
     "0 * * * *"

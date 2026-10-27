@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "521226ea9b945e830dc8af92c6c33ae297758d2447faf8f6b15e68a829bd4784",
+      "sha256": "4553d8d5d1243aabca450abdf443eaad774cd66ef1f5a3f80abf6869825e006b",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1d80bdcf18d93f496c9f8c518644b9d32b247da3ad416e9274f6160af1997b30",
+      "sha256": "8298b3a38d693ba83fa9744b898d9f6d90de1cdb98fd5658c671604849822ce2",
       "executable": false
     },
     "DEMO.md": {
@@ -196,7 +196,7 @@
       "executable": false
     },
     "docs/FAIRE.md": {
-      "sha256": "45538c20d675893089a231362b74c78e1991df4579be32b9906ffbd14c92f371",
+      "sha256": "53401cbbc565878e30063e6d12c72789311b50b5ea20244c97ae281e2647b3c4",
       "executable": false
     },
     "docs/GETTING-STARTED.md": {
@@ -292,7 +292,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "5ce977061e1b2fa65c67319a845716fde34fd735dfaae8d50fb4cb316a82e84b",
+      "sha256": "863d1b4677687c1e49b085c1720e01c86692f5616c49e87f95792c4496164a21",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -527,6 +527,10 @@
       "sha256": "bef92be48ceb9d55d69737a89c2317872b2a7e40cc0f6727f3e4f278869203f1",
       "executable": false
     },
+    "migrations/core/0058_faire_poll_generation.sql": {
+      "sha256": "f0708f7bc99dadff349e970ae7793a9212267a22aaf00d77479b7c72a2793a88",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "afbad85325b7a2d3c051346fc2b41a3c42dfa758ced0d3ea8ca35ad3d638ea42",
       "executable": false
@@ -544,7 +548,7 @@
       "executable": false
     },
     "packaging.json": {
-      "sha256": "f4decff95a22fa93a07ba3758e6d9486955a466769caa0c0680d92bd434226e6",
+      "sha256": "42728eb820b950b3c003911e9d63a773cfcf9ebbf9031ddfcff27086baaa97ab",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -1352,7 +1356,7 @@
       "executable": false
     },
     "src/barrow/faire.ts": {
-      "sha256": "f9f6d8f807ba88dfb0655b641accdf5c86bb4a649e259d6e218d65619fe3003b",
+      "sha256": "19322d41eff495d7b01c290ed850a1ffb8b56e2343854b55f6170c4feac2f7aa",
       "executable": false
     },
     "src/barrow/feeds/connection-settings.ts": {
@@ -1980,7 +1984,7 @@
       "executable": false
     },
     "src/barrow/ui/fulfillment.tsx": {
-      "sha256": "d2d10f0ee07d6e9ab0fe30b4fc16e89cb5b2a2d7767595d602fea0929882ce8f",
+      "sha256": "b5d6797fdd0a48e2f32e884918c434338869886d007c087d7bcb46b6a2f87c48",
       "executable": false
     },
     "src/barrow/ui/import-journal.tsx": {
@@ -4272,11 +4276,11 @@
       "executable": false
     },
     "tests/api/faire-fixture.mjs": {
-      "sha256": "75ae84be6915e7b8ab5b2c714262496b14e84eec111a8cfbeab04e368bbdded1",
+      "sha256": "d9fbe3d6f204465994d8231b2e2e7b1897c0d050ae3864d3c9773eb6e7c581bb",
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "d536058085fc3afbd9d619cd1f1b13b3e5102ba2b59d86d42a4ae759aea012cd",
+      "sha256": "084756056c1617a896aee978336cfff0f1fd4eba299f0d945ce9ff40159bb9bd",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
@@ -4532,7 +4536,7 @@
       "executable": false
     },
     "tests/journeys/faire.test.mjs": {
-      "sha256": "ef8e19ddcb89b312cfa49615ffd5b42062097d8a77feaea5872bb4dc0c00d0e8",
+      "sha256": "885ad5561cb23815a168990e0ab5d2faad94d201b3379b2d2cb3971f618a825f",
       "executable": false
     },
     "tests/journeys/install-harness.mjs": {
