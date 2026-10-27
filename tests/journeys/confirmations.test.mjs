@@ -74,3 +74,41 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  assert.equal(matrix.rows.reduce((sum,row)=>sum+['S','M','3XL'].reduce((qty,size)=>qty+Number(row[size]||0),0),0),11);
  await shot(page,bulk,'confirmation-matrix-layout');
 });
+
+test('seasonal prebook buyer places two windows and operations closes intake, releases stock and backorders a delayed style at desktop and phone',async t=>{
+ const {prebookFixture}=await import('../api/prebook-fixture.mjs'),f=await prebookFixture(t,{built:true,https:true}),{h}=f;
+ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM?{executablePath:process.env.BARROW_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const owner=await signedContext(browser,h);t.after(()=>owner.close());const page=await owner.newPage();await app(page,h);
+ await page.getByRole('button',{name:'Data',exact:true}).click();await page.getByText('Prebook season settings',{exact:true}).click();
+ const settings=page.getByRole('region',{name:'Prebook season settings',exact:true});await expect(settings).toContainText('Spring 2099');await shot(page,settings,'prebook-season-settings');
+ const buyer=await signedContext(browser,h,f.buyer.as);t.after(()=>buyer.close());const bp=await buyer.newPage();await app(bp,h);
+ await bp.getByRole('button',{name:'Catalog',exact:true}).click();await bp.getByLabel('Order timing',{exact:true}).selectOption(f.season.id);
+ await bp.getByRole('spinbutton',{name:'Qty quantity for Toasted oat granola',exact:true}).fill('4');
+ await bp.getByRole('spinbutton',{name:'Qty quantity for Spring coat',exact:true}).fill('6');
+ for(const [sku,date,cancel] of [['OAT-1','2099-03-10','2099-03-20'],['COAT-2','2099-04-10','2099-04-30']]){
+  await bp.getByLabel('Ship date for '+sku,{exact:true}).fill(date);await bp.getByLabel('Cancel after for '+sku,{exact:true}).fill(cancel);
+ }
+ await bp.getByLabel('Your purchase order / reference',{exact:true}).fill('SPRING-BROWSER');
+ await shot(bp,bp.locator('form.br-pad'),'prebook-buyer-prepare');await bp.getByRole('button',{name:'Prepare draft',exact:true}).click();
+ await bp.getByRole('button',{name:'Orders',exact:true}).click();
+ const card=bp.locator('article.br-order').filter({hasText:'Reference: SPRING-BROWSER'});await expect(card).toContainText('Deposit required: USD 136.00');
+ await card.getByRole('button',{name:'Submit for supplier review',exact:true}).click();await expect(card).toContainText('submitted');
+ await page.getByRole('button',{name:'Orders',exact:true}).click();const ops=page.locator('article.br-order').filter({hasText:'Reference: SPRING-BROWSER'});
+ await ops.getByRole('button',{name:'Accept prebook commitment',exact:true}).click();await expect(ops).toContainText('Future commitment accepted');
+ await page.getByRole('button',{name:'Data',exact:true}).click();await page.getByText('Prebook season settings',{exact:true}).click();
+ page.once('dialog',dialog=>dialog.accept('Spring intake closed after accepted commitments'));await settings.getByRole('button',{name:'Close Spring 2099',exact:true}).click();await expect(settings).toContainText('Closed');await shot(page,settings,'prebook-season-closed');
+ await f.receive(f.firstPO,f.inventory.item,'4');
+ await page.getByRole('button',{name:'Orders',exact:true}).click();
+ page.once('dialog',dialog=>dialog.accept('Received first window stock'));await ops.getByRole('button',{name:'Release window 1',exact:true}).click();await expect(ops).toContainText('OAT-1: committed 4 · released 4 · outstanding 4');
+ const dialogs=['2099-04-20','Style delayed at supplier'];page.on('dialog',dialog=>dialog.accept(dialogs.shift()??''));await ops.getByRole('button',{name:'Backorder window 2',exact:true}).click();
+ await expect(ops).toContainText('Promise changed 2099-04-10 → 2099-04-20: Style delayed at supplier');await expect(ops).toContainText('COAT-2: committed 6 · released 0 · outstanding 6');
+ await shot(page,ops,'prebook-operations-released');
+ await bp.reload();await bp.getByRole('button',{name:'Orders',exact:true}).click();await expect(card).toContainText('COAT-2: committed 6 · released 0 · outstanding 6');
+ await expect(card.getByRole('button',{name:'Release window 2',exact:true})).toHaveCount(0);await shot(bp,card,'prebook-buyer-released');
+ await page.getByRole('button',{name:'Data',exact:true}).click();
+ const fulfillment=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).first();
+ await expect(fulfillment).toContainText('Prebook committed 4 · released 4 · outstanding 4');await expect(fulfillment).toContainText('Promise changed 2099-04-10 → 2099-04-20');await shot(page,fulfillment,'prebook-fulfillment');
+ const sales=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Sales by account and product',exact:true})}).first();await sales.getByText(/Document lines/).click();await expect(sales).toContainText('prebook Spring 2099');await shot(page,sales,'prebook-sales');
+ // Every control on these changed screens has visible words; icon-only controls require described tooltips.
+ for(const [p,region] of [[page,sales],[page,fulfillment],[bp,card]])assert.equal(await region.locator('button,a,[role=button]').evaluateAll(nodes=>nodes.filter(n=>n.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(n.textContent??'')&&!n.getAttribute('aria-describedby')).length),0);
+});

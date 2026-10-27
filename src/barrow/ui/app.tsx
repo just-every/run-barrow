@@ -1,3 +1,4 @@
+import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
 import { CatalogMaintenance } from './catalog-maintenance'
 import { StockSync } from './stock-sync'
@@ -198,7 +199,7 @@ export function BarrowApp() {
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && legacySupplier && <StockSync />}
-          {activeTab === 'Data' && legacySupplier && <PromotionSettings />}
+          {activeTab === 'Data' && legacySupplier && <><PromotionSettings /><PrebookSettings /></>}
           {activeTab === pad && !supplier && selected && <StockAlerts accountId={selected.id} skus={selected.value.prices.map(price=>price.sku)} />}
           {activeTab === 'Data' && legacySupplier && <ProfileConfiguration accounts={state.accounts} version={state}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <details className="br-details"><summary>Payment settings</summary><CardSettings /></details>}

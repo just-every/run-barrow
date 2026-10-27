@@ -44,8 +44,8 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
  if(role==='analyst')return denied(env,actor,path)
- if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
- if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
+ if(method==='GET'&&(['accounts','orders/history','orders/search','prebook-seasons','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
+ if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(prebook|timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
  if(method==='GET'&&/^payments(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&(role==='finance'||selling.includes(role)))return
  if(method==='GET'&&/^(?:credits|refunds)(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&role==='finance')return
@@ -70,7 +70,7 @@ const commandRoles:Record<string,string[]>={
  'cart.preview':selling,'cart.form':selling,'list.save':selling,'list.duplicate':selling,'list.delete':selling,
  'quote.request':selling,'quote.propose':selling,'quote.approve':['sales-manager'],'quote.message':selling,'quote.read':selling,
  'shipping.select':selling,'shipping.quote':['sales-manager'],
- 'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
+ 'prebook.release':operating,'prebook.delay':operating,'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
  'substitution.preview':['sales-manager'],'substitution.propose':['sales-manager'],'substitution.execute':operating,
  'location.save':['sales-manager'],'location.archive':['sales-manager'],
  'rep.assign':['sales-manager'],'rep.cover':['sales-manager'],'rep.end':['sales-manager'],'rep.transfer':['sales-manager'],
@@ -89,7 +89,7 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
  }
  if(!commandRoles[type]?.includes(grant.role))return denied(env,actor,type)
  if(['terms.publish','commission.settings','rep.assign','rep.cover','rep.end','rep.transfer'].includes(type)&&grant.accounts!=='all')return denied(env,actor,type)
- if(['order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
+ if(['prebook.release','order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
  let accountId=typeof p.accountId==='string'?p.accountId:undefined
  for(const [key,table] of [['orderId','bw_orders'],['creditId','bw_credit_notes'],['refundId','bw_credit_refunds'],['paymentId','bw_card_payments'],['quoteId','bw_quotes'],['listId','bw_lists'],['sheetId','bw_line_sheets'],['id','bw_followups']] as const){
   if(typeof p[key]!=='string'||key==='id'&&!type.startsWith('followup.'))continue

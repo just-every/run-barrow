@@ -1,3 +1,4 @@
+import { PrebookChoice, PrebookWindowFields } from './prebooks'
 import { priceLine } from '../pricing'
 import { supplierDate } from '../model'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
@@ -22,6 +23,7 @@ interface Props {
 
 // The rep's order pad: one account, a large style card beside the size matrix, and the running total always in view.
 export function OrderPad({ account, accounts, supplier, canPurchase=true, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
+  const [prebookSeasonId,setPrebookSeason]=useState(''),[prebookDates,setPrebookDates]=useState<Record<string,{requestedDate?:string;cancelAfter?:string}>>({})
   const currency=account.value.currency??'USD'
   const money=(cents:number,code=currency as 'USD'|'AUD'|'CAD')=>formatMoney(cents,code)
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
@@ -81,7 +83,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   const priced = chosen.flatMap(item=>{try{return [{sku:item.sku,...priceLine(quantityOf(quantities[item.sku]),item.unitCents,item.pricing,supplierDate(new Date(catalogue!.observedAt)))}]}catch(error){pricingProblem=error instanceof Error?error.message:'Check quantities.';return []}})
   const total = priced.reduce((sum,line)=>sum+line.lineCents,0)
   const inactive = (account.value.lifecycle ?? 'active') !== 'active'
-  const invalid = items.some(item => cellProblem(item, quantities[item.sku]))
+  const invalid = items.some(item => (prebookSeasonId?quantityOf(quantities[item.sku])>0&&(!Number.isSafeInteger(quantityOf(quantities[item.sku]))||Boolean(quantityProblem(String(quantityOf(quantities[item.sku])),item))):cellProblem(item, quantities[item.sku])))
   // PRI-003: suggested quantities are offered, never applied; the buyer picks one.
   const corrections = items.flatMap(item => { const quantity = quantityOf(quantities[item.sku]); const problem = quantity > 0 && Number.isSafeInteger(quantity) ? quantityProblem(String(quantity), item) : null; return problem ? [problem.below, problem.above].filter((value): value is string => Boolean(value)).map(value => ({ sku: item.sku, value })) : [] })
   const minimum = currentAccount.value.minimumCents, belowMinimum = chosen.length > 0 && total < minimum
@@ -94,7 +96,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
     event.preventDefault()
     if (!canPurchase || blocked || unitOrder || unitDraft) return
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
-    const prepared = await run('order.prepare', { accountId: account.id, ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
+    const prepared = await run('order.prepare', { accountId: account.id, ...(prebookSeasonId?{prebookSeasonId}:{}), ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(prebookSeasonId?prebookDates[item.sku]:{}), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
       if (live.current) { setQuantities({}); setAliases({}); setReference(''); setDeliveryLocation('') }
       onPrepared()
@@ -155,6 +157,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
         {skuMessage && <p className="br-sku-message" role="status">{skuMessage}</p>}
       </div>
     </div>
+    <PrebookChoice onChange={setPrebookSeason}/>{prebookSeasonId&&<section aria-label="Prebook ship windows"><p>Use future ship and cancel dates for each selected SKU. Incoming supply is checked separately; no stock is reserved.</p>{chosen.map(item=><PrebookWindowFields key={item.sku} sku={item.sku} onChange={dates=>setPrebookDates(current=>({...current,[item.sku]:dates}))}/>)}</section>}
     <div className="br-pad-send">
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setListing(true)}>Saved lists</button>}
@@ -171,7 +174,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       <StyleCard row={shown} observedAt={catalogue.observedAt} />
       <section className="br-matrix-card br-card" aria-label="Size matrix">
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}
-        <StyleMatrix rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
+        <StyleMatrix prebook={Boolean(prebookSeasonId)} rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
           onQuantity={(key, value) => setQuantities(current => ({ ...current, [key]: value }))} onSelect={setSelected} onKeep={key => setKept(current => new Set(current).add(key))} onRemove={remove} />
         <p className="br-quiet-text br-matrix-foot">{canPurchase?'Preparing creates a draft for review. Submit it from Orders when you are ready.':'Your approver rights allow company review in Orders; preparing purchases requires purchaser rights.'}<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
       </section>
