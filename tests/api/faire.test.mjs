@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {faireFixture,ingestFixture} from './faire-fixture.mjs';
 import {csvRows} from './line-sheet-fixture.mjs';
 import {archive,installation,restore,accountValue,stock} from './harness.mjs';
@@ -60,9 +61,27 @@ test('Faire HTTP intake resumes paged reads, holds unknown SKUs for owner review
 });
 
 test('Faire owner decisions are private, attributed, append-only and fully exported; restored reads require fresh consent',async t=>{
- const f=await faireFixture(t),{h}=f;await ingestFixture(f);
+ const f=await faireFixture(t),{h}=f;
+ const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+ const destinationRevision=hash([f.origin,'brand1']);
+ const sources=[
+  {id:'synthetic-barrow-order-1',retailerId:'synthetic-barrow-retailer-1',state:'PROCESSING',currency:'USD',lines:[{id:'synthetic-barrow-item-1',sourceSku:'OAT-1',quantity:3,unitCents:6500}],commissionBps:1500,commissionFlatFee:{currency:'USD',amountMinor:1000},payoutFee:{currency:'USD',amountMinor:130},shipments:[]},
+  {id:'synthetic-barrow-order-2',retailerId:'synthetic-barrow-retailer-2',state:'NEW',currency:'USD',lines:[{id:'synthetic-barrow-item-2',sourceSku:'UNKNOWN-1',quantity:2,unitCents:5200}],commissionBps:null,commissionFlatFee:null,payoutFee:null,shipments:[]}
+ ];
+ const expected=[];
+ const decision=async (value,run)=>{const from=Date.now();const result=await run();expected.push({...value,from,to:Date.now()});return result};
+ const consent=async (enabled,reason)=>decision({action:'faire.configured',source:enabled?'faire.configure.enable':'faire.configure.disable',reason},()=>h.api('/api/barrow/faire/configure',{brand:'brand1',enabled,reason}));
+ const reconciliationReason='Owner read and durably staged one source page; original Faire IDs deduplicate replay. No collection or inventory effect.';
+ await consent(true,'synthetic-barrow-owner-enable-1');
+ let result=await decision({action:'faire.page-reconciled',source:'faire.poll',revision:hash([destinationRevision,null,'synthetic-barrow-cursor-2',[sources[0]]]),reason:reconciliationReason},()=>f.poll());
+ assert.equal(result.orders[0].revision,hash(sources[0]));
+ await decision({action:'faire.order-ingested',orderId:sources[0].id,source:'faire.match',revision:hash(sources[0]),reason:'synthetic-barrow-reviewed-first-mapping'},()=>f.match(result.orders[0],{'OAT-1':'OAT-1'},{},{reason:'synthetic-barrow-reviewed-first-mapping'}));
+ f.state.failSecond=false;
+ result=await decision({action:'faire.page-reconciled',source:'faire.poll',revision:hash([destinationRevision,'synthetic-barrow-cursor-2',null,[sources[1]]]),reason:reconciliationReason},()=>f.poll());
+ assert.equal(result.orders[1].revision,hash(sources[1]));
+ await decision({action:'faire.order-ingested',orderId:sources[1].id,source:'faire.match',revision:hash(sources[1]),reason:'synthetic-barrow-reviewed-second-mapping'},()=>f.match(result.orders[1],{'UNKNOWN-1':'OAT-1'},{},{reason:'synthetic-barrow-reviewed-second-mapping'}));
  const owner=(await h.api('/api/barrow/state')).actor;
- await f.configure(false);await f.configure(true);
+ await consent(false,'synthetic-barrow-owner-disable');await consent(true,'synthetic-barrow-owner-enable-2');
  const decisions=(await h.api('/api/barrow/audit')).events.filter(row=>row.action==='faire.configured');
  assert.equal(decisions.length,4);assert.equal(new Set(decisions.map(row=>row.revision)).size,4,'Every consent decision needs a distinct revision');
  assert.deepEqual(decisions.map(row=>row.source),['faire.configure.enable','faire.configure.disable','faire.configure.enable','faire.configure.disable']);
@@ -72,11 +91,21 @@ test('Faire owner decisions are private, attributed, append-only and fully expor
  }
  let events=[],cursor;do{const page=await h.api('/api/barrow/audit?'+new URLSearchParams({limit:'2',...(cursor?{cursor}:{})}));events.push(...page.events);cursor=page.nextCursor}while(cursor);
  const faire=events.filter(row=>row.action.startsWith('faire.'));assert.deepEqual(faire.map(row=>row.action).sort(),['faire.configured','faire.configured','faire.configured','faire.configured','faire.order-ingested','faire.order-ingested','faire.page-reconciled','faire.page-reconciled']);
- for(const row of faire){assert.equal(row.actorId,owner.id);assert.equal(row.actorKind,'human');assert.ok(row.source.startsWith('faire.'));assert.ok(row.reason);assert.match(row.createdAt,/^\d{4}-\d\d-\d\dT/);assert.match(row.revision,/^[a-f0-9]{64}$/)}
+ const assertDecision=row=>{
+  const value=expected.find(value=>value.action===row.action&&value.reason===row.reason&&(value.revision===undefined||value.revision===row.revision));
+  assert.ok(value,'Decision must match independently expected action, reason and exact reviewed revision');
+  assert.equal(row.actorId,owner.id);assert.equal(row.actorKind,'human');assert.equal(row.source,value.source);assert.equal(row.reason,value.reason);
+  assert.equal(row.orderId==='unrecorded'?undefined:row.orderId||undefined,value.orderId);
+  if(value.revision!==undefined)assert.equal(row.revision,value.revision);else assert.match(row.revision,/^[a-f0-9]{64}$/);
+  assert.ok(Date.parse(row.createdAt)>=value.from&&Date.parse(row.createdAt)<=value.to,'Decision time must fall within its own public request');
+ };
+ const decisionKey=row=>JSON.stringify([row.action,row.source,row.orderId==='unrecorded'?undefined:row.orderId||undefined,row.action==='faire.configured'?undefined:row.revision,row.reason]);
+ const expectedKeys=expected.map(decisionKey).sort();
+ assert.equal(expected.length,8);assert.deepEqual(faire.map(decisionKey).sort(),expectedKeys);for(const row of faire)assertDecision(row);
  const scoped=await h.api('/api/barrow/audit?accountId=cedar');assert.deepEqual(scoped.events.filter(row=>row.action==='faire.order-ingested').map(row=>row.orderId).sort(),['synthetic-barrow-order-1','synthetic-barrow-order-2']);
  const csv=await h.request('/api/barrow/audit.csv?limit=2');assert.equal(csv.status,200);const exportedAudit=csvRows(await csv.text()).rows.filter(row=>row.action.startsWith('faire.'));
  assert.equal(exportedAudit.length,8,'Complete CSV includes every Faire decision beyond the requested page size');
- assert.deepEqual(exportedAudit.map(row=>[row.id,row.actorId,row.actorKind,row.source,row.createdAt,row.revision,row.reason]),faire.map(row=>[row.id,owner.id,'human',row.source,row.createdAt,row.revision,row.reason]));
+ assert.deepEqual(exportedAudit.map(row=>row.id),faire.map(row=>row.id));assert.deepEqual(exportedAudit.map(decisionKey).sort(),expectedKeys);for(const row of exportedAudit)assertDecision(row);
  for(const who of [buyer,agent]){await h.api('/api/barrow/audit',undefined,{...who,status:403});await h.api('/api/barrow/audit.csv',undefined,{...who,status:403})}
  await h.api('/api/barrow/audit',{reason:'Changed'},{method:'POST',status:404});await h.api('/api/barrow/audit/'+faire[0].id,undefined,{method:'DELETE',status:404});assert.equal((await h.api('/api/barrow/audit?orderId=synthetic-barrow-order-1')).events.filter(row=>row.action==='faire.order-ingested').length,1);
  const exported=await h.api('/api/barrow/export.json');assert.equal(exported.faireorders.length,2);assert.equal((await h.request('/api/barrow/export/faireorders.csv')).status,200);assert.equal((await h.api('/api/barrow/export.json',undefined,buyer)).faireorders,undefined);
