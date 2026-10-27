@@ -28,7 +28,7 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
  const tls=pier?await localTls(directory):undefined;
  if(clock!==undefined&&!Number.isFinite(Date.parse(clock)))throw Error('Fixture clock must be an ISO instant');
  const banner=clock===undefined?{}:{js:`const OriginalDate=Date;globalThis.Date=class extends OriginalDate { constructor(...args){super(...(args.length?args:[${JSON.stringify(clock)}]))} static now(){return ${Date.parse(clock)}} };`};
- const bundled=await build({banner,entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
+ const bundled=await build({banner,...(clock?{plugins:[{name:'fixed-business-clock',setup(builder){builder.onLoad({filter:/\/src\/barrow\/clock\.ts$/},()=>({contents:'export const now = async () => new Date('+JSON.stringify(clock)+')',loader:'ts'}))}}]}:{}),entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
  const logs=[];class CapturedLog extends Log {log(message){logs.push(String(message))}}
  const logger=captureLogs?new CapturedLog(LogLevel.DEBUG):undefined;

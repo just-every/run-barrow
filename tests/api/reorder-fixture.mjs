@@ -1,6 +1,6 @@
 import { installation, stock, accountValue } from './harness.mjs';
 /** Real public-door setup; only the historical date/currency is fixture data. */
-export async function reorderFixture(t) {
+export async function reorderFixture(t,{clock,networkEdge,built=false,https=false}={}) {
  const pier=await installation({pier:true});t.after(()=>pier.close());
  const products=await stock(pier,'100');
  for(const sku of ['TEA-1','JAM-1','OAT-2']) {
@@ -9,13 +9,13 @@ export async function reorderFixture(t) {
   await pier.command('po.approve',{poId:po.id,version:po.version});await pier.command('po.commit',{poId:po.id,version:po.version});
   await pier.command('receipt.create',{poId:po.id,supplierReference:sku,lines:[{poLineId:po.lines[0].id,locationId:products.location.id,quantity:'100',cost:'20.00'}]});
  }
- const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
+ const h=await installation({clock,networkEdge,built,https,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(products.customer.id),minimumCents:0,prices:['OAT-1','TEA-1','JAM-1'].map(sku=>({sku,unitCents:6500,minQty:1}))}});
  const buyer=await h.signIn(account.value.email);
  let original=await h.command('order.prepare',{accountId:account.id,reference:'SPRING-PO-2026',deliveryLocation:'Brooklyn flagship',lines:account.value.prices.map(price=>({sku:price.sku,quantity:3}))},{as:buyer});
  await h.command('order.submit',{orderId:original.id},{as:buyer});original=await h.command('order.approve',{orderId:original.id});
  // Historical fixture only: six calendar months before this test, at an Eastern date boundary.
- const sixMonths=new Date();sixMonths.setUTCMonth(sixMonths.getUTCMonth()-6);
+ const sixMonths=new Date(clock??Date.now());sixMonths.setUTCMonth(sixMonths.getUTCMonth()-6);
  const date=sixMonths.toISOString().slice(0,10);original={...original,preparedAt:`${date}T12:00:00.000Z`};
  delete original.currency;
  await h.db.prepare('UPDATE bw_orders SET value_json=? WHERE id=?').bind(JSON.stringify(original),original.id).run();
