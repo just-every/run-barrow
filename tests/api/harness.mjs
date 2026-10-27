@@ -20,13 +20,15 @@ export async function configurePierRouting(pier) {
  rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});
  await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
 }
-export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge}={}) {
+export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock}={}) {
  const connected=nativePiers.get(bindings.PIER_ORIGIN);
  if(!pier&&connected&&connected.cookie===bindings.PIER_SESSION)await configurePierRouting(connected);
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const tls=pier?await localTls(directory):undefined;
- const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
+ if(clock!==undefined&&!Number.isFinite(Date.parse(clock)))throw Error('Fixture clock must be an ISO instant');
+ const banner=clock===undefined?{}:{js:`const OriginalDate=Date;globalThis.Date=class extends OriginalDate { constructor(...args){super(...(args.length?args:[${JSON.stringify(clock)}]))} static now(){return ${Date.parse(clock)}} };`};
+ const bundled=await build({banner,entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'}});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
  const logs=[];class CapturedLog extends Log {log(message){logs.push(String(message))}}
  const logger=captureLogs?new CapturedLog(LogLevel.DEBUG):undefined;

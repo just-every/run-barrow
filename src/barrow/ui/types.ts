@@ -7,6 +7,7 @@ export interface AccountValue { currency?:'USD'|'CAD'; priceDisplay?:import('../
 export interface CurrentRep { name: string; coverage: boolean; through?: string }
 export interface Account { buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot; id: string; value: AccountValue; revision: string }
 export interface Order {
+  prebook?:import('../prebooks').Prebook;fromPrebook?:{orderId:string;windowId:string}
   buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}
 
@@ -16,7 +17,7 @@ export interface Order {
   lines: { promotion?:import('../promotions').PromotionLine; sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?:string; baseUnit?:string; baseQuantity?:string; conversion?:string; packContents?:string; lineCents?:number; pricing?:import('../pricing').PricingSnapshot; buyerSku?:string; style?:string; color?:string; size?:string; requestedDate?:string; cancelAfter?:string }[]
   season?: string
   totalCents: number; currency?: 'USD' | 'AUD' | 'CAD'; termsDays: number; accountRevision: string; preparedAt: string
-  status: 'draft' | 'awaiting-company-approval' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded' | 'releasing' | 'cancelled'
+  status: 'prebook' | 'draft' | 'awaiting-company-approval' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded' | 'releasing' | 'cancelled'
   replaces?: string; supersededBy?: string; stockException?: { by: string; at: string; reason: string }; quote?: { id: string; revision: number; shipping: string; validUntil: string }
   companyPreparedBy?: string; companyRequestedAt?: string; companyApprovedBy?: string; companyApprovedAt?: string; preparedBy: string; preparedAs?: 'rep'|'sales-manager'|'owner'|'admin'; approvalStatus?: import('../company-approval').ApprovalStatus; approvalVoided?: { at: string; reason: string }; submittedBy?: string; approvedBy?: string; approvedAt?: string
   termsAcceptance?: import('../sales-terms').TermsAcceptance
