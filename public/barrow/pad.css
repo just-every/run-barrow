@@ -12,7 +12,7 @@
 .br-pad-context{display:flex;align-items:center;font-size:13px;color:var(--br-body)}
 .br-pad-find{display:grid;justify-items:end}
 .barrow .br-sku input{width:250px;padding-left:38px;background:var(--rer-surface) url('/barrow/search.svg') 12px center/18px no-repeat}
-.br-sku-message{max-width:250px;margin-top:6px!important;padding:6px 10px;border-radius:8px;background:var(--br-ink);color:var(--rer-accent-text);font-size:12px}
+.br-sku-message{max-width:250px;margin-top:6px!important;padding:6px 10px;border-radius:8px;background:var(--br-ink);color:var(--rer-accent-text);font-size:13px}
 .br-pad-send{grid-area:send;display:grid;justify-items:end;gap:6px;max-width:260px}
 .barrow .br-pad-send button{min-height:48px;padding:12px 22px;font-size:16px}
 .br-pad-send p{text-align:right}
@@ -31,11 +31,11 @@
 .barrow .br-style-head h2{font:500 26px/1.2 var(--rer-font-body);letter-spacing:-.015em}
 .br-style-price{margin-top:6px!important;font-size:18px}
 .br-style-price strong{font-weight:600}.br-style-price span{color:var(--br-body)}
-.br-style-sku{margin-top:4px!important;font:400 12px/1.4 var(--rer-font-mono);color:var(--br-soft)}
+.br-style-sku{margin-top:4px!important;font:400 13px/1.4 var(--rer-font-mono);color:var(--br-soft)}
 .br-style-stock{padding:16px 10px 0}
 .br-size-stock{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0 12px}
 .br-size-stock div{padding:6px 4px;border:1px solid var(--br-rule);border-radius:8px;text-align:center}
-.br-size-stock dt{font-size:12px;color:var(--br-soft)}.br-size-stock dd{margin:0;font-size:16px;font-weight:600}
+.br-size-stock dt{font-size:13px;color:var(--br-soft)}.br-size-stock dd{margin:0;font-size:16px;font-weight:600}
 /* The size matrix. */
 .br-matrix-card{grid-area:matrix;padding:6px 10px 0}
 .br-matrix-wrap{overflow-x:auto}
@@ -56,7 +56,7 @@
 .barrow .br-style-pick:hover{background:var(--br-row);border-color:transparent}
 .br-style-name{display:block;font:500 17px/1.3 var(--rer-font-body);color:var(--br-ink)}
 .br-style-note{display:block;margin-top:3px;font-size:14px;color:var(--br-body)}
-.br-style-kept{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;background:var(--br-green-tint);color:var(--br-green-ink);font-size:12px;font-weight:500}
+.br-style-kept{display:inline-block;margin-top:6px;padding:2px 8px;border-radius:999px;background:var(--br-green-tint);color:var(--br-green-ink);font-size:13px;font-weight:500}
 .br-selected>th{box-shadow:inset 3px 0 0 var(--br-ultramarine)}
 .br-selected .br-flat{box-shadow:0 0 0 2px var(--br-ultramarine)}
 .barrow .br-cell{display:block;width:56px;height:56px;min-height:0;margin:0 auto;padding:0;border:1px solid var(--br-rule);border-radius:6px;background:var(--br-row);color:var(--br-ink);font:500 18px/1 var(--rer-font-body);text-align:center;-moz-appearance:textfield;appearance:textfield}
@@ -68,10 +68,10 @@
 .barrow .br-cell-none{display:grid;place-items:center;background:var(--br-row);border-color:var(--br-rule);color:var(--br-faint);cursor:default}
 /* The price change, settled in its own row: amber tint around the row and its note. */
 .br-changed>th,.br-changed>td{background:var(--br-amber-tint);border-top:1px solid var(--br-amber-line);border-bottom:0!important}
-.br-changed>th{border-left:1px solid var(--br-amber-line);border-top-left-radius:8px}
-.br-changed>td:last-child{border-right:1px solid var(--br-amber-line);border-top-right-radius:8px}
+.br-changed>th{border-left:1px solid var(--br-amber-line);border-top-left-radius:0}
+.br-changed>td:last-child{border-right:1px solid var(--br-amber-line);border-top-right-radius:0}
 .br-changed .br-cell-filled{border-color:var(--br-rule-strong)}
-.br-matrix .br-change-row>td{padding:0 16px 14px 100px;text-align:left;background:var(--br-amber-tint);border:1px solid var(--br-amber-line);border-top:0;border-radius:0 0 8px 8px}
+.br-matrix .br-change-row>td{padding:0 16px 14px 100px;text-align:left;background:var(--br-amber-tint);border:1px solid var(--br-amber-line);border-top:0;border-radius:0}
 .br-change-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:12px;margin-top:12px}
 .br-change-actions p{flex:1 1 200px;font-size:13px;color:var(--br-body)}
 .br-change-actions button{min-height:48px;white-space:nowrap;font-weight:500}
@@ -121,7 +121,7 @@
  .br-matrix-card{padding:0}
  .br-matrix,.br-matrix tbody{display:block}
  .br-matrix thead tr,.br-matrix .br-style-row{display:grid;grid-template-columns:repeat(calc(var(--br-sizes) + 1),minmax(0,1fr));gap:4px;padding:0 10px}
- .br-matrix thead{display:block;position:sticky;top:0;z-index:2;background:var(--rer-surface);border-bottom:1px solid var(--br-rule);border-radius:12px 12px 0 0}
+ .br-matrix thead{display:block;position:sticky;top:0;z-index:2;background:var(--rer-surface);border-bottom:1px solid var(--br-rule);border-radius:0}
  .br-matrix thead th{height:38px;padding:0;border:0;font-size:13px}
  .br-matrix thead .br-col-style,.br-matrix thead .br-col-price,.br-matrix thead .br-col-line{display:none}
  .br-matrix .br-style-row{padding:12px 10px;border-bottom:1px solid var(--br-rule)}
@@ -136,10 +136,10 @@
  .barrow .br-cell{width:100%;min-width:36px;height:44px;font-size:16px}
  .br-cell-none{height:44px}
  .br-selected>th{box-shadow:none}.br-matrix .br-selected{box-shadow:inset 3px 0 0 var(--br-ultramarine)}
- .br-matrix .br-changed{border:1px solid var(--br-amber-line);border-bottom:0;border-radius:12px 12px 0 0;background:var(--br-amber-tint)}
+ .br-matrix .br-changed{border:1px solid var(--br-amber-line);border-bottom:0;border-radius:0;background:var(--br-amber-tint)}
  .br-matrix .br-changed>*{background:transparent;border:0!important}
  .br-matrix .br-change-row{display:block}
- .br-matrix .br-change-row>td{display:block;padding:0 12px 14px;border-radius:0 0 8px 8px}
+ .br-matrix .br-change-row>td{display:block;padding:0 12px 14px;border-radius:0}
  .br-change-note{border-radius:12px;align-items:flex-start;font-size:13px;padding:8px 12px 8px 8px}
  .br-change-actions{flex-direction:column;align-items:stretch;gap:8px}
  .br-change-actions p{flex:auto}
@@ -148,7 +148,7 @@
  .br-pad-ref{grid-area:ref;position:static;width:auto;margin:0;justify-self:stretch}
  .br-pad-foot{position:sticky;bottom:8px;gap:6px 10px;min-height:0;padding:10px 14px}
  .br-pad-total{font-size:22px}
- .br-pill{padding:5px 10px;font-size:12px}.br-pill-check{width:16px;height:16px;font-size:11px}
+ .br-pill{padding:5px 10px;font-size:13px}.br-pill-check{width:16px;height:16px;font-size:13px}
  .br-pad-terms{padding-left:12px;font-size:13px}.br-pad-foot .br-hand{font-size:22px}
 .br-pad-terms svg{width:18px;height:18px}
  .br-pad-foot .br-hand{font-size:17px;padding-bottom:3px}
