@@ -5,6 +5,7 @@ import { digest } from './access'
 import { parseCsv } from './cart-csv'
 import { now } from './clock'
 import { companyRightsGuard, requireCompanyRight } from './company-policy'
+import { companyOrderScope } from './company-access'
 import { fail, integer, requirePerson, supplier, supplierDate, text, type Actor, type Order } from './model'
 import { catalogue, decimal, format, pierOrigin, pierState } from './pier'
 import { prepareLines } from './unit-lines'
@@ -48,8 +49,10 @@ export async function sellThroughReview(env: Bindings, actor: Actor, p: any) {
  const horizonDays=integer(p.horizonDays,'Demand horizon days',1,366),seasonalityBps=integer(p.seasonalityBps,'Buyer seasonality basis points',1,50000),budgetCents=integer(p.budgetCents,'Merchandise budget cents',0,1000000000)
  const csv=text(p.csv,'POS export CSV',256*1024),[header,...rows]=parseCsv(csv)
  if(JSON.stringify(header)!==JSON.stringify(['sku','unit','sold','observedDays','onHand','status'])||!rows.length||rows.length>100)fail('SELLTHROUGH_CSV','Use the documented six-column POS export with one to 100 rows.',400)
- const available=await catalogue(env,selected),snapshot=(await env.DB.prepare(orderSnapshot).bind(selected.id).first<{value:string}>())!.value
- const orders=(await env.DB.prepare('SELECT value_json FROM bw_orders WHERE account_id=? ORDER BY id').bind(selected.id).all<{value_json:string}>()).results.map(row=>JSON.parse(row.value_json) as Order)
+ const scope=companyOrderScope({...actor,company:member!})
+ const scopedSnapshot=orderSnapshot.replace('WHERE account_id=?','WHERE account_id=?'+scope.sql)
+ const available=await catalogue(env,selected),snapshot=(await env.DB.prepare(scopedSnapshot).bind(selected.id,...scope.values).first<{value:string}>())!.value
+ const orders=(await env.DB.prepare('SELECT value_json FROM bw_orders WHERE account_id=?'+scope.sql+' ORDER BY id').bind(selected.id,...scope.values).all<{value_json:string}>()).results.map(row=>JSON.parse(row.value_json) as Order)
  const open=orders.filter(order=>['submitted','awaiting-company-approval','reserving','shortfall','approved','releasing'].includes(order.status))
  // Pier is the only stock authority, including dispatched and cancelled commitments.
  const state=await pierState(env),origin=await pierOrigin(env)
@@ -112,7 +115,7 @@ export async function sellThroughReview(env: Bindings, actor: Actor, p: any) {
  const value={accountId:selected.id,accountRevision:selected.revision,...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),feedSha256:await digest(csv),observedOn,requestedDate,horizonDays,seasonalityBps,budgetCents,currency:available.currency,totalCents,sourceOrders:orders.map(order=>({id:order.id,revision:order.revision})),cadenceDays,lines,blockers,provenance:{model:'barrow-sell-through-arithmetic-v1',tools:['buyer-authorized-export','account-catalogue','native-orders','live-Pier'],paidCostCents:0,contacts:0,authority:'Current company purchaser; no external agent, model call, outreach or purchase execution.'}}
  // Live prices, availability and open source revisions participate in exact human review.
  const fingerprint=await digest(JSON.stringify({value,offers:available.items}))
- return {review:{...value,provenance:{...value.provenance,runId:fingerprint},fingerprint} as SellThroughReview,guards:[profile.guard,companyRightsGuard(env.DB,member),env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${orderSnapshot.replace(' AS value','')})=? THEN 1 ELSE 0 END`).bind(selected.id,snapshot)]}
+ return {review:{...value,provenance:{...value.provenance,runId:fingerprint},fingerprint} as SellThroughReview,guards:[profile.guard,companyRightsGuard(env.DB,member),env.DB.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (${scopedSnapshot.replace(' AS value','')})=? THEN 1 ELSE 0 END`).bind(selected.id,...scope.values,snapshot)]}
 }
 export async function sellThroughOutcomes(env: Bindings, actor: Actor, order: Order) {
  await sellThroughBuyer(env,actor,order.accountId)

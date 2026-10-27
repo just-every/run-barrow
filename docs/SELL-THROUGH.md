@@ -44,7 +44,7 @@ Lightspeed file adapters and API connections are not implemented.
 For known sales, demand is the ceiling of sold units multiplied by the horizon
 and the buyer's explicit seasonality factor, divided by observed days. 10000
 basis points means no seasonal adjustment. This is a buyer input, not an inferred
-seasonal forecast. Subtract stock on hand and every existing open commitment,
+seasonal forecast. Subtract stock on hand and every visible open commitment,
 including prebooks due after the selected date. Pier supplies the remaining
 unshipped, uncancelled base units of approved orders. Submitted and pending
 company approvals count at their full requested quantity. Drafts are not supply.
@@ -52,6 +52,9 @@ Conversions use the catalogue's selling-unit basis. A missing live commitment
 refuses planning; it never becomes zero. Purchase cadence is the mean interval
 between distinct native purchase dates, or unknown with fewer than two dates.
 Cadence is contextual evidence and does not silently change the buyer's horizon.
+All commitment quantities, purchase dates, source references and approval guards
+use the same current company rights and ship-to location scope as ordinary order
+reads. Orders outside that scope contribute no data or fingerprint changes.
 
 Review the returned explanation for every line. Add `selections`, containing
 `sku`, `unit` and `quantity`, to edit quantities; zero removes a line. A positive
