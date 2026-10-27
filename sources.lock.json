@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ee6bc54b1d6dc29a019f67794da24ac74755137ca186e436e53b2d20e13d6a52",
+      "sha256": "d01467dea51601c547b78cf72839c6f2ac8b5f88a1ce426c53e585ba9fde3209",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d5c87d477be17685ef71a7f53b77b98aff227ef407c3b2ac37baf1c94b75ee4e",
+      "sha256": "259e56a98b2d3c7c54de110ae5b12fcf03a70e4a5099d242278623577705a336",
       "executable": false
     },
     "DEMO.md": {
@@ -188,7 +188,7 @@
       "executable": false
     },
     "docs/CONNECTORS.md": {
-      "sha256": "da237eca80cbb7c99d0761ea88f3c5077730ae76f17cf842e420279b50f49f12",
+      "sha256": "c10caad030c578a8c9fa5709bea74ecef3545b375c1f1e7abac536db6058634a",
       "executable": false
     },
     "docs/CUTOVER-DELTA.md": {
@@ -1316,7 +1316,7 @@
       "executable": false
     },
     "src/barrow/connector-review.ts": {
-      "sha256": "6bcb463d686a9ccfe92e1359360df5e6e3f59d384234c1e3c86853abe2267cf6",
+      "sha256": "7d9485fee5978047104b2d659bf136ec35a62309facddc98e5db9967e1f08249",
       "executable": false
     },
     "src/barrow/credit-access.ts": {
@@ -1940,7 +1940,7 @@
       "executable": false
     },
     "src/barrow/ui/connector-review.tsx": {
-      "sha256": "e5b39deb2cbe7a54daa0b867f90fe8485af6a49248dff77cb38d8df175b40657",
+      "sha256": "93e4dc08017535861dd44c78f8a86de37cf8ae18266c35cff4c381f60a8b8655",
       "executable": false
     },
     "src/barrow/ui/credit-panel.tsx": {
@@ -4356,7 +4356,7 @@
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
-      "sha256": "9767c8fee3d9cca179b9ef2de2e97225cf509658272ad8a71f37bb82448442ad",
+      "sha256": "fbd1a1306c22471b7a21440ac7420a1d39b2da51d3e5517e046b978330dc8983",
       "executable": false
     },
     "tests/api/move-sparklayer.test.mjs": {
@@ -4568,7 +4568,7 @@
       "executable": false
     },
     "tests/journeys/delta-cutover.test.mjs": {
-      "sha256": "a90cb0cd366dc1785d18a080f77b61bcd391a235bc1d310c9fbc01af31e99a22",
+      "sha256": "82f18d71b916246f11a4b93ae5630f7b8ad81abf3a1674de7f7bc3740a12590d",
       "executable": false
     },
     "tests/journeys/faire.test.mjs": {

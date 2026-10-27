@@ -45,8 +45,8 @@ export function ConnectorReview() {
     <details><summary>Source identity mappings</summary><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{JSON.stringify(feed.mappings,null,2)}</pre></details>
     <p>Products: {feed.counts?.products??0}; customers: {feed.counts?.customers??0}; ATS: {feed.counts?.ats??0}; unresolved errors: {feed.counts?.unresolvedErrors??0}.</p>
     {feed.mapping&&<pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{JSON.stringify(feed.mapping,null,2)}</pre>}
-    <ul>{feed.files.map((file:any)=><li key={file.id}>{file.name} · {file.rowsAccepted} accepted · {file.errors.length} quarantined · received {when(file.receivedAt)} · owner {file.owner}<ul>{file.errors.map((row:any)=><li key={row.row}>Row {row.row}: {row.message}</li>)}</ul></li>)}</ul>
-    <ul>{feed.deliveries.map((file:any)=><li key={file.id}>{file.filename} · order {file.orderId} · {file.state}{file.error?` · ${file.error}`:''}</li>)}</ul>
+    <ul aria-label="Picked-up files">{feed.files.map((file:any)=><li key={file.id}>{file.name} · {file.rowsAccepted} accepted · {file.errors.length} quarantined · received {when(file.receivedAt)} · owner {file.owner}<ul>{file.errors.map((row:any)=><li key={row.row}>Row {row.row}: {row.message}</li>)}</ul></li>)}</ul>
+    <ul aria-label="Written order files">{feed.deliveries.map((file:any)=><li key={file.id}>{file.filename} · data rows: {file.rowsWritten} · order {file.orderId} · {file.state}{file.error?` · ${file.error}`:''}</li>)}</ul>
    </details>)}
   </>:<p>No inspection recorded.</p>}
  </section>
