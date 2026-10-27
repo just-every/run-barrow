@@ -8,24 +8,24 @@ import { money as formatMoney, when } from './types'
 /** A draft line whose agreed price moved after the draft was written. */
 export interface PriceChange { from: number; to: number; currency: 'USD' | 'AUD' | 'CAD' }
 
-export function cellProblem(item: CatalogueItem, value: string | undefined) {
+export function cellProblem(item: CatalogueItem, value: string | undefined, prebook=false) {
   if (!value) return ''
   const quantity = Number(value)
   if (!Number.isSafeInteger(quantity) || quantity < 0) return 'Enter a whole number.'
   const rule = quantity > 0 ? quantityProblem(String(quantity), item) : null
   if (rule) return `${rule.reason[0].toUpperCase()}${rule.reason.slice(1)}: choose ${[rule.below, rule.above].filter(Boolean).join(' or ')}.`
-  if (quantity > Number(item.available)) return `Only ${item.available} available.`
+  if (!prebook && quantity > Number(item.available)) return `Only ${item.available} available.`
   return ''
 }
 
 interface Props {
-  rows: StyleRow[]; columns: string[]; quantities: Record<string, string>; busy: boolean; selected: string; customer: string
+  prebook?:boolean; rows: StyleRow[]; columns: string[]; quantities: Record<string, string>; busy: boolean; selected: string; customer: string
   pricingReasons?:Record<string,string>; lineCents?:Record<string,number>; changes: Record<string, PriceChange>; kept: Set<string>; writtenAt?: string; cells: RefObject<Map<string, HTMLInputElement>>
   onQuantity: (sku: string, value: string) => void; onSelect: (key: string) => void; onKeep: (key: string) => void; onRemove: (row: StyleRow) => void
 }
 
 // Styles down, sizes across, then Units and Line $. A price that moved since the draft is settled inside its own row.
-export function StyleMatrix({ rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
+export function StyleMatrix({ prebook=false, rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
   const money=(cents:number,code:'USD'|'AUD'|'CAD'=rows[0]?.currency??'USD')=>formatMoney(cents,code)
   return <div className="br-matrix-wrap"><table className="br-matrix" style={{ ['--br-sizes' as string]: columns.length }}>
     <caption className="br-sr-only">Order quantities by style and size</caption>
@@ -47,10 +47,10 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
           {columns.map(size => {
             const item = row.cells[size]
             if (!item) return <td key={size} className="br-col-size"><span className="br-cell br-cell-none" title={`${size} is not offered`}>–</span></td>
-            const value = quantities[item.sku] ?? '', problem = cellProblem(item, value)
+            const value = quantities[item.sku] ?? '', problem = cellProblem(item, value,prebook)
             return <td key={size} className="br-col-size"><input ref={element => { if (element) cells.current?.set(item.sku, element); else cells.current?.delete(item.sku) }}
               className={`br-cell${quantityOf(value) > 0 ? ' br-cell-filled' : ''}`} type="number" inputMode="numeric" min="0" step="1" placeholder="–" value={value} disabled={busy}
-              aria-label={`${size} quantity for ${row.name}`} aria-invalid={problem ? true : undefined} title={problem || `${item.sku} · ${item.available} available${item.awaitingRelease ? ` · ${item.awaitingRelease} held until Pier confirms a cancelled order’s release` : ''}`}
+              aria-label={`${size} quantity for ${row.name}`} aria-invalid={problem ? true : undefined} title={problem || (prebook?'Future commitment; incoming capacity checked on preparation.':`${item.sku} · ${item.available} available${item.awaitingRelease ? ` · ${item.awaitingRelease} held until Pier confirms a cancelled order’s release` : ''}`)}
               onFocus={() => onSelect(row.key)} onChange={event => onQuantity(item.sku, event.target.value)} /></td>
           })}
           <td className="br-col-units">{rowUnits(row, quantities) || '–'}</td>

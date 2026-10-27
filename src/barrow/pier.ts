@@ -55,16 +55,16 @@ export async function catalogue(env: Bindings,account: Account) {
   const byWarehouse=stockByItem.get(item.id)??new Map<string,bigint>()
   const sellable=[...byWarehouse].filter(([name])=>!allowed||allowed.has(name)).reduce((n,[,quantity])=>n+quantity,0n)
   const held=unconfirmed.get(item.id)??0n,available=sellable>held?sellable-held:0n
-  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{}),warehouses:[...byWarehouse].sort(([a],[b])=>a.localeCompare(b)).map(([warehouse,quantity])=>({warehouse,available:format(quantity),promised:!allowed||allowed.has(warehouse)})),incoming:incoming(state,item.id)}
+  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{}),warehouses:[...byWarehouse].sort(([a],[b])=>a.localeCompare(b)).map(([warehouse,quantity])=>({warehouse,available:format(quantity),promised:!allowed||allowed.has(warehouse)})),incoming:incoming(state,item.id),prebookIncoming:incoming(state,item.id,allowed)}
   sellingUnits(offer)
   return [offer]
  })
  return {account,items,currency:account.value.currency??'USD',observedAt:(await now()).toISOString()}
 }
 /** STK-002: unreceived quantity on committed Pier POs for one item, by promise date (null when the PO gives none), earliest first. */
-function incoming(state:any,itemId:string) {
+function incoming(state:any,itemId:string,allowed?:Set<string>) {
  const dates=new Map<string|null,bigint>()
- for(const po of Array.isArray(state.purchaseOrders)?state.purchaseOrders:[]) if(po.status==='committed') for(const line of po.lines??[]) if(line.itemId===itemId) {
+ for(const po of Array.isArray(state.purchaseOrders)?state.purchaseOrders:[]) if(po.status==='committed') for(const line of po.lines??[]) if(line.itemId===itemId&&(!allowed||allowed.has(line.destinationWarehouse??po.destinationWarehouse))) {
   const open=decimal(line.quantity)-decimal(line.received??'0')
   if(open>0n) dates.set(po.promiseDate??null,(dates.get(po.promiseDate??null)??0n)+open)
  }
@@ -77,7 +77,7 @@ export function reservationLines(lines:Line[]) {
  return [...totals].map(([itemId,quantity])=>({itemId,quantity:format(quantity)}))
 }
 /** ORD-007: the requested delivery date travels as Pier's promiseDate, its only order date. */
-export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[],requestedDate?: string) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,lines:reservationLines(lines),...(requestedDate?{promiseDate:requestedDate}:{})}}).then(value=>value.result), () => demoReservation(orderId, reservationLines(lines).map(line=>({...lines.find(original=>original.itemId===line.itemId)!,quantity:Number(line.quantity),baseQuantity:line.quantity}))))
+export const reserveOrder = (env: Bindings,orderId: string,customerId: string,lines: Line[],requestedDate?: string,route?:{warehouse:string}) => demoEffect(() => call(env,'/api/pier/commands',{commandId:`barrow-${orderId}`,type:'order.create',payload:{customerId,...route,lines:reservationLines(lines),...(requestedDate?{promiseDate:requestedDate}:{})}}).then(value=>value.result), () => demoReservation(orderId, reservationLines(lines).map(line=>({...lines.find(original=>original.itemId===line.itemId)!,quantity:Number(line.quantity),baseQuantity:line.quantity}))))
 export function fullyReserved(result: any,lines: Line[]) {
  const expected=reservationLines(lines)
  return Array.isArray(result?.lines) && result.lines.length===expected.length && expected.every(line=>{

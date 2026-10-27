@@ -264,3 +264,126 @@ test('ORD-014: fifty recorded orders of one season export per line and as style,
  assert.deepEqual(new Set(totals.rows[0].sources.split(' ')),new Set(lines.rows.map(r=>r.confirmation)));
  await h.api('/api/barrow/confirmations/export.csv',{confirmations,shape:'pivot'},{status:400});
 });
+
+test('seasonal prebook commitments distinguish incoming supply, close intake, release once and retain delayed-window quantities and promise history for buyer and operations',async t=>{
+ const {prebookFixture,acceptPrebook}=await import('./prebook-fixture.mjs');
+ const f=await prebookFixture(t),{h,pier,buyer,other,payload,inventory}=f;
+ const future=await h.command('prebook.season-create',{revision:f.settings.revision,name:'Future intake',opensAt:'2100-01-01T00:00:00Z',closesAt:'2101-01-01T00:00:00Z',depositBps:0,reason:'Published later intake remains unavailable before its opening'});
+ f.settings=future;
+ assert.equal((await h.command('order.prepare',{...payload,prebookSeasonId:future.seasons.at(-1).id},{...buyer,status:409})).error.code,'SEASON_CLOSED');
+
+ const denied=async(type,p,who=buyer,code)=>{const value=await h.command(type,p,{...who,status:who===other?404:403});if(code)assert.equal(value.error.code,code)};
+ await denied('prebook.season-close',{revision:f.settings.revision,id:f.season.id,reason:'Unauthorized close'});
+ assert.equal((await h.command('order.prepare',{...payload,prebookSeasonId:undefined}, {...buyer,status:409})).error.code,'STOCK');
+ assert.equal((await h.command('order.prepare',{...payload,lines:[{...payload.lines[0],quantity:21}]},{...buyer,status:409})).error.code,'PREBOOK_CAPACITY');
+ assert.equal((await h.command('order.prepare',{...payload,lines:[{...payload.lines[0],requestedDate:'2099-02-10'}]},{...buyer,status:409})).error.code,'PREBOOK_CAPACITY');
+ assert.equal((await h.command('order.prepare',{...payload,lines:[{...payload.lines[0],quantity:1}]},{...buyer,status:409})).error.code,'MINIMUM');
+ const unitDraft=await h.command('order.prepare',{...payload,reference:'UNIT-PREBOOK',lines:[{...payload.lines[0],unit:'pair',quantity:2}]},buyer);
+ assert.deepEqual(unitDraft.lines.map(l=>[l.unit,l.quantity,l.baseQuantity,l.unitCents,l.lineCents]),[['pair',2,'4',13000,26000]]);
+ const stricter=await h.command('account.save',{id:f.account.id,revision:f.account.revision,value:{...f.account.value,minimumCents:70000}});
+ assert.equal((await h.command('order.prepare',payload,{...buyer,status:409})).error.code,'MINIMUM');
+ await h.command('account.save',{id:stricter.id,revision:stricter.revision,value:{...stricter.value,minimumCents:10000}});
+
+ await h.command('shipping.settings',{revision:(await h.api('/api/barrow/shipping/settings')).revision,methods:[{id:'pickup',name:'Local pickup',kind:'pickup',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:0,handlingCents:0,freeOverCents:null,transitMinDays:0,transitMaxDays:0,quoteRequired:false}]});
+ let draft=await h.command('order.prepare',payload,buyer);
+ assert.equal(draft.prebook.depositCents,13600);
+ assert.equal((await h.command('prebook.release',{orderId:draft.id,windowId:'1',revision:draft.revision,reason:'Draft is not accepted'},{status:409})).error.code,'PREBOOK_STATE');
+ assert.deepEqual(draft.prebook.incoming,[{sku:'OAT-1',date:'2099-03-01',quantity:'20'},{sku:'COAT-2',date:'2099-04-01',quantity:'20'}]);
+ assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+ await h.command('settings.save',{stockFreshnessMinutes:15});
+ await h.db.prepare('UPDATE bw_orders SET value_json=? WHERE id=?').bind(JSON.stringify({...draft,preparedAt:'2026-10-27T11:40:00Z'}),draft.id).run();
+ assert.equal((await h.command('order.submit',{orderId:draft.id},{...buyer,status:409})).error.code,'STOCK_STALE');
+ draft=await h.command('order.prepare',{...payload,replaces:draft.id},buyer);
+ let order=await h.command('order.submit',{orderId:draft.id},buyer);
+ order=await h.command('order.approve',{orderId:order.id});
+ assert.equal(order.status,'approved');assert.equal(order.invoice,undefined);assert.equal(order.pierOrderId,undefined);
+ const deposit=await h.api('/api/barrow/payments?orderId='+order.id,undefined,buyer);
+ assert.deepEqual(deposit.requirement,{kind:'prebook-deposit',orderId:order.id,amountCents:13600,currency:'USD',state:'required'});
+ assert.deepEqual(deposit.payments,[]);
+ assert.equal((await h.command('card.prepare',{orderId:order.id},{...buyer,status:409})).error.code,'PAYMENT_ORDER');
+ assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+ const confirmations=(await h.api(`/api/barrow/orders/${order.id}/confirmations`,undefined,buyer)).confirmations;
+ assert.deepEqual(confirmations.map(c=>c.stage),['submitted','accepted']);assert.equal(confirmations[1].snapshot.prebook.depositCents,13600);
+ const sales=await h.api('/api/barrow/reports/sales');
+ assert.deepEqual(sales.rows.filter(r=>r.orderId===order.id).map(r=>[r.kind,r.season,r.sku,r.quantity,r.bookedCents]),[['prebook','Spring 2099','OAT-1','4',26000],['prebook','Spring 2099','COAT-2','6',42000]]);
+ const csv=await(await h.request('/api/barrow/reports/sales.csv')).text();assert.ok(csv.includes('"prebook"'));assert.ok(csv.includes('"Spring 2099"'));
+ await h.command('prebook.season-close',{revision:f.settings.revision,id:f.season.id,reason:'Spring intake complete'});
+ assert.equal((await h.command('order.prepare',payload,{...buyer,status:409})).error.code,'SEASON_CLOSED');
+ let rows=(await h.api(`/api/barrow/orders/${order.id}/prebook`,undefined,buyer)).rows;
+ assert.deepEqual(rows.map(r=>[r.committed,r.released,r.outstanding]),[['4','0','4'],['6','0','6']]);
+ await denied('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Buyer cannot release'});
+ const {activateStaff}=await import('./harness.mjs');
+ const scoped=await activateStaff(h,'scoped-operations@example.test',{role:'operations',accounts:['cedar'],warehouses:['New York'],reports:['fulfillment'],discountLimitCents:0,stockExceptionLimitCents:0});
+ await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Insufficient warehouse authority'},{...scoped.who,status:403});
+ const {token}=await h.api('/api/barrow/agent-token',{});
+ await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Agent cannot release'},{as:'',headers:{authorization:`Bearer ${token}`},status:403});
+
+ await denied('prebook.delay',{orderId:order.id,windowId:'2',revision:order.revision,promiseDate:'2099-04-20',reason:'Buyer cannot change promise'});
+ assert.equal((await h.request(`/api/barrow/orders/${order.id}/prebook`,other)).status,404);
+ assert.equal((await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'No stock yet'},{status:409})).error.code,'PREBOOK_STOCK');
+ // Stock outside the account warehouse does not admit a release.
+ const remote=await pier.command('location.save',{name:'Remote shelf',warehouse:'Newark',kind:'bin'});
+ await f.receive(f.firstPO,inventory.item,'4',remote.id);
+ assert.equal((await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Wrong warehouse'},{status:409})).error.code,'PREBOOK_STOCK');
+ await f.receive(f.firstPO,inventory.item,'4');
+ f.interruptRelease();
+ assert.equal((await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'First window ready'},{status:503})).error.code,'PIER_UNAVAILABLE');
+ assert.equal((await f.read(order)).prebook.windows[0].state,'releasing');
+ order=await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Recover lost acknowledgment'});
+ assert.equal(order.prebook.windows[0].state,'released');
+ const sourceId=order.prebook.windows[0].pierOrderId;
+ order=await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Safe retry'});
+ assert.equal(order.prebook.windows[0].pierOrderId,sourceId);assert.equal((await pier.api('/api/pier/state')).orders.length,1);
+ const source=(await pier.api('/api/pier/state')).orders[0];assert.equal(source.promiseDate,'2099-03-10');assert.equal(source.lines[0].quantity,'4');assert.equal(source.warehouse,'New York');
+ order=await h.command('prebook.delay',{orderId:order.id,windowId:'2',revision:order.revision,promiseDate:'2099-04-20',reason:'Style delayed at source'});
+ assert.equal(order.prebook.windows[1].state,'backordered');
+ assert.deepEqual(order.prebook.windows[1].history.map(h=>[h.from,h.to,h.reason]),[['2099-04-10','2099-04-20','Style delayed at source']]);
+ rows=(await h.api(`/api/barrow/orders/${order.id}/prebook`,undefined,buyer)).rows;
+ assert.deepEqual(rows.map(r=>[r.sku,r.committed,r.released,r.outstanding]),[['OAT-1','4','4','4'],['COAT-2','6','0','6']]);
+ const report=await h.api('/api/barrow/reports/fulfillment');
+ assert.deepEqual(report.prebooks,rows);
+ assert.deepEqual((await h.api('/api/barrow/reports/fulfillment?warehouse=Newark')).prebooks,[]);
+ assert.deepEqual((await h.api('/api/barrow/reports/fulfillment?warehouse=New%20York')).prebooks.map(r=>[r.windowId,r.warehouse]),[['1','New York']]);assert.deepEqual(report.exceptions,[]);assert.equal(report.prebooks[1].promiseHistory[0].to,'2099-04-20');
+ await pier.command('dispatch.create',{orderId:source.id,shipmentReference:'Spring first partial dispatch',lines:[{orderLineId:source.lines[0].id,quantity:'2'}]});
+ const shippedSales=await h.api('/api/barrow/reports/sales');
+ assert.deepEqual(shippedSales.rows.filter(r=>r.orderId===order.id).map(r=>[r.shippedBaseQuantity,r.shippedCents]),[['2',13000],['0',0]]);
+ assert.equal(shippedSales.totals.find(r=>r.currency==='USD').shippedCents,13000);
+ const shipped=(await h.api(`/api/barrow/orders/${order.id}/prebook`,undefined,buyer)).rows;
+ assert.deepEqual(shipped.map(r=>[r.committed,r.released,r.outstanding,r.allocated]),[['4','4','2','2'],['6','0','6',null]]);
+
+ assert.equal((await h.command('prebook.delay',{orderId:order.id,windowId:'1',revision:order.revision,promiseDate:'2099-03-15',reason:'Already released'},{status:409})).error.code,'PREBOOK_RELEASED');
+ const audit=(await h.api(`/api/barrow/audit?orderId=${order.id}`)).events;
+ assert.equal(audit.filter(e=>e.action==='prebook.released').length,1);assert.equal(audit.filter(e=>e.action==='prebook.delay').length,1);
+ const exported=await h.api('/api/barrow/export.json',undefined,buyer);
+ assert.deepEqual(JSON.parse(exported.orders.find(o=>o.id===order.id).prebook),order.prebook);
+ const orderCsv=await(await h.request('/api/barrow/export/orders.csv',buyer)).text();assert.equal(orderCsv.split(',')[0],'"id"');
+ const target=await installation();t.after(()=>target.close());await restore(target,await archive(h));
+ assert.deepEqual((await target.api(`/api/barrow/orders/${order.id}`)).prebook,order.prebook);
+ // An outage preserves commitment and release identities while source outstanding is unknown.
+ await h.configure({PIER_ORIGIN:'http://127.0.0.1:9'});
+ const unknown=(await h.api(`/api/barrow/orders/${order.id}/prebook`,undefined,buyer)).rows;
+ assert.equal(unknown[0].outstanding,null);assert.equal(unknown[1].outstanding,'6');
+});
+
+test('prebook window identity survives repeated crossing delays',async t=>{
+ const {prebookFixture,acceptPrebook}=await import('./prebook-fixture.mjs');
+ const f=await prebookFixture(t),{h,buyer}=f;
+ f.payload.lines=[{sku:'OAT-1',quantity:4,requestedDate:'2099-03-10',cancelAfter:'2099-05-30'},{sku:'OAT-1',quantity:6,requestedDate:'2099-04-10',cancelAfter:'2099-05-30'}];
+ let order=await acceptPrebook(f);
+ for(const promiseDate of ['2099-04-10','2099-04-20'])order=await h.command('prebook.delay',{orderId:order.id,revision:order.revision,windowId:'1',promiseDate,reason:'Source revised its delivery promise'});
+ const rows=(await h.api(`/api/barrow/orders/${order.id}/prebook`,undefined,buyer)).rows;
+ assert.deepEqual(rows.map(r=>[r.windowId,r.committed,r.released,r.outstanding]),[['1','4','0','4'],['2','6','0','6']]);
+ assert.deepEqual(rows[0].promiseHistory.map(r=>[r.from,r.to]),[['2099-03-10','2099-04-10'],['2099-04-10','2099-04-20']]);
+});
+
+test('an expired unacknowledged prebook release is refused before any stock effect',async t=>{
+ const {prebookFixture,acceptPrebook}=await import('./prebook-fixture.mjs');
+ const f=await prebookFixture(t),{h}=f;
+ const order=await acceptPrebook(f);
+ await f.receive(f.firstPO,f.inventory.item,'4');
+ // The fixture clock is pinned; this persisted deadline stands for expiry after a release request was saved.
+ order.prebook.windows[0].state='releasing';order.prebook.windows[0].warehouse='New York';order.prebook.windows[0].cancelAfter='2026-10-26';
+ await h.db.prepare('UPDATE bw_orders SET value_json=? WHERE id=?').bind(JSON.stringify(order),order.id).run();
+ assert.equal((await h.command('prebook.release',{orderId:order.id,windowId:'1',revision:order.revision,reason:'Retry expired request'},{status:409})).error.code,'PREBOOK_EXPIRED');
+ assert.equal((await f.pier.api('/api/pier/state')).orders.length,0);
+});

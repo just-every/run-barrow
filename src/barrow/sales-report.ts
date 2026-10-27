@@ -17,7 +17,7 @@ const half = (numerator: bigint, denominator: bigint) => Number((numerator + den
 const micro = (value: string | number) => BigInt(Math.round(Number(value) * 1_000_000))
 const day = (value: string | null, name: string) => value === null || /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(value + 'T00:00:00Z').toISOString().slice(0, 10) === value ? value : fail('INPUT', `${name} must be a YYYY-MM-DD date.`, 400)
 const shift = (date: string, days: number) => new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10)
-export const salesColumns = ['orderId', 'line', 'accountId', 'account', 'channel', 'territory', 'rep', 'sku', 'name', 'currency', 'bookedDate', 'status', 'quantity', 'unit', 'bookedCents', 'shippedBaseQuantity', 'shippedCents', 'invoiceNumber', 'invoicedCents', 'paidCents', 'creditedCents', 'appliedCreditCents', 'outstandingCents', 'freightCents', 'invoicedFreightCents','creditedFreightCents', 'paidFreightCents', 'appliedFreightCreditCents', 'outstandingFreightCents', 'paymentSources', 'creditSources', 'creditedSources', 'orderPath', 'invoicePath'] as const
+export const salesColumns = ['orderId', 'kind', 'season', 'line', 'accountId', 'account', 'channel', 'territory', 'rep', 'sku', 'name', 'currency', 'bookedDate', 'status', 'quantity', 'unit', 'bookedCents', 'shippedBaseQuantity', 'shippedCents', 'invoiceNumber', 'invoicedCents', 'paidCents', 'creditedCents', 'appliedCreditCents', 'outstandingCents', 'freightCents', 'invoicedFreightCents','creditedFreightCents', 'paidFreightCents', 'appliedFreightCreditCents', 'outstandingFreightCents', 'paymentSources', 'creditSources', 'creditedSources', 'orderPath', 'invoicePath'] as const
 type Row = Record<(typeof salesColumns)[number], string | number | null>
 /** Exact invoice allocation; original line order breaks equal-remainder ties, with freight last. */
 function distribute(amountCents: number, weights: number[]): number[] {
@@ -30,6 +30,18 @@ function distribute(amountCents: number, weights: number[]): number[] {
  const extra = amountCents - shares.reduce((sum, share) => sum + share.cents, 0)
  for (let index = 0; index < extra; index++) ranked[index].cents++
  return shares.map(share => share.cents)
+}
+
+/** Value each original window line from its confirmed release, without booking a second order. */
+function prebookShipped(order:Order,index:number,state:any,origin?:string):bigint|null {
+ const window=order.prebook!.windows.find(w=>w.lines.includes(index))
+ if(!window?.pierOrderId)return 0n
+ if(!state||order.pierOrigin!==origin)return null
+ const line=order.lines[index],source=(state.orders??[]).find((o:any)=>o.id===window.pierOrderId&&o.customerId===order.pierCustomerId)
+ const upstream=source?.lines?.find((l:any)=>l.itemId===line.itemId)
+ const total=window.lines.map(i=>order.lines[i]).filter(l=>l.itemId===line.itemId).reduce((n,l)=>n+micro(l.baseQuantity??l.quantity),0n)
+ if(!upstream||micro(upstream.quantity)!==total||total!==micro(upstream.dispatched)+micro(upstream.cancelled)+micro(upstream.reserved)+micro(upstream.backorder))return null
+ return micro(upstream.dispatched)*micro(line.baseQuantity??line.quantity)/total
 }
 
 export async function salesReport(env: Bindings, actor: Actor, params: URLSearchParams) {
@@ -65,11 +77,11 @@ export async function salesReport(env: Bindings, actor: Actor, params: URLSearch
   order.lines.forEach((line: Line, index) => {
    if (filter.sku && line.sku.toUpperCase() !== filter.sku) return
    const first = order.lines.findIndex(other => other.itemId === line.itemId) === index, cents = line.lineCents ?? 0
-   const units = dispatched && first ? dispatched.filter((row: any) => row.itemId === line.itemId).reduce((sum: bigint, row: any) => sum + micro(row.quantity), 0n) : dispatched ? 0n : null
+   const units = order.prebook ? prebookShipped(order,index,state,origin) : dispatched && first ? dispatched.filter((row: any) => row.itemId === line.itemId).reduce((sum: bigint, row: any) => sum + micro(row.quantity), 0n) : dispatched ? 0n : null
    const invoiced = order.invoice ? cents : 0
    const credited = credits.flatMap(credit => credit.lines.filter(entry => entry.line === index + 1).map(entry => ({ creditId: credit.id, amountCents: entry.amountCents, path: `/api/barrow/credits/${credit.id}` })))
    const freightIndex = order.lines.length
-   rows.push({ orderId: order.id, line: index + 1, accountId: order.accountId, account: order.customerName, channel: profile.channel ?? '', territory: profile.territory ?? '', rep: profile.assignedRep ?? '', sku: line.sku, name: line.name, currency: order.currency ?? 'AUD', bookedDate: calendarDate(new Date(order.preparedAt), zone), status: order.status, quantity: String(line.quantity), unit: line.unit ?? '',
+   rows.push({ orderId: order.id, kind: order.prebook?'prebook':'order', season:order.season??'', line: index + 1, accountId: order.accountId, account: order.customerName, channel: profile.channel ?? '', territory: profile.territory ?? '', rep: profile.assignedRep ?? '', sku: line.sku, name: line.name, currency: order.currency ?? 'AUD', bookedDate: calendarDate(new Date(order.preparedAt), zone), status: order.status, quantity: String(line.quantity), unit: line.unit ?? '',
     bookedCents: cents, shippedBaseQuantity: units === null ? null : String(Number(units) / 1_000_000), shippedCents: units === null ? null : half(units * BigInt(cents), micro(line.baseQuantity ?? line.quantity)),
     invoiceNumber: order.invoice?.number ?? '', invoicedCents: invoiced, paidCents: paid[index], creditedCents: credited.reduce((sum, row) => sum + row.amountCents, 0), appliedCreditCents: applied[index], outstandingCents: Math.max(0, invoiced - paid[index] - applied[index]), freightCents:index===0?(order.delivery?.totalCents??0):0, invoicedFreightCents:index===0&&order.invoice?(order.delivery?.totalCents??0):0, creditedFreightCents:index===0?credits.reduce((sum,credit)=>sum+(credit.freightCents??0),0):0,paidFreightCents:index===0?paid[freightIndex]:0, appliedFreightCreditCents:index===0?applied[freightIndex]:0, outstandingFreightCents:index===0?Math.max(0, weights[freightIndex] - paid[freightIndex] - applied[freightIndex]):0, paymentSources, creditSources, creditedSources:JSON.stringify(credited), orderPath: `/api/barrow/orders/${order.id}`, invoicePath: order.invoice ? `/api/barrow/invoices/${order.id}.csv` : '' })
   })
@@ -85,7 +97,7 @@ export async function salesReport(env: Bindings, actor: Actor, params: URLSearch
    amounts: 'Integer cents in each order’s recorded currency, never added across currencies. Merchandise amounts exclude delivery and tax. Freight includes delivery and handling once per order, shown on its first product line. A product filter includes freight only when it includes that line. Add invoiced freight to merchandise invoiced, and outstanding freight to merchandise outstanding, to reconcile the full invoice. Paid principal uses largest remainders over original merchandise and delivery cents; applied credits use the remaining basis with the same rule, so every cent is conserved. Original line order breaks ties; freight is last. Tax is not calculated.',
    shipped: shipments === 'read' ? 'Pier’s dispatched base units, valued at the line’s average base-unit price, rounded half up once per line.' : 'Pier did not answer: shipped amounts are unknown.',
    payments: `${statementNote} Paid is explicit verified card allocation, not captured unapplied cash. Credited is the source line credit; only explicit credit applications reduce target invoice outstanding. A credit and a refund of that credit do not reverse the invoice twice. Events count through the report end day. PAY-003 and PAY-010 supply their recorded allocation and credit effects; deposits and other payment types remain unrecorded.`,
-   season: 'Barrow has no seasons or prebooks yet; CAT-008 and ORD-008 add season and prebook rows to this report.',
+   season: 'Prebooks have their own booked rows, identified by kind and season; they are commitments, not shipped stock. CAT-008 adds catalog publishing.',
    access: 'Owner, admins and all-account managers read every account. ACC-006: a rep reads only one account they hold today (assignment or temporary coverage) or a territory they hold completely; any other account or territory is refused, never trimmed.',
   },
  }
