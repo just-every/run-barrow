@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "2b2bf9061e2da08723a7d206aa52e500ef75b893da54d5795cbe7bf773888644",
+      "sha256": "d4bc4aaaaa0a3b28e8b51341ef5ef61582f0fc9d8b7a848a7ee2ede841e4637a",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4d38d9bacb0fb98236c00f622b45da4b19eebe1e3b0c220e992b9b41d4ef8442",
+      "sha256": "ffa1c97b15dfad5efb27004a316f54c1338505fe733d42ebbcf6bbe3a6652e2f",
       "executable": false
     },
     "DEMO.md": {
@@ -2116,7 +2116,7 @@
       "executable": false
     },
     "src/barrow/ui/sell-through.tsx": {
-      "sha256": "a4cf5819ab87e5c977cdd0022f149e06003dbbf15d0eece9954213e8e826aebe",
+      "sha256": "95b6d8cedc56d74c1849778052ca56bb29034eec11db66f62c97aa9c1493e1b4",
       "executable": false
     },
     "src/barrow/ui/shipping-settings.tsx": {
