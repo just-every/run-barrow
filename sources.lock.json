@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "27b78b3aa2a7bf6c252a336cebb829c6b14ddbc13d46274ce1cdb38382f9cd40",
+      "sha256": "d45613241e8f457a56f3729a79a3536e5462d60e5b21747a9f91bf4cf2c4caee",
       "executable": false
     },
     "DEMO.md": {
@@ -188,7 +188,7 @@
       "executable": false
     },
     "docs/CONNECTORS.md": {
-      "sha256": "60fb048ebd3eb9530fdc3cea3a96e5358aa1a999faba2e056540615b50c7a788",
+      "sha256": "da237eca80cbb7c99d0761ea88f3c5077730ae76f17cf842e420279b50f49f12",
       "executable": false
     },
     "docs/CUTOVER-DELTA.md": {
@@ -1384,7 +1384,7 @@
       "executable": false
     },
     "src/barrow/faire.ts": {
-      "sha256": "4f749045a1f7035bde974c2c0b890e07511b1a0907b7a47c2a0fc815e48a09dc",
+      "sha256": "4fa2ab64fef0849d44a3b6ce4e772070397b099d4e12a553762e66ad5ac395dd",
       "executable": false
     },
     "src/barrow/feeds/connection-settings.ts": {
@@ -4328,7 +4328,7 @@
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "100ad13579aeac93842d75272dff2cc65fb0cd03065537eeea6d23dba7ab67d6",
+      "sha256": "e1744fb3f9896957ea1dcc909c12b8873708fd8fa306d9b208225d8a41938da5",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {

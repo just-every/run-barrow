@@ -47,9 +47,11 @@ export async function faireConfigure(env:Bindings,actor:Actor,input:any) {
  owner(actor)
  const brand=text(input.brand,'Configured Faire brand'),reason=text(input.reason,'Configuration reason',1000)
  if(typeof input.enabled!=='boolean')fail('INPUT','Choose whether intake is enabled.',400)
- const config=faireConnection(env,brand),revision=await digest(JSON.stringify([config.origin,brand]))
- let activationGuards:D1PreparedStatement[]=[]
  const prior=await env.DB.prepare('SELECT * FROM bw_faire_sync WHERE brand=?').bind(brand).first<any>()
+ // Revoked source credentials must never prevent the owner from disabling retained intake.
+ const config=input.enabled||!prior?faireConnection(env,brand):null
+ const revision=config?await digest(JSON.stringify([config.origin,brand])):prior.revision as string
+ let activationGuards:D1PreparedStatement[]=[]
  if(prior&&prior.revision!==revision)fail('FAIRE_DESTINATION','The brand is already bound to a different Faire destination.')
  if(input.enabled) {
   if(!prior)fail('FAIRE_RECONCILIATION','Configure disabled intake, preview and reconcile the source before enabling it.')
