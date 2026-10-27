@@ -9,7 +9,7 @@ export type CardPayment = {
   id: string
   orderId: string
   accountId: string
-  currency: 'USD' | 'AUD' | 'CAD'
+  currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'
   amountCents: number
   surchargeCents: number
   state: 'prepared' | 'requires_action' | 'authorized' | 'captured' | 'declined' | 'cancelled'

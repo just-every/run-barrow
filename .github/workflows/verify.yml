@@ -67,3 +67,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-catalog-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/catalog-maintenance.test.mjs
+      - name: Effective book and currency reporting screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-currency-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs

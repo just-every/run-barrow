@@ -23,7 +23,7 @@ interface Props {
 // The rep's order pad: one account, a large style card beside the size matrix, and the running total always in view.
 export function OrderPad({ account, accounts, supplier, canPurchase=true, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
   const currency=account.value.currency??'USD'
-  const money=(cents:number,code=currency as 'USD'|'AUD'|'CAD')=>formatMoney(cents,code)
+  const money=(cents:number,code=currency as 'USD'|'AUD'|'CAD'|'EUR'|'GBP')=>formatMoney(cents,code)
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
   const [unitOrder,setUnitOrder] = useState(false)
   const [importing,setImporting] = useState(false)

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { request, errorMessage } from './api'
 
 type Seller = { legalName: string; address: string; registration?: string }
-type Brand = { id: string; revision: string; value: { name: string; seller: Seller; currency: 'USD' | 'CAD'; termsSeries?: string; requireAcceptance?: boolean } }
+type Brand = { id: string; revision: string; value: { name: string; seller: Seller; currency: 'USD' | 'CAD' | 'EUR' | 'GBP'; termsSeries?: string; requireAcceptance?: boolean } }
 type Profile = { id: string; accountId: string; revision: string; value: { brandId: string; name: string; prices: Record<string, unknown>[]; minimumCents: number; termsDays: number }; brand: Brand; approved: boolean }
 type Board = { profiles: Profile[]; people: { id: string; email: string }[]; brands: Brand[] }
 type Save = (type: string, payload: Record<string, unknown>) => Promise<void>
@@ -10,7 +10,7 @@ type Save = (type: string, payload: Record<string, unknown>) => Promise<void>
 function BrandEditor({ brands, busy, save }: { brands: Brand[]; busy: boolean; save: Save }) {
   const [selected, setSelected] = useState(''), [id, setId] = useState(''), [name, setName] = useState('')
   const [legalName, setLegalName] = useState(''), [address, setAddress] = useState(''), [registration, setRegistration] = useState('')
-  const [currency, setCurrency] = useState<'USD' | 'CAD'>('USD'), [termsSeries, setTermsSeries] = useState(''), [requireAcceptance, setRequireAcceptance] = useState(false)
+  const [currency, setCurrency] = useState<'USD' | 'CAD' | 'EUR' | 'GBP'>('USD'), [termsSeries, setTermsSeries] = useState(''), [requireAcceptance, setRequireAcceptance] = useState(false)
   function choose(value: string) {
     const brand = brands.find(brand => brand.id === value)
     setSelected(value); setId(brand?.id ?? ''); setName(brand?.value.name ?? '')
@@ -29,7 +29,7 @@ function BrandEditor({ brands, busy, save }: { brands: Brand[]; busy: boolean; s
     <label>Legal seller name<input value={legalName} required maxLength={160} disabled={busy} onChange={event => setLegalName(event.target.value)} /></label>
     <label>Seller address<textarea value={address} required maxLength={400} disabled={busy} onChange={event => setAddress(event.target.value)} /></label>
     <label>Seller registration (optional)<input value={registration} maxLength={80} disabled={busy} onChange={event => setRegistration(event.target.value)} /></label>
-    <label>Brand currency<select value={currency} disabled={busy || !!selected} onChange={event => setCurrency(event.target.value as 'USD' | 'CAD')}><option value="USD">USD — US dollars</option><option value="CAD">CAD — Canadian dollars</option></select></label>
+    <label>Brand currency<select value={currency} disabled={busy || !!selected} onChange={event => setCurrency(event.target.value as 'USD' | 'CAD' | 'EUR' | 'GBP')}><option value="USD">USD — US dollars</option><option value="CAD">CAD — Canadian dollars</option><option value="EUR">EUR — euros</option><option value="GBP">GBP — pounds sterling</option></select></label>
     <p>Prices are recorded in the brand’s currency. Create a separate brand with independent prices to use another currency; amounts are never converted. Existing orders retain their recorded seller and currency.</p>
     <label>Published sales terms series (optional)<input value={termsSeries} maxLength={80} disabled={busy} onChange={event => setTermsSeries(event.target.value)} /></label>
     <label><input type="checkbox" checked={requireAcceptance} disabled={busy || !termsSeries.trim()} onChange={event => setRequireAcceptance(event.target.checked)} /> Require buyer acceptance of these terms</label>
@@ -47,7 +47,7 @@ function ProfileEditor({ accountId, profiles, brands, busy, save }: { accountId:
   }
   function submit(event: FormEvent) {
     event.preventDefault()
-    void save('profile.save', { id, revision: profiles.find(profile => profile.id === selected)?.revision ?? null, accountId, value: { brandId, name, prices, minimumCents: Number(minimumCents), termsDays: Number(termsDays) } })
+    void save('profile.save', { id, revision: profiles.find(profile => profile.id === selected)?.revision ?? null, accountId, value: { ...(profiles.find(profile=>profile.id===selected)?.value??{}), brandId, name, prices, minimumCents: Number(minimumCents), termsDays: Number(termsDays) } })
   }
   return <form className="br-card br-stack" aria-label="Buying profile settings" onSubmit={submit}>
     <h3>Buying profile and price book</h3>

@@ -6,7 +6,7 @@ import { Notice } from './primitives'
 import { money, orderNumber, when, type Order } from './types'
 
 type Credit = {
-  kind?:'return'|'price-correction'|'cancellation';sourceId?:string;freightCents?:number;taxCents?:number;id: string; revision: string; orderId: string; currency: 'USD' | 'AUD' | 'CAD'
+  kind?:'return'|'price-correction'|'cancellation';sourceId?:string;freightCents?:number;taxCents?:number;id: string; revision: string; orderId: string; currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'
   amountCents: number; availableCents: number; returnId: string; createdAt: string; reason: string
   lines: { line: number; sku: string; quantity: number; amountCents: number; basis: unknown; original?: unknown }[]
 }
