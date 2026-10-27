@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b99f6c2e5648452e712a5d8192b56c6de70ebbdc728f7514d9650ba466bbac5e",
+      "sha256": "e6b54c0605c3b02bd39d675ba1ee016bfe110974973c822b98133c5494a0179a",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "88273120dd82a66290306c08afa7c645f31b742b751415abbcba88a1362b04ff",
+      "sha256": "0b3bbf505ae4a300b7e8cc92ff1a684fc5de1a6e4474c06a001bdc1c1cff2d9c",
       "executable": false
     },
     "DEMO.md": {
@@ -256,7 +256,7 @@
       "executable": false
     },
     "docs/SOURCES.md": {
-      "sha256": "b89f14bb3d2ba1ff2a83033d473c4a18f4aca35e8f43441c65cc4aef994243c7",
+      "sha256": "72ac3bd761b999fdea6106ffe748e4b2983151cb59c838c2cf8cd5a25e4ce3f6",
       "executable": false
     },
     "docs/SPARKLAYER.md": {
@@ -4280,7 +4280,7 @@
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "a2158be7deb0ecc1c69ab43daa9925b58950fbac138c22573d95986990162311",
+      "sha256": "9e6ae85734ce61a80d262716404c0993b182f3d4926a4128fc544e3c050acf1c",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
