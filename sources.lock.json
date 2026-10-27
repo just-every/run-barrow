@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a0ea2d5e1829e5690ef21b7fdeaf9150893c5c369b20df21f11d64a034d6ab32",
+      "sha256": "fc60833a942f54d5ad95e1f813d2ce4c543527bd174a5335c8c1558f6fbb3612",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c2b8fee49f2ae876affbbf176d9fd146fa519c707f156d49595a4e269a8a70e4",
+      "sha256": "79b02f089f739075d6f3ccaa5f10fd3122ae9c8a5b6a22cc1c4db4c7dd452aa3",
       "executable": false
     },
     "DEMO.md": {
@@ -248,7 +248,7 @@
       "executable": false
     },
     "docs/SELL-THROUGH.md": {
-      "sha256": "4e82c23b9843608507269a762c7826865606ebddcc577c7390233e766800244b",
+      "sha256": "5a80a3dc502bf2ae9345d7391ea33f4ecc5c26282f673b14395551765c417d60",
       "executable": false
     },
     "docs/SELLING-UNITS.md": {
@@ -556,7 +556,7 @@
       "executable": false
     },
     "public/barrow/components.css": {
-      "sha256": "76dcf726e567e38f77045b6e450dec797201610ce18e551e392fbe3de0d414a9",
+      "sha256": "9d8bdb922202767828bab8ee67d8b15973850ad4d1b82e2d29a80bf13576a9cc",
       "executable": false
     },
     "public/barrow/flats/cardigan.svg": {
@@ -580,7 +580,7 @@
       "executable": false
     },
     "public/barrow/lists.css": {
-      "sha256": "a64dacddecb1fbfbf36971ba125205787ecfd5c036e1e850db6a16f01947b46b",
+      "sha256": "582def661eefd7e9baa1e8f9380b4dfe0452b6965e162ee3e0ba79ee092b61c1",
       "executable": false
     },
     "public/barrow/pad.css": {
@@ -592,7 +592,7 @@
       "executable": false
     },
     "public/barrow/shell.css": {
-      "sha256": "4d6aff6f00e4bbd59dcc2f76af8052dd84218b0ba3c91f39d5adfc39475eba13",
+      "sha256": "1308a67fa9d36e7fff7e4d4682ac22e5c616d06cfabe19bd79ac6d3430cdd3da",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1724,7 +1724,7 @@
       "executable": false
     },
     "src/barrow/sell-through.ts": {
-      "sha256": "c4f2e4b4fd78265f1d1a98a60880673a3246d1ad385bca7bed5b6acce0e396da",
+      "sha256": "44879d6c017dfda8779598aba00d0ab09deefff6d1936fa78a466437aa3ed89d",
       "executable": false
     },
     "src/barrow/seller-identity.ts": {
@@ -4364,7 +4364,7 @@
       "executable": false
     },
     "tests/api/reorder.test.mjs": {
-      "sha256": "6cf25c4e11d764a3b6864b15ead83f2cdf9f42a1a75b1d4a0c86ec86ddd37f26",
+      "sha256": "e01b8fa2c2e19e0d0c5b5990e82932c91a1c218bf328410827dbf823873e802b",
       "executable": false
     },
     "tests/api/rep-ordering.test.mjs": {
@@ -4548,7 +4548,7 @@
       "executable": false
     },
     "tests/journeys/reorder.test.mjs": {
-      "sha256": "15b5d669ba57efb4f0ff2e88f5a0c4d32c5b0fd3ab1e0634f91fd93aee943a6d",
+      "sha256": "c63a244b2646a37defb799d6136333145f56b6cc6796c6cdac2b7151ccfae65a",
       "executable": false
     },
     "tests/journeys/rep-ordering.test.mjs": {
