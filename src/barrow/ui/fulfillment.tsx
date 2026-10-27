@@ -31,6 +31,7 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
   {error && <Notice error>{error}</Notice>}
   {!report && !error && <p role="status">Reading Pier…</p>}
   {report && <><p>Report days: {report.timeZone} · Pier observed {when(report.checkedAt)} · {report.status === 'read' ? 'Source answered' : 'Unavailable'}</p><p className="br-quiet-text">{report.note}</p>
+   {!late&&report.channelLines.map(line=><article className="br-card br-stack" key={`${line.brand}:${line.orderId}:${line.lineId}`}><h3>Faire · {line.orderId} · {line.sku}</h3><p>Ordered {line.ordered} · shipped {line.shipped} · warehouse {line.warehouse}</p><p>Delivery {line.delivery} · settlement owned by {line.settlementOwner}</p>{line.reviewRequired&&<Notice>Source changed. Owner review required.</Notice>}</article>)}
    {report.status === 'unavailable' && <Notice>Fulfillment unknown. Reconnect Pier and refresh.</Notice>}
    {report.status === 'read' && lines?.length === 0 && <p>No matching {late ? 'late ' : ''}lines.</p>}
    {lines?.map(line => <article className="br-card br-stack" key={`${line.orderId}:${line.sku}`}>

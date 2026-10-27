@@ -1,3 +1,4 @@
+import { faireState, faireConfigure, fairePoll, faireMatch } from './faire'
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
@@ -158,6 +159,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const usagePdf=/^\/api\/barrow\/usage-terms\/([1-9]\d*)\/document$/.exec(path)
   if(usagePdf&&request.method==='GET')return await usageDocument(env,actor,Number(usagePdf[1]))
   if(path!=='/api/barrow/commands')await requireUsageTerms(env,actor,url.searchParams.get('accountId')??undefined)
+  if(path==='/api/barrow/faire'&&request.method==='GET')return json(await faireState(env,actor))
+  if(path==='/api/barrow/faire/configure'&&request.method==='POST')return json(await faireConfigure(env,actor,await boundedJson(request,20000)))
+  if(path==='/api/barrow/faire/poll'&&request.method==='POST')return json(await fairePoll(env,actor,await boundedJson(request,20000)))
+  if(path==='/api/barrow/faire/match'&&request.method==='POST')return json(await faireMatch(env,actor,await boundedJson(request,200000)))
   if(path.startsWith('/api/barrow/portability/')) {
    requireSupplier(actor)
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)

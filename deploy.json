@@ -60,6 +60,11 @@
       "binding": "BARROW_SFTP_SECRETS",
       "environment": "BARROW_SFTP_SECRETS",
       "optional": true
+    },
+    {
+      "binding": "FAIRE_CONNECTIONS",
+      "environment": "FAIRE_CONNECTIONS",
+      "optional": true
     }
   ],
   "platforms": [

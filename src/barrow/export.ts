@@ -18,11 +18,12 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
+ faireorders:['brand','source_id','revision','source_json','account_id','matched_json','state'],
  creditnotes:['kind','sourceId','freightCents','freightBasis','taxCents','taxBasis','id','revision','accountId','orderId','orderRevision','currency','amountCents','returnId','createdAt','actorId','reason','path'],
  creditlines:['id','creditId','revision','accountId','orderId','orderRevision','returnId','line','sku','quantity','currency','amountCents','basis','original'],
  creditapplications:['id','revision','creditId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
@@ -100,6 +101,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const deltas=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_cutovers ORDER BY created_at,id').all<any>()).results.map(({io_token,io_until,...row})=>row):undefined
  const deltasources=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_sources ORDER BY created_at,session_id,revision').all<any>()).results:undefined
  const deltafeeds=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_delta_feed_runs ORDER BY created_at,session_id,revision').all<any>()).results:undefined
+ const faireorders=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_faire_orders ORDER BY brand,source_id').all<any>()).results:undefined
  const sourcehistory=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_import_history ORDER BY id').all<any>()).results:undefined
  const sourceimports=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_platform_imports ORDER BY id').all<any>()).results:undefined
  const lists=financeOnly?[]:(await Promise.all(ids.map(async id=>{if(!supplier(actor)){try{await requireCompanyRight(env.DB,actor,id,'purchasing')}catch{return []}}return readLists(env.DB,actor,id)}))).flat().map(({mine,creatorName,...row})=>({...row,lines:json(row.lines)}))
@@ -125,7 +127,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
   cardpayments:cardRows.map(row=>Object.fromEntries(columns.cardpayments.map(key=>[key,row[key]??'']))),
   cardevents:cardEvents.map(row=>({id:row.id,paymentId:row.payment_id,createdAt:row.created_at,...JSON.parse(row.value_json)})),
   ...profileRecords,
-  lists,...(sourcehistory?{sourcehistory,sourceimports}:{}),
+  lists,...(faireorders?{faireorders}:{}),...(sourcehistory?{sourcehistory,sourceimports}:{}),
   ...(deltas?{deltas,deltasources,deltafeeds}:{}),
   ...(cutovers?{cutovers}:{}),
   ...(reptargets?{reptargets}:{}),
