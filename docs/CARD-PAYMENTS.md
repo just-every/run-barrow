@@ -21,7 +21,7 @@ A captured card receipt reduces credit exposure only after finance explicitly al
 
 From an authenticated session, send `credit.policy` to `POST /api/barrow/commands` with `accountId`, the current account `revision`, `termsDays`, ISO `currency`, `limitCents` and a recorded `reason`. Zero days means due on receipt; a zero limit permits no unpaid exposure. The installation owner, admin or currently entitled finance person must authorize the amount. Existing accounts retain their prior terms until a policy is configured.
 
-`GET /api/barrow/credit-exposure?accountId=ACCOUNT` returns current availability and source amounts. The optional `orderId` excludes that order while reviewing its admission. A USD 10,000 limit with USD 3,000 owed permits USD 7,000 more; an USD 8,000 draft stays blocked until a verified allocation reduces the debt or finance approves the exact excess.
+`GET /api/barrow/credit-exposure?accountId=ACCOUNT` returns current availability and source amounts. The optional `orderId` excludes that order while reviewing its admission and requires the existing order read permission. Location-scoped buyers receive account availability without source order rows. A USD 10,000 limit with USD 3,000 owed permits USD 7,000 more; an USD 8,000 draft stays blocked until a verified allocation reduces the debt or finance approves the exact excess.
 
 Finance records an exception with `order.credit-exception`, the current `orderId` and `revision`, and a nonempty `reason`. Its authority and financial basis are rechecked at admission. A changed balance, policy or revoked grant requires fresh review. No exception collects funds or reserves stock by itself. The staff audit retains the decision; buyers and agents cannot read it.
 

@@ -138,4 +138,10 @@ test('net terms credit exposure blocks commitments and quotes, recalculates veri
  await h.command('credit.policy',{accountId:'cedar',revision:cadAccount.revision,termsDays:30,currency:'CAD',limitCents:2000000,reason:'Finance records a separate currency without converting existing debt.'});
  assert.equal((await read()).foreign,true);const foreignDraft=await draft(1,'Foreign debt cannot disappear through currency selection');assert.equal(foreignDraft.currency,'CAD');
  assert.equal((await h.command('order.submit',{orderId:foreignDraft.id},{...buyer,status:409})).error.code,'CREDIT_CURRENCY');
+ const location=await h.command('location.save',{accountId:'cedar',kind:'ship-to',value:{name:'Restricted store',line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'}},buyer);
+ const member=(await h.api('/api/barrow/state',undefined,buyer)).actor.company;
+ await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy:{rights:member.rights,locations:[location.id],perOrderLimitCents:null,approvalLimitCents:null},reason:'Company administrator narrows their own purchasing locations.'},buyer);
+ const privateBalance=await read();assert.deepEqual(privateBalance.rows,[]);assert.equal(privateBalance.foreign,true);
+ await h.api('/api/barrow/credit-exposure?accountId=cedar&orderId='+owed.id,undefined,{...buyer,status:403});
+
 });

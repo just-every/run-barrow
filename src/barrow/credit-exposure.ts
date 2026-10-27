@@ -1,4 +1,5 @@
 import type { Bindings } from '../auth.server'
+import { companyOrderRead } from './company-access'
 import { account, prepareAccountSave } from './accounts'
 import { audit, commit, digest } from './access'
 import { creditAuthority } from './credit-access'
@@ -47,8 +48,10 @@ export async function creditAdmission(env:Bindings,selected:Account,order:Order)
 export async function creditExposure(env:Bindings,actor:Actor,accountId:string,orderId='') {
  requirePerson(actor)
  const selected=await account(env.DB,actor,accountId)
- if(orderId){const row=await env.DB.prepare('SELECT account_id FROM bw_orders WHERE id=?').bind(orderId).first<{account_id:string}>();if(!row||row.account_id!==selected.id)fail('NOT_FOUND','Order not found.',404)}
+ if(orderId){const row=await env.DB.prepare('SELECT account_id,value_json FROM bw_orders WHERE id=?').bind(orderId).first<{account_id:string;value_json:string}>();if(!row||row.account_id!==selected.id)fail('NOT_FOUND','Order not found.',404);await companyOrderRead(env.DB,actor,JSON.parse(row.value_json))}
  const {guards,basis,...result}=await exposure(env.DB,selected,orderId)
+ // Account-wide availability does not grant another location's source records.
+ if(actor.company&&(actor.company.locations!=='all'||!actor.company.rights.some(right=>right==='purchaser'||right==='approver')))result.rows=[]
  return result
 }
 export async function saveCreditPolicy(env:Bindings,actor:Actor,p:any) {

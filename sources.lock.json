@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "9d9ad9ef48fba519872d0578e5afdb3766e277480bf24827b232abb950c08302",
+      "sha256": "d2bf47035570760ed6f21fa281bb7ee8c88873aa843d4800e41c15e0233eac50",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e6e6ffb53269ac833a2cd7c4a925ee4260547f7179159546d679ebe7550b3450",
+      "sha256": "49537f43adea5b08a42b8f51cae56b44d60f3cf1590b9251f0f2106dd36837a5",
       "executable": false
     },
     "DEMO.md": {
@@ -180,7 +180,7 @@
       "executable": false
     },
     "docs/CARD-PAYMENTS.md": {
-      "sha256": "85028358d961e32289f4974414234386483145d1c1cee0305cde8176c3f3ede7",
+      "sha256": "0e6fc0f5d6449a29ced0b287db5129595d1e99dc85512760395f25d5b79dff60",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -1308,7 +1308,7 @@
       "executable": false
     },
     "src/barrow/credit-exposure.ts": {
-      "sha256": "a58b80e704a5f2caad01986837e480d0b04366a53ad46e7d9f69210609fd7669",
+      "sha256": "4240f0da8fb2a09ea2ded11ec7e4b278e76196d992a92e8f989fd8f24dd32564",
       "executable": false
     },
     "src/barrow/credit-ledger.ts": {
@@ -4260,7 +4260,7 @@
       "executable": false
     },
     "tests/api/credit-payments.test.mjs": {
-      "sha256": "8a9fab2a00eeb869d8c59603d1cc4af0c25f57eaf38529371fbe13d66c9295e7",
+      "sha256": "7b7ffb9ca105a9c7df428d8819f806aca11ddce060b8e880963bc6ce3990d97f",
       "executable": false
     },
     "tests/api/cutover-fixture.mjs": {
