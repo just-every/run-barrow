@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "16d2434d12a27c99fa0e7a0522e08dbfd891366ffcb19faea53ba5fc529af437",
+      "sha256": "f4ec9fb56235f0e39388d8956358554aba24b14b1b4a1f6ce5e75f6a8c986a74",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "18e2fa1a7f1bb34e880f17b84868d77e03a6a86b900f35b181e6077184b99a2b",
+      "sha256": "4dce0447a2e5e1553c0772917bd5af449ce3afe8588f79c73a0dc793fd598214",
       "executable": false
     },
     "DEMO.md": {
@@ -224,7 +224,7 @@
       "executable": false
     },
     "docs/ORDERS.md": {
-      "sha256": "4e0522e2b1085753475e37320b3eff065b8c6d424d8a5e5c360e2fd2a6eb3549",
+      "sha256": "e0837b5b8ac06079b3598711870dadc2a9059ffb03e61a72383d3485c4f6ddef",
       "executable": false
     },
     "docs/QUOTE-NOTIFICATIONS.md": {
@@ -4320,7 +4320,7 @@
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
-      "sha256": "21268f990b35e99c5ad780dde9d6d9f45ff44b74fdcfeb67a2a861b594cc5c7d",
+      "sha256": "1f822bfb70ea6d0a3f2909fa58aa7b0bf880556654af711a9f432cf159aea100",
       "executable": false
     },
     "tests/api/promotion-fixture.mjs": {
