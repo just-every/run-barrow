@@ -4360,7 +4360,7 @@
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
-      "sha256": "d0f589bf79959d260597efaae9dde644cc87c516aa390c6f57a3cf5c184bc103",
+      "sha256": "21268f990b35e99c5ad780dde9d6d9f45ff44b74fdcfeb67a2a861b594cc5c7d",
       "executable": false
     },
     "tests/api/promotion-fixture.mjs": {
@@ -4576,7 +4576,7 @@
       "executable": false
     },
     "tests/journeys/promotions.test.mjs": {
-      "sha256": "a03a7d5c63ee5112266e0ecccacee602e97cf4986804d13c6192b48022114b65",
+      "sha256": "1cab54c940852acfe970f3310ba3924078a09eb225fe1265102adbc0063ff6a4",
       "executable": false
     },
     "tests/journeys/reorder.test.mjs": {
