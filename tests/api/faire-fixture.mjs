@@ -1,7 +1,7 @@
 import {createServer} from 'node:http';
 import assert from 'node:assert/strict';
 import {installation,accountValue} from './harness.mjs';
-export async function faireFixture(t,{built=false}={}) {
+export async function faireFixture(t,{built=false,bindings:additionalBindings={}}={}) {
  const state={failSecond:true,requests:[],unauthorized:0,paymentRequests:0,orders:[
   {id:'synthetic-barrow-order-1',retailer_id:'synthetic-barrow-retailer-1',state:'PROCESSING',items:[{id:'synthetic-barrow-item-1',sku:'OAT-1',quantity:3,price:{currency:'USD',amount_minor:6500}}],payout_costs:{commission_bps:1500,commission_flat_fee:{currency:'USD',amount_minor:1000},payout_fee:{currency:'USD',amount_minor:130}},shipments:[]},
   {id:'synthetic-barrow-order-2',retailer_id:'synthetic-barrow-retailer-2',state:'NEW',items:[{id:'synthetic-barrow-item-2',sku:'UNKNOWN-1',quantity:2,price:{currency:'USD',amount_minor:5200}}],shipments:[]}
@@ -18,7 +18,7 @@ export async function faireFixture(t,{built=false}={}) {
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));
  const origin='http://127.0.0.1:'+server.address().port;
- const bindings={FAIRE_CONNECTIONS:JSON.stringify({brand1:{origin,accessToken:'synthetic-barrow-1'}})};
+ const bindings={...additionalBindings,FAIRE_CONNECTIONS:JSON.stringify({brand1:{origin,accessToken:'synthetic-barrow-1'}})};
  const h=await installation({built,bindings,networkEdge:async request=>{if(new URL(request.url).hostname==='api.stripe.com'){state.paymentRequests++;return Response.json({error:'Unexpected collection'},{status:500})}}});t.after(()=>h.close());
  await h.command('account.save',{id:'cedar',value:{...accountValue('synthetic-barrow-customer-1'),minimumCents:0}});
  const configure=(enabled=true,opts={})=>h.api('/api/barrow/faire/configure',{brand:'brand1',enabled,reason:'Owner authorizes the configured brand read boundary.'},opts);
