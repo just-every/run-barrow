@@ -8,6 +8,8 @@ const base='/api/barrow/imports/nuorder';
 
 test('NuORDER CSV and mapped XLSX reconcile history, open quantities, product keys and primary JPEGs with fingerprint approval and replay',async t=>{
  const {h,pier}=await sparkFixture(t);await pier.command('item.save',{sku:'RYE-1',name:'Rye crisps',unit:'case',packSize:'1'});const original=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:original.id,revision:original.revision,value:{...original.value,prices:[...original.value.prices,{sku:'RYE-1',unitCents:1200,minQty:6}]}});const input=nuorderInput('csv',{retired:true}),before=await h.api('/api/barrow/export.json'),stockBefore=await pier.api('/api/pier/state'),mail=h.mail.deliveries.length;
+ const padded=structuredClone(input);padded.products.csv=padded.products.csv.replaceAll('"product-1"','" product-1 "');padded.orders.csv=padded.orders.csv.replaceAll('"NU-1"','" NU-1 "').replaceAll('"product-1"','" product-1 "');
+ const paddedPreview=await h.api(base+'/preview',padded);assert.equal(paddedPreview.matches,true);assert.deepEqual(paddedPreview.source,{documents:2,lines:2,lists:1,listLines:1});assert.deepEqual(paddedPreview.totals,[{currency:'CAD',orders:1,quotes:0,totalCents:7000,shippingCents:0,quantity:1,openQuantity:0},{currency:'USD',orders:1,quotes:0,totalCents:26000,shippingCents:0,quantity:4,openQuantity:2}]);
  const preview=await h.api(base+'/preview',input);
  assert.equal(preview.matches,true);assert.deepEqual(preview.source,{documents:2,lines:2,lists:1,listLines:1});
  assert.deepEqual(preview.catalog.source,{products:2,archivedProducts:1,images:1});assert.deepEqual(preview.catalog.planned,preview.catalog.source);

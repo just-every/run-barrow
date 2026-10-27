@@ -59,12 +59,13 @@ export async function parseNuorder(input:NuorderInput):Promise<PlatformSource> {
   if (get('shipStart')&&get('shipEnd')&&get('shipStart')>get('shipEnd')) fail('IMPORT_DATE','Ship window end precedes its start.',400)
   joined.push({ID:get('id',true),'Customer ID':get('customerId',true),Type:'Order',Currency:get('currency',true),Total:get('total',true),Shipping:get('shipping')||'0',Status:get('status',true),Date:get('date'), 'Product ID':productId,Quantity:String(quantity),'Unit Price':get('unitPrice',true),'Case Pack':String(product.casePack??''),Increment:String(product.increment??'')})
  }
+ const sourceIdentity=(row:typeof orderRows[number],key:'id'|'productId')=>text(row.fields[oc[key]],`Order row ${row.row} ${oc[key]}`,200)
  const headers=Object.keys(joined[0]),source=parseSparkLayer({tenant:input.tenant,activity:{name:'nuorder-joined.csv',mode:'detailed',csv:csvText([headers,...joined.map(row=>headers.map(h=>row[h]))])},authority:input.authority,scope:input.scope,lists:input.lists})
  source.system='nuorder';source.artifacts=[input.products,input.orders,...input.lists??[]]
  for (const doc of source.documents) {
-  const rows=orderRows.filter(row=>row.fields[oc.id]===doc.id)
+  const rows=orderRows.filter(row=>sourceIdentity(row,'id')===doc.id)
   doc.originals=rows
-  doc.lines.forEach(line=>{const original=rows.find(row=>input.authority.products[row.fields[oc.productId]]===line.sku)!;line.original=original.fields;line.row=original.row;line.openQuantity=Number(original.fields[oc.openQuantity])})
+  doc.lines.forEach(line=>{const original=rows.find(row=>input.authority.products[sourceIdentity(row,'productId')]===line.sku)!;line.original=original.fields;line.row=original.row;line.openQuantity=Number(original.fields[oc.openQuantity])})
   doc.sourceFacts={po:rows[0].fields[oc.po]??'',shipStart:rows[0].fields[oc.shipStart]??'',shipEnd:rows[0].fields[oc.shipEnd]??''}
   for (const row of rows) for (const key of ['po','shipStart','shipEnd']) if ((row.fields[oc[key]]??'')!==doc.sourceFacts[key]) fail('IMPORT_JOIN',`Repeated header ${doc.id} disagrees on ${key}.`,400)
  }
