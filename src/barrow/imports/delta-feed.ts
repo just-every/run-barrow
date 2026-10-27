@@ -22,7 +22,7 @@ function inspect(value:unknown,depth=0):void {
 // an identical feed must retain the earlier review and its original receipt.
 function reviewed(value:unknown):unknown {
  if(Array.isArray(value))return value.map(reviewed)
- if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>key!=='receivedAt').map(([key,item])=>[key,reviewed(item)]))
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([key])=>key!=='receivedAt'&&key!=='checkedAt').map(([key,item])=>[key,reviewed(item)]))
  return value
 }
 export async function updateDeltaFeed(env:Bindings,actor:Actor,id:string,snapshot:Record<string,unknown>&{expectedRevision:string},reasonValue:string) {

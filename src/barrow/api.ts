@@ -80,6 +80,7 @@ import { freshnessLimit, saveFreshness } from './freshness'
 import { documentResponse } from './documents'
 import { orderTimeline } from './timeline'
 import { diagnostics } from './diagnostics'
+import { connectorReview, inspectConnectors } from './connector-review'
 import { saveReportZone } from './report-zone'
 import { fulfillmentReport } from './fulfillment'
 import { catalogue, pierConfigured, pierState } from './pier'
@@ -233,6 +234,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
   if(path==='/api/barrow/webhooks.json' && request.method==='GET')return new Response(JSON.stringify(await webhookHistory(env,actor)),{headers:{'content-type':'application/json','content-disposition':'attachment; filename="barrow-webhooks.json"','cache-control':'no-store','x-content-type-options':'nosniff'}})
   if(path==='/api/barrow/webhooks' && request.method==='GET')return json(await readWebhooks(env,actor))
+  if(path==='/api/barrow/connectors' && request.method==='GET') return json(await connectorReview(env,actor))
+  if(path==='/api/barrow/connectors/inspect' && request.method==='POST') return json(await inspectConnectors(env,actor,await boundedJson(request,10000)))
   if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
   if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
