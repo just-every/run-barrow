@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e6473ff0fcf567e634e3c271d363a681ccac224a39d1dca997ea866cc14f185e",
+      "sha256": "5d20dc75eb92f1b879b7426a2bc83761a4379047449ddb8ffadf09dea9a9893c",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "c680477d71933f39fd9ef5253ec91aa385843d0ef421e0356f9207866d8c948d",
+      "sha256": "d40abb12ade1f48171c258fbf18afcc955e19275a9db9127ca8505cf08c7603d",
       "executable": false
     },
     "DEMO.md": {
@@ -580,7 +580,7 @@
       "executable": false
     },
     "public/barrow/components.css": {
-      "sha256": "9d8bdb922202767828bab8ee67d8b15973850ad4d1b82e2d29a80bf13576a9cc",
+      "sha256": "e0e21290f2ed4bb8db6d6e271cf274f62cce27393aae1c9e5c833b48bef4ebcf",
       "executable": false
     },
     "public/barrow/flats/cardigan.svg": {
@@ -1524,7 +1524,7 @@
       "executable": false
     },
     "src/barrow/imports/nuorder.ts": {
-      "sha256": "62387a6cf4e267d6e844c9c83a4c1a4d1ffe8249875b9b339982b765649b9711",
+      "sha256": "5ec1972de1b7ed726dae472595182b8cd6d6bc6ec6adb96f6ee89d2a24ddb907",
       "executable": false
     },
     "src/barrow/imports/platform-csv.ts": {
@@ -4380,7 +4380,7 @@
       "executable": false
     },
     "tests/api/move-nuorder.test.mjs": {
-      "sha256": "e2c2804dccedb71f261925731a928ec6cb11ed23fe0dd1259ba8867c06592886",
+      "sha256": "c95d1825d18c87ba80e5c01d93759949b4f4d76deb070f4dee4a2bc4c281e881",
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
