@@ -1,3 +1,5 @@
+import { effectiveBook } from './currency'
+import { now } from './clock'
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit, commit } from './access'
@@ -41,6 +43,7 @@ export async function searchCatalog(env: Bindings, actor: Actor, query: URLSearc
  const attributes = await variantAttributes(env.DB), source = await pierOrigin(env)
  const index = await env.DB.prepare('SELECT * FROM bw_catalog_indexes WHERE account_id=?').bind(selected.id).first<{revision:string;account_revision:string;attributes_revision:string;pier_origin:string;observed_at:string}>()
  if (!index || index.account_revision!==selected.revision || index.attributes_revision!==(attributes.revision??'') || index.pier_origin!==(source??'demo')) fail('CATALOG_REFRESH','The supplier must refresh this account’s search observations before searching.',409)
+ if(effectiveBook(selected,new Date(index.observed_at)).value.prices!==effectiveBook(selected,await now()).value.prices) fail('CATALOG_REFRESH','A scheduled book revision activated. The supplier must refresh search observations before searching.',409)
  const clauses=['account_id=?'], values:(string|number)[]=[selected.id]
  const rawPage=query.get('page')??'1'
  if (!/^[1-9]\d{0,5}$/.test(rawPage)) fail('SEARCH','Choose a positive page number up to 999999.',400)

@@ -4,7 +4,11 @@ import {chromium,expect} from '@playwright/test';
 import {cardFixture} from '../api/card-fixture.mjs';
 import {signedContext,captureRegionWidths} from './browser-helpers.mjs';
 const app=async(page,h)=>{await page.goto(h.origin+'/app');if(new URL(page.url()).pathname==='/setup'){await page.getByLabel('Your name').fill('Supplier owner');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Finish setup',exact:true}).click()}await page.getByRole('button',{name:'Orders',exact:true}).waitFor()};
-const shot=async(page,region,name)=>{if(process.env.BARROW_JOURNEY_EVIDENCE)await captureRegionWidths(page,region,name)};
+const shot=async(page,region,name)=>{
+ assert.deepEqual(await page.locator('.barrow *').evaluateAll(elements=>elements.filter(e=>e.checkVisibility()&&[...e.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<13).map(e=>({tag:e.tagName,text:e.textContent.slice(0,60),size:getComputedStyle(e).fontSize}))),[],name+': readable text');
+ assert.deepEqual(await region.locator('*').evaluateAll(elements=>elements.filter(e=>{if(!e.checkVisibility())return false;const s=getComputedStyle(e);return ['borderTopLeftRadius','borderTopRightRadius','borderBottomLeftRadius','borderBottomRightRadius'].some(k=>parseFloat(s[k])>0)&&new Set(['borderTopWidth','borderRightWidth','borderBottomWidth','borderLeftWidth'].map(k=>s[k])).size>1}).map(e=>({tag:e.tagName,classes:e.className}))),[],name+': complete rounded borders');
+ if(process.env.BARROW_JOURNEY_EVIDENCE)await captureRegionWidths(page,region,name)
+};
 
 test('supplier schedules a complete book and dated USD basis, buyer keeps CAD documents, and reports show the recorded conversion without changing cents',async t=>{
  const {h,buyer,edge}=await cardFixture(t,{built:true,https:true});

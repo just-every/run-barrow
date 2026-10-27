@@ -30,7 +30,7 @@ test('catalog search finds entitled SKU, barcode and text with stable pages and 
 });
 
 test('catalog search enforces current account authority and invalidates observations after price, attribute or connection changes',async t=>{
- const {h,products,value,buyer,search}=await catalogFixture(t,3);
+ const {h,products,value,buyer,search}=await catalogFixture(t,3,{BARROW_TEST_CLOCK:'2030-01-02T04:59:59Z'});
  await search({},{...buyer,status:409});
  await h.command('catalog.refresh',{accountId:'cedar'});
  const other={as:await h.signIn('other@example.test')};
@@ -43,6 +43,13 @@ test('catalog search enforces current account authority and invalidates observat
  const {token}=await h.api('/api/barrow/agent-token',{});
  await search({},{as:'',headers:{authorization:`Bearer ${token}`},status:403});
  const found=await search({sku:'OAT-1'});assert.equal(found.items[0].unitCents,6500);assert.ok(!JSON.stringify(found).includes('9999'));
+ const current=await h.api('/api/barrow/accounts/by-id/cedar');
+ await h.command('account.save',{id:current.id,revision:current.revision,value:{...current.value,priceRevisions:[{effectiveFrom:'2030-01-02',prices:[{sku:'OAT-1',unitCents:1303,minQty:1}]}]}});
+ await h.command('catalog.refresh',{accountId:'cedar'});assert.equal((await search({sku:'OAT-1'})).items[0].unitCents,6500);
+ await h.configure({BARROW_TEST_CLOCK:'2030-01-02T05:00:00Z'});
+ assert.equal((await search({sku:'OAT-1'},{...buyer,status:409})).error.code,'CATALOG_REFRESH');
+ assert.equal((await h.api('/api/barrow/catalogue?accountId=cedar',undefined,buyer)).items[0].unitCents,1303);
+ await h.command('catalog.refresh',{accountId:'cedar'});assert.equal((await search({sku:'OAT-1'})).items[0].unitCents,1303);assert.equal((await search({sku:'STYLE-00000'})).items.length,0);
  await h.db.prepare('UPDATE bw_accounts SET revision=? WHERE id=?').bind('synthetic-barrow-new-price','cedar').run();
  await search({},{...buyer,status:409});await h.command('catalog.refresh',{accountId:'cedar'});
  await h.db.prepare("UPDATE bw_settings SET revision=? WHERE key='variant-attributes'").bind('synthetic-barrow-new-attributes').run();
