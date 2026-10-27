@@ -72,16 +72,16 @@ test('Faire owner decisions are private, attributed, append-only and fully expor
  const decision=async (value,run)=>{const from=Date.now();const result=await run();expected.push({...value,from,to:Date.now()});return result};
  const consent=async (enabled,reason)=>decision({action:'faire.configured',source:enabled?'faire.configure.enable':'faire.configure.disable',reason},()=>h.api('/api/barrow/faire/configure',{brand:'brand1',enabled,reason}));
  const reconciliationReason='Owner read and durably staged one source page; original Faire IDs deduplicate replay. No collection or inventory effect.';
- await consent(true,'synthetic-barrow-owner-enable-1');
- let result=await decision({action:'faire.page-reconciled',source:'faire.poll',revision:hash([destinationRevision,null,'synthetic-barrow-cursor-2',[sources[0]]]),reason:reconciliationReason},()=>f.poll());
+ await consent(false,'synthetic-barrow-owner-disable-initial');
+ let result=await decision({action:'faire.page-reconciled',source:'faire.poll',revision:hash([destinationRevision,null,'synthetic-barrow-cursor-2',[sources[0]]]),reason:reconciliationReason},()=>f.preview());
  assert.equal(result.orders[0].revision,hash(sources[0]));
  await decision({action:'faire.order-ingested',orderId:sources[0].id,source:'faire.match',revision:hash(sources[0]),reason:'synthetic-barrow-reviewed-first-mapping'},()=>f.match(result.orders[0],{'OAT-1':'OAT-1'},{},{reason:'synthetic-barrow-reviewed-first-mapping'}));
  f.state.failSecond=false;
- result=await decision({action:'faire.page-reconciled',source:'faire.poll',revision:hash([destinationRevision,'synthetic-barrow-cursor-2',null,[sources[1]]]),reason:reconciliationReason},()=>f.poll());
+ result=await decision({action:'faire.page-reconciled',source:'faire.poll',revision:hash([destinationRevision,'synthetic-barrow-cursor-2',null,[sources[1]]]),reason:reconciliationReason},()=>f.preview());
  assert.equal(result.orders[1].revision,hash(sources[1]));
  await decision({action:'faire.order-ingested',orderId:sources[1].id,source:'faire.match',revision:hash(sources[1]),reason:'synthetic-barrow-reviewed-second-mapping'},()=>f.match(result.orders[1],{'UNKNOWN-1':'OAT-1'},{},{reason:'synthetic-barrow-reviewed-second-mapping'}));
  const owner=(await h.api('/api/barrow/state')).actor;
- await consent(false,'synthetic-barrow-owner-disable');await consent(true,'synthetic-barrow-owner-enable-2');
+ await consent(true,'synthetic-barrow-owner-enable-1');await consent(false,'synthetic-barrow-owner-disable');await consent(true,'synthetic-barrow-owner-enable-2');
  const decisions=(await h.api('/api/barrow/audit')).events.filter(row=>row.action==='faire.configured');
  assert.equal(decisions.length,4);assert.equal(new Set(decisions.map(row=>row.revision)).size,4,'Every consent decision needs a distinct revision');
  assert.deepEqual(decisions.map(row=>row.source),['faire.configure.enable','faire.configure.disable','faire.configure.enable','faire.configure.disable']);
@@ -132,24 +132,6 @@ test('Faire refuses invalid credentials, foreign destinations and malformed sour
  assert.deepEqual(reviewed.review.faire[0].duplicates,[{retailer:'synthetic-barrow-retailer-1',accounts:['birch','cedar']}]);
  assert.deepEqual(reviewed.review.issues.filter(row=>row.kind==='duplicate-customer').map(row=>row.record),['synthetic-barrow-retailer-1']);
  assert.equal((await h.api('/api/barrow/state')).accounts.length,2);
-});
-
-test('Faire refuses an older overlapping page after a newer complete poll returns to the same checkpoint',async t=>{
- const f=await faireFixture(t);await ingestFixture(f);
- f.state.orders[0].items[0].quantity=4;
- const held=f.holdNextPage(),older=f.h.request('/api/barrow/faire/poll',{method:'POST',body:{brand:'brand1',restart:true}});
- await held.ready;
- f.state.orders[0].items[0].quantity=8;
- await f.poll({restart:true});await f.poll();
- const reconciledBefore=(await f.h.api('/api/barrow/audit')).events.filter(row=>row.action==='faire.page-reconciled').map(row=>row.id);
- const before=await f.read();assert.equal(before.orders[0].source.lines[0].quantity,8);assert.equal(before.sync[0].cursor,null);assert.equal(before.sync[0].complete,1);
- held.release();const response=await older;assert.equal(response.status,409,'An older page must not overwrite a newer complete poll');
- const after=await f.read();assert.equal(after.orders[0].source.lines[0].quantity,8);assert.deepEqual(after.sync,before.sync);
- assert.deepEqual((await f.h.api('/api/barrow/audit')).events.filter(row=>row.action==='faire.page-reconciled').map(row=>row.id),reconciledBefore,'A refused stale page leaves no reconciliation event');
- const reviewed=await f.match(after.orders[0],{'OAT-1':'OAT-1'});assert.equal(reviewed.orders[0].matched.lines[0].quantity,8);
- const withdrawn=f.holdNextPage(),pending=f.h.request('/api/barrow/faire/poll',{method:'POST',body:{brand:'brand1',restart:true}});await withdrawn.ready;
- await f.configure(false);await f.configure(true);withdrawn.release();assert.equal((await pending).status,409,'A consent change invalidates every in-flight read');
- assert.equal((await f.read()).orders[0].source.lines[0].quantity,8);
 });
 
 test('Faire refuses an older overlapping page after a newer complete poll returns to the same checkpoint',async t=>{
