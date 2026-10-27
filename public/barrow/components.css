@@ -66,8 +66,8 @@
 .br-hand{font:700 26px/1 Kalam,'Comic Sans MS',cursive;color:var(--br-cinnabar);transform:rotate(-5deg);white-space:nowrap;padding-bottom:6px;background:linear-gradient(var(--br-cinnabar),var(--br-cinnabar)) left bottom/100% 2px no-repeat;border-radius:2px}
 .br-warn{display:inline-grid;place-items:center;flex:none;width:18px;height:18px;border-radius:50%;background:var(--br-amber);color:#fff;font-size:13px;font-weight:800;line-height:1}
 .br-change-note{display:inline-flex;align-items:center;gap:8px;padding:5px 14px 5px 8px;border-radius:999px;background:var(--br-amber-pill);color:#8c3a07;font-size:14px;line-height:1.4}
-.br-notice{display:grid;gap:6px;padding:14px 18px;border:1px solid #c9d3fb;border-left:4px solid var(--br-ultramarine);border-radius:10px;background:var(--br-wash);color:var(--br-ink);font-size:14px;overflow-wrap:anywhere}
-.br-notice.br-error{border-color:#f3c2b8;border-left-color:var(--br-red);background:var(--br-red-tint)}
+.br-notice{display:grid;gap:6px;padding:14px 18px;border:1px solid #c9d3fb;border-radius:10px;background:var(--br-wash);color:var(--br-ink);font-size:14px;overflow-wrap:anywhere}
+.br-notice.br-error{border-color:#f3c2b8;background:var(--br-red-tint)}
 .br-notice>div{margin-top:4px}
 .br-empty{text-align:center;padding:52px 24px;border:1px dashed var(--br-rule-strong);border-radius:12px;background:#fff}
 .br-empty-motif{display:block;width:92px;height:52px;margin:0 auto 20px}
