@@ -82,6 +82,7 @@ test('Faire refuses invalid credentials, foreign destinations and malformed sour
  await h.configure({FAIRE_CONNECTIONS:JSON.stringify({brand1:{origin:f.origin,accessToken:'synthetic-barrow-2',appCredentials:'synthetic-barrow-3'},alias:{appCredentials:'synthetic-barrow-3',accessToken:'synthetic-barrow-2',origin:f.origin}})});
  await h.api('/api/barrow/faire/configure',{brand:'alias',enabled:true,reason:'Attempt a reordered alias of the same grant.'},{status:503});
  assert.equal(state.requests.length,count);assert.deepEqual((await f.read()).orders.map(row=>[row.brand,row.source_id]),[['brand1','synthetic-barrow-order-1'],['brand2','synthetic-barrow-order-3']]);
+ await h.configure({FAIRE_CONNECTIONS:JSON.stringify({brand1:{origin:f.origin,accessToken:'synthetic-barrow-2',appCredentials:'synthetic-barrow-3'},brand2:{origin:f.origin,accessToken:'synthetic-barrow-4',appCredentials:'synthetic-barrow-3'}})});
  state.failSecond=false;state.orders[1].retailer_id=state.orders[0].retailer_id;
  await f.preview();await h.command('account.save',{id:'birch',value:{...accountValue('synthetic-barrow-customer-2','birch@example.test'),name:'Birch Lane Pantry',minimumCents:0}});
  let rows=(await f.read()).orders.filter(row=>row.brand==='brand1');await f.match(rows[0],{'OAT-1':'OAT-1'});await f.match(rows[1],{'UNKNOWN-1':'OAT-1'},{},{accountId:'birch'});

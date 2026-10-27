@@ -4328,7 +4328,7 @@
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "e1744fb3f9896957ea1dcc909c12b8873708fd8fa306d9b208225d8a41938da5",
+      "sha256": "747e814354f8462f5f0c4a9f580ae458212185ec273b55c3be368bf877f9f1cb",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
