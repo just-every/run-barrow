@@ -232,7 +232,7 @@
       "executable": false
     },
     "docs/PRICING.md": {
-      "sha256": "151e18ce1084e468b953ac0fb570282cd04c7ae0a2f18b286139ccedf93f7e2b",
+      "sha256": "808e15f765a4b2295a3906a1c575e559b0fc054762fdb171a6d23a6224d676ff",
       "executable": false
     },
     "docs/QUOTE-NOTIFICATIONS.md": {
@@ -1584,7 +1584,7 @@
       "executable": false
     },
     "src/barrow/price-books.ts": {
-      "sha256": "ec901ee8ff71fedcb3614517486bd1a567cafffe585b9bc7a704bc699d4f1a45",
+      "sha256": "63acfa1686f565930dbfabc30e2c8fd6b1f7c24073bfefeb1fd820c43877ff96",
       "executable": false
     },
     "src/barrow/price-display.ts": {
@@ -4352,7 +4352,7 @@
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
-      "sha256": "cf8bd4740d449cb672a0b9522cf69dbf9123904ac89970bdb0680d230b8467e9",
+      "sha256": "41358abeffb8594ff77ab6dae007b1caecc1ec531adedce1c26c7193fa2708a3",
       "executable": false
     },
     "tests/api/promotion-fixture.mjs": {
