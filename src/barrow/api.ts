@@ -1,3 +1,4 @@
+import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
 import { savedCardCommand,readSavedCards } from './saved-cards'
@@ -322,6 +323,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await commit(env.DB,actor,[env.DB.prepare('DELETE FROM bw_agent_tokens WHERE actor_id=?').bind(actor.id),audit(env.DB,actor,actor.id,'agent.revoked',{revision:`operator:${actor.version}`,source:'agent-token.revoke',reason:'Supplier revoked every agent grant issued under this identity.'})])
    return json({revoked:true})
   }
+  if(path==='/api/barrow/promotions' && request.method==='GET'){promotionAdmin(actor);return json(await promotionSettings(env.DB))}
   if(path==='/api/barrow/commands' && request.method==='POST') {
    // A command carries at most one 1 MB PO document as base64.
    const body=await boundedJson(request,1500000) as any
@@ -331,6 +333,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})
+   if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})

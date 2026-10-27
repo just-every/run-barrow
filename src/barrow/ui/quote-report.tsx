@@ -14,6 +14,7 @@ function Measures({ row,currency }: { row: Row; currency:'USD'|'CAD'|'AUD' }) {
     <p>Quotes {row.quotes.requested} · responded {row.quotes.responded} · could accept {row.quotes.offered} · accepted {row.quotes.accepted} · revised {row.quotes.revised} · expired {row.quotes.expired} · open {row.quotes.open}</p>
     <p>Response {pct(row.responseRate)} · acceptance {pct(row.acceptanceRate)}</p>
     <p>Accepted orders {row.acceptedOrders}: {money(row.acceptedCents,currency)} · quote discounts {money(row.quoteDiscountCents,currency)} · returned {cents(row.returnedCents,currency)} · net {cents(row.netAcceptedCents,currency)}</p>
+    <p>Promoted orders {row.promotedOrders}: {money(row.promotionGrossCents,currency)} · promotion discounts {money(row.promotionDiscountCents,currency)} · promotion returns {cents(row.promotionReturnedCents,currency)} · net promotions {cents(row.netPromotedCents,currency)}</p>
     <p>Drafts {row.carts.drafts} · abandoned {row.carts.abandoned} · placed {row.carts.placed} · abandonment {pct(row.carts.abandonmentRate)} · reorders {pct(row.reorderRate)}</p>
   </>
 }
@@ -36,6 +37,7 @@ export function QuoteReport() {
     {report && <>
       <p className="br-quiet-text">{report.definitions.period} Read {when(report.checkedAt)}{report.returnsSource === 'unavailable' ? ' · Pier unavailable: returns unknown' : ''}.</p>
       <Measures row={report.totals} currency={currency} />
+      <section aria-label="Promotion attribution"><h3>Promotion attribution</h3><p>{report.definitions.promotions}</p>{report.promotionOffers.map(o=><p key={o.id}>{o.name} ({o.id}): {o.orders} orders · discount {money(o.discountCents,currency)} · returned {cents(o.returnedCents,currency)} · net {cents(o.netCents,currency)}. Stacked offer rows overlap; summary counts each order once.</p>)}</section>
       <section aria-label="Line-sheet engagement"><h3>Line-sheet engagement per buyer</h3>{report.lineSheets.length===0?<p>No buyer activity in this period.</p>:report.lineSheets.map(row=><p key={`${row.sheetId}:${row.buyerId}`}>{row.accountName} · {row.buyerName??'Former buyer'}{row.buyerEmail?` (${row.buyerEmail})`:''} · {row.sheetName??'Archived line sheet'}: opens {row.opens}, views {row.views}, items viewed {row.itemsViewed}. {row.bySku.map(item=>`${item.sku}: ${item.views}`).join('; ')}</p>)}</section>
       {report[view].map(row => <article className="br-card br-stack" key={row.name}><h3>{row.name}</h3><Measures row={row} currency={currency} /></article>)}
       <details><summary>How each figure is counted</summary><dl>{Object.entries(report.definitions).map(([name, text]) => <div key={name}><dt>{name}</dt><dd>{text}</dd></div>)}</dl></details>

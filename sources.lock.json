@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "af421e06e1dedfa58d90432828f8f223ee65d4c5aeea1ebdbdefed1cec5f86e2",
+      "sha256": "68e88fd910ba22501ecf080a55666163adb0f76aa0b7e18721a5a7072244fef9",
       "executable": false
     },
     ".gitignore": {
@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "fcd515ab69383b339834f6f76d8d410c2520fd20361ced717fc961cc51eaaf12",
+      "sha256": "3e2462b54338063f350336f95802aa98af57036e3147e3d506cee7661fa8d7b8",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e3e1dcff68d968dc2d8210f5faa59e929625ebca4a4e9411b437b3318a645079",
+      "sha256": "c8fc3ffee6e280968f12e76b363dde02d0902774171081c7b769735ac5c47889",
       "executable": false
     },
     "DEMO.md": {
@@ -1080,7 +1080,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "b854a30a086c2d45b6bfd428090c13d9a54efa830b644492bf250d106d37de9e",
+      "sha256": "c9feb1946c09e70d3958698ef6badd80c72d3386ccea2549d2ab806d2ff73a4a",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1340,7 +1340,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "312bdb8d2b8a2dc7b7f00b982c5f29b961c88e03121fcccf2675baabbabe6fa5",
+      "sha256": "b3c88785c62e2cef3ae23f1431534825afc659b256b53addd61736c284dff45f",
       "executable": false
     },
     "src/barrow/feeds/connection-settings.ts": {
@@ -1532,11 +1532,11 @@
       "executable": false
     },
     "src/barrow/model.ts": {
-      "sha256": "87936a1309a6bc8d8652d4c8c444727d50cb5939d9f7247f91b2382969cbfc22",
+      "sha256": "4edbb5faa99de82c6bdf6eb8cbc9fb735495d1addeefbb4a143a6ca136f7e815",
       "executable": false
     },
     "src/barrow/order-revisions.ts": {
-      "sha256": "fd2e34a57b22aece057920ead0714881fcdd350ceb86bb082d70287ee0fe18e0",
+      "sha256": "beb65c06a600e89aced3d3624136474bd01000a5bf1090870d14683a762e9a82",
       "executable": false
     },
     "src/barrow/order-search.ts": {
@@ -1544,7 +1544,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "8267d53b6b3a64cc0d4bed48aa874da08800277ce85046d1e03bbc8ed71f625d",
+      "sha256": "685a891c217891d8589e57b748ae7217d10c2c08f413c7d9968cb41bcaed58c7",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -1577,6 +1577,10 @@
     },
     "src/barrow/product-images.ts": {
       "sha256": "94e3076a838653fd8a3e6a9f26bb471a5a70fcaccb1f4d085b00da1738b54a88",
+      "executable": false
+    },
+    "src/barrow/promotions.ts": {
+      "sha256": "6510999706d42dc71004028a7d39868aab12ef361b0afd8d72a73c34f20bf23c",
       "executable": false
     },
     "src/barrow/proposal-approval.ts": {
@@ -1632,7 +1636,7 @@
       "executable": false
     },
     "src/barrow/quote-report.ts": {
-      "sha256": "82b136016dae69c9a85514c1cc8879c0c2bb9b1cf9987fd293792f6d9f9d98e5",
+      "sha256": "5683c2e3c0e7e195afedecb5e1aa93cd00bc7a5d3340f2707704570cc251ee51",
       "executable": false
     },
     "src/barrow/quote-routing.ts": {
@@ -1796,7 +1800,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "56cc1edc393128627be4fa99cf4b4203df5557355ef62e3a19cda13d41ca21ac",
+      "sha256": "2415dd96c40c7fba6c284b32ea90cccf49d28c58282042ea209f8ae472a41801",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -2008,7 +2012,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "92f980495601e9ba225a45ef8c7c43d234babf967be85ded02de715f443fc098",
+      "sha256": "a4dc42bb5b0f228e9fbf388ecc2e3e19047d73c72c764d0f191fdb974cb0c169",
       "executable": false
     },
     "src/barrow/ui/pricing-settings.tsx": {
@@ -2023,12 +2027,16 @@
       "sha256": "db9068d0014aa2a5c2d288a34fc642f756b1ea7ca4b756b31500bd6c986491d5",
       "executable": false
     },
+    "src/barrow/ui/promotions.tsx": {
+      "sha256": "582b16ac2b4ec8dabbe3293bda6ddbed51cff3f748d7b405619b2e54096dc796",
+      "executable": false
+    },
     "src/barrow/ui/proposal-grant.tsx": {
       "sha256": "8e840525bd2dba440b11f31bd32465fac85562d5e099f4b06a5bee19a7b7d240",
       "executable": false
     },
     "src/barrow/ui/quote-report.tsx": {
-      "sha256": "37b05561a0956fd3728743bc5520f1ada0b1bec14f5a4aa84817d0c48984b0b3",
+      "sha256": "4dc4c1ceb365b39bd5ee9f791cc30cf70338dc456e8bc4dd0a597fcb602e45f4",
       "executable": false
     },
     "src/barrow/ui/quote-shipping.tsx": {
@@ -2120,7 +2128,7 @@
       "executable": false
     },
     "src/barrow/ui/types.ts": {
-      "sha256": "273b9dc819f09bbd4186a266989ce69b6707e360e2bde9821ed6a8a53eda9b52",
+      "sha256": "f7f06487add7918ac6e76559ab08ad99c58f50e19f92ecbdf344de0d12455fd6",
       "executable": false
     },
     "src/barrow/ui/unit-draft.tsx": {
@@ -4312,7 +4320,11 @@
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
-      "sha256": "e5d633a2db80bc2e0c972fc12a25cf2ce1e70959852ab2b062feb6d2f5802e64",
+      "sha256": "d0f589bf79959d260597efaae9dde644cc87c516aa390c6f57a3cf5c184bc103",
+      "executable": false
+    },
+    "tests/api/promotion-fixture.mjs": {
+      "sha256": "1bb2ed44d034246657686873feba8a6c1b9094f7bae475d553a5f94e3d7a092b",
       "executable": false
     },
     "tests/api/proposal-fixture.mjs": {
@@ -4328,7 +4340,7 @@
       "executable": false
     },
     "tests/api/quotes.test.mjs": {
-      "sha256": "be5e511a2e91b942654239dac27749b52d6b4b73d01befc128ce14193fab1a96",
+      "sha256": "fb469390b0432b38b8d71425542b4a47894c445dd68a0e3b167dd9ad89ccf880",
       "executable": false
     },
     "tests/api/release.test.mjs": {
@@ -4517,6 +4529,10 @@
     },
     "tests/journeys/move-wizcommerce.test.mjs": {
       "sha256": "a87d628a8b24017cedb22752ceb590119be9a407e836b9d5ffdf80ebacd26417",
+      "executable": false
+    },
+    "tests/journeys/promotions.test.mjs": {
+      "sha256": "a03a7d5c63ee5112266e0ecccacee602e97cf4986804d13c6192b48022114b65",
       "executable": false
     },
     "tests/journeys/rep-ordering.test.mjs": {

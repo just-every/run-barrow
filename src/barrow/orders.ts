@@ -1,3 +1,4 @@
+import { applyPromotions, promotionSettings } from './promotions'
 import { resolveBuyingProfile, orderBuyingProfile, buyingOrderGuards } from './buying-profiles'
 import { deltaEntryGuard, deltaMutationGuard } from './imports/delta-entry'
 import { linkedReplacementGuard } from './proposal-approval'
@@ -104,11 +105,13 @@ async function assertCurrentPricing(env:Bindings,actor:Actor,selected:Account,or
  // approval checks current commercial terms, then Pier's reservation is authoritative for stock shortfalls.
  selected=(await orderBuyingProfile(env.DB,actor,selected,order)).selected
  const offers=await catalogue(env,selected),date=supplierDate(await now())
+ const repriced=applyPromotions(prepareLines(order.lines,offers.items,date,false),(await promotionSettings(env.DB)).offers,selected.id,date)
+ if(!order.quote&&JSON.stringify(repriced.map(l=>[l.lineCents,l.promotion]))!==JSON.stringify(order.lines.map(l=>[l.lineCents,l.promotion])))fail('PRICE_CHANGED','Promotion eligibility or precedence changed. Prepare a new draft for review.')
  for(const line of order.lines){
   const offer=offers.items.find(item=>item.sku===line.sku),unit=offer?sellingUnits(offer).find(unit=>unit.code===(line.unit??offer.unit)):undefined
   if(!unit)fail('PRICE_CHANGED','An item or selling unit changed. Prepare a new draft for review.')
   // ORD-004: a quoted line's negotiated price applies to its PRI-002 basis, which must still be the current rule.
-  const current=priceLine(line.quantity,unit.unitCents,unit.pricing,date),basis=line.quote?{unitCents:line.quote.basisUnitCents,lineCents:line.quote.basisLineCents}:line
+  const current=priceLine(line.quantity,unit.unitCents,unit.pricing,date),basis=line.quote?{unitCents:line.quote.basisUnitCents,lineCents:line.quote.basisLineCents}:{...line,lineCents:line.promotion?priceLine(line.quantity,unit.unitCents,unit.pricing,date).lineCents:line.lineCents}
   if(current.unitCents!==basis.unitCents || current.lineCents!==(basis.lineCents??line.quantity*line.unitCents) || current.pricing?.reason!==line.pricing?.reason || JSON.stringify(current.pricing?.segments)!==JSON.stringify(line.pricing?.segments) || current.pricing?.discountBps!==line.pricing?.discountBps) fail('PRICE_CHANGED','The effective pricing rule changed. Prepare a new draft for review.')
  }
  if(submission) {
@@ -266,7 +269,8 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
   if(p.lines.some((line:any)=>line.profileId!==undefined&&line.profileId!==(selected.buyingProfile?.id??'')||line.brandId!==undefined&&line.brandId!==selected.buyingProfile?.brandId))fail('SELLER_MIX','Every cart line must belong to its selected buying profile.')
   const available=context?.available ?? await catalogue(env,selected)
-  const today=supplierDate(await now()),lines=await withVariantAttributes(env.DB,prepareLines(p.lines,available.items,today).map((line,index)=>({...line,...buyerSku(p.lines[index]),...lineWindow(p.lines[index],today)}))),details=purchaseDetails(p,today)
+  const today=supplierDate(await now()),unpromoted=await withVariantAttributes(env.DB,prepareLines(p.lines,available.items,today).map((line,index)=>({...line,...buyerSku(p.lines[index]),...lineWindow(p.lines[index],today)}))),details=purchaseDetails(p,today)
+  const lines=applyPromotions(unpromoted,(await promotionSettings(env.DB)).offers,selected.id,today)
   const totalCents=lines.reduce((sum,line)=>sum+line.lineCents!,0)
   if(!Number.isSafeInteger(totalCents)) fail('MONEY','Order total is outside the supported exact-cent range.',400)
   if(totalCents<selected.value.minimumCents) fail('MINIMUM','The order is below this customer’s minimum order value.')

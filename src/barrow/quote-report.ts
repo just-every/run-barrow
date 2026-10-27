@@ -1,9 +1,10 @@
+import { promotionRule } from './promotions'
 import { requireStaffReport } from './staff-policy'
 // RPT-002: quote conversion, carts and reorders by rep, cohort and product, over today's records. Quotes count in the
 // period of their request date and orders in the period of their preparation date, both as calendar days in the
 // installation reporting time zone. Every rate states its numerator and denominator. Only an accepted quote's one
-// converted order is revenue, net of the returns Pier records against it; promotions, line sheets, presentations and
-// campaigns are not recorded until PRI-005, CAT-003, CAT-004 and CAT-011 add them to this report.
+// converted order is quote revenue, net of Pier returns. Promotions and buyer sheet activity are recorded separately;
+// presentations and campaigns inherit their remaining report duties.
 import type { Bindings } from '../auth.server'
 import { accounts } from './accounts'
 import { now } from './clock'
@@ -25,11 +26,19 @@ const base = (line: Line) => Number(line.baseQuantity ?? line.quantity)
 type Returned = Map<string, number>
 /** The returned value of an order: each return's base units at its order line's exact average base-unit price, rounded half up once per return. */
 function returnedCents(order: Order, returns: { itemId: string; quantity: string }[], sku?: string) {
- return returns.reduce((sum, item) => {
-  const line = order.lines.find(row => row.itemId === item.itemId)
-  if (!line || (sku && line.sku !== sku)) return sum
-  return sum + half(BigInt(Math.round(Number(item.quantity) * 1_000_000)) * BigInt(line.lineCents ?? 0), BigInt(Math.round(base(line) * 1_000_000)))
- }, 0)
+ return returns.reduce((sum,item)=>{
+  const line=order.lines.find(row=>row.itemId===item.itemId)
+  if(!line||(sku&&line.sku!==sku))return sum
+  return sum+half(BigInt(Math.round(Number(item.quantity)*1_000_000))*BigInt(line.lineCents??0),BigInt(Math.round(base(line)*1_000_000)))
+ },0)
+}
+function promotionReturns(order:Order,returns:{itemId:string;quantity:string}[],sku?:string,offerId?:string) {
+ return [...new Set(order.lines.map(l=>l.itemId))].reduce((sum,itemId)=>{
+  const all=order.lines.filter(l=>l.itemId===itemId),units=all.reduce((n,l)=>n+base(l),0)
+  const value=all.filter(l=>l.promotion&&(!sku||l.sku===sku)&&(!offerId||l.promotion.offers.some(o=>o.id===offerId))).reduce((n,l)=>n+l.lineCents!,0)
+  const returned=Math.min(units,returns.filter(r=>r.itemId===itemId).reduce((n,r)=>n+Number(r.quantity),0))
+  return sum+half(BigInt(Math.round(returned*1_000_000))*BigInt(value),BigInt(Math.round(units*1_000_000)))
+ },0)
 }
 
 function measure(quotes: Quote[], orders: Order[], all: Map<string, Order>, returns: Map<string, { itemId: string; quantity: string }[]>, today: string, cutoff: string, zone: string, sku?: string) {
@@ -42,9 +51,14 @@ function measure(quotes: Quote[], orders: Order[], all: Map<string, Order>, retu
  const acceptedCents = converted.reduce((sum, order) => sum + lines(order.lines).reduce((total, line) => total + (line.lineCents ?? 0), 0), 0)
  const discountCents = accepted.reduce((sum, quote) => sum + lines(acceptedRevision(quote).lines).reduce((total, line) => total + line.basisLineCents - (line.lineCents ?? 0), 0), 0)
  const returned = converted.reduce((sum, order) => sum + returnedCents(order, returns.get(order.id) ?? [], sku), 0)
+ const promoted=orders.filter(order=>placedStatuses.includes(order.status)&&order.status!=='cancelled'&&order.lines.some(line=>line.promotion&&(!sku||line.sku===sku)))
+ const promotionDiscountCents=promoted.reduce((sum,order)=>sum+lines(order.lines).reduce((n,line)=>n+(line.promotion?.discountCents??0),0),0)
+ const promotionGrossCents=promoted.reduce((sum,order)=>sum+lines(order.lines).filter(l=>l.promotion).reduce((n,line)=>n+line.lineCents!,0),0)
+ const promotionReturnedCents=promoted.reduce((sum,order)=>sum+promotionReturns(order,returns.get(order.id)??[],sku),0)
  const carts = orders.filter(order => order.status === 'draft' && has(order.lines)), placed = orders.filter(order => placedStatuses.includes(order.status) && has(order.lines))
  const abandoned = carts.filter(order => calendarDate(new Date(order.preparedAt), zone) <= cutoff)
  return {
+  promotedOrders:promoted.length,promotionDiscountCents,promotionGrossCents,promotionReturnedCents,netPromotedCents:promotionGrossCents-promotionReturnedCents,
   quotes: { requested: mine.length, responded: responded.length, offered: offered.length, accepted: accepted.length, revised: mine.filter(quote => quote.revisions.length > 1).length, expired: mine.filter(quote => expired(quote, today)).length, open: mine.filter(quote => !quote.accepted && !expired(quote, today)).length },
   responseRate: rate(responded.length, mine.length), acceptanceRate: rate(accepted.length, offered.length),
   acceptedOrders: converted.length, acceptedCents, quoteDiscountCents: discountCents, returnedCents: returned, netAcceptedCents: acceptedCents - returned,
@@ -72,8 +86,7 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  let returnsSource: 'read' | 'unavailable' = 'read'
  try {
   const state = await pierState(env), origin = await pierOrigin(env)
-  for (const quote of periodQuotes.filter(row => row.accepted)) {
-   const order = all.get(quote.accepted!.orderId)
+  for (const order of records.filter(o=>periodQuotes.some(q=>q.accepted?.orderId===o.id)||periodOrders.some(p=>p.id===o.id&&p.lines.some(l=>l.promotion)))) {
    if (!order?.pierOrderId || order.pierOrigin !== origin) continue
    const shipped = new Set((state.shipments ?? []).filter((row: any) => row.orderId === order.pierOrderId).map((row: any) => row.id))
    returns.set(order.id, (state.returns ?? []).filter((row: any) => shipped.has(row.shipmentId)))
@@ -84,7 +97,7 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  const today = supplierDate(at), cutoff = shift(reportDay, -abandonedAfterDays)
  const run = (quotesIn: Quote[], ordersIn: Order[], sku?: string) => {
   const row = measure(quotesIn, ordersIn, all, returns, today, cutoff, zone, sku)
-  return returnsSource === 'read' ? row : { ...row, returnedCents: null, netAcceptedCents: null }
+  return returnsSource === 'read' ? row : { ...row, returnedCents: null, netAcceptedCents: null, promotionReturnedCents:null,netPromotedCents:null }
  }
  const group = (key: (accountId: string) => string) => [...new Set([...periodQuotes.map(row => key(row.accountId)), ...periodOrders.map(row => key(row.accountId))])].sort()
   .map(name => ({ name, ...run(periodQuotes.filter(row => key(row.accountId) === name), periodOrders.filter(row => key(row.accountId) === name)) }))
@@ -97,9 +110,16 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  const cohort = (accountId: string) => firsts.get(accountId) ?? 'No placed order'
  const skus = [...new Set([...periodQuotes.flatMap(quote => (quote.revisions.at(-1)?.lines ?? quote.request).map(line => line.sku)), ...periodOrders.flatMap(order => order.lines.map(line => line.sku))])].sort()
  return {
+  promotionOffers:[...new Set(periodOrders.flatMap(o=>o.lines.flatMap(l=>l.promotion?.offers.map(p=>p.id)??[])))].map(id=>{
+   const orders=periodOrders.filter(o=>placedStatuses.includes(o.status)&&o.status!=='cancelled'&&o.lines.some(l=>l.promotion?.offers.some(p=>p.id===id)))
+   const attributed=orders.map(o=>({...o,lines:o.lines.filter(l=>l.promotion?.offers.some(p=>p.id===id))}))
+   const grossCents=attributed.reduce((s,o)=>s+o.lines.reduce((n,l)=>n+l.lineCents!,0),0),returned=orders.reduce((s,o)=>s+promotionReturns(o,returns.get(o.id)??[],undefined,id),0)
+   return {id,name:orders.flatMap(o=>o.lines.flatMap(l=>l.promotion?.offers??[])).find(p=>p.id===id)?.name??id,orders:orders.length,discountCents:attributed.reduce((sum,o)=>sum+o.lines.reduce((n,l)=>n+(l.promotion?.offers.find(p=>p.id===id)?.discountCents??0),0),0),grossCents,returnedCents:returnsSource==='read'?returned:null,netCents:returnsSource==='read'?grossCents-returned:null}
+  }),
   lineSheets, checkedAt, from, to, timeZone: zone, currency, returnsSource,
   totals: run(periodQuotes, periodOrders), byRep: group(rep), byCohort: group(cohort), byProduct: skus.map(sku => ({ name: sku, ...run(periodQuotes, periodOrders, sku) })),
   definitions: {
+   promotions: promotionRule,
    lineSheets: 'Authenticated buyer opens count opening a shared sheet; views count visible-item observations; items viewed counts SKU observations per buyer. Supplier previews are excluded; revoked shares admit no further observations.',
    period: `Quotes count by request date and orders by preparation date, in ${currency} only (no conversion), inclusive calendar days ${from} to ${to} in ${zone}.`,
    responseRate: 'Quotes with at least one proposed revision ÷ quotes requested.',
@@ -114,7 +134,6 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
    product: 'A product row counts quotes whose latest lines (or request) and orders whose lines include the SKU, with cents from that SKU’s lines only.',
   },
   notRecorded: [
-   { measure: 'Promotion results', note: 'Barrow has no promotions yet; PRI-005 adds promoted orders, their discounts and net of returns to this report.' },
    { measure: 'Presentation engagement', note: 'CAT-004 adds presentation opens, views and items viewed per buyer.' },
    { measure: 'Campaign results', note: 'Barrow sends no campaigns yet; CAT-011 adds delivered, opened, viewed, ordered and order value per send, attributing only orders placed from its link or form.' },
   ],
