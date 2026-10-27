@@ -1,3 +1,4 @@
+import { effectiveBook } from './currency'
 import { observePierConfiguration } from './connection-security'
 import { demoEffect } from '../modules/demo/index.mjs'
 import { demoPierOrigin } from '../demo-data'
@@ -37,6 +38,7 @@ export const pierOrigin = (env: Bindings) => demoEffect(() => env.PIER_ORIGIN &&
 export const pierConfigured = (env: Bindings) => demoEffect(async () => { await observePierConfiguration(env); return Boolean(env.PIER_ORIGIN && env.PIER_SESSION) }, true)
 export const pierState = (env: Bindings) => demoEffect(() => call(env,'/api/pier/state'), demoPierState)
 export async function catalogue(env: Bindings,account: Account) {
+ account=effectiveBook(account,await now())
  const state=await pierState(env)
  if(!Array.isArray(state.items)||!Array.isArray(state.positions)||!Array.isArray(state.locations)||!Array.isArray(state.parties)) fail('PIER_RESPONSE','Pier stock response is incomplete.',502)
  if(!state.parties.some((p:any)=>p.id===account.value.pierCustomerId && p.kind==='customer')) fail('PIER_CUSTOMER','Map this account to an existing Pier customer.',409)
