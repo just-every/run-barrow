@@ -17,3 +17,7 @@ Configure the server-held brand connection as described by the existing Faire in
 Enabled polling uses POST `/api/barrow/faire/poll`; its retained source identities deduplicate replay. Source changes return an order to review. Re-preview and match the current revision before enabling a disconnected or paused intake again. No Faire operation initiates Barrow collection.
 
 The owner can disable an existing intake even after its source credential is revoked. If credentials are revoked, inspection reports an owned connection exception and retains previous samples, successful times and local order history. Reconnect the same destination and explicitly retry. A retained review labels its observation time; it never claims an unavailable source is current. Staff audit search and the complete audit CSV preserve actor, source, time, revision and reason for configuration, source-page reconciliation, reviewed matching and connector inspections. Buyer histories contain no internal decisions.
+
+## Flat-file history
+
+The retained health review lists each picked-up filename with its accepted and quarantined row counts and owned error report, including earlier versions after a source correction. Each written order file shows its data-row count, durable filename, order identity and acknowledgment state. Written counts exclude the CSV header and use the retained file bytes, so retries and processed acknowledgments preserve the same count. Source bytes and destination credentials stay private.

@@ -56,6 +56,11 @@ test('owner reviews delta citations and scoped feed rehearsal, signs cutoff, del
  await page.getByRole('button',{name:'Data',exact:true}).click();const health=page.getByRole('region',{name:'Connector reconciliation',exact:true});
  await health.getByLabel('Connector review reason').fill('Owner reviews retained ERP balances, mappings and acknowledgment history after rollback.');await health.getByRole('button',{name:'Inspect connectors',exact:true}).click();await expect(health.getByLabel('Connector review reason')).toHaveValue('');
  await health.getByText('Feed '+session.id+' · rolledback',{exact:true}).click();await expect(health).toContainText('source minor units 10000, native minor units 13000, difference -3000');await expect(health).toContainText('processed');
+ const pickedUp=health.getByRole('list',{name:'Picked-up files',exact:true}).locator(':scope > li');
+ await expect(pickedUp).toHaveCount(4);
+ for(const [index,value] of ['products.csv · 1 accepted · 1 quarantined','customers.csv · 2 accepted · 0 quarantined','ats.csv · 1 accepted · 0 quarantined','products.csv · 1 accepted · 0 quarantined'].entries())await expect(pickedUp.nth(index)).toContainText(value);
+ const written=health.getByRole('list',{name:'Written order files',exact:true}).locator(':scope > li');
+ await expect(written).toHaveCount(1);await expect(written).toContainText(delivery.filename+' · data rows: 1 · order '+order.id+' · processed');
  await captureRegionWidths(page,health,'connector-feed-balances');
  assert.deepEqual(await page.locator('button').evaluateAll(buttons=>buttons.filter(button=>!button.textContent?.trim()).map(button=>button.getAttribute('aria-label'))),[]);
 });

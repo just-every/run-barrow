@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import type { Bindings } from '../auth.server'
 import { audit, commit } from './access'
 import { cutoverOwner } from './imports/cutover-targets'
@@ -5,7 +6,7 @@ import { previewFaire } from './faire-review'
 import { previewPier, type ConnectorIssue } from './pier-review'
 import { fail, text, type Actor } from './model'
 import { openSftp } from './feeds/transport'
-import type { FeedSnapshot } from './feeds/layout'
+import { feedCsv, type FeedSnapshot } from './feeds/layout'
 
 /** Observations only: native commerce and Pier stock retain their existing authorities. */
 export async function connectorReview(env: Bindings, actor: Actor) {
@@ -28,7 +29,7 @@ export async function inspectConnectors(env: Bindings, actor: Actor, input: {rev
   const feed=JSON.parse(row.feed_json) as Partial<FeedSnapshot>, comparison=JSON.parse(row.report_json).comparison
   const totals=(comparison?.totals??[]).map((total:any)=>({kind:total.kind,currency:total.currency,sourceCount:total.sourceCount,targetCount:total.targetCount,sourceCents:total.sourceCents,targetCents:total.targetCents,differenceCents:total.differenceCents,sourceQuantity:total.sourceQuantity,targetQuantity:total.targetQuantity,quantityDifference:total.quantityDifference}))
   const files=(feed.rehearsal?.files??[]).map(file=>({id:file.id,name:file.name,kind:file.kind,receivedAt:file.receivedAt,rowsAccepted:file.rowsAccepted,owner:file.owner,errors:file.errors}))
-  const deliveries=(feed.deliveries??[]).map(file=>({id:file.id,orderId:file.orderId,filename:file.filename,state:file.state,preparedAt:file.preparedAt,error:file.error??null}))
+  const deliveries=(feed.deliveries??[]).map(file=>({id:file.id,orderId:file.orderId,filename:file.filename,rowsWritten:feedCsv(Buffer.from(file.bytesBase64,'base64')).length-1,state:file.state,preparedAt:file.preparedAt,error:file.error??null}))
   const currentFiles = ['products','customers','ats'].map(kind=>[...files].reverse().find(file=>file.kind===kind)).filter((file):file is typeof files[number]=>Boolean(file))
   for(const file of currentFiles)for(const error of file.errors)attention(`${row.id}:${file.id}:${error.row}`,'quarantined-row',`${file.name} row ${error.row}: ${error.message}`,'Repair the source or field mapping in Move in, then rehearse the feed again.',error.owner)
   for(const file of deliveries)if(file.state!=='processed')attention(file.orderId,'unacknowledged-file',`${file.filename}: ${file.state}; the ERP has not acknowledged processing.`,'Review the retained delivery in Move in and explicitly reconcile or resend the same identity.',row.created_by)
