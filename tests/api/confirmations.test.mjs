@@ -268,6 +268,10 @@ test('ORD-014: fifty recorded orders of one season export per line and as style,
 test('seasonal prebook commitments distinguish incoming supply, close intake, release once and retain delayed-window quantities and promise history for buyer and operations',async t=>{
  const {prebookFixture,acceptPrebook}=await import('./prebook-fixture.mjs');
  const f=await prebookFixture(t),{h,pier,buyer,other,payload,inventory}=f;
+ const future=await h.command('prebook.season-create',{revision:f.settings.revision,name:'Future intake',opensAt:'2100-01-01T00:00:00Z',closesAt:'2101-01-01T00:00:00Z',depositBps:0,reason:'Published later intake remains unavailable before its opening'});
+ f.settings=future;
+ assert.equal((await h.command('order.prepare',{...payload,prebookSeasonId:future.seasons.at(-1).id},{...buyer,status:409})).error.code,'SEASON_CLOSED');
+
  const denied=async(type,p,who=buyer,code)=>{const value=await h.command(type,p,{...who,status:who===other?404:403});if(code)assert.equal(value.error.code,code)};
  await denied('prebook.season-close',{revision:f.settings.revision,id:f.season.id,reason:'Unauthorized close'});
  assert.equal((await h.command('order.prepare',{...payload,prebookSeasonId:undefined}, {...buyer,status:409})).error.code,'STOCK');

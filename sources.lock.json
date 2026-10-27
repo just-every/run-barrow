@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "e55aed6e8310906d1a361a67c231b4fdf103fb57f795725e2245a838c3bece3b",
+      "sha256": "f623315d78a272f3a73dfe00297a80bdcc5d7d26a0037e369bd107c6e6ac4ecb",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "f46714d7799b5cc1af3dafcbd009b341e513918f73f575fbd4fe4a2e9b283316",
+      "sha256": "05a6006651615643199c382862067c529d8bb9c871aa5cec79317aff60b2c2ff",
       "executable": false
     },
     "DEMO.md": {
@@ -4240,7 +4240,7 @@
       "executable": false
     },
     "tests/api/confirmations.test.mjs": {
-      "sha256": "ab37223937463508ab18f8b31abccae4dc9a1f03fd859c3aef3ed7b4d0259ee2",
+      "sha256": "729d2b6bc89fb5598de7e1e00c1fe72dbdf16069d7a7c9c388d34d2e6e50d6f5",
       "executable": false
     },
     "tests/api/credit-fixture.mjs": {
