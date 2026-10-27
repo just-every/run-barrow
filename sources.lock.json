@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "fcd515ab69383b339834f6f76d8d410c2520fd20361ced717fc961cc51eaaf12",
+      "sha256": "5ca0328a012d795811c8f89ab1ca89161416ae489772c9fed899c1e6367b0854",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e3e1dcff68d968dc2d8210f5faa59e929625ebca4a4e9411b437b3318a645079",
+      "sha256": "877bd457f0e9ec3cda9aeb1fabc8f4d968d9f256d9f23ba2bf033feb70a3bcbb",
       "executable": false
     },
     "DEMO.md": {
@@ -792,7 +792,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "ac7420d86110aee2c0cb474fb70c2cbe82ebc27f3fdb752e31bcec639baf9b1c",
+      "sha256": "caa3fe0ba228d057862325cdbf1b281a6c43f98bb10ea3188a8e728b36472fde",
       "executable": false
     },
     "release-history/0.1.0.json": {
