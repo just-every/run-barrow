@@ -64,7 +64,8 @@ the same accepted request, including concurrent retries, returns the same draft.
 Reusing a key for different input is refused. Source-order revisions, current
 catalogue and account changes invalidate a previous preview. The draft records
 the feed hash, dated quantities, arithmetic, native source revisions, zero paid
-model cost, zero contacts and the accepting buyer. Existing company submission,
+model cost, zero contacts and the accepting buyer. Its native run identity is
+the source-bound review fingerprint; the acceptance has an attributed audit row. Existing company submission,
 approval limits, supplier approval and live Pier checks remain separate steps.
 Restored order history does not execute any plan or send outreach.
 
@@ -75,4 +76,9 @@ unallocated cash is not counted as paid. Unavailable dispatch is unknown.
 `deliveredQuantity` remains null: carrier delivery is not recorded and dispatch
 is not delivery. The order's accepted summary is included in its scoped data
 export and normal owner archive. Retention follows the existing commercial-order
-policy; no raw POS file or separate external processor is introduced.
+policy; no raw POS file or separate external processor is introduced. An owner
+reviews holds before explicit erasure. Erasure closes account access while the
+submitted commercial snapshot, including the accepted plan, remains unchanged
+within its seven-year financial floor. Restoring an older archive reapplies the
+independent erasure journal before serving the account. Verified delivery needs
+SHIP-003 and an owner-provisioned EasyPost account; no delivery receipt is claimed.

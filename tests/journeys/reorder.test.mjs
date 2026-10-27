@@ -6,7 +6,8 @@ import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
 
 test('a buyer inspects the accepted sell-through quantities, prebook commitments and outage uncertainty on the native order at desktop and phone',async t=>{
  const {h,account,buyer}=await reorderFixture(t,{built:true,https:true});
- // Stay clear of either calendar boundary; no time-of-day or same-day assertion.
+ // Relative input dates remain valid across the Eastern midnight boundary.
+ // Exact dates and cadence are asserted with a pinned clock in the API test.
  const observedOn=new Date(Date.now()-86400000).toISOString().slice(0,10),requestedDate=new Date(Date.now()+30*86400000).toISOString().slice(0,10);
  const prebook=await h.command('order.prepare',{accountId:account.id,requestedDate,lines:[{sku:'TEA-1',quantity:5}]},{as:buyer});await h.command('order.submit',{orderId:prebook.id},{as:buyer});
  const p={accountId:account.id,authorized:true,csv:'sku,unit,sold,observedDays,onHand,status\nOAT-1,case,20,10,2,complete\nTEA-1,case,20,10,2,complete\nJAM-1,case,,10,1,outage',observedOn,requestedDate,horizonDays:10,seasonalityBps:10000,budgetCents:200000,selections:[{sku:'OAT-1',unit:'case',quantity:14},{sku:'TEA-1',unit:'case',quantity:9},{sku:'JAM-1',unit:'case',quantity:2}],acknowledgedOutage:true};

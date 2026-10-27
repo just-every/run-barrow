@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {createHash} from 'node:crypto';
+import {erasurePreview,erasurePayload,verifiedRequest} from './retention-fixture.mjs';
 import assert from 'node:assert/strict';
 import { reorderFixture } from './reorder-fixture.mjs';
 import {cardEdge} from './card-fixture.mjs';
@@ -70,7 +72,12 @@ test('buyer-authorized sell-through explains demand, outage uncertainty and open
  let review=await preview();
  assert.deepEqual(review.lines.map(line=>[line.sku,line.sold,line.demand,line.onHand,line.openBaseQuantity,line.suggested,line.quantity]),[['OAT-1',20,20,2,'3',15,15],['TEA-1',20,20,2,'8',10,10],['JAM-1',null,null,1,'3',null,0]]);
  assert.equal(review.totalCents,162500);assert.deepEqual(review.blockers,[]);assert.equal(review.cadenceDays,183);
- assert.match(review.lines[2].explanation,/unknown.*outage/);assert.equal(review.provenance.contacts,0);assert.equal(review.provenance.paidCostCents,0);
+ assert.match(review.lines[2].explanation,/unknown.*outage/);
+ assert.deepEqual(review.provenance,{runId:review.fingerprint,model:'barrow-sell-through-arithmetic-v1',tools:['buyer-authorized-export','account-catalogue','native-orders','live-Pier'],paidCostCents:0,contacts:0,authority:'Current company purchaser; no external agent, model call, outreach or purchase execution.'});
+ assert.equal(review.feedSha256,createHash('sha256').update(csv).digest('hex'));assert.equal(review.observedOn,day);
+ const sourceOrders=(await h.api('/api/barrow/state',undefined,{as:buyer})).orders;
+ assert.equal(review.sourceOrders.length,2);assert.deepEqual(review.sourceOrders.map(row=>row.id).sort(),sourceOrders.map(row=>row.id).sort());
+ for(const source of sourceOrders)assert.equal(review.sourceOrders.find(row=>row.id===source.id).revision,source.revision);
  assert.deepEqual((await pier.api('/api/pier/state')).orders,stockBefore);assert.equal(h.mail.deliveries.length,mailBefore);
  // Independently supplied seasonality changes the actual rate, without inventing a seasonal model.
  const seasonal=await preview({seasonalityBps:15000});assert.deepEqual(seasonal.lines.map(line=>line.suggested),[25,20,null]);
@@ -105,6 +112,10 @@ test('buyer-authorized sell-through explains demand, outage uncertainty and open
  const measured=await h.command('order.sellthrough-outcomes',{orderId:draft.id},{as:buyer});assert.equal(measured.paidCents,162500);assert.equal(measured.dispatchedBaseQuantity,'5');assert.equal(measured.deliveredQuantity,null);
  const exported=await h.api('/api/barrow/export.json',undefined,{as:buyer});assert.equal(exported.orders.find(order=>order.id===draft.id).sellThrough.fingerprint,review.fingerprint);
  assert.equal(JSON.stringify(exported).includes(csv),false);
+ const acceptedEvents=(await h.api('/api/barrow/audit?'+new URLSearchParams({orderId:draft.id}))).events.filter(event=>event.action==='sellthrough.accepted');
+ assert.equal(acceptedEvents.length,1);assert.equal(acceptedEvents[0].actorId,draft.sellThrough.acceptedBy);assert.equal(acceptedEvents[0].actorKind,'human');assert.equal(acceptedEvents[0].source,'order.sellthrough');assert.ok(Number.isFinite(Date.parse(acceptedEvents[0].createdAt)));assert.ok(acceptedEvents[0].revision);assert.match(acceptedEvents[0].reason,/explicitly authorized/);
+ await h.api('/api/barrow/audit?orderId='+draft.id,undefined,{as:buyer,status:403});
+ const auditCsv=await h.request('/api/barrow/audit.csv?orderId='+draft.id);assert.equal(auditCsv.status,200);assert.match(await auditCsv.text(),/sellthrough.accepted/);
  const exportCsv=await h.request('/api/barrow/export/orders.csv',{as:buyer});assert.equal(exportCsv.status,200);assert.match(await exportCsv.text(),/barrow-sell-through-arithmetic-v1/);
 
  const stale=await h.command('order.sellthrough',{...accept,key:'synthetic-barrow-403'},{as:buyer,status:409});assert.equal(stale.error.code,'SELLTHROUGH_CHANGED');
@@ -142,4 +153,22 @@ test('buyer-authorized sell-through explains demand, outage uncertainty and open
  await h.command('company.update',{accountId:account.id,memberId:member.id,revision:member.revision,policy:{rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Company purchaser authority was withdrawn after the exact preview.'});
  await h.command('order.sellthrough-preview',p,{as:buyer,status:403});
  await h.command('order.sellthrough',accept,{as:buyer,status:403});
+ // The accepted plan is part of the submitted commercial snapshot. Explicit
+ // owner erasure revokes the purchaser, preserves that evidence under its floor,
+ // and the outside-database journal prevents an older archive restoring access.
+ const commercial=await h.api('/api/barrow/orders/'+draft.id);
+ await verifiedRequest(h,account.id,true);
+ let erasure=await erasurePreview(h,account.id);
+ assert.equal(erasure.held,true);await h.command('retention.erase-account',erasurePayload(erasure),{status:409});
+ await verifiedRequest(h,account.id,false);erasure=await erasurePreview(h,account.id);
+ assert.equal(erasure.items.find(row=>row.id==='order:'+draft.id).action,'keep unchanged');
+ const receipt=await h.command('retention.erase-account',erasurePayload(erasure));assert.equal(receipt.mode,'erase');assert.match(receipt.custody.inventory,/Pier/);assert.match(receipt.commercialHistory,/Preserved unchanged within the seven-year floor/);
+ assert.deepEqual(await h.api('/api/barrow/orders/'+draft.id),commercial);
+ await h.api('/api/barrow/state',undefined,{as:buyer,status:401});
+ const deidentified=await h.api('/api/barrow/accounts/by-id/'+account.id);assert.equal(deidentified.value.lifecycle,'closed');assert.match(deidentified.value.email,/@erased\.invalid$/);
+ const refusedRestore=await restore(destination,saved,{status:400});assert.equal(refusedRestore.error,'erasure_epoch');
+ const erasureTarget=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>erasureTarget.close());await restore(erasureTarget,saved);
+ const replayed=await erasureTarget.api('/api/barrow/orders/'+draft.id);assert.deepEqual(replayed.sellThrough,commercial.sellThrough);
+ const restoredAccount=await erasureTarget.api('/api/barrow/accounts/by-id/'+account.id);assert.equal(restoredAccount.value.lifecycle,'closed');assert.match(restoredAccount.value.email,/@erased\.invalid$/);
+ const archiveAfter=await archive(erasureTarget);assert.equal(JSON.stringify(archiveAfter).includes(csv),false);assert.equal(erasureTarget.mail.deliveries.length,0);
 });
