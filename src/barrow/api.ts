@@ -1,4 +1,4 @@
-import { faireState, faireConfigure, fairePoll, faireMatch } from './faire'
+import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
@@ -162,6 +162,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path!=='/api/barrow/commands')await requireUsageTerms(env,actor,url.searchParams.get('accountId')??undefined)
   if(path==='/api/barrow/faire'&&request.method==='GET')return json(await faireState(env,actor))
   if(path==='/api/barrow/faire/configure'&&request.method==='POST')return json(await faireConfigure(env,actor,await boundedJson(request,20000)))
+  if(path==='/api/barrow/faire/preview'&&request.method==='POST')return json(await fairePreview(env,actor,await boundedJson(request,20000)))
   if(path==='/api/barrow/faire/poll'&&request.method==='POST')return json(await fairePoll(env,actor,await boundedJson(request,20000)))
   if(path==='/api/barrow/faire/match'&&request.method==='POST')return json(await faireMatch(env,actor,await boundedJson(request,200000)))
   if(path.startsWith('/api/barrow/portability/')) {
