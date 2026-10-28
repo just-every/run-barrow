@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "cb54533b3dd80e6a4060f63a9a70b1352a06b895c194fd660dc44f07e159ca89",
+      "sha256": "1067e7be0848941f5f7876c7799ce883d464e8711443e056701d2f49ece06920",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8c4c64fe901ae0f771dea368de229fd8bf7e24bd2706faec45cd9aa0df34b960",
+      "sha256": "a6598ec12171769537acd0455144cfca928c476df4849fd2154320b7caa8e507",
       "executable": false
     },
     "DEMO.md": {
@@ -172,7 +172,7 @@
       "executable": false
     },
     "docs/AGENTS-API.md": {
-      "sha256": "52598698c57152f325fe9129802a7d0b9b14b7722223f041c88db14fcff69e74",
+      "sha256": "e396b610b71b72b53060f98626b413b85a6d9bc4fdbe9c8dc85d607fa3dcceb3",
       "executable": false
     },
     "docs/BACKUP-RESTORE.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "1f486c859c627bf08145cd3ff4ea250c868ca2b1583c6665617304163463b9ef",
+      "sha256": "48b3df408d3afbecbf3a00884849f143ef79d90cb6d5336c55cbcd72bf5e2453",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -868,7 +868,7 @@
       "executable": false
     },
     "scripts/barrow.mjs": {
-      "sha256": "db958689c6ce5e26e6887e55a66203e9b1e47d6bf5ac7acf45b385cb02ca5c14",
+      "sha256": "eb781fa9084b2cdc22046b752a343850c104dffadbc4df6b6dfba6a38f138607",
       "executable": false
     },
     "scripts/build-deployment-spec.mjs": {
@@ -1621,6 +1621,10 @@
     },
     "src/barrow/integration-api.ts": {
       "sha256": "523f4f67565c9fd58350a7a04cb5a140775fba69d8509bd7519944fdb174f682",
+      "executable": false
+    },
+    "src/barrow/integration-exchange.ts": {
+      "sha256": "9ce16d30ea1bd7da6872b8b31ddf4ea8e24f1165143d5e27870983faa4306c25",
       "executable": false
     },
     "src/barrow/integration-grants.ts": {
@@ -4452,7 +4456,7 @@
       "executable": false
     },
     "tests/api/integration-api.test.mjs": {
-      "sha256": "f02ed753e10c7df616ac58b7688d3316ad6c8aec6736056e82f112776b06874c",
+      "sha256": "35179f03d6a2b898ba7cacbc906bc863b075f1b7045b37314edc23c170edd668",
       "executable": false
     },
     "tests/api/line-sheet-fixture.mjs": {

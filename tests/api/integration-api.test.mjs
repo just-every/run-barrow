@@ -107,6 +107,8 @@ test('versioned exchange imports reviewed catalog and companies, pages authorize
  const stage=async(entity,payload,opts=writer)=>{const current=await currentAccount();return h.api(base+'/exchange/prepare',{entity,accountId:'cedar',accountRevision:current.revision,currency:'USD',payload},opts)};
  const apply=async(prepared,opts={})=>h.api(base+'/exchange/apply',{...prepared,confirm:true,reason:'Owner reviewed the exact '+prepared.proposal.entity+' exchange.'},opts);
  const receipts=[];
+ await h.api(base+'/exchange/prepare',{entity:'accounts',accountId:foreign.id,accountRevision:foreign.revision,currency:'USD',payload:{id:foreign.id,revision:foreign.revision,value:foreign.value}},{...writer,status:403});
+ await stage('accounts',{id:foreign.id,revision:foreign.revision,value:foreign.value},{...writer,status:403});
  const scopedEntries={...entries};scopedEntries['xl/worksheets/sheet1.xml']=strToU8(xml.replace(/<row r="3">[\s\S]*?<\/row>/,''));
  const scopedWorkbook={name:'synthetic-barrow-5.xlsx',base64:Buffer.from(zipSync(scopedEntries)).toString('base64')};
  await stage('products',{workbook},{...writer,status:403});
@@ -130,7 +132,9 @@ test('versioned exchange imports reviewed catalog and companies, pages authorize
  assert.notEqual((await currentAccount()).value.territory,'Southeast');receipts.push((await apply(preparedCompany)).receipt);
  assert.equal((await currentAccount()).value.territory,'Southeast');
  const beforeLocations=await read('locations',{});
- const preparedLocation=await stage('locations',{accountId:'cedar',kind:'ship-to',value:{name:'Warehouse counter',line1:'102 Main Street',city:'Columbia',state:'SC',zip:'29201'}});
+ await writeFile(tokenFile,delegated.token,{mode:0o600});await writeFile(inputFile,JSON.stringify({entity:'locations',accountId:'cedar',accountRevision:(await currentAccount()).revision,currency:'USD',payload:{accountId:'cedar',kind:'ship-to',value:{name:'Warehouse counter',line1:'102 Main Street',city:'Columbia',state:'SC',zip:'29201'}}}),{mode:0o600});
+ const preparedLocation=await cli('prepare-exchange-v1',['--input',inputFile]);assert.equal(preparedLocation.requiresPerson,true);
+ await h.api(base+'/exchange/prepare',{entity:'locations',accountId:'cedar',accountRevision:'stale',currency:'USD',payload:preparedLocation.proposal.payload},{...writer,status:409});
  assert.deepEqual(await read('locations',{}),beforeLocations);receipts.push((await apply(preparedLocation)).receipt);
  const added=(await read('locations',{})).data.find(row=>row.value.name==='Warehouse counter');assert.ok(added);
  await apply(preparedLocation,{status:409});assert.equal((await read('locations',{})).data.length,beforeLocations.data.length+1);

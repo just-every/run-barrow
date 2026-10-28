@@ -3,6 +3,7 @@ import { account, accountCommand } from './accounts'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { audit, commit } from './access'
 import { now } from './clock'
+import { effectiveBook } from './currency'
 import { validateAccountValue } from './imports'
 import { buildCatalogMaintenance } from './catalog-maintenance-preview'
 import { applyCatalogMaintenance } from './catalog-maintenance'
@@ -51,7 +52,7 @@ async function prepare(env:Bindings,credential:Actor,p:any) {
   if(value.email!==selected.value.email)fail('ACCOUNT_EMAIL','An integration cannot reassign company identity.',400)
   payload={...payload,value}
  } else if(entity==='products'||entity==='variants') {
-  const allowed=new Set(selected.value.prices.map(row=>row.sku))
+  const allowed=new Set(effectiveBook(selected,await now()).value.prices.map(row=>row.sku))
   const sku=(value:unknown)=>{const result=text(value,'SKU',100);if(!allowed.has(result))fail('FORBIDDEN','Catalog preparation is limited to the account’s existing assortment.',403);return result}
   if(entity==='products') {
    fields(payload,['workbook'])
@@ -59,7 +60,7 @@ async function prepare(env:Bindings,credential:Actor,p:any) {
    for(const row of workbook.rows)sku(row.values.sku)
    const {report}=await buildCatalogMaintenance(env,payload)
    if(!report.canApply)fail('CATALOG_INVALID','Correct the scoped workbook before review; source-owned edits must be made in Pier.',400)
-   // The full native report may name other suppliers' listings; only its opaque basis leaves this door.
+   // The full native report may name other accounts' listings; only its opaque basis leaves this door.
    basis=report.fingerprint
   } else {
    fields(payload,['revision','variants'])
