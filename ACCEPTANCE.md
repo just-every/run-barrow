@@ -2004,6 +2004,7 @@ Agent surface · target · **missing** · From new · Cites BASE-AGENT-005, BASE
 1. An invitation, profile approval, staff grant and territory transfer compute access with the affected people and widening or narrowing direction.
 2. Reading an application EIN or resale identity document adds sensitive with the application record count and data kind; an ordinary assortment read stays standard.
 3. The company-user, rep and finance fixtures preserve their own account/profile scope while an out-of-scope commercial record remains inaccessible.
+4. An invitation or application information request computes external from the outside recipient and the account or application record it exposes.
 
 **Evidence.** None.
 **Gap.** The risk-and-policy MCP action registry, seed fixtures and specialist journey are not delivered.

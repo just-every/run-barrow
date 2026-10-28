@@ -1548,29 +1548,29 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 | Tool | Does | Core clauses | Risk class | Today |
 | --- | --- | --- | --- | --- |
 | `barrow.bar.accounts_and_access` | Accounts and access | BAR-001 | standard | not exposed over MCP |
-| `barrow.bar.orders_and_invoices` | Orders and invoices | BAR-002 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.bar.agent_preparation` | Agent preparation | BAR-003 | standard or commitment (+ external, destructive or access) | not exposed over MCP |
+| `barrow.bar.orders_and_invoices` | Orders and invoices | BAR-002 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.bar.agent_preparation` | Agent preparation | BAR-003 | standard or commitment (+ external) (+ destructive) (+ access) | not exposed over MCP |
 | `barrow.bar.account_move_in` | Account move-in | BAR-004 | standard | not exposed over MCP |
 | `barrow.bar.export_restore_and_erasure` | Export, restore and erasure | BAR-005 | standard or destructive (+ sensitive) | not exposed over MCP |
-| `barrow.acc.trade_applications_and_approval` | Trade applications and approval | ACC-001 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.acc.versioned_portal_usage_terms` | Versioned portal usage terms | ACC-008 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.acc.company_buyers_and_purchasing_rights` | Company buyers and purchasing rights | ACC-002 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.acc.billing_and_delivery_locations` | Billing and delivery locations | ACC-003 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.acc.account_lifecycle_and_commercial_profile` | Account lifecycle and commercial profile | ACC-004 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.acc.supplier_roles_and_separation_of_duties` | Supplier roles and separation of duties | ACC-005 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.acc.rep_territories_and_delegated_coverage` | Rep territories and delegated coverage | ACC-006 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.acc.buyer_purchasing_approvals` | Buyer purchasing approvals | ACC-007 | standard or access (+ sensitive or commitment) | not exposed over MCP |
-| `barrow.cat.private_account_assortments` | Private account assortments | CAT-001 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.product_discovery_and_media` | Product discovery and media | CAT-002 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.digital_line_sheets` | Digital line sheets | CAT-003 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.shoppable_lookbooks_and_presentations` | Shoppable lookbooks and presentations | CAT-004 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.branded_responsive_storefront` | Branded responsive storefront | CAT-005 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.multiple_brands_and_buying_profiles` | Multiple brands and buying profiles | CAT-006 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.style_color_size_and_assortment_matrices` | Style color size and assortment matrices | CAT-007 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.season_and_catalog_publishing` | Season and catalog publishing | CAT-008 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.bulk_product_and_catalog_maintenance` | Bulk product and catalog maintenance | CAT-009 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.bulk_image_upload_and_naming_rules` | Bulk image upload and naming rules | CAT-010 | standard or external (+ money or live) | not exposed over MCP |
-| `barrow.cat.line_sheet_group_sends_and_campaigns` | Line sheet group sends and campaigns | CAT-011 | standard or external (+ money or live) | not exposed over MCP |
+| `barrow.acc.trade_applications_and_approval` | Trade applications and approval | ACC-001 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.acc.versioned_portal_usage_terms` | Versioned portal usage terms | ACC-008 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.acc.company_buyers_and_purchasing_rights` | Company buyers and purchasing rights | ACC-002 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.acc.billing_and_delivery_locations` | Billing and delivery locations | ACC-003 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.acc.account_lifecycle_and_commercial_profile` | Account lifecycle and commercial profile | ACC-004 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.acc.supplier_roles_and_separation_of_duties` | Supplier roles and separation of duties | ACC-005 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.acc.rep_territories_and_delegated_coverage` | Rep territories and delegated coverage | ACC-006 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.acc.buyer_purchasing_approvals` | Buyer purchasing approvals | ACC-007 | standard or access (+ sensitive) (+ commitment) (+ external) | not exposed over MCP |
+| `barrow.cat.private_account_assortments` | Private account assortments | CAT-001 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.product_discovery_and_media` | Product discovery and media | CAT-002 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.digital_line_sheets` | Digital line sheets | CAT-003 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.shoppable_lookbooks_and_presentations` | Shoppable lookbooks and presentations | CAT-004 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.branded_responsive_storefront` | Branded responsive storefront | CAT-005 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.multiple_brands_and_buying_profiles` | Multiple brands and buying profiles | CAT-006 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.style_color_size_and_assortment_matrices` | Style color size and assortment matrices | CAT-007 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.season_and_catalog_publishing` | Season and catalog publishing | CAT-008 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.bulk_product_and_catalog_maintenance` | Bulk product and catalog maintenance | CAT-009 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.bulk_image_upload_and_naming_rules` | Bulk image upload and naming rules | CAT-010 | standard or external (+ money) (+ live) | not exposed over MCP |
+| `barrow.cat.line_sheet_group_sends_and_campaigns` | Line sheet group sends and campaigns | CAT-011 | standard or external (+ money) (+ live) | not exposed over MCP |
 | `barrow.pri.negotiated_usd_price_books` | Negotiated USD price books | PRI-001 | standard or money | not exposed over MCP |
 | `barrow.pri.quantity_breaks_and_account_discounts` | Quantity breaks and account discounts | PRI-002 | standard or money | not exposed over MCP |
 | `barrow.pri.case_packs_minimums_and_increments` | Case packs minimums and increments | PRI-003 | standard or money | not exposed over MCP |
@@ -1579,55 +1579,55 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 | `barrow.pri.effective_prices_and_additional_currencies` | Effective prices and additional currencies | PRI-006 | standard or money | not exposed over MCP |
 | `barrow.pri.explainable_commercial_validation` | Explainable commercial validation | PRI-007 | standard or money | not exposed over MCP |
 | `barrow.pri.suggested_retail_prices_and_price_display` | Suggested retail prices and price display | PRI-008 | standard or money | not exposed over MCP |
-| `barrow.ord.quick_order_and_csv_cart_upload` | Quick order and CSV cart upload | ORD-001 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.saved_shopping_lists` | Saved shopping lists | ORD-002 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.reorder_from_history` | Reorder from history | ORD-003 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.negotiated_wholesale_quotes` | Negotiated wholesale quotes | ORD-004 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.quote_conversation_revisions_and_notes` | Quote conversation revisions and notes | ORD-005 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.self_service_checkout` | Self-service checkout | ORD-006 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.purchase_references_and_requested_dates` | Purchase references and requested dates | ORD-007 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.seasonal_prebooks_and_ship_windows` | Seasonal prebooks and ship windows | ORD-008 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.backorders_and_shipment_splits` | Backorders and shipment splits | ORD-009 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.immutable_agreed_order_snapshots` | Immutable agreed order snapshots | ORD-010 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.order_changes_and_cancellation` | Order changes and cancellation | ORD-011 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.buyer_order_status_and_confirmations` | Buyer order status and confirmations | ORD-012 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.multi_location_orders_and_release_groups` | Multi-location orders and release groups | ORD-013 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.order_confirmation_documents` | Order confirmation documents | ORD-014 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.named_confirmation_export_layouts` | Named confirmation export layouts | ORD-017 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.bulk_order_and_production_exports` | Bulk order and production exports | ORD-018 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.versioned_sales_terms_and_buyer_acceptance` | Versioned sales terms and buyer acceptance | ORD-015 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.ord.canceled_styles_across_open_orders` | Canceled styles across open orders | ORD-016 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.stk.live_customer_visible_availability` | Live customer-visible availability | STK-001 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.stk.available_to_promise_by_warehouse_and_date` | Available to promise by warehouse and date | STK-002 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.stk.durable_order_acknowledgment` | Durable order acknowledgment | STK-003 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.stk.reservation_release_and_stock_exceptions` | Reservation release and stock exceptions | STK-004 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.stk.buyer_approved_substitutions` | Buyer-approved substitutions | STK-005 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.rep.assigned_account_rep_ordering` | Assigned-account rep ordering | REP-001 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.rep.rep_commissions_and_attribution` | Rep commissions and attribution | REP-004 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.rep.visits_samples_and_trade_show_selling` | Visits samples and trade-show selling | REP-005 | standard or commitment (+ money or external) | not exposed over MCP |
-| `barrow.rep.trade_show_prospect_capture` | Trade-show prospect capture | REP-007 | standard or commitment (+ money or external) | not exposed over MCP |
+| `barrow.ord.quick_order_and_csv_cart_upload` | Quick order and CSV cart upload | ORD-001 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.saved_shopping_lists` | Saved shopping lists | ORD-002 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.reorder_from_history` | Reorder from history | ORD-003 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.negotiated_wholesale_quotes` | Negotiated wholesale quotes | ORD-004 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.quote_conversation_revisions_and_notes` | Quote conversation revisions and notes | ORD-005 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.self_service_checkout` | Self-service checkout | ORD-006 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.purchase_references_and_requested_dates` | Purchase references and requested dates | ORD-007 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.seasonal_prebooks_and_ship_windows` | Seasonal prebooks and ship windows | ORD-008 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.backorders_and_shipment_splits` | Backorders and shipment splits | ORD-009 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.immutable_agreed_order_snapshots` | Immutable agreed order snapshots | ORD-010 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.order_changes_and_cancellation` | Order changes and cancellation | ORD-011 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.buyer_order_status_and_confirmations` | Buyer order status and confirmations | ORD-012 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.multi_location_orders_and_release_groups` | Multi-location orders and release groups | ORD-013 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.order_confirmation_documents` | Order confirmation documents | ORD-014 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.named_confirmation_export_layouts` | Named confirmation export layouts | ORD-017 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.bulk_order_and_production_exports` | Bulk order and production exports | ORD-018 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.versioned_sales_terms_and_buyer_acceptance` | Versioned sales terms and buyer acceptance | ORD-015 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.ord.canceled_styles_across_open_orders` | Canceled styles across open orders | ORD-016 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.stk.live_customer_visible_availability` | Live customer-visible availability | STK-001 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.stk.available_to_promise_by_warehouse_and_date` | Available to promise by warehouse and date | STK-002 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.stk.durable_order_acknowledgment` | Durable order acknowledgment | STK-003 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.stk.reservation_release_and_stock_exceptions` | Reservation release and stock exceptions | STK-004 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.stk.buyer_approved_substitutions` | Buyer-approved substitutions | STK-005 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.rep.assigned_account_rep_ordering` | Assigned-account rep ordering | REP-001 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.rep.rep_commissions_and_attribution` | Rep commissions and attribution | REP-004 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.rep.visits_samples_and_trade_show_selling` | Visits samples and trade-show selling | REP-005 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.rep.trade_show_prospect_capture` | Trade-show prospect capture | REP-007 | standard or commitment (+ money) (+ external) | not exposed over MCP |
 | `barrow.mob.buyer_mobile_access_and_accessibility` | Buyer mobile access and accessibility | MOB-001 | standard | not exposed over MCP |
-| `barrow.pay.stripe_card_checkout` | Stripe card checkout | PAY-001 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.stripe_ach_collection` | Stripe ACH collection | PAY-002 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.deposits_partial_payments_and_allocations` | Deposits partial payments and allocations | PAY-003 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.approved_net_terms_and_credit_limits` | Approved net terms and credit limits | PAY-004 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.credit_holds_and_controlled_release` | Credit holds and controlled release | PAY-005 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.b2b_pay_later_through_resolve` | B2B pay later through Resolve | PAY-006 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.customer_account_statements` | Customer account statements | PAY-007 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.invoice_documents_and_delivery` | Invoice documents and delivery | PAY-008 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.receivables_aging_and_collections` | Receivables aging and collections | PAY-009 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.credit_notes_and_refunds` | Credit notes and refunds | PAY-010 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.payment_disputes_and_reconciliation` | Payment disputes and reconciliation | PAY-011 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.pay.saved_payment_methods_and_consent` | Saved payment methods and consent | PAY-012 | standard or money (+ sensitive, gated or destructive) | not exposed over MCP |
-| `barrow.tax.avalara_avatax_calculation` | Avalara AvaTax calculation | TAX-001 | standard or sensitive (+ money or external) | not exposed over MCP |
-| `barrow.tax.taxjar_alternative_tax_adapter` | TaxJar alternative tax adapter | TAX-002 | standard or sensitive (+ money or external) | not exposed over MCP |
-| `barrow.tax.resale_certificates_and_exemption_review` | Resale certificates and exemption review | TAX-003 | standard or sensitive (+ money or external) | not exposed over MCP |
-| `barrow.tax.tax_corrections_and_audit_trail` | Tax corrections and audit trail | TAX-004 | standard or sensitive (+ money or external) | not exposed over MCP |
-| `barrow.ship.delivery_methods_and_shipping_charges` | Delivery methods and shipping charges | SHIP-001 | standard or money (+ external or commitment) | not exposed over MCP |
-| `barrow.ship.easypost_carrier_connection` | EasyPost carrier connection | SHIP-002 | standard or money (+ external or commitment) | not exposed over MCP |
-| `barrow.ship.shipment_tracking_and_delivery_exceptions` | Shipment tracking and delivery exceptions | SHIP-003 | standard or money (+ external or commitment) | not exposed over MCP |
-| `barrow.ship.return_authorizations_and_claims` | Return authorizations and claims | SHIP-004 | standard or money (+ external or commitment) | not exposed over MCP |
-| `barrow.ship.exchanges_and_service_resolution` | Exchanges and service resolution | SHIP-005 | standard or money (+ external or commitment) | not exposed over MCP |
+| `barrow.pay.stripe_card_checkout` | Stripe card checkout | PAY-001 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.stripe_ach_collection` | Stripe ACH collection | PAY-002 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.deposits_partial_payments_and_allocations` | Deposits partial payments and allocations | PAY-003 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.approved_net_terms_and_credit_limits` | Approved net terms and credit limits | PAY-004 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.credit_holds_and_controlled_release` | Credit holds and controlled release | PAY-005 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.b2b_pay_later_through_resolve` | B2B pay later through Resolve | PAY-006 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.customer_account_statements` | Customer account statements | PAY-007 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.invoice_documents_and_delivery` | Invoice documents and delivery | PAY-008 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.receivables_aging_and_collections` | Receivables aging and collections | PAY-009 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.credit_notes_and_refunds` | Credit notes and refunds | PAY-010 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.payment_disputes_and_reconciliation` | Payment disputes and reconciliation | PAY-011 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.pay.saved_payment_methods_and_consent` | Saved payment methods and consent | PAY-012 | standard or money (+ sensitive) (+ gated) (+ destructive) | not exposed over MCP |
+| `barrow.tax.avalara_avatax_calculation` | Avalara AvaTax calculation | TAX-001 | standard or sensitive (+ money) (+ external) | not exposed over MCP |
+| `barrow.tax.taxjar_alternative_tax_adapter` | TaxJar alternative tax adapter | TAX-002 | standard or sensitive (+ money) (+ external) | not exposed over MCP |
+| `barrow.tax.resale_certificates_and_exemption_review` | Resale certificates and exemption review | TAX-003 | standard or sensitive (+ money) (+ external) | not exposed over MCP |
+| `barrow.tax.tax_corrections_and_audit_trail` | Tax corrections and audit trail | TAX-004 | standard or sensitive (+ money) (+ external) | not exposed over MCP |
+| `barrow.ship.delivery_methods_and_shipping_charges` | Delivery methods and shipping charges | SHIP-001 | standard or money (+ external) (+ commitment) | not exposed over MCP |
+| `barrow.ship.easypost_carrier_connection` | EasyPost carrier connection | SHIP-002 | standard or money (+ external) (+ commitment) | not exposed over MCP |
+| `barrow.ship.shipment_tracking_and_delivery_exceptions` | Shipment tracking and delivery exceptions | SHIP-003 | standard or money (+ external) (+ commitment) | not exposed over MCP |
+| `barrow.ship.return_authorizations_and_claims` | Return authorizations and claims | SHIP-004 | standard or money (+ external) (+ commitment) | not exposed over MCP |
+| `barrow.ship.exchanges_and_service_resolution` | Exchanges and service resolution | SHIP-005 | standard or money (+ external) (+ commitment) | not exposed over MCP |
 | `barrow.rpt.account_and_product_sales_reporting` | Account and product sales reporting | RPT-001 | standard | not exposed over MCP |
 | `barrow.rpt.quote_conversion_and_promotion_performance` | Quote conversion and promotion performance | RPT-002 | standard | not exposed over MCP |
 | `barrow.rpt.fulfillment_and_backorder_reporting` | Fulfillment and backorder reporting | RPT-003 | standard | not exposed over MCP |
@@ -1644,19 +1644,19 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 | `barrow.auto.accounting_invoice_and_payment_automation` | Accounting invoice and payment automation | AUTO-006 | standard or external (+ commitment) | not exposed over MCP |
 | `barrow.auto.payment_reminders_and_promises_to_pay` | Payment reminders and promises to pay | AUTO-007 | standard or external (+ commitment) | not exposed over MCP |
 | `barrow.auto.scheduled_synchronization_and_stock_alerts` | Scheduled synchronization and stock alerts | AUTO-008 | standard or external (+ commitment) | not exposed over MCP |
-| `barrow.data.business_data_portability` | Business data portability | DATA-001 | standard (+ sensitive or external) | not exposed over MCP |
-| `barrow.data.commercial_audit_and_decision_history` | Commercial audit and decision history | DATA-002 | standard (+ sensitive or external) | not exposed over MCP |
+| `barrow.data.business_data_portability` | Business data portability | DATA-001 | standard (+ sensitive) (+ external) | not exposed over MCP |
+| `barrow.data.commercial_audit_and_decision_history` | Commercial audit and decision history | DATA-002 | standard (+ sensitive) (+ external) | not exposed over MCP |
 | `barrow.data.retention_erasure_and_provider_custody` | Retention erasure and provider custody | DATA-003 | standard or destructive (+ sensitive) | not exposed over MCP |
 | `barrow.data.connection_and_document_security` | Connection and document security | DATA-004 | standard or security (+ sensitive) | not exposed over MCP |
-| `barrow.ops.actionable_diagnostics_and_recovery` | Actionable diagnostics and recovery | OPS-001 | standard | not exposed over MCP |
-| `barrow.agt.turn_inbound_purchase_orders_into_validated_drafts` | Turn inbound purchase orders into validated drafts | AGT-001 | standard, sensitive, external and commitment | not exposed over MCP |
-| `barrow.agt.resolve_substitution_and_stock_exceptions` | Resolve substitution and stock exceptions | AGT-002 | standard, commitment, money and external | not exposed over MCP |
-| `barrow.agt.prepare_a_credit_hold_resolution` | Prepare a credit-hold resolution | AGT-003 | standard, sensitive, money and commitment | not exposed over MCP |
-| `barrow.agt.explainable_sell_through_reorder_plans` | Explainable sell-through reorder plans | AGT-004 | standard, external and commitment | not exposed over MCP |
-| `barrow.agt.follow_every_order_to_delivery_and_payment` | Follow every order to delivery and payment | AGT-005 | standard, external, commitment and money | not exposed over MCP |
-| `barrow.agt.reconcile_a_wholesale_portal_cutover` | Reconcile a wholesale portal cutover | AGT-006 | standard, commitment, live and destructive | not exposed over MCP |
-| `barrow.agt.plan_accountable_account_follow_up` | Plan accountable account follow-up | AGT-007 | standard and external | not exposed over MCP |
-| `barrow.agt.policy_decided_agent_execution_and_provenance` | Policy-decided agent execution and provenance | AGT-008 | standard, commitment, money, external and access | not exposed over MCP |
+| `barrow.ops.actionable_diagnostics_and_recovery` | Actionable diagnostics and recovery | OPS-001 | standard or external (+ money) (+ commitment) | not exposed over MCP |
+| `barrow.agt.turn_inbound_purchase_orders_into_validated_drafts` | Turn inbound purchase orders into validated drafts | AGT-001 | standard or commitment (+ sensitive) (+ external) | not exposed over MCP |
+| `barrow.agt.resolve_substitution_and_stock_exceptions` | Resolve substitution and stock exceptions | AGT-002 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.agt.prepare_a_credit_hold_resolution` | Prepare a credit-hold resolution | AGT-003 | standard or commitment (+ sensitive) (+ money) | not exposed over MCP |
+| `barrow.agt.explainable_sell_through_reorder_plans` | Explainable sell-through reorder plans | AGT-004 | standard or commitment (+ external) | not exposed over MCP |
+| `barrow.agt.follow_every_order_to_delivery_and_payment` | Follow every order to delivery and payment | AGT-005 | standard or commitment (+ money) (+ external) | not exposed over MCP |
+| `barrow.agt.reconcile_a_wholesale_portal_cutover` | Reconcile a wholesale portal cutover | AGT-006 | standard or commitment (+ live) (+ destructive) (+ external) | not exposed over MCP |
+| `barrow.agt.plan_accountable_account_follow_up` | Plan accountable account follow-up | AGT-007 | standard or external | not exposed over MCP |
+| `barrow.agt.policy_decided_agent_execution_and_provenance` | Policy-decided agent execution and provenance | AGT-008 | standard or commitment (+ money) (+ external) (+ access) | not exposed over MCP |
 
 **Resources.** `barrow://accounts/{id}`, `barrow://applications/{id}`, `barrow://catalogs/{id}`, `barrow://quotes/{id}`, `barrow://orders/{id}`, `barrow://invoices/{id}`, `barrow://credits/{id}`, `barrow://visits/{id}`, `barrow://tasks/{id}`, `barrow://reports/{id}` and `barrow://imports/{id}`.
 
@@ -1690,6 +1690,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company’s policy decides every 
 1. An invitation, profile approval, staff grant and territory transfer compute access with the affected people and widening or narrowing direction.
 2. Reading an application EIN or resale identity document adds sensitive with the application record count and data kind; an ordinary assortment read stays standard.
 3. The company-user, rep and finance fixtures preserve their own account/profile scope while an out-of-scope commercial record remains inaccessible.
+4. An invitation or application information request computes external from the outside recipient and the account or application record it exposes.
 
 #### SURFACE-003 — Catalog exposure and commercial prices
 
