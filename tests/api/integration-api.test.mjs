@@ -109,11 +109,12 @@ test('versioned exchange imports reviewed catalog and companies, pages authorize
  const receipts=[];
  await h.api(base+'/exchange/prepare',{entity:'accounts',accountId:foreign.id,accountRevision:foreign.revision,currency:'USD',payload:{id:foreign.id,revision:foreign.revision,value:foreign.value}},{...writer,status:403});
  await stage('accounts',{id:foreign.id,revision:foreign.revision,value:foreign.value},{...writer,status:403});
- const scopedEntries={...entries};scopedEntries['xl/worksheets/sheet1.xml']=strToU8(xml.replace(/<row r="3">[\s\S]*?<\/row>/,''));
+ const scopedEntries={...entries};scopedEntries['xl/worksheets/sheet1.xml']=strToU8(xml.replace(/<row r="3">[\s\S]*?<\/row>/,'').replace(/<c r="G2"[^>]*>[\s\S]*?<\/c>/,'<c r="G2" t="inlineStr"><is><t>Prepared catalog</t></is></c>'));
  const scopedWorkbook={name:'synthetic-barrow-5.xlsx',base64:Buffer.from(zipSync(scopedEntries)).toString('base64')};
  await stage('products',{workbook},{...writer,status:403});
  let preparedProduct=await stage('products',{workbook:scopedWorkbook});
  const productBefore=await read('products',{});
+ assert.deepEqual(productBefore.data[0].categories,[]);
  await apply(preparedProduct,{...writer,status:403});await apply(preparedProduct,{...buyer,status:403});
  await h.api(base+'/exchange/apply',{...preparedProduct,reason:'No explicit confirmation'},{status:400});
  const altered=structuredClone(preparedProduct);altered.proposal.payload.workbook.name='synthetic-barrow-6.xlsx';
@@ -121,6 +122,7 @@ test('versioned exchange imports reviewed catalog and companies, pages authorize
  const review=await h.api(base+'/exchange/review',preparedProduct);assert.deepEqual(review.proposal,preparedProduct.proposal);
  receipts.push((await apply(preparedProduct)).receipt);
  assert.equal((await read('products',{})).data[0].externalId,'oat-case');
+ assert.deepEqual((await read('products',{})).data[0].categories,['Prepared catalog']);
  await apply(preparedProduct,{status:409});
  const variant=(await read('variants',{})).data[0];
  const preparedVariant=await stage('variants',{revision:variant.attributesRevision,variants:[{sku:'OAT-1',style:'OAT',color:'Harvest',size:'Case'}]});
