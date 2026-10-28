@@ -1,5 +1,6 @@
 import { financialGuard } from './credit-ledger'
 import { orderExceptionSources } from './order-followthrough'
+import { reconcilePaymentPromises } from './payment-promises'
 import { planResponseResolution, type FollowupPlan } from './account-followup'
 import { applicationReviewers } from './application-reviewers'
 import { staffTaskAllowed } from './staff-access'
@@ -14,7 +15,7 @@ import { calendarDate, reportZone } from './report-zone'
 import type { CardPayment } from './card-model'
 
 export type FollowupContact = { outcome: 'failed' | 'reached'; note: string; by: string; at: string }
-export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; resolution?: string; contacts: FollowupContact[]; resolvedBy?: string; resolvedAt?: string; nextActionDraft?: { body: string; reviewedBy: string; reviewedAt: string }; plan?: FollowupPlan }
+export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; escalated?: { since: string; toId: string }; resolution?: string; contacts: FollowupContact[]; resolvedBy?: string; resolvedAt?: string; nextActionDraft?: { body: string; reviewedBy: string; reviewedAt: string }; plan?: FollowupPlan }
 export type FollowupTask = FollowupValue & { revision: string }
 type Stored = { value_json: string; revision: string }
 const parse = (row: Stored): FollowupTask => ({ ...JSON.parse(row.value_json), revision: row.revision })
@@ -58,6 +59,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  authorize(actor)
  const at = (await now()).toISOString()
  if (type === 'followup.refresh') {
+  if(!actor.staff||actor.staff.role==='finance')await reconcilePaymentPromises(env,actor)
   const financial=await financialGuard(env.DB)
   const [sources, existing] = await Promise.all([followupSources(env.DB, new Date(at)), allTasks(env.DB)])
   const orderSources = await orderExceptionSources(env, new Date(at))
@@ -127,6 +129,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
   value.nextActionDraft = { body: text(p.nextActionDraft.body, 'Next-action draft', 2000), reviewedBy: actor.id, reviewedAt: at }
  }
  if (p.close === true) {
+  if(before.kind==='payment-promise')fail('PROMISE_RESOLUTION','Resolve or withdraw the promise through its finance decision door; contact records cannot close it.',409)
   if(before.kind==='credit'&&before.id.startsWith('deposit-allocation:')) {
    const financial=await financialGuard(env.DB),sources=await followupSources(env.DB,await now()),resolution=sources.resolved.get(before.id)
    if(!resolution)fail('DEPOSIT_UNRESOLVED','This deposit requires recorded principal allocations or refund evidence before it can close.',409)

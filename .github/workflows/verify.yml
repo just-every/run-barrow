@@ -83,3 +83,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-currency-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs
+      - name: Buyer promise lifecycle screens
+        if: matrix.shard == 2
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promise-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs

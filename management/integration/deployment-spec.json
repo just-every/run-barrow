@@ -388,6 +388,12 @@
       "name": "0060_deposit_allocations.sql",
       "sha256": "cb92da066340cf8f72c5c0e7eeb49e27baa2d234fe585f49b66881fe47262dc0",
       "sql": "-- Preserve existing immutable allocations while admitting one allocation per linked release.\nCREATE TABLE bw_card_allocations_next(id TEXT PRIMARY KEY,account_id TEXT NOT NULL,order_id TEXT NOT NULL,payment_id TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nINSERT INTO bw_card_allocations_next SELECT * FROM bw_card_allocations;\nDROP TABLE bw_card_allocations;\nALTER TABLE bw_card_allocations_next RENAME TO bw_card_allocations;\nCREATE UNIQUE INDEX bw_card_allocation_destination ON bw_card_allocations(payment_id,order_id);\nCREATE INDEX bw_card_allocation_order ON bw_card_allocations(order_id);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0060_payment_promises.sql",
+      "sha256": "0af5a8913788a329706bc4a6f872013823065fb2f59ee89e48a91f3a83e20b17",
+      "sql": "CREATE TABLE bw_payment_promises (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL UNIQUE,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_payment_promises_account ON bw_payment_promises(account_id);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
