@@ -48,7 +48,12 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  const cells = matrix.getByRole('spinbutton');
  await expect(cells).toHaveCount(40);
  // Enter every quantity with the keyboard, crossing native style buttons with Tab.
- const first = cells.first(); await first.focus();
+ const first = cells.first();
+ const scan = buyer.getByRole('textbox', { name: 'Scan or type SKU', exact: true });
+ await scan.focus(); await buyer.keyboard.type('synthetic-barrow-unknown'); await buyer.keyboard.press('Enter');
+ await expect(scan).toBeFocused(); await expect(scan).toHaveAttribute('aria-invalid', 'true'); assert.ok(await scan.getAttribute('aria-describedby'));
+ await scan.fill(items[0].sku); await scan.press('Enter'); await expect(first).toBeFocused();
+ await first.focus();
  for (let index = 0; index < items.length; index++) {
   await expect(cells.nth(index)).toBeFocused();
   await buyer.keyboard.type(index === 0 ? '7' : '1');
@@ -65,6 +70,7 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  const prepare = buyer.getByRole('button', { name: 'Prepare draft', exact: true });
  await prepare.focus(); await buyer.keyboard.press('Enter'); await expect(summary).toBeFocused();
  await summary.getByRole('link', { name: /ST01-S/ }).focus(); await buyer.keyboard.press('Enter'); await expect(first).toBeFocused();
+ assert.equal(await first.evaluate(element => { const box = element.getBoundingClientRect(); return document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === element; }), true, 'The linked problem is visible above sticky controls');
  await captureWidths(buyer, 'buyer-linked-quantity-error');
  await buyer.getByRole('button', { name: 'Use 6 for ST01-S', exact: true }).focus(); await buyer.keyboard.press('Enter');
  await expect(first).toBeFocused(); await expect(first).toHaveValue('6'); await expect(first).not.toHaveAttribute('aria-invalid', 'true');
@@ -87,7 +93,7 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  // Dates expose a persistent description and a summary link that opens the disclosure.
  await buyer.getByText('Delivery dates & instructions', { exact: true }).press('Enter');
  await buyer.getByLabel('Requested delivery date (Eastern time)', { exact: true }).fill('2098-02-10');
- const cancel = buyer.getByLabel('Cancel if not shipped after (Eastern time)', { exact: true }); await cancel.fill('2098-02-09');
+ const cancel = buyer.getByLabel('Cancel if not shipped after (Eastern time)', { exact: true }); await cancel.fill('2098-02-09'); await expect(cancel).toBeFocused();
  await prepare.press('Enter'); await expect(summary).toBeFocused(); await summary.getByRole('link', { name: /Cancel after date/ }).press('Enter'); await expect(cancel).toBeFocused();
  assert.ok(await cancel.getAttribute('aria-describedby')); await cancel.fill('2098-02-11');
  // An interrupted request did not reach the server: work and keyboard position survive the state refresh.
@@ -108,10 +114,22 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  assert.equal((await h.api('/api/barrow/state', undefined, purchaser)).orders.length, 0);
  await expect(buyer.getByRole('status').filter({ hasText: 'Draft prepared.' })).toHaveCount(0);
  await captureWidths(buyer, 'buyer-draft-transport-recovery'); await clear();
- await prepare.press('Enter');
+ let releasePrepare, arrived;
+ const pending = new Promise(resolve => { arrived = resolve; });
+ const release = new Promise(resolve => { releasePrepare = resolve; }); t.after(() => releasePrepare());
+ await buyer.route('**/api/barrow/commands', async route => {
+  if (route.request().postDataJSON()?.type !== 'order.prepare') return route.continue();
+  arrived(); await release; await route.continue();
+ });
+ await prepare.press('Enter'); await pending;
+ await expect(reference).toHaveValue('synthetic-barrow-keyboard-40');
+ await expect(buyer.getByRole('status').filter({ hasText: 'Draft prepared.' })).toHaveCount(0);
+ assert.equal((await h.api('/api/barrow/state', undefined, purchaser)).orders.length, 0);
+ releasePrepare();
  const purchase = page => page.locator('article.br-order').filter({ hasText: 'Reference: synthetic-barrow-keyboard-40' });
  const result = page => purchase(page).locator('.br-order-explain');
  await expect(result(buyer)).toBeFocused(); await expect(result(buyer)).toContainText('Prepared for review');
+ await buyer.unroute('**/api/barrow/commands');
  const draft = (await h.api('/api/barrow/state', undefined, purchaser)).orders.find(order => order.reference === 'synthetic-barrow-keyboard-40');
  assert.equal(draft.lines.length, 40); assert.equal(draft.totalCents, 45000);
  await captureWidths(buyer, 'buyer-confirmed-forty-line-draft');

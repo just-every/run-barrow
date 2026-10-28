@@ -17,7 +17,7 @@ export function DraftWorkspace({draftId,version,...props}: Props) {
  },[props.account.id,page,version])
  useEffect(()=>{
   let current=true
-  if (!draftId) setSelected(undefined)
+  setSelected(current => current?.id === draftId ? current : undefined)
   if(draftId)void request<Order>(`/api/barrow/orders/${encodeURIComponent(draftId)}`).then(order=>{if(current){if(order.status==='draft' && order.accountId===props.account.id)setSelected(order);else props.onDraft('')}}).catch(cause=>{if(current)setError(errorMessage(cause))})
   return ()=>{current=false}
  },[draftId,props.account.id,version])

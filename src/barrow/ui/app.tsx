@@ -114,7 +114,7 @@ export function BarrowApp() {
       if(type==='account.erase'&&payload.accountId===accountId)setAccountId('')
       try { await reload() } catch (error) {
         setError(`The action completed, but the latest records could not be loaded. Refresh before taking another action. ${errorMessage(error)}`)
-        return true
+        return !['order.prepare', 'order.reorder'].includes(type)
       }
       if (['order.prepare', 'order.submit', 'order.company-approve', 'order.approve', 'order.refresh'].includes(type)) setFocusOrderId(response.result?.order?.id ?? response.result?.id ?? String(payload.orderId ?? ''))
       const messages: Record<string, string> = {
@@ -137,12 +137,19 @@ export function BarrowApp() {
 
   useEffect(() => {
     if (busy || focusOrderId || !returnFocus.current) return
-    const frame = requestAnimationFrame(() => {
-      const target = returnFocus.current
-      if (target?.isConnected && (document.activeElement === document.body || document.activeElement === target)) target.focus()
+    const target = returnFocus.current
+    const restore = () => {
+      if (!target.isConnected || document.activeElement !== document.body && document.activeElement !== target) return true
+      if (target.matches(':disabled')) return false
+      target.focus()
       returnFocus.current = null
-    })
-    return () => cancelAnimationFrame(frame)
+      return true
+    }
+    // Child workspaces can finish their record refresh after the command itself.
+    const observer = new MutationObserver(() => { if (restore()) observer.disconnect() })
+    observer.observe(document.getElementById('main-content')!, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled'] })
+    const frame = requestAnimationFrame(() => { if (restore()) observer.disconnect() })
+    return () => { cancelAnimationFrame(frame); observer.disconnect() }
   }, [busy, focusOrderId, state])
 
   async function signOut() {

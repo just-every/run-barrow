@@ -93,11 +93,14 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   const hint = !catalogue ? '' : !chosen.length ? 'Enter quantities to prepare a draft.' : pricingProblem ? pricingProblem : invalid ? 'Fix the highlighted quantities.' : belowMinimum ? `Add ${money(minimum - total)} to meet the minimum.` : unsettled.length ? 'Settle the price change first.' : ''
   const shown = rows.find(row => row.key === selected) ?? rows.find(row => row.sizes.some(size => quantityOf(quantities[row.cells[size].sku]) > 0)) ?? rows[0]
 
-  const dateProblem = details.requestedDate && details.cancelAfter && details.cancelAfter < details.requestedDate ? 'Choose a date on or after the requested delivery date.' : ''
+  const today = catalogue ? supplierDate(new Date(catalogue.observedAt)) : ''
+  const requestedDateProblem = details.requestedDate && details.requestedDate < today ? 'Choose today or a future delivery date.' : ''
+  const dateProblem = details.cancelAfter && details.cancelAfter < today ? 'Choose today or a future cancel date.' : details.requestedDate && details.cancelAfter && details.cancelAfter < details.requestedDate ? 'Choose a date on or after the requested delivery date.' : ''
   const problems: FieldProblem[] = items.flatMap(item => {
     const message = cellProblem(item, quantities[item.sku])
     return message ? [{ id: quantityId(prefix, item.sku), label: item.sku, message }] : []
   })
+  if (requestedDateProblem) problems.push({ id: `${prefix}-requested`, label: 'Requested delivery date', message: requestedDateProblem })
   if (dateProblem) problems.push({ id: `${prefix}-cancel`, label: 'Cancel after date', message: dateProblem })
   if (validationAttempt) {
     if (!chosen.length && items[0]) problems.push({ id: quantityId(prefix, items[0].sku), label: 'Order quantities', message: 'Enter at least one quantity.' })
@@ -108,7 +111,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   async function prepare(event: FormEvent) {
     event.preventDefault()
     if (!canPurchase || busy || unitOrder || unitDraft) return
-    if (blocked || dateProblem) { setValidationAttempt(value => value + 1); return }
+    if (blocked || requestedDateProblem || dateProblem) { setValidationAttempt(value => value + 1); return }
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
     const prepared = await run('order.prepare', { accountId: account.id, ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
@@ -148,7 +151,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
 
   if(unitDraft && draft) return <UnitDraft key={draft.id} account={account} draft={draft} catalogue={catalogue} loading={loading} error={error || commandError} busy={busy} run={run} onNew={()=>onDraft('')} onPrepared={onPrepared} />
 
-  return <form noValidate className="br-pad" onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
+  return <form noValidate className={`br-pad${problems.length ? ' br-pad-has-errors' : ''}`} onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
     {account.buyingProfile&&<section aria-label="Buying seller and permissions"><h2>{account.buyingProfile.brandName}</h2><p>Seller: {account.buyingProfile.seller.legalName} · {account.buyingProfile.seller.address}</p><p>Profile: {account.buyingProfile.name} · {account.buyingProfile.currency} · {canPurchase?'Purchasing permitted':'Read only'} · Account owner: {account.value.name}</p></section>}
     {inactive && <Notice error>This account is {account.value.lifecycle === 'closed' ? 'closed' : 'on hold'}. Contact the supplier before placing a new order. Existing order history remains available in Orders.</Notice>}
     <div className="br-pad-head">
@@ -180,7 +183,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       {hint && <p className="br-quiet-text">{hint}</p>}
       {corrections.length > 0 && <div className="br-actions">{corrections.map(({ sku, value }) => <button key={`${sku}-${value}`} type="button" className="br-secondary" disabled={busy} onClick={() => { setQuantities(current => ({ ...current, [sku]: value })); cells.current.get(sku)?.focus() }}>Use {value} for {sku}</button>)}</div>}
     </div>
-    <div className="br-pad-status"><ErrorSummary problems={problems} attempt={validationAttempt} /></div>
+    <ErrorSummary className="br-pad-errors" problems={problems} attempt={validationAttempt} />
     {loading && <p role="status" className="br-pad-status br-card">Fetching live stock and agreed prices from Pier…</p>}
     {error && <div className="br-pad-status"><Notice error><strong>Catalog unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p><div><button type="button" className="br-secondary" onClick={() => setRefresh(value => value + 1)} disabled={busy}>Refresh stock</button></div></Notice></div>}
     {catalogue && items.length === 0 && <div className="br-pad-status"><Empty title="No agreed products yet">Your supplier needs to add agreed SKU prices to this trade account before you can order.</Empty></div>}
@@ -194,8 +197,8 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       </section>
       <label className="br-pad-ref">Your purchase order / reference<input value={reference} maxLength={100} onChange={event => setReference(event.target.value)} disabled={busy} placeholder="Purchase order or reference" /></label>
       <details className="br-details"><summary>Delivery dates & instructions</summary>
-        <label>Requested delivery date (Eastern time)<input type="date" value={details.requestedDate} disabled={busy} onChange={event => setDetails(current => ({ ...current, requestedDate: event.target.value }))} /></label>
-        <label>Cancel if not shipped after (Eastern time)<input id={`${prefix}-cancel`} aria-invalid={dateProblem ? true : undefined} aria-describedby={dateProblem ? `${prefix}-cancel-error` : undefined} type="date" value={details.cancelAfter} min={details.requestedDate || undefined} disabled={busy} onChange={event => setDetails(current => ({ ...current, cancelAfter: event.target.value }))} />{dateProblem && <span id={`${prefix}-cancel-error`} className="br-field-error">{dateProblem}</span>}</label>
+        <label>Requested delivery date (Eastern time)<input id={`${prefix}-requested`} aria-invalid={requestedDateProblem ? true : undefined} aria-describedby={requestedDateProblem ? `${prefix}-requested-error` : undefined} type="date" value={details.requestedDate} disabled={busy} onChange={event => setDetails(current => ({ ...current, requestedDate: event.target.value }))} /></label>{requestedDateProblem && <p id={`${prefix}-requested-error`} className="br-field-error">{requestedDateProblem}</p>}
+        <label>Cancel if not shipped after (Eastern time)<input id={`${prefix}-cancel`} aria-invalid={dateProblem ? true : undefined} aria-describedby={dateProblem ? `${prefix}-cancel-error` : undefined} type="date" value={details.cancelAfter} min={details.requestedDate || undefined} disabled={busy} onChange={event => setDetails(current => ({ ...current, cancelAfter: event.target.value }))} /></label>{dateProblem && <p id={`${prefix}-cancel-error`} className="br-field-error">{dateProblem}</p>}
         <label>Instructions for the supplier<textarea value={details.instructions} maxLength={1000} disabled={busy} onChange={event => setDetails(current => ({ ...current, instructions: event.target.value }))} /></label>
       </details>
       <div className="br-pad-foot" role="status" aria-live="polite">

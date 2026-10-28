@@ -62,10 +62,11 @@ export function CartImport({ accountId, profileId, cart, list, onApply, onClose 
     </div>
     </>}
     <ErrorSummary attempt={attempt} problems={[
-      ...(error ? [{ id: `${prefix}-paste`, label: 'Pasted lines', message: error }] : []),
+      ...(error ? [{ id: `${prefix}-${list ? 'retry' : 'paste'}`, label: 'Pasted lines', message: error }] : []),
       ...problems.map(row => ({ id: `${prefix}-row-${row.ref}`, label: `Row ${row.ref}`, message: row.message ?? 'Review this row.' })),
       ...(preview?.lines.filter(line => line.problem).map(line => ({ id: `${prefix}-line-${line.key}`, label: line.sku, message: line.problem! })) ?? []),
     ]} />
+    {error && list && <button id={`${prefix}-retry`} type="button" disabled={busy} aria-describedby={`${prefix}-error`} onClick={() => void run({})}>Retry list preview</button>}
     {error && <p id={`${prefix}-error`} className="br-field-error" role="alert">{error}</p>}
     {preview && <section aria-label="Upload preview" className="br-stack">
       <p role="status">{preview.lines.length} {preview.lines.length === 1 ? 'line' : 'lines'} · {money(preview.totalCents)}{preview.errors ? ` · ${preview.errors} to resolve` : ' · ready'}{preview.totalCents < preview.minimumCents ? ` · below the ${money(preview.minimumCents)} minimum` : ''}</p>
