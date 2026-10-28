@@ -7,6 +7,7 @@ export interface AccountValue { priceRevisions?:import('../imports/validation').
 export interface CurrentRep { name: string; coverage: boolean; through?: string }
 export interface Account { buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot; id: string; value: AccountValue; revision: string }
 export interface Order {
+  woocommerce?:import("../woocommerce").WooReceipt
   prebook?:import("../prebooks").Prebook; prebookRelease?:import("../prebooks").PrebookRelease
   sellThrough?: import("../model").Order["sellThrough"]
   buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot
@@ -32,7 +33,7 @@ export interface BarrowState {
 export interface CatalogueItem { msrpCents?:number;
   sku: string; itemId: string; name: string; unit: string; barcode?: string; available: string; warehouses?: { warehouse: string; available: string; promised: boolean }[]; incoming?: { date: string | null; quantity: string }[]; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
 }
-export interface Catalogue { currency: 'USD'|'CAD'|'EUR'|'GBP'; account: Account; items: CatalogueItem[]; observedAt: string }
+export interface Catalogue { source?:string; incomingNote?:string; currency: 'USD'|'CAD'|'EUR'|'GBP'; account: Account; items: CatalogueItem[]; observedAt: string }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>
 /** Shift the decimal point as text so large exact-cent amounts never lose a cent to division. */
 export const money = (cents: number, currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP' = 'USD') => {

@@ -1,4 +1,5 @@
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
+import { wooCommand, wooWebhook } from './woocommerce'
 import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
 import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
@@ -123,6 +124,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(application)return application
   if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
   if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
+  if(path==='/api/barrow/woocommerce/webhook')return await wooWebhook(request,env)
   if(path==='/api/barrow/card-webhook')return await cardWebhook(request,env)
   const actor=await current(request,env).catch(error=>{
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
@@ -400,6 +402,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['followup.plan','followup.decide','followup.send'].includes(body.type)) result=await accountFollowupCommand(env,actor,body.type,body.payload)
    else if(['followup.refresh','followup.update'].includes(body.type)) result=await followupCommand(env,actor,body.type,body.payload)
+   else if(['woocommerce.connect','woocommerce.revoke'].includes(body.type)) result=await wooCommand(env,actor,body.type,body.payload)
    else if(body.type==='settings.timezone') result=await saveReportZone(env.DB,actor,body.payload)
    else if(body.type==='settings.save') result=await saveFreshness(env.DB,actor,body.payload)
    else if(['cart.preview','cart.form'].includes(body.type)) result=await cartCommand(env,actor,body.type,body.payload)

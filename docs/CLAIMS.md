@@ -91,7 +91,7 @@ Generated from the canonical status rows in [CONTRACT.md](../CONTRACT.md) by `no
 | `INT-003` | Xero accounting | missing |  | Implement xero accounting and prove the stated journey. |
 | `INT-004` | NetSuite ERP | missing |  | Implement netsuite erp and prove the stated journey. |
 | `INT-005` | Shopify commerce connection | missing |  | Implement shopify commerce connection and prove the stated journey. |
-| `INT-006` | WooCommerce commerce connection | missing |  | Implement woocommerce commerce connection and prove the stated journey. |
+| `INT-006` | WooCommerce commerce connection | partial | `tests/api/woocommerce.test.mjs` — “controlled WooCommerce variation, protected prices, durable approval, source fulfillment and refunds survive replay while unsafe authority and stock paths refuse”: real controlled WooCommerce REST variation and customer mapping, protected account prices, human approval, durable lost-acknowledgment retry, explicit shortfalls, source fulfillment and refund references, signed replay, credential revocation and buyer isolation. | Built-page proof, complete inherited reporting and restore proof, and exact-candidate Verify remain to be established. |
 | `INT-007` | Cin7 Core inventory connection | missing |  | Implement cin7 core inventory connection and prove the stated journey. |
 | `INT-008` | Brightpearl inventory connection | missing |  | Implement brightpearl inventory connection and prove the stated journey. |
 | `INT-009` | Katana inventory connection | missing |  | Implement katana inventory connection and prove the stated journey. |

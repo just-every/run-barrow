@@ -1,3 +1,5 @@
+import { wooSelected, wooDestination } from './woocommerce'
+import { wooFulfillment } from './woocommerce-report'
 import { prebookRows } from './prebook-view'
 import { faireFulfillment } from './faire'
 import { requireStaffReport } from './staff-policy'
@@ -11,11 +13,19 @@ import { fulfillmentLines } from './fulfillment-lines'
 /** RPT-003: a read-only report of live source-confirmed facts, with explicit unknowns. */
 export async function fulfillmentReport(env: Bindings, actor: Actor, params: URLSearchParams) {
  requireStaffReport(actor, 'fulfillment', params); requireSupplier(actor)
- const checkedAt = (await now()).toISOString(), timeZone = await reportZone(env.DB), today = calendarDate(new Date(checkedAt), timeZone), origin = await pierOrigin(env)
+ const checkedAt = (await now()).toISOString(), timeZone = await reportZone(env.DB), today = calendarDate(new Date(checkedAt), timeZone)
  const accountId = params.get('accountId') ?? '', warehouse = params.get('warehouse') ?? ''
  const channelLines = actor.staff || warehouse && warehouse !== 'Unknown warehouse' ? [] : await faireFulfillment(env,accountId)
  const records = (await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid DESC").bind(accountId,accountId).all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
  const orders = records.filter(order => order.approvedAt && (!accountId || order.accountId === accountId))
+ if(wooSelected(env)) {
+  const empty={checkedAt,today,timeZone,source:'WooCommerce',channelLines:[],prebooks:[],lines:[] as ReturnType<typeof fulfillmentLines>,lateLines:[] as ReturnType<typeof fulfillmentLines>,exceptions:[] as {orderId:string;reason:string;owner:string}[]}
+  try{await wooDestination(env)}catch{return {...empty,status:'unavailable' as const,note:'WooCommerce did not answer with current authority. Quantities, warehouse, promise dates and delivery are unknown.'}}
+  const current=await wooFulfillment(env,orders,today,timeZone),selected=current.lines.filter(line=>!warehouse||warehouse==='Unknown warehouse'||warehouse==='Unassigned backorder'&&line.unassignedBackorder!=='0')
+  if(actor.staff&&actor.staff.warehouses!=='all'&&(!actor.staff.warehouses.includes('Unknown warehouse')||current.exceptions.length))fail('FORBIDDEN','The source has no confirmed warehouse within this report scope.',403)
+  return {...empty,...current,lines:selected,status:'read' as const,note:'WooCommerce source-confirmed base units only. Warehouse, incoming promises, shipment dates and carrier delivery are unknown; no date-based performance is inferred.'}
+ }
+ const origin=await pierOrigin(env)
  const prebooks=warehouse&&warehouse!=='Unassigned backorder'?[]:orders.flatMap(prebookRows)
  if(actor.staff?.warehouses!=='all'&&actor.staff&&prebooks.length)fail('FORBIDDEN','Seasonal commitments require whole-warehouse fulfillment authority.',403)
  const lines: ReturnType<typeof fulfillmentLines> = [], exceptions: { orderId: string; reason: string; owner: string }[] = []
