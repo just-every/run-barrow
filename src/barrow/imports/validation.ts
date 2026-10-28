@@ -19,6 +19,7 @@ export type AccountValue = {
   channel?: string;
   territory?: string;
   assignedRep?: string;
+  tags?: string[];
   catalogs?: string[];
   warehouses?: string[];
   providerReferences?: Record<string, string>;
@@ -77,7 +78,7 @@ function validBookDate(value:unknown):string {
 export function validateAccountValue(input: unknown): AccountValue {
   if (!input || typeof input !== 'object' || Array.isArray(input)) importError('ACCOUNT_VALUE', 'Supply an account object.');
   const value = input as Record<string, unknown>;
-  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'warehouses', 'currency', 'priceDisplay', 'priceRevisions', 'usdConversion'];
+  const keys = ['name', 'email', 'pierCustomerId', 'termsDays', 'minimumCents', 'prices'], optional = ['city', 'state', 'lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'tags', 'providerReferences', 'warehouses', 'currency', 'priceDisplay', 'priceRevisions', 'usdConversion'];
   if (Object.keys(value).some(key => !keys.includes(key) && !optional.includes(key)) || keys.some(key => !(key in value)))
     importError('ACCOUNT_VALUE', 'Use exactly the documented account fields.');
   const name = boundedText(value.name, 'name');
@@ -112,6 +113,7 @@ export function validateAccountValue(input: unknown): AccountValue {
     if (!['active', 'on-hold', 'closed'].includes(value.lifecycle as string)) importError('ACCOUNT_LIFECYCLE', 'lifecycle must be active, on-hold or closed.');
     profile.lifecycle = value.lifecycle as AccountValue['lifecycle'];
   }
+  if(value.tags!==undefined){if(!Array.isArray(value.tags)||value.tags.length>100)importError('ACCOUNT_TAGS','Supply at most 100 tags.');profile.tags=[...new Set(value.tags.map(item=>boundedText(item,'tag',100)))];}
   if (value.catalogs !== undefined) {
     if (!Array.isArray(value.catalogs) || value.catalogs.length > 100) importError('ACCOUNT_CATALOGS', 'Supply at most 100 catalog identifiers.');
     profile.catalogs = value.catalogs.map(item => boundedText(item, 'catalog', 100));

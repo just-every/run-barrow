@@ -254,11 +254,12 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   withdrawMemberMail(env.DB, member.userId, member.accountId),
   env.DB.prepare(`DELETE FROM bw_import_history WHERE import_id IN (${sourceCustody})`).bind(companyEmail(member.email)),
   env.DB.prepare(`UPDATE bw_platform_imports SET source_json='{}',report_json='{}' WHERE id IN (${sourceCustody})`).bind(companyEmail(member.email)),
+  env.DB.prepare('DELETE FROM bw_campaign_deliveries WHERE recipient_id=?').bind(member.userId),
   env.DB.prepare('DELETE FROM bw_usage_acceptances WHERE user_id=?').bind(member.userId),env.DB.prepare('DELETE FROM bw_profile_approvals WHERE user_id=?').bind(member.userId),
   env.DB.prepare('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?').bind(member.userId, member.userId),
  ]
  // Use snapshot revisions so an order edit racing the review cannot be lost.
- for (const table of ['bw_orders', 'bw_quotes', 'bw_lists']) {
+ for (const table of ['bw_orders', 'bw_quotes', 'bw_lists','bw_campaigns','bw_campaign_segments']) {
   const rows = (await env.DB.prepare(`SELECT id,value_json,revision FROM ${table}`).all<any>()).results
   for (const record of rows) {
    if (table === 'bw_lists' && JSON.parse(record.value_json).createdBy === member.userId && !JSON.parse(record.value_json).shared) continue
