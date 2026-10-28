@@ -37,7 +37,11 @@ export async function cardFinancialEvidence(db:D1Database) {
   db.prepare('SELECT 1 FROM bw_card_connection LIMIT 1').first(),
  ])
  return {
-  financialDates:(orderId:string)=>creditFinancialDates(orderId,financial,refundEvents),
+  financialDates:(orderId:string)=>{
+   const linked=new Set(financial.filter(row=>row.order_id===orderId).map(row=>JSON.parse(row.value_json).paymentId).filter(Boolean))
+   const sources=JSON.parse(payments!.value).filter((row:string[])=>linked.has(row[0])).flatMap((row:string[])=>{const value=JSON.parse(row[3]);return [value.latestFinancialAt,value.capturedAt,...JSON.parse(events!.value).filter((event:string[])=>event[1]===row[0]).map((event:string[])=>event[2])].filter(Boolean)})
+   return [...creditFinancialDates(orderId,financial,refundEvents),...sources]
+  },
   payments:JSON.parse(payments!.value).map(([id,account_id,order_id,value_json,revision]:string[])=>({id,account_id,order_id,value_json,revision})) as CardPaymentRow[],
   events:JSON.parse(events!.value).map(([id,payment_id,created_at,value_json]:string[])=>({id,payment_id,created_at,value_json})) as CardEventRow[],
   custody:!!connection||JSON.parse(payments!.value).length>0,

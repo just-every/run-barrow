@@ -1096,7 +1096,7 @@
       "executable": false
     },
     "src/barrow/account-erasure-financial.ts": {
-      "sha256": "84d30f77a9c4afa2ef757210c5b49f03a2195697a66b910a38098a72cd451b75",
+      "sha256": "08b2a2b330c304af4f0aa262d196dcc0122467ccc86b21fad689c4ce303ee93d",
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
@@ -1288,7 +1288,7 @@
       "executable": false
     },
     "src/barrow/commission-report.ts": {
-      "sha256": "77ee5a19fe5ac196902c52379f7dd2626d3e2e1c83f4119e865e1817dd9a0ed6",
+      "sha256": "71b94d038cfe29c926e319ac0f160eb1197d8335c967c271e7366acbcfaed90f",
       "executable": false
     },
     "src/barrow/commission-rules.ts": {
@@ -1360,15 +1360,15 @@
       "executable": false
     },
     "src/barrow/credit-model.ts": {
-      "sha256": "ee4e929c4fd5dcef87097b794c34e53d05a1808028ddbea9729fa36cbb9a6957",
+      "sha256": "8a08d8ce584ae106656aea863db9b8447b9c418c4402de1d3171da19d2515022",
       "executable": false
     },
     "src/barrow/credit-notes.ts": {
-      "sha256": "db5b04e6e924bb1f6a9b6e03a759a0b852439456c4aa06b749b96b4d7ff85c0e",
+      "sha256": "8668d29af3e4ae0d980264614bc2c0a612d51f4577b7538d980717825d769919",
       "executable": false
     },
     "src/barrow/credit-policy.ts": {
-      "sha256": "ea0d9d0c3c8c6d28469a128b1cd9f2b72821eee16a97dcafbc8addc4dd2450c6",
+      "sha256": "04685778bec11980472b9035e96a8203c2c7e2b7c4f429637ab7fa77b165e411",
       "executable": false
     },
     "src/barrow/credit-refunds.ts": {
@@ -1376,7 +1376,7 @@
       "executable": false
     },
     "src/barrow/credit-retention.ts": {
-      "sha256": "361b3a381ef22344cbca06e2ecdc9c50bf40555540782a79b3d0c73fb855ae7a",
+      "sha256": "b191de0d0997423c11bc1753df0dd653955d404dfa79ba714a419c2c496c18ed",
       "executable": false
     },
     "src/barrow/currency.ts": {
@@ -1404,7 +1404,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "47c5d89feaf7b9be2a83e0da5c8616005f13b4e247a8d4e67f48c859d358616c",
+      "sha256": "42ba68f8578d40aee17541749989941ed21e587ad14b7e5560f50e655b223d74",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -1452,7 +1452,7 @@
       "executable": false
     },
     "src/barrow/finance-report.ts": {
-      "sha256": "b83153e0b6f55bcfc22073874f401c8c6b39e8d827c5092521e7c141b15ca3bc",
+      "sha256": "2eda340c9b3a27ac9bfb0f69b56cd81c79195bf30519e092b2faf52e97660c00",
       "executable": false
     },
     "src/barrow/followup-sources.ts": {
@@ -1832,7 +1832,7 @@
       "executable": false
     },
     "src/barrow/sales-report.ts": {
-      "sha256": "b57947915715b6b20f906c80a96ba86a9ddbeb659586b20d9d6fe81626c2707e",
+      "sha256": "4c30d65b5b889dcb9dbbf275d75872ff45e9a92b46609cad6e6f4b6fc7505e5a",
       "executable": false
     },
     "src/barrow/sales-terms.ts": {
@@ -1872,7 +1872,7 @@
       "executable": false
     },
     "src/barrow/statements.ts": {
-      "sha256": "b02710c64e6edd9bdef4076412af698e0b4125f4d592f3328051740b28aa256b",
+      "sha256": "f83574f169d40bcda1ee4b1b862565e2a63c732ad5fbd024de0b6aad33be3e92",
       "executable": false
     },
     "src/barrow/stock-sync.ts": {
@@ -2036,7 +2036,7 @@
       "executable": false
     },
     "src/barrow/ui/credit-panel.tsx": {
-      "sha256": "f66e36e6e6d64e8ae58cad1f7c11e18d58839e8fc25d5f58539a1fc53cc58aa7",
+      "sha256": "58a05a3b88b0c633e391282ab60ae7d2bf7f4667a606a7c1579756f889f4b50f",
       "executable": false
     },
     "src/barrow/ui/current-rep.tsx": {
@@ -2252,7 +2252,7 @@
       "executable": false
     },
     "src/barrow/ui/statement.tsx": {
-      "sha256": "573552491c695ea7a3c67e6399e99135ff21d099527d99d900ade260b3687d6e",
+      "sha256": "8589b39423e4933e301afb9f7baedd91a068a78682a90bbda42b6264040a1524",
       "executable": false
     },
     "src/barrow/ui/stock-alerts.tsx": {
@@ -4496,7 +4496,7 @@
       "executable": false
     },
     "tests/api/prebook-fixture.mjs": {
-      "sha256": "366d4773a635cef50814715b7b9738e264f28a3d46140e84ad83b3d2815d1167",
+      "sha256": "7dcc23823d2e73bd4d444b4f95b91a8ac7eefbf603776048ade50078786ef05f",
       "executable": false
     },
     "tests/api/pricing.test.mjs": {

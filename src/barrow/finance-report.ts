@@ -48,7 +48,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
   const paidCents = allocations.reduce((sum, row) => sum + row.amountCents, 0), appliedCreditCents = applications.reduce((sum, row) => sum + row.amountCents, 0)
   rows.push({ ...usdReporting(order,order.totalCents), orderId: order.id, accountId: order.accountId, account: order.customerName, assignedRep: profile.assignedRep ?? '', reference: order.reference,
    invoiceNumber: invoice.number, issuedAt: invoice.issuedAt, dueAt: invoice.dueAt, currency, amountCents: order.totalCents, paidCents, appliedCreditCents, outstandingCents: Math.max(0, order.totalCents - paidCents - appliedCreditCents),
-   paymentSources: JSON.stringify(allocations.map(row => ({ allocationId: row.id, paymentId: row.paymentId, amountCents: row.amountCents, path: `/api/barrow/payments/${row.paymentId}` }))),
+   paymentSources: JSON.stringify(allocations.map(row => ({ allocationId: row.id, paymentId: row.paymentId, providerPaymentId:row.providerPaymentId??null, sourceOrderId:row.sourceOrderId??null, amountCents: row.amountCents, path: `/api/barrow/payments/${row.paymentId}` }))),
    creditSources: JSON.stringify(applications.map(row => ({ applicationId: row.id, creditId: row.creditId, amountCents: row.amountCents, path: `/api/barrow/credits/${row.creditId}` }))), overdueDays, bucket: bucketFor(overdueDays),
    invoicePath: `/api/barrow/invoices/${order.id}.csv`, orderPath: `/api/barrow/orders/${order.id}`, statementPath: `/api/barrow/statements/${order.accountId}?to=${asOf}` })
  }

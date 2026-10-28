@@ -30,7 +30,7 @@ const columns: Record<Kind, string[]> = {
  creditnotes:['kind','sourceId','freightCents','freightBasis','taxCents','taxBasis','id','revision','accountId','orderId','orderRevision','currency','amountCents','returnId','createdAt','actorId','reason','path'],
  creditlines:['id','creditId','revision','accountId','orderId','orderRevision','returnId','line','sku','quantity','currency','amountCents','basis','original'],
  creditapplications:['id','revision','creditId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
- cardallocations:['id','revision','paymentId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
+ cardallocations:['sourceOrderId','sourceRevision','orderRevision','windowId','providerPaymentId','providerAccountId','installationId','id','revision','paymentId','accountId','orderId','currency','amountCents','createdAt','actorId','reason'],
  refunds:['id','revision','creditId','accountId','orderId','paymentId','providerPaymentId','providerRefundId','providerAccountId','installationId','livemode','currency','amountCents','status','createdAt','updatedAt','completedAt','latestFinancialAt','actorId','reason','path'],
  refundevents:['id','refundId','refundRevision','creditId','accountId','orderId','paymentId','providerPaymentId','providerRefundId','currency','amountCents','status','type','createdAt','verifiedAt','source'],
  stockwindows:['sku','opensAt','closesAt','revision'],

@@ -24,3 +24,20 @@ export async function prebookFixture(t,{built=false}={}) {
  const day=async value=>h.configure({BARROW_TEST_CLOCK:value});
  return {pier,product,rye,po,h,edge,account,buyer,publication,publish,input,prepare,submit,accept,deposit,day};
 }
+
+export async function releasedDepositFixture(t,options={}) {
+ const f=await prebookFixture(t,options),{h,pier,product,po,account,publication}=f;
+ await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,assignedRep:'Season rep'}});
+ await h.command('commission.settings',{revision:null,rules:[{id:'season-paid',rep:'Season rep',from:'2020-01-01',rateBps:1000,basis:'payment',splits:[{rep:'Season rep',shareBps:6000},{rep:'Partner rep',shareBps:4000}]}],reason:'Finance approved the original payment earning split.'});
+ await f.publish();let commitment=await f.accept(await f.submit(await f.prepare()));const payment=await f.deposit(commitment);
+ await h.command('prebook.close',{id:publication.id,revision:(await h.api('/api/barrow/prebook-seasons')).revision,reason:'Season intake completed before release.'});
+ await f.day('2027-03-12T15:00:00Z');
+ await pier.command('receipt.create',{poId:po.id,supplierReference:'Both promised spring windows arrived',lines:po.lines.map(line=>({poLineId:line.id,locationId:product.location.id,quantity:'12',cost:line.itemId===product.item.id?'20.00':'15.00'}))});
+ const releases=[];
+ for(const windowId of ['first','second']) {
+  const next=await h.command('prebook.release',{orderId:commitment.id,windowId,revision:commitment.revision,reason:'Finance and operations reviewed the received seasonal window.'});commitment=next.order;
+  releases.push(await h.command('order.approve',{orderId:next.releaseId}));
+ }
+ const allocation=(index,amountCents)=>({paymentId:payment.id,orderId:releases[index].id,orderRevision:releases[index].revision,sourceRevision:commitment.revision,amountCents,reason:'Finance reviewed this exact deposit principal for the linked release invoice.'});
+ return {...f,commitment,payment,releases,allocation};
+}

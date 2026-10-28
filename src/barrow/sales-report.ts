@@ -1,3 +1,4 @@
+import { distribute } from './invoice-allocation'
 import { usdReporting } from './currency'
 import { requireStaffReport } from './staff-policy'
 import { creditRecords } from './credit-ledger'
@@ -20,18 +21,6 @@ const day = (value: string | null, name: string) => value === null || /^\d{4}-\d
 const shift = (date: string, days: number) => new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10)
 export const salesColumns = ['orderId', 'prebookOrderId', 'bookingType', 'season', 'windowId', 'line', 'accountId', 'account', 'channel', 'territory', 'rep', 'sku', 'name', 'currency', 'bookedDate', 'status', 'quantity', 'unit', 'bookedCents', 'shippedBaseQuantity', 'shippedCents', 'invoiceNumber', 'invoicedCents', 'paidCents', 'creditedCents', 'appliedCreditCents', 'outstandingCents', 'freightCents', 'invoicedFreightCents','creditedFreightCents', 'paidFreightCents', 'appliedFreightCreditCents', 'outstandingFreightCents', 'paymentSources', 'creditSources', 'creditedSources', 'orderPath', 'invoicePath', 'usdCents', 'usdConversionDate', 'usdConversionSource', 'usdRateNumerator', 'usdRateDenominator'] as const
 type Row = Record<(typeof salesColumns)[number], string | number | null>
-/** Exact invoice allocation; original line order breaks equal-remainder ties, with freight last. */
-function distribute(amountCents: number, weights: number[]): number[] {
- if (!Number.isSafeInteger(amountCents) || amountCents < 0 || weights.some(weight => !Number.isSafeInteger(weight) || weight < 0)) fail('REPORT_ALLOCATION', 'Invoice allocations require nonnegative integer cents.', 409)
- const total = weights.reduce((sum, weight) => sum + BigInt(weight), 0n)
- if (BigInt(amountCents) > total) fail('REPORT_ALLOCATION', 'Recorded allocations exceed the original invoice basis.', 409)
- if (!amountCents) return weights.map(() => 0)
- const shares = weights.map((weight, index) => ({ index, cents: Number(BigInt(amountCents) * BigInt(weight) / total), remainder: BigInt(amountCents) * BigInt(weight) % total }))
- const ranked = [...shares].sort((a, b) => a.remainder === b.remainder ? a.index - b.index : a.remainder > b.remainder ? -1 : 1)
- const extra = amountCents - shares.reduce((sum, share) => sum + share.cents, 0)
- for (let index = 0; index < extra; index++) ranked[index].cents++
- return shares.map(share => share.cents)
-}
 
 export async function salesReport(env: Bindings, actor: Actor, params: URLSearchParams) {
  requirePerson(actor); requireStaffReport(actor, 'sales', params); requireSupplier(actor)
@@ -61,7 +50,7 @@ export async function salesReport(env: Bindings, actor: Actor, params: URLSearch
   const weights = [...order.lines.map(line => order.invoice ? line.lineCents ?? 0 : 0), order.invoice ? order.delivery?.totalCents ?? 0 : 0]
   const paid = distribute(allocations.reduce((sum, row) => sum + row.amountCents, 0), weights)
   const applied = distribute(applications.reduce((sum, row) => sum + row.amountCents, 0), weights.map((weight, index) => weight - paid[index]))
-  const paymentSources = JSON.stringify(allocations.map(row => ({ allocationId: row.id, paymentId: row.paymentId, amountCents: row.amountCents, path: `/api/barrow/payments/${row.paymentId}` })))
+  const paymentSources = JSON.stringify(allocations.map(row => ({ allocationId: row.id, paymentId: row.paymentId, providerPaymentId:row.providerPaymentId??null, sourceOrderId:row.sourceOrderId??null, amountCents: row.amountCents, path: `/api/barrow/payments/${row.paymentId}` })))
   const creditSources = JSON.stringify(applications.map(row => ({ applicationId: row.id, creditId: row.creditId, amountCents: row.amountCents, path: `/api/barrow/credits/${row.creditId}` })))
   order.lines.forEach((line: Line, index) => {
    if (filter.sku && line.sku.toUpperCase() !== filter.sku) return
