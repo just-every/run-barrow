@@ -1,10 +1,9 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
 import {shipmentTrackingFixture,trackedReplacement} from './shipment-tracking-fixture.mjs';
 import {activateStaff,archive,installation,restore} from './harness.mjs';
 import {verifiedRequest,erasurePayload} from './retention-fixture.mjs';
 
-test('two source-dispatched packages retain authenticated delivery, owned disputes and scoped history through replay, revocation and erasure',async t=>{
+export async function proveShipmentTracking(t) {
  const f=await shipmentTrackingFixture(t),{h,pier,buyer,order,bind,view,set,event,refresh}=f;
  const before=await h.api('/api/barrow/orders/'+order.id),confirmations=await h.api(`/api/barrow/orders/${order.id}/confirmations`);
  await h.command('followup.refresh',{});assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(t=>t.id==='tracking-missing:'+f.shipment.id));
@@ -24,7 +23,7 @@ test('two source-dispatched packages retain authenticated delivery, owned disput
  set(2,[event('in_transit','2031-01-15T11:00:00Z','Delayed parcel','delayed')]);await refresh(2);
  current=await view();second=current.packages.find(p=>p.id===second.id);
  await h.command('tracking.dispute',{orderId:order.id,packageId:second.id,revision:second.revision,reason:'Package not received; synthetic-barrow-314 needs supplier review.'},buyer);
- await h.command('followup.refresh',{});await refresh(2);current=await view();let dispute=current.tasks.find(t=>t.id==='dispute:'+second.id);assert.equal(dispute.status,'open');assert.ok(dispute.ownerId&&dispute.nextContactDate);assert.equal(current.tasks.find(t=>t.id==='carrier:'+second.id).status,'open');
+ await h.command('followup.refresh',{});await refresh(2);current=await view();let dispute=current.tasks.find(t=>t.id==='dispute:'+second.id);assert.equal(dispute.status,'open');assert.ok(dispute.ownerId&&dispute.nextContactDate);assert.equal((await h.request(dispute.sourcePath)).status,200);assert.equal(current.tasks.find(t=>t.id==='carrier:'+second.id).status,'open');
  // A delivered package may also be disputed; replay of its earlier carrier receipt must leave that dispute open.
  first=current.packages.find(p=>p.id===first.id);await h.command('tracking.dispute',{orderId:order.id,packageId:first.id,revision:first.revision,reason:'Buyer contests the older delivery scan.'},buyer);set(1,[event('delivered','2031-01-15T10:00:00Z','Carrier confirmed delivery')]);await refresh(1);assert.equal((await view()).tasks.find(t=>t.id==='dispute:'+first.id).status,'open');
  await h.command('followup.update',{id:dispute.id,revision:dispute.revision,contact:{outcome:'reached',note:'Buyer contacted; still missing.'}});assert.equal((await view()).tasks.find(t=>t.id===dispute.id).status,'open');
@@ -49,4 +48,4 @@ test('two source-dispatched packages retain authenticated delivery, owned disput
  await h.configure({BARROW_TEST_CLOCK:'2031-01-15T14:00:00.000Z'});set(1,[event('delivered','2031-01-15T13:00:00Z','Carrier verified delivery after buyer review')]);await refresh(1);assert.equal((await view()).tasks.find(t=>t.id==='dispute:'+first.id).status,'closed');assert.match((await view()).tasks.find(t=>t.id==='dispute:'+first.id).resolution,/2031-01-15T13:00/);
  await verifiedRequest(h,'cedar',false);const preview=await h.command('retention.preview',{accountId:'cedar'});assert.equal(preview.classes.find(c=>c.kind==='carrier tracking').count,3);await h.command('retention.erase-account',erasurePayload(preview));assert.equal((await view()).packages.length,0);const retained=await h.api('/api/barrow/orders/'+order.id);assert.deepEqual([retained.currency,retained.lines,retained.totalCents,retained.invoice],[before.currency,before.lines,before.totalCents,before.invoice]);assert.equal((await h.request(`/api/barrow/orders/${order.id}/tracking`,buyer)).status,401);await bind(1,'4',{status:409});
  const fenced=await installation();t.after(()=>fenced.close());await restore(fenced,older);assert.equal((await fenced.api(`/api/barrow/orders/${order.id}/tracking`)).packages.length,0);
-});
+}

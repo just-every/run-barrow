@@ -374,6 +374,11 @@ These references identify real source doors and formats, not implementation stat
 
 - INT-012 and INT-021 split provenance: ct’s 28 October 2026 17:27Z ruling applies to parent `06f15493e3bb055babacac90dd77435176c6abf1` plus this single split commit. The exact split candidate SHA and its Verify event are supplied in the branch handoff for fresh judgment; the shared historical judgment below is retained for other clauses. No relevant application or test bytes changed in this split.
 
+
+| Clause | External proof still required | Current boundary |
+| --- | --- | --- |
+| SHIP-002; SHIP-003 | Owner-provisioned EasyPost merchant and carrier authorization, sandbox label purchase and void, and live tracker and delivery receipts. The account is not held. | Native SHIP-003 behavior is exercised against the documented authenticated tracker network edge and real pinned Pier dispatches. This establishes no actual carrier delivery and releases no AGT-004, AGT-005 or RPT-006 completion prerequisite. SHIP-002 retains its full carrier-connection acceptance. |
+
 ## Status
 
 Judged from the code and tests at commit `06f15493e3bb055babacac90dd77435176c6abf1` (28 October 2026). The INT-012 and INT-021 split awaits fresh judgment at the exact candidate SHA in its branch handoff. INT-014 candidate evidence is the code and tests in this tree, subject to exact-candidate Verify and guarded landing; its broader scheduled-feed duties remain with INT-020. ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance, shipment and physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged. CAT-010 is a partial implementation with current public-door evidence below; its candidate SHA and run receipts accompany the branch handoff.
@@ -382,8 +387,8 @@ Judged from the code and tests at commit `06f15493e3bb055babacac90dd77435176c6ab
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 64 | 30 | 40 | 134 |
-| All | 70 | 30 | 40 | 140 |
+| Target and push further | 65 | 30 | 39 | 134 |
+| All | 71 | 30 | 39 | 140 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -466,7 +471,7 @@ Judged from the code and tests at commit `06f15493e3bb055babacac90dd77435176c6ab
 | `TAX-004` | Tax corrections and audit trail | target | missing |  | Implement tax corrections and audit trail and prove the stated journey. |
 | `SHIP-001` | Delivery methods and shipping charges | target | done | `src/barrow/shipping.ts`; `src/barrow/shipping-rules.ts`; `src/barrow/ui/shipping-settings.tsx`; `src/barrow/ui/order-shipping.tsx`; `src/barrow/ui/quote-shipping.tsx`; `src/barrow/orders.ts`; `src/barrow/quotes.ts`; `src/barrow/invoice.ts`; `src/barrow/sales-report.ts`; `tests/api/shipping.test.mjs` | |
 | `SHIP-002` | EasyPost carrier connection | target | missing |  | Implement easypost carrier connection and prove the stated journey. |
-| `SHIP-003` | Shipment tracking and delivery exceptions | target | missing |  | Implement shipment tracking and delivery exceptions and prove the stated journey. |
+| `SHIP-003` | Shipment tracking and delivery exceptions | target | done | `tests/api/fulfillment.test.mjs` — “RPT-003: live Pier line fill, dispatch timeliness, open and aging backorders, warehouse evidence and late-line actions stay exact; missing tracking is unknown”, which invokes `tests/api/shipment-tracking-proof.mjs` — `proveShipmentTracking`: real pinned Pier dispatches, exact package caps, authenticated tracker identity, delayed and failed scans, duplicate and older observations, source outages, current account and warehouse authority, agent and revoked-grant refusal, unchanged BAR-002 snapshots, ORD-012 linked timelines, RPT-003 delivery measures, AUTO-005 ownership, STK-005 replacement disclosures, scoped export, attributed human resolution and fenced erasure. `tests/journeys/order-followthrough.test.mjs` — “supplier reviews order-linked inventory and card exceptions, retries one durable acknowledgment and records an attributed exception without closing delivery”, which invokes `tests/journeys/shipment-tracking-proof.mjs` — `proveShipmentTrackingScreens`: native linking, buyer dispute, supplier outage, timeline, fulfillment and replacement disclosure screens at 1440 and 390; Verify shard 2 invokes the journey. `docs/SHIPMENT-TRACKING.md` documents the authenticated tracker boundary. Controlled external tracker evidence proves native behavior; live carrier qualification remains in the Field proof register. | |
 | `SHIP-004` | Return authorizations and claims | target | missing |  | Implement return authorizations and claims and prove the stated journey. |
 | `SHIP-005` | Exchanges and service resolution | target | missing |  | Implement exchanges and service resolution and prove the stated journey. |
 | `INT-001` | Optional Pier inventory connection | target | partial | `src/barrow/pier.ts`; `scripts/connect-pier.mjs`; `tests/api/flows.test.mjs` | Real Pier HTTP catalog and reservations ship; it is currently mandatory for ordering and no alternate inventory adapter ships. |
