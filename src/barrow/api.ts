@@ -1,3 +1,4 @@
+import { paymentPromiseCommand, readPaymentPromises } from './payment-promises'
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
 import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
@@ -145,6 +146,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/payment-promises'&&request.method==='GET')return json(await readPaymentPromises(env,actor,url.searchParams))
   if(path==='/api/barrow/account-credit'&&request.method==='GET')return json(await readAccountCredit(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/credits'&&request.method==='GET')return json(await readCredits(env,actor,url.searchParams.get('orderId')??''))
   const creditPath=/^\/api\/barrow\/credits\/([-a-zA-Z0-9_]+)$/.exec(path),refundPath=/^\/api\/barrow\/refunds\/([-a-zA-Z0-9_]+)$/.exec(path)
@@ -359,6 +361,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
+   if(body.type.startsWith('promise.'))return json({result:await paymentPromiseCommand(env,actor,body.type,body.payload)})
    if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})

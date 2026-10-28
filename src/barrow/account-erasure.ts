@@ -138,6 +138,10 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
  for(const {table,row} of creditHistoryItems(r,accountId)) {
   const floor=orderFloors.get(row.order_id)??null
   add('credit financial history',table+':'+row.id,'keep financial history','Keep original line, currency, source, amount, actor and verified financial times',[],floor)
+  if(table==='bw_payment_promises') {
+   const value=JSON.parse(row.value_json);value.restored=true;delete value.pause;value.history=value.history.map((event:any)=>({...event,reason:'[Erased decision note]',pause:undefined}));
+   statements.push(sql('UPDATE bw_payment_promises SET value_json=?,revision=? WHERE id=?',JSON.stringify(value),op.id,row.id))
+  }
   if(table==='bw_credit_refunds') {
    statements.push(sql("UPDATE bw_credit_refunds SET value_json=json_set(value_json,'$.restored',json('true')),revision=? WHERE id=?",op.id,row.id))
    for(const event of r.bw_refund_events.filter(event=>event.refund_id===row.id))add('credit financial history','refund-event:'+event.id,'keep financial history','Keep the verified refund event and exact financial time',[],floor)
