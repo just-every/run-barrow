@@ -20,7 +20,7 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  await pier.command('po.commit', { poId: po.id, version: po.version });
  await pier.command('receipt.create', { poId: po.id, supplierReference: 'synthetic-barrow-40', lines: po.lines.map(line => ({ poLineId: line.id, locationId: base.location.id, quantity: '100', cost: '10.00' })) });
  const h = await installation({ built: true, https: true, bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
- await h.command('account.save', { id: 'cedar', value: { ...accountValue(base.customer.id, email(40)), minimumCents: 0, prices: items.map((item, index) => ({ sku: item.sku, unitCents: 1000, minQty: index === 0 ? 6 : 1, ...(index === 0 ? { casePack: 6 } : {}) })) } });
+ await h.command('account.save', { id: 'cedar', value: { ...accountValue(base.customer.id, email(40)), minimumCents: 10000, prices: items.map((item, index) => ({ sku: item.sku, unitCents: 1000, minQty: index === 0 ? 6 : 1, ...(index === 0 ? { casePack: 6 } : {}) })) } });
  const admin = { as: await h.signIn(email(40)) };
  async function join(number, name, rights) {
   await h.command('company.invite', { accountId: 'cedar', email: email(number), name, policy: { rights, locations: 'all', perOrderLimitCents: 100, approvalLimitCents: null }, reason: 'Administrator assigned explicit purchasing authority.' }, admin);
@@ -53,7 +53,24 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  await scan.focus(); await buyer.keyboard.type('synthetic-barrow-unknown'); await buyer.keyboard.press('Enter');
  await expect(scan).toBeFocused(); await expect(scan).toHaveAttribute('aria-invalid', 'true'); assert.ok(await scan.getAttribute('aria-describedby'));
  await scan.fill(items[0].sku); await scan.press('Enter'); await expect(first).toBeFocused();
- await first.focus();
+ // Valid case quantities below the account minimum keep a persistent linked error.
+ const minimumSummary = buyer.getByRole('region', { name: 'Review these problems', exact: true });
+ await first.fill('6');
+ await buyer.getByRole('button', { name: 'Prepare draft', exact: true }).press('Enter');
+ await expect(minimumSummary).toBeFocused();
+ await minimumSummary.getByRole('link', { name: /^Order quantities:/ }).press('Enter'); await expect(first).toBeFocused();
+ await expect(first).toHaveAttribute('aria-invalid', 'true');
+ const minimumDescription = await first.getAttribute('aria-describedby'); assert.ok(minimumDescription);
+ const minimumError = buyer.locator(`[id=${JSON.stringify(minimumDescription)}]`);
+ await expect(minimumError).toContainText(/Add USD\s40\.00 to meet the minimum\./);
+ await first.press('Tab'); await expect(minimumError).toBeVisible();
+ await captureWidths(buyer, 'buyer-persistent-minimum-error');
+ await first.fill('12');
+ await expect(first).not.toHaveAttribute('aria-invalid', 'true');
+ await expect(first).not.toHaveAttribute('aria-describedby');
+ await expect(minimumError).toHaveCount(0);
+ await expect(minimumSummary).toHaveCount(0);
+ await first.fill(''); await first.focus();
  for (let index = 0; index < items.length; index++) {
   await expect(cells.nth(index)).toBeFocused();
   await buyer.keyboard.type(index === 0 ? '7' : '1');
@@ -138,6 +155,7 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  assert.equal((await pier.api('/api/pier/state')).orders.length, 0);
  await captureWidths(buyer, 'buyer-awaiting-distinct-approval');
  const reviewer = await pageFor(approver.as); await reviewer.getByRole('button', { name: 'Orders', exact: true }).press('Enter');
+ await reviewer.getByRole('button', { name: /^Company approval / }).press('Enter');
  clear = await interrupt(reviewer, 'order.company-approve');
  const approve = purchase(reviewer).getByRole('button', { name: 'Approve company purchase', exact: true }); await approve.press('Enter');
  await reviewer.getByRole('alert').filter({ hasText: 'request is not confirmed' }).waitFor(); await expect(approve).toBeEnabled(); await expect(approve).toBeFocused();

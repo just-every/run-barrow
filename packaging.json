@@ -59,6 +59,7 @@
         "SETUP_TOKEN"
       ],
       "optionalSecretNames": [
+        "EASYPOST_API_KEY",
         "MAIL_API_KEY",
         "MAIL_WEBHOOK_SECRET",
         "PIER_SESSION",

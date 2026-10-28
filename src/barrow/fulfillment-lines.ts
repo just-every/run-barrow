@@ -41,7 +41,7 @@ export function fulfillmentLines(order: Order, upstream: any, state: any, today:
    promisedDate, agreedDate: order.requestedDate ?? null, promiseChanged: (order.requestedDate ?? null) !== promisedDate,
    promiseHistory: 'Not recorded by Pier',
    dispatchedByDate: promisedDate ? formatMicro(byDate) : null, dispatchedLate: promisedDate ? formatMicro(late) : null,
-   delivery: 'unknown' as const, tracking: 'Not recorded: no connected carrier source', onTimeDelivery: null,
+   trackedQuantity:'0', deliveredQuantity:'0', onTimeDeliveredQuantity:null as string|null, delivery: 'unknown' as string, tracking: 'Not recorded: no connected carrier source', onTimeDelivery: null as boolean|null,
    overdue, ageDays: Math.max(0, Math.floor((Date.parse(today + 'T12:00:00Z') - Date.parse(calendarDate(new Date(order.approvedAt!), timeZone) + 'T12:00:00Z')) / 86400000)),
    warehouses: [...warehouses].sort(([a], [b]) => a.localeCompare(b)).map(([warehouse, value]) => ({ warehouse, allocated: formatMicro(value.allocated), shipped: formatMicro(value.shipped) })),
    unassignedBackorder: formatMicro(backordered), owner: 'Supplier',
