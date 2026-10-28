@@ -2,6 +2,7 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_settings'&&row.key.startsWith('credit-policy:'))return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),releases:[],accountRelease:undefined})};
   if(table==='bw_orders'){const value=JSON.parse(row.value_json);if(value.prebookRelease)return {...row,value_json:JSON.stringify({...value,prebookRelease:{...value.prebookRelease,restored:true}})};if(value.prebook)return {...row,value_json:JSON.stringify({...value,prebook:{...value.prebook,restored:true}})}}
   if(table==='bw_settings'&&row.key==='prebook-seasons')return {...row,value_json:JSON.stringify(JSON.parse(row.value_json).map(value=>({...value,state:'closed'})))}
   if(table==='bw_faire_sync')return {...row,enabled:0,cursor:null,complete:0};
