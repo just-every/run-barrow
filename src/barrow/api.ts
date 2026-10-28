@@ -292,7 +292,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
   if(followthrough && request.method==='GET') return json(await orderFollowthrough(env,actor,followthrough[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
-  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
+  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1]),actor))
   if(path==='/api/barrow/feeds/probe'&&request.method==='POST')return json(await probeSftp(env,actor,await boundedJson(request,10000)))
   if(path==='/api/barrow/cutover/deltas') {
    if(request.method==='GET')return json(await listDeltas(env,actor))

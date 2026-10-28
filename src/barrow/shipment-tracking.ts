@@ -38,7 +38,7 @@ function save(env: Bindings, p: TrackingPackage, before?: string) {
  return before ? env.DB.prepare('UPDATE bw_tracking_packages SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(value),revision,p.id,before) : env.DB.prepare('INSERT INTO bw_tracking_packages VALUES(?,?,?,?,?,?)').bind(p.id,p.orderId,p.accountId,p.trackerId,JSON.stringify(value),revision)
 }
 function task(env: Bindings, p: TrackingPackage, id: string, kind: 'carrier'|'dispute', reason: string, ownerId: string, at: string, date: string) {
- const value = { id, kind:'tracking', accountId:p.accountId, sourceId:p.orderId, sourcePath:`/api/barrow/orders/${p.orderId}/tracking`, title:`${kind==='dispute'?'Buyer delivery dispute':'Carrier exception'} ${p.carrier} ${p.code}`, reason, priority:1, createdAt:at, ownerId, nextContactDate:date, status:'open', contacts:[] }
+ const value = { id, kind:'tracking', accountId:p.accountId, sourceId:p.orderId, sourcePath:`/api/barrow/orders/${p.orderId}/tracking`, warehouses:p.warehouses, title:`${kind==='dispute'?'Buyer delivery dispute':'Carrier exception'} ${p.carrier} ${p.code}`, reason, priority:1, createdAt:at, ownerId, nextContactDate:date, status:'open', contacts:[] }
  return env.DB.prepare('INSERT OR IGNORE INTO bw_followups VALUES(?,?,?,?)').bind(id,p.accountId,JSON.stringify(value),crypto.randomUUID())
 }
 async function reconcileTasks(env: Bindings, p: TrackingPackage, actor: Actor, at: string) {
@@ -46,11 +46,12 @@ async function reconcileTasks(env: Bindings, p: TrackingPackage, actor: Actor, a
  const tasks=(await env.DB.prepare("SELECT value_json,revision FROM bw_followups WHERE id IN (?,?)").bind(`carrier:${p.id}`,`dispute:${p.id}`).all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision}) as FollowupTask)
  for(const before of tasks) {
   // An old delivered observation cannot settle a later buyer dispute.
-  if(before.status==='closed'||!delivered||before.id.startsWith('dispute:')&&delivered.at<=before.createdAt)continue
+  const resolution=before.id.startsWith('dispute:')?p.events.filter(e=>e.status==='delivered'&&e.at>before.createdAt).at(-1):delivered
+  if(before.status==='closed'||!resolution)continue
   const {revision,...value}=before
-  statements.push(env.DB.prepare('UPDATE bw_followups SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...value,status:'closed',resolution:`Authenticated EasyPost delivery ${delivered.id} at ${delivered.at}.`,resolvedAt:at}),crypto.randomUUID(),before.id,revision),changed(env.DB))
+  statements.push(env.DB.prepare('UPDATE bw_followups SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...value,status:'closed',resolution:`Authenticated EasyPost delivery ${resolution.id} at ${resolution.at}.`,resolvedAt:at}),crypto.randomUUID(),before.id,revision),changed(env.DB))
  }
- if(!delivered&&['unknown','pre_transit','failure','error','return_to_sender','cancelled'].includes(status)) statements.push(task(env,p,`carrier:${p.id}`,'carrier',`Carrier reports ${status}; delivery is unverified.`,actor.id,at,date))
+ if(!delivered&&(['unknown','pre_transit','failure','error','return_to_sender','cancelled'].includes(status)||p.events.some(e=>e.detail==='delayed'))) statements.push(task(env,p,`carrier:${p.id}`,'carrier',`Carrier reports ${status}; delivery is unverified.`,actor.id,at,date))
  return statements
 }
 export async function trackingView(env: Bindings, actor: Actor, id: string) {
@@ -61,16 +62,20 @@ export async function trackingView(env: Bindings, actor: Actor, id: string) {
  try {
   if(order.pierOrigin!==await pierOrigin(env))throw new Error()
   const state=await pierState(env)
-  shipments=(state.shipments??[]).filter((s:any)=>s.orderId===order.pierOrderId).map((s:any)=>({id:s.id,reference:s.reference}))
- }catch{available=false}
+  const sourceShipments=(state.shipments??[]).filter((s:any)=>s.orderId===order.pierOrderId)
+  const warehouses=[...new Set<string>(sourceShipments.flatMap((s:any)=>s.lines.flatMap((l:any)=>(l.reservations??[]).map((r:any)=>state.locations?.find((loc:any)=>loc.id===r.locationId)?.warehouse??'Unknown warehouse'))))];warehouseAuthority(actor,warehouses)
+  shipments=sourceShipments.map((s:any)=>({id:s.id,reference:s.reference}))
+ }catch(error){if((error as {status?:number})?.status===403)throw error;available=false}
  const tasks=(await env.DB.prepare("SELECT value_json,revision FROM bw_followups WHERE account_id=? AND json_extract(value_json,'$.kind')='tracking' AND json_extract(value_json,'$.sourceId')=?").bind(order.accountId,id).all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision}) as FollowupTask)
- return {orderId:id,sourceAvailable:available,shipments,canManage:supplier(actor)&&(!actor.staff||['sales-manager','operations'].includes(actor.staff.role)), packages:packages.map(p=>({...p,status:packageStatus(p),deliveredAt:deliveryEvent(p)?.at??null})),tasks:supplier(actor)?tasks:tasks.map(t=>({id:t.id,status:t.status,title:t.title,resolution:t.resolution,owner:'Supplier',reason:t.reason})),note:'Pier confirms dispatch quantities. EasyPost observations confirm carrier status; labels and estimated dates do not confirm delivery. Retained observations are historical when either source is unavailable. Live provider qualification remains behind the carrier connection.'}
+ return {orderId:id,sourceAvailable:available,shipments,canManage:supplier(actor)&&(!actor.staff||['sales-manager','operations'].includes(actor.staff.role)), packages:packages.map(p=>({...p,status:packageStatus(p),deliveredAt:deliveryEvent(p)?.at??null})),tasks:supplier(actor)?tasks:tasks.map(t=>({id:t.id,status:t.status,title:t.title,resolution:t.resolution,owner:'Supplier',reason:t.reason})),note:'Pier confirms dispatch quantities. Carrier observations show the last authenticated status and observation time. Labels and estimated dates do not confirm delivery. Retained observations are historical when either source is unavailable.'}
 }
 export async function trackingCommand(env: Bindings, actor: Actor, type: string, input: any) {
  requirePerson(actor)
  const order=await readOrder(env.DB,actor,text(input.orderId,'Order',160)), at=(await now()).toISOString()
+ const account=await env.DB.prepare('SELECT value_json,revision FROM bw_accounts WHERE id=?').bind(order.accountId).first<{value_json:string;revision:string}>()
+ if(!account||String(JSON.parse(account.value_json).email).endsWith('@erased.invalid'))fail('TRACKING_ERASED','Erased account tracking cannot be recreated.',409)
  if(type!=='tracking.dispute')requireSupplier(actor)
- const admission=await guard(env), packages=await trackingPackages(env.DB,order.id)
+ const admission=[...await guard(env),env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(order.accountId,account!.revision)], packages=await trackingPackages(env.DB,order.id)
  let p:TrackingPackage, before:string|undefined
  if(type==='tracking.bind') {
   const shipmentId=text(input.shipmentId,'Pier shipment',160), trackerId=text(input.trackerId,'Tracker identity',160)
@@ -121,15 +126,31 @@ export async function trackingCommand(env: Bindings, actor: Actor, type: string,
  return trackingView(env,actor,order.id)
 }
 export async function trackingExceptionSources(env: Bindings) {
- const rows=await env.DB.prepare('SELECT value_json,revision FROM bw_tracking_packages').all<{value_json:string;revision:string}>(),candidates:FollowupSource[]=[]
+ const rows=await env.DB.prepare('SELECT value_json,revision FROM bw_tracking_packages').all<{value_json:string;revision:string}>(),candidates:FollowupSource[]=[],resolved=new Map<string,string>()
  // Only dispatched source shipments lacking package coverage create missing-tracking exceptions.
- let state:any;try{state=await pierState(env)}catch{return {candidates}}
+ let state:any;try{state=await pierState(env)}catch{return {candidates,resolved}}
  const orders=(await env.DB.prepare('SELECT value_json FROM bw_orders').all<{value_json:string}>()).results.map(r=>JSON.parse(r.value_json) as Order)
  const origin=await pierOrigin(env)
  for(const order of orders.filter(o=>o.pierOrigin===origin&&o.pierOrderId))for(const shipment of (state.shipments??[]).filter((s:any)=>s.orderId===order.pierOrderId)){
-  const bound=rows.results.map(parse).filter(p=>p.orderId===order.id&&p.shipmentId===shipment.id)
+  const bound=rows.results.map(parse).filter(p=>p.orderId===order.id&&p.shipmentId===shipment.id&&!p.restored&&p.checkedAt)
   const missing=shipment.lines.some((l:any)=>bound.flatMap(p=>p.lines).filter(p=>p.itemId===l.itemId).reduce((n,l)=>n+decimal(l.quantity),0n)<decimal(l.quantity))
-  if(missing)candidates.push({id:`tracking-missing:${shipment.id}`,kind:'tracking',accountId:order.accountId,sourceId:order.id,sourcePath:`/api/barrow/orders/${order.id}/tracking`,title:`Missing tracking ${order.reference||order.id}`,reason:'Pier confirms dispatched quantities without complete package tracking. Delivery remains unknown.',priority:1})
+  const warehouses=[...new Set<string>(shipment.lines.flatMap((l:any)=>(l.reservations??[]).map((r:any)=>state.locations?.find((loc:any)=>loc.id===r.locationId)?.warehouse??'Unknown warehouse')))]
+  if(missing)candidates.push({warehouses,id:`tracking-missing:${shipment.id}`,kind:'tracking',accountId:order.accountId,sourceId:order.id,sourcePath:`/api/barrow/orders/${order.id}/tracking`,title:`Missing tracking ${order.reference||order.id}`,reason:'Pier confirms dispatched quantities without complete package tracking. Delivery remains unknown.',priority:1})
+  else resolved.set(`tracking-missing:${shipment.id}`,'Authenticated trackers cover the source-dispatched quantities. Carrier delivery is a separate fact.')
  }
- return {candidates}
+ return {candidates,resolved}
+}
+
+/** Measures count only packages tied to the currently acknowledged source shipment. */
+export async function trackingMeasures(env: Bindings, order: Order, sku: string, promisedDate: string | null, zone: string, state: any) {
+ const packages=(await trackingPackages(env.DB,order.id)).filter(p=>!p.restored&&p.sourceOrigin===order.pierOrigin&&state.shipments?.some((s:any)=>s.id===p.shipmentId&&s.orderId===order.pierOrderId))
+ let tracked=0n,delivered=0n,onTime=0n
+ for(const p of packages)for(const line of p.lines.filter(l=>l.sku===sku)) {tracked+=decimal(line.quantity);const event=deliveryEvent(p);if(event){delivered+=decimal(line.quantity);if(promisedDate&&calendarDate(new Date(event.at),zone)<=promisedDate)onTime+=decimal(line.quantity)}}
+ return {trackedQuantity:formatMicro(tracked),deliveredQuantity:formatMicro(delivered),onTimeDeliveredQuantity:promisedDate?formatMicro(onTime):null,tracking:packages.length?packages.map(p=>`${p.carrier} ${p.code}: ${packageStatus(p)}`).join('; '):'Not recorded: no connected carrier source',delivery:delivered>0n?'partially verified':'unknown',onTimeDelivery:delivered>0n&&promisedDate?onTime===delivered:null}
+}
+export async function deliveryDisclosure(env: Bindings, order: Order) {
+ const packages=await trackingPackages(env.DB,order.id)
+ let confirmed=false
+ try { const state=await pierState(env);confirmed=order.pierOrigin===await pierOrigin(env)&&Boolean(state.orders?.some((o:any)=>o.id===order.pierOrderId&&o.customerId===order.pierCustomerId)) }catch{ /* Explicit unknown. */ }
+ return { original:packages.map(p=>({carrier:p.carrier,code:p.code,status:confirmed&&!p.restored?packageStatus(p):'unknown',deliveredAt:confirmed&&!p.restored?deliveryEvent(p)?.at??null:null,observedAt:p.checkedAt,estimatedDate:p.estimatedDate})),replacement:'Unknown: no source-confirmed replacement carrier delivery.' }
 }

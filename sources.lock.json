@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "403abd9a4fd50087c6aea0362b2c1bfd7b345b27be9765b72435705cc4fc33cb",
+      "sha256": "e2e17ff408771cf5e0252d82d9bb33d9660d0d33817b6413fe021b6a540dfd4c",
       "executable": false
     },
     ".gitignore": {
@@ -316,7 +316,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "cf4fcc13d5e302f6e05caa7add10ff19dbc6b56ad84920de5c056a20ba80612a",
+      "sha256": "849ec8253c2e5121f0e6a04145388438ea9b26b42feafc1c8f5226b7471efad3",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -571,6 +571,10 @@
       "sha256": "cb92da066340cf8f72c5c0e7eeb49e27baa2d234fe585f49b66881fe47262dc0",
       "executable": false
     },
+    "migrations/core/0061_shipment_tracking.sql": {
+      "sha256": "0016f3a41bf424813a816e0fe635c885ef1afbcdc4b42543c507a311e3628beb",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "afbad85325b7a2d3c051346fc2b41a3c42dfa758ced0d3ea8ca35ad3d638ea42",
       "executable": false
@@ -588,7 +592,7 @@
       "executable": false
     },
     "packaging.json": {
-      "sha256": "42728eb820b950b3c003911e9d63a773cfcf9ebbf9031ddfcff27086baaa97ab",
+      "sha256": "9ce83af3e9db93657e199c9926367ac2f1851945fe61952eaa6286d490131e0f",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -1112,7 +1116,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "ea3530954f9a6ddfa84495d3fd5806288505524ff53dfc6e85d71e82c442de32",
+      "sha256": "b93a75ce48870be6b4be835a74d93fb9a5a5605970dbf73e0c0b4092b173662b",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1140,7 +1144,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "929c183ea2636ad7084978f6ff480de75acf6de26bbce1e10f85457e639c2200",
+      "sha256": "09dae99930dfa0b551709e88405279c4f883a92996f04e59a8764a9bf17c4021",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1420,7 +1424,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "d5e1086bea3af42bed61e7a07766874e51782aa4cdab97662d7a2610dab57399",
+      "sha256": "628bd742de85bcbf5443086939a4063d06817da331132824d47025a17930bf84",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -1472,11 +1476,11 @@
       "executable": false
     },
     "src/barrow/followup-sources.ts": {
-      "sha256": "e0c90988229d83181046e43ec1b5243ac5a1c65716aea1ef037aad6ebd469107",
+      "sha256": "76132f46b791ba94c877ab1ed9652393a1965f91a04f32bf5d6f9d5db74b7f20",
       "executable": false
     },
     "src/barrow/followups.ts": {
-      "sha256": "ef2ebcb482dd274d0b336f4ee72ab63ee6d0ebef188b9a46ed69a0e5c29f4793",
+      "sha256": "d4c93a58a5fe7d3ffe3b4e25615bb45baf3c74a35adc5c70fc8d88e26d05f3e8",
       "executable": false
     },
     "src/barrow/freshness.ts": {
@@ -1484,11 +1488,11 @@
       "executable": false
     },
     "src/barrow/fulfillment-lines.ts": {
-      "sha256": "be7be34bfcfda6af28b5bf6b535b894e0445f0bc90e7ae72b6be79b18a05c010",
+      "sha256": "0522c894ecf71b91403a24a9ae9f6492fa7d7cf0f2f50ef3b99102875106015e",
       "executable": false
     },
     "src/barrow/fulfillment.ts": {
-      "sha256": "cbec5f1bed96f7d9f53474fd1378481f5d6e822c6b563db37510b903349489fd",
+      "sha256": "f74e8b10720c71fc7ce43c643cbf51b4fb8111438a344b88f770c6e26d8296c1",
       "executable": false
     },
     "src/barrow/image-archive.ts": {
@@ -1700,7 +1704,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "220c504096b889ad566f912b7e8e0ce7d2b03b56ff6e065f89bcc79993de137c",
+      "sha256": "8e073c44a47e727cb0987665a6944f3b952f07c88361881a7c12a1d3e0cb6a07",
       "executable": false
     },
     "src/barrow/prebook-view.ts": {
@@ -1875,6 +1879,10 @@
       "sha256": "5a78ca96a6ce5657cff7f147e419115f3ceeb5c01c6d9d3235b4930898db9b29",
       "executable": false
     },
+    "src/barrow/shipment-tracking.ts": {
+      "sha256": "75faf8c884b3f734f26c0594b55f61f48ea9d3aeaf3b2986ff4dcb785a935fbc",
+      "executable": false
+    },
     "src/barrow/shipping-rules.ts": {
       "sha256": "fcaf7f1cbe240064d19bef6b9ad3aebef9002503d005f34bddef1b17952fa0b1",
       "executable": false
@@ -1884,7 +1892,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "ae85c46c808f063c2fd4d35901850990bb0774574334ce1b3ad4f4589a7d0406",
+      "sha256": "05e0fc759228e30575a4f2ca83cd7f97c4fd97acdd7a10b010c8eb4bc6ebe611",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -1912,15 +1920,19 @@
       "executable": false
     },
     "src/barrow/substitution-preview.ts": {
-      "sha256": "223d3400c9b4134017b6e62ca41b8a9e4d5de84baafe8538312e8aee3d737083",
+      "sha256": "78beee6b50f7f00f285c8b8af0d026ea9224435d098c6747f87d88b27915d31b",
       "executable": false
     },
     "src/barrow/substitutions.ts": {
-      "sha256": "3259072967831590dcaa6ed5550b3c51c63cc6957916b939bb6a6bd3ebbd47df",
+      "sha256": "e41c836e2139e2d7ce1427d10880b61bcdf4e24f9be8f77a3708aa68a4a7ab7c",
       "executable": false
     },
     "src/barrow/timeline.ts": {
-      "sha256": "a26c1c2438cc634dd4c824aa01f207c61c5e5de4a4ade9b2b0654ae905e59539",
+      "sha256": "9c3c830f96ca1d116e742d1790ebd258af926268581c17f27d4fed1b83b92919",
+      "executable": false
+    },
+    "src/barrow/tracker-edge.ts": {
+      "sha256": "b994bcca54f85fc417f41166e0693db206ddfb9c9076e75bc78784de07262a22",
       "executable": false
     },
     "src/barrow/ui/account-credit.tsx": {
@@ -2132,7 +2144,7 @@
       "executable": false
     },
     "src/barrow/ui/fulfillment.tsx": {
-      "sha256": "be8af59e474052500005d0e476c7345e9376630bba253e17140c63f13455d515",
+      "sha256": "a7f547146fa3b569eb0b0120fb3079fa71362f85aa1df3a896f9481954461319",
       "executable": false
     },
     "src/barrow/ui/import-journal.tsx": {
@@ -2180,7 +2192,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "58e06d7d78e381b6b534bcd98cb9193218acea16caea1a22be13449c0d0cc609",
+      "sha256": "cbbb416aff174929c90605c279dca6f980776a00dad4ba23a69f9bf221780ac5",
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {

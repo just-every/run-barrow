@@ -36,9 +36,9 @@ const installationOwner=async(env:Bindings)=>(await env.DB.prepare("SELECT id FR
 const allTasks = async (db: D1Database) => (await db.prepare('SELECT value_json,revision FROM bw_followups ORDER BY id').all<Stored>()).results.map(parse)
 const notes = {
  scope: 'Your role and current account access determine which follow-ups you can read, assign and resolve. Refresh reconciles current wholesale records; recorded quote email failures create owned tasks automatically.',
- sources: 'Verified card payment exceptions, quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days. Missing sources or unknown ages do not prove resolution.',
+ sources: 'Verified card payment exceptions, quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days, plus source-linked missing tracking and carrier exceptions. Missing sources or unknown ages do not prove resolution.',
  contact: 'Contact attempts are manually recorded and do not send outreach; quote email delivery is recorded separately. Failed contact leaves work open unless a person explicitly records a separate resolution.',
- exceptions: 'Verified card payment exceptions remain assigned until a recorded provider resolution. Inventory acknowledgment and source-confirmed shortfall tasks are reconciled on refresh; carrier delivery and other payment exceptions are not recorded.',
+ exceptions: 'Verified card payment exceptions remain assigned until a recorded provider resolution. Inventory acknowledgment and source-confirmed shortfall tasks are reconciled on refresh; tracking exceptions and buyer disputes retain their own source-linked tasks; labels and contact attempts never establish carrier delivery. Other payment exceptions remain unknown.',
 }
 export async function readFollowups(env: Bindings, actor: Actor, params: URLSearchParams) {
  authorize(actor)
@@ -61,7 +61,9 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  if (type === 'followup.refresh') {
   const financial=await financialGuard(env.DB)
   const [sources, existing] = await Promise.all([followupSources(env.DB, new Date(at)), allTasks(env.DB)])
-  sources.candidates.push(...(await trackingExceptionSources(env)).candidates)
+  const trackingSources=await trackingExceptionSources(env)
+  sources.candidates.push(...trackingSources.candidates)
+  for(const [id,resolution] of trackingSources.resolved)sources.resolved.set(id,resolution)
   const orderSources = await orderExceptionSources(env, new Date(at))
   sources.candidates.push(...orderSources.candidates)
   for (const [id, resolution] of orderSources.resolved) sources.resolved.set(id, resolution)
@@ -71,7 +73,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
    if(!staffTaskAllowed(actor,source))continue
    const existingTask = known.get(source.id)
    if (existingTask) {
-    if (existingTask.status === 'open' && (Object.keys(source) as (keyof FollowupSource)[]).some(key => existingTask[key] !== source[key])) {
+    if (existingTask.status === 'open' && (Object.keys(source) as (keyof FollowupSource)[]).some(key => JSON.stringify(existingTask[key]) !== JSON.stringify(source[key]))) {
      const { revision: previous, ...value } = existingTask
      statements.push(updateStatement(env.DB, existingTask, { ...value, ...source }, crypto.randomUUID()), changed(env.DB))
      updated.push(source.id)
