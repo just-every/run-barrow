@@ -21,6 +21,10 @@ const missingEntities = ['accounts', 'buyers', 'locations', 'prices', 'lists', '
 /** Only reads D1 and Pier; there is deliberately no preview persistence or refresh operation. */
 export async function prepareCatalogMaintenance(env: Bindings, actor: Actor, input: CatalogInput) {
  requireCatalogOwner(actor)
+ return buildCatalogMaintenance(env,input)
+}
+/** Read-only preparation shared with the scoped API; activation still requires a person. */
+export async function buildCatalogMaintenance(env: Bindings, input: CatalogInput) {
  const sourceRoute = catalogSourceRoute(env)
  const [workbook, context, source] = await Promise.all([catalogWorkbook(input?.workbook), catalogContext(env.DB), catalogSource(env)])
  const issues: CatalogIssue[] = []
