@@ -29,3 +29,5 @@ To select a season, enter its exact published line-sheet season and choose **Loa
 PRI-008 records optional variant MSRP and separate confirmation-PDF/order-CSV price display preferences with the prepared order. Each confirmation freezes them. Wholesale-only omits MSRP and margin; retail-only omits wholesale unit/line price columns; both includes exact MSRP and gross margin. Every order total remains wholesale. See [line sheets and retail prices](LINE-SHEETS.md).
 
 For orders with recorded PRI-008 display preferences, monetary CSV exports retain an explicit ISO `currency` column even when a named layout omits it. This also applies to bulk price handoffs; chosen metadata columns keep their order.
+
+Contract capabilities: ORD-014 confirmation documents; ORD-017 named layouts; ORD-018 bulk production exports.

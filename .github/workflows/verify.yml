@@ -30,7 +30,7 @@ jobs:
       - name: Use the official Ubuntu archive for browser dependencies
         run: echo "https://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
       - run: pnpm exec playwright install --with-deps chromium
-      - run: node scripts/contract-docs.mjs check
+      - run: node src/base/contract-docs.mjs check
       - run: pnpm exec rer check --profile first-party
       - run: pnpm exec rer verify --no-queue
       - name: Credit notes, limits and finance allowance screens

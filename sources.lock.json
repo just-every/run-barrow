@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "687f615d80521fa9a0264526ef75a8b7e3fe02d82153f40c5f761f170343a4f2",
+      "sha256": "bcd1cb2dbf1ee6f6d63cec7507d3afab0d7845607feb0d620e4dbe937b193d89",
       "executable": false
     },
     ".gitignore": {
@@ -120,11 +120,11 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "c66cb74c324d91f01aca3f4fddecee805e4030a7ca5aa78739655c71b713744b",
+      "sha256": "b6d9dfdd6092abfe20884c59e8e9c457cd71e6ca327b0daa4f3a39315712c30d",
       "executable": false
     },
     "AGENTS.md": {
-      "sha256": "13685c56531810c3d271c22c82243e8370e74d04138126f24f452b0b07f0b7c2",
+      "sha256": "961bf68e9ec6cbc785add43db3e3daa535176ffc727f6f69d09e4edac81607b5",
       "executable": false
     },
     "base-copies.json": {
@@ -132,7 +132,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "35e7b4253641f99a0d4f9180d103aaf4fb09847d0bbb74b37e5bd466106483d4",
+      "sha256": "5074d4111d085b819e682f0d62c6f16a40bd49459508b9d04afc70f791042d3b",
       "executable": false
     },
     "CLAUDE.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "0cd21ab06232e1cae89809d7a761841e6bf888c75c91981194608f89397d0df4",
+      "sha256": "966f4578dd1fcf02e42852d913313bdc7b86753e5f53fc29faeb28464e9f4854",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "5dc46932b1cc4940130144f810ffc49bfaff3fb551c78dd0768e40f6fe5de555",
+      "sha256": "731ec554377866fae63eb85c0c05b30fb53630a8a33bb38c76037c74f5483575",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -196,11 +196,11 @@
       "executable": false
     },
     "docs/contract/COVERAGE.json": {
-      "sha256": "3f544f46d4290ca02507b1812e6e75cb721de25a624c22f83b3ad1a4c3c5d7cb",
+      "sha256": "45d47a60a518c143bb1435d981f29d11199aa758e03491af7382d2a9ce3f82a0",
       "executable": false
     },
     "docs/contract/ID-MAP.json": {
-      "sha256": "70a774e368cb427c364ac64326bc2ebfbac8b0cd2b0657e94729436c134613dd",
+      "sha256": "18a9d6119e69fc8933393a8f567bee281feb48f523d9c2327e87febf159af4f7",
       "executable": false
     },
     "docs/CUTOVER-DELTA.md": {
@@ -232,7 +232,7 @@
       "executable": false
     },
     "docs/ORDER-CONFIRMATIONS.md": {
-      "sha256": "c4c53a43b3f5f80b0cbd1a492dc58f2b100d9d2ed092842e012ed7edc05ef49e",
+      "sha256": "f5fd9916af59d70c96827f299685d9fc1f28315132634a7ec5e1922eb3ec7370",
       "executable": false
     },
     "docs/ORDER-HISTORY.md": {
@@ -240,7 +240,7 @@
       "executable": false
     },
     "docs/ORDER-SEARCH.md": {
-      "sha256": "5672476c25d21eb455e898333adbcf96680a000f61b99198efde7241bf5284ab",
+      "sha256": "721579bf24c950836a18c7a2edc4ccc1b47ad40ab84cd56e1dea045d5534adde",
       "executable": false
     },
     "docs/ORDERS.md": {
@@ -268,7 +268,7 @@
       "executable": false
     },
     "docs/SCHEDULED-REPORTS.md": {
-      "sha256": "6a874d5b1c3ab8e3c5acd4a7ab4c009c0cd69970da8b3ed7e4e901ac16b65d3a",
+      "sha256": "8917327a3be1d6c59b7b748a2a2a527857bc705cac0e9a831bda0c0ed8c5ab27",
       "executable": false
     },
     "docs/SELL-THROUGH.md": {
@@ -884,7 +884,7 @@
       "executable": false
     },
     "scripts/contract-docs.mjs": {
-      "sha256": "05895826d62442530462b67dd5e5c67dd9a19d0426684fc50abb09b6bb0bf8f9",
+      "sha256": "bab31a7aa69075efeeb1344dcf27d9796000bf4f260b6e35b120238e64eedd1b",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -4368,7 +4368,7 @@
       "executable": false
     },
     "tests/api/confirmations.test.mjs": {
-      "sha256": "5839c049851785209ffbc7e2c0a86d2dfb49193473929cd056de6f8fd56b45dc",
+      "sha256": "c62624a82ba1c7850a5145fa49d1fe7968fe42b57715088a8ef6fead54357a4b",
       "executable": false
     },
     "tests/api/credit-fixture.mjs": {

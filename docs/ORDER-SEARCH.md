@@ -97,3 +97,5 @@ page before moving to the next, then save. The existing save transaction recheck
 every matching revision across the complete directory; incomplete or stale review
 refuses, without merging or reassigning identities. This is review of possible
 duplicates, not a new rule for account ownership.
+
+RPT-006 governs order search; RPT-008 governs independent account pages and duplicate review.

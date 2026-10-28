@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "seed": "barrow-product",
+  "seed": "barrow",
   "old": {
     "commit": "fd1bad06ddb75578bf98c9c45991587b43f51b20",
     "files": [
@@ -79,10 +79,64 @@
     {
       "file": "CONTRACT.md",
       "line": 27,
-      "text": "**BAR-001 \u2014 Accounts and access.** Every product HTTP handler authenticates the current native session or a revocable agent grant. Supplier actions require owner/admin; current customer access is bound to the exact account email. Browser mutations enforce the installation origin and writes recheck current SQL authority. An email edit cannot transfer an existing account or its orders. Company and rep permissions added below must retain this server-side isolation. **Acceptance evidence:** Using the native sign-in and HTTP commands, read as two different buyers, attempt foreign account reads, cross-origin writes and supplier actions as a buyer, then revoke an agent grant. Unauthorized requests return no commercial data and perform no mutation.",
+      "text": "**BAR-001 \u2014 Accounts and access.**",
       "to": "clause",
       "ids": [
         "BAR-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 27,
+      "text": "Every product HTTP handler authenticates the current native session or a revocable agent grant.",
+      "to": "base",
+      "ids": [
+        "BASE-ACCESS-002"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 27,
+      "text": "Supplier actions require owner/admin; current customer access is bound to the exact account email.",
+      "to": "clause",
+      "ids": [
+        "BAR-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 27,
+      "text": "Browser mutations enforce the installation origin and writes recheck current SQL authority.",
+      "to": "base",
+      "ids": [
+        "BASE-ACCESS-004"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 27,
+      "text": "An email edit cannot transfer an existing account or its orders. Company and rep permissions added below must retain this server-side isolation. **Acceptance evidence:** Using the native sign-in and HTTP commands, read as two different buyers, attempt foreign account reads, cross-origin writes and supplier actions as a buyer, then revoke an agent grant. Unauthorized requests return no commercial data and perform no mutation.",
+      "to": "clause",
+      "ids": [
+        "BAR-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -92,6 +146,12 @@
       "to": "clause",
       "ids": [
         "BAR-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -101,6 +161,12 @@
       "to": "clause",
       "ids": [
         "BAR-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -110,6 +176,12 @@
       "to": "clause",
       "ids": [
         "BAR-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -119,6 +191,12 @@
       "to": "clause",
       "ids": [
         "BAR-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -128,6 +206,12 @@
       "to": "clause",
       "ids": [
         "BAR-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -136,16 +220,53 @@
       "text": "**ACC-001 \u2014 Trade applications and approval.** A prospective US stockist submits company name, EIN or business identifier where needed, contact, resale documents, requested locations and expected volume. Staff review duplicates and approve, request information or decline with a reason before private prices or terms become accessible. Invitations and application status are visible to both parties. On first sign-in, and again when the merchant publishes a new version, a buyer accepts the current portal usage terms, recorded with version, person and time; ORD-015 governs the separate sales terms on orders. Exact semantics (ct 22 October 2026): the public `/apply` form takes company legal name, optional DBA, EIN (9-digit format check, \"not verified with the IRS\"; or an explicit no-EIN sole-proprietor choice), contact name/email/phone, requested locations (ACC-003 records and labels), expected annual USD volume and up to five application documents (PDF/PNG/JPEG by bytes, \u22641 MB each, SHA-256), behind CRM-005-style spam checks (honeypot, signed 3 s/24 h form token, 5 per IP-digest per hour, Turnstile only with owner keys) and a required consent line; rejected submissions store nothing. The application stays unverified and invisible to staff until a one-use 10-minute hashed email code (5 attempts, resend invalidates) is entered; unverified submissions are deleted after 24 hours. Verification creates no member, account or price access, only a 24-hour HttpOnly session bound to that application, renewed by a fresh code. Supplier owner/admin and ACC-005 entitled functional reviewers review ACC-004-normalized name, exact EIN and email duplicates against accounts and open applications, bind the reviewed IDs and revisions, never merge, and request information (one upload), approve (native account, ACC-003 locations, invitation requested to the verified email) or decline with a reason; the applicant may withdraw. Applicant and staff see the same state, dates, requests, reasons and documents; internal notes stay staff-only. Application documents require a configured scanner under ct 22 October 15:46Z; without one bounded static uploads and existing documents remain quarantined with no download. Once screening exists, authorized downloads belong only to supplier owner/admin, ACC-005 entitled functional reviewers and the application's own session, as attachments with nosniff; agents are refused. Existing metadata remains labelled not validated (TAX-003) and not malware-screened (DATA-004). Portal usage terms are immutable numbered versions; once one exists every buyer person accepts the newest at first sign-in and after each publish (user, version, SHA-256, time) before any buyer commercial door answers (`USAGE_TERMS_REQUIRED`); agents never accept. Application records join DATA-003 as the \"application records\" kind (owner-reviewed, never silent deletion; approved applications follow account erasure and the seven-year floor), DATA-001 (`applications`, `applicationdocuments`) and DATA-002; mail uses AUTO-003's sender and labels, development is never sent. REP-007 prospects enter this queue and TAX-003 reviews its certificates before they ship. **Acceptance evidence:** Apply from the public trade form, request a missing certificate, approve and sign in, accepting the portal usage terms. The new buyer sees only its approved assortment; a declined or pending applicant cannot see prices, and publishing new usage terms requires acceptance at the next sign-in.",
       "to": "clause",
       "ids": [
-        "ACC-001"
+        "ACC-001",
+        "ACC-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
       "file": "CONTRACT.md",
       "line": 45,
-      "text": "**ACC-002 \u2014 Company buyers and purchasing rights.** Each company has a company administrator who manages contacts and locations, purchasers who build carts, purchasing approvers who release allowed orders and finance viewers who read invoices/statements. Rights and spend limits are explicit per user and location. Company administrators cannot grant supplier powers or access another company. Before it ships, any import this clause adds or feeds reports its entities in MOVE-007\u2019s dry-run reconciliation (source against planned counts and sums by currency, rejected fields, missing entities) and records the approved fingerprint. Before it ships, this clause routes ORD-005\u2019s buyer-side quote notices and thread to the company users with purchasing rights for the account. Before it ships, this clause inherits ORD-002's list sharing: a shared list is seen and edited by the company users who hold purchasing rights for that account, a private list only by its creator, and another company's lists read as not found. Before shipping, the approved ACC-001 account\u2019s first buyer becomes its company administrator. Exact semantics (ct 22 October 2026): a company user is a natively signed-in Base member with one Barrow membership (account, user, rights, locations, limits, state, revision) in at most one trade account; supplier people and agents are never company users. Rights are company administrator, purchaser, purchasing approver and finance viewer (purchasing rights = purchaser or approver), each scoped to all or listed ACC-003 locations, with USD-cent per-order and approval limits per user and optional per-location overrides. Each account's existing account-email buyer migrates to its first company administrator with every right and location and no limit. An order within the purchaser's limit submits; above it waits for an active approver for that location with sufficient limit who is not the preparer; release rechecks rights, limits, price and stock and records both people; agents never approve. Invitations are single-use, 7-day, exact-email bound; an email already in another company or on supplier staff is never joined, the company administrator always sees \"invitation requested\" and supplier owner/admin review the collision. Company administrators manage only their company's users, contacts and locations, cannot grant supplier powers or agent grants or remove the last administrator; another company reads as not found; finance ordering is 403. Rights apply per request and every change is a DATA-002 event. ORD-005 buyer-side notices and AUTO-003 buyer recipients become the active users with purchasing rights, rechecked at dispatch; ORD-002 sharing follows purchasing rights. DATA-003 erasure of one company user leaves a former-user placeholder with opaque attribution and removes sessions and private lists. ACC-002 adds no import; MOVE-009 brings NuORDER buyers into MOVE-007's reconciliation before it ships. **Acceptance evidence:** Invite four company users, build a cart as a limited purchaser, approve it as the authorized approver, read its statement as finance and refuse finance ordering and cross-company administration. Before shipping, route AUTO-003 emails and expiry reminders to the company purchasers with current rights, retaining exact recipient identity/revocation and private internal notes.",
+      "text": "**ACC-002 \u2014 Company buyers and purchasing rights.** Each company has a company administrator who manages contacts and locations, purchasers who build carts, purchasing approvers who release allowed orders and finance viewers who read invoices/statements. Rights and spend limits are explicit per user and location.",
       "to": "clause",
       "ids": [
         "ACC-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 45,
+      "text": "Company administrators cannot grant supplier powers or access another company.",
+      "to": "base",
+      "ids": [
+        "BASE-ROLE-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 45,
+      "text": "Before it ships, any import this clause adds or feeds reports its entities in MOVE-007\u2019s dry-run reconciliation (source against planned counts and sums by currency, rejected fields, missing entities) and records the approved fingerprint. Before it ships, this clause routes ORD-005\u2019s buyer-side quote notices and thread to the company users with purchasing rights for the account. Before it ships, this clause inherits ORD-002's list sharing: a shared list is seen and edited by the company users who hold purchasing rights for that account, a private list only by its creator, and another company's lists read as not found. Before shipping, the approved ACC-001 account\u2019s first buyer becomes its company administrator. Exact semantics (ct 22 October 2026): a company user is a natively signed-in Base member with one Barrow membership (account, user, rights, locations, limits, state, revision) in at most one trade account; supplier people and agents are never company users. Rights are company administrator, purchaser, purchasing approver and finance viewer (purchasing rights = purchaser or approver), each scoped to all or listed ACC-003 locations, with USD-cent per-order and approval limits per user and optional per-location overrides. Each account's existing account-email buyer migrates to its first company administrator with every right and location and no limit. An order within the purchaser's limit submits; above it waits for an active approver for that location with sufficient limit who is not the preparer; release rechecks rights, limits, price and stock and records both people; agents never approve. Invitations are single-use, 7-day, exact-email bound; an email already in another company or on supplier staff is never joined, the company administrator always sees \"invitation requested\" and supplier owner/admin review the collision. Company administrators manage only their company's users, contacts and locations, cannot grant supplier powers or agent grants or remove the last administrator; another company reads as not found; finance ordering is 403. Rights apply per request and every change is a DATA-002 event. ORD-005 buyer-side notices and AUTO-003 buyer recipients become the active users with purchasing rights, rechecked at dispatch; ORD-002 sharing follows purchasing rights. DATA-003 erasure of one company user leaves a former-user placeholder with opaque attribution and removes sessions and private lists. ACC-002 adds no import; MOVE-009 brings NuORDER buyers into MOVE-007's reconciliation before it ships. **Acceptance evidence:** Invite four company users, build a cart as a limited purchaser, approve it as the authorized approver, read its statement as finance and refuse finance ordering and cross-company administration. Before shipping, route AUTO-003 emails and expiry reminders to the company purchasers with current rights, retaining exact recipient identity/revocation and private internal notes.",
+      "to": "clause",
+      "ids": [
+        "ACC-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -155,6 +276,12 @@
       "to": "clause",
       "ids": [
         "ACC-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -164,15 +291,51 @@
       "to": "clause",
       "ids": [
         "ACC-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
       "file": "CONTRACT.md",
       "line": 51,
-      "text": "**ACC-005 \u2014 Supplier roles and separation of duties.** Owner manages installation and grants; sales managers control catalogs, prices, assignments and exceptions; reps sell only assigned accounts; operations staff manage fulfillment and returns; finance controls credit, refunds and reconciliation; analysts read authorized reports. Permissions apply equally to screens, API, exports and background work, with amount limits for exceptions. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for permission/role decisions, including actor/source/time/revision/reason, before its capability ships. Before shipping, operations-role access inherits RPT-003\u2019s report and its account/warehouse scope obligations. Before shipping, this clause inherits PRI-007 scoped manager exception authority and limits, with attributed reasons and audit. Before it ships, this clause replaces ORD-004\u2019s zero quote-discount limit (every discount needs a recorded owner/admin approval) with per-role amount limits for reps and sales managers. Before it ships, this clause gives the finance role its RPT-004 report access and refuses non-finance staff beyond their permitted summaries. Before it ships, this clause applies its role rights to AUTO-005 task reads, refresh, assignments, contacts, resolutions and staff exports. Before shipping, replace REP-004 owner/admin manager authority with the functional role limits while preserving private commission decisions and attributed policy audit. Before shipping, functional reviewer roles inherit ACC-001\u2019s owner/admin review, document privacy and attributed decisions, and AUTO-001\u2019s routes, review tasks and escalation. Implemented semantics (sx c25; grant policy approved by ct 22 Oct 2026): Native owner/admin installation authority remains unchanged; only the signed-in owner issues or revises seed grants to exact Native members with no company-buyer history. Grants bind current Native activation/version and a revision, functional role, explicit all-or-listed accounts/warehouses, named report entitlements, integer USD-cent discount/stock-exception allowances (zero by default), and an owner-fixed commission label for rep reports. Sales managers manage scoped accounts/prices and discounts, reps sell assigned accounts, operations use scoped fulfillment facts and all-warehouse reservation/release authority only, finance reads scoped invoiced orders/invoices/aging/exports, and analysts read only entitled whole-filter reports. Unknown doors and installation/access administration deny. Quote allowance is the sum of positive line discounts; over-limit rep proposals wait for a scoped manager within their allowance. Stock exception allowance measures the entire USD order; current Pier allocation still applies. Global commission-policy edits require an all-account manager; rep statements stay bound to their fixed label and current accounts. Follow-up reads, refresh, assignment, manual contact/resolution and CSV recheck role/account authority. Monthly sales/finance recipients may be exact activated functional staff whose grant covers the whole immutable filter; grant revisions, Native changes, removal, suppression and 90-day expiry revoke access without trimming or restoring outreach. Owner audit remains complete; functional staff read/export only their own current-scope decisions and own accountless refusals. Restored grants are revoked. Functional application review (ct 22 Oct 2026): the owner may add an explicit `applications` entitlement to a sales-manager grant covering all accounts; that reviewer holds ACC-001's queue, duplicate review, information requests, approve and decline and the application documents, each decision and download attributed in DATA-002. The owner may add a read-only `application-documents` entitlement to a finance grant for TAX-003 certificate review, with no decision. Reps, operations, analysts, listed-account managers and agents are refused at every application page, door, command, document and export; revision or revocation closes access immediately. Reviewer approvals invite the first buyer through ACC-002's exact-email company invitation and native sign-in; acceptance rechecks the original reviewer grant revision and recorded approval, without granting Native administration. Finance sees only company names and document metadata, not application answers or review history; bytes stay quarantined under DATA-004 until owner-configured scanning exists. Future doors inherit deny-by-default admission from this clause: PAY-004/005 credit/hold exceptions, PAY-010 refund decisions, INT-002/003 reconciliation and SHIP-004 physical returns must implement actual source-backed role/amount admission before shipping; ACC-006 (c26) supplies territory/delegated coverage. **Acceptance evidence:** Invite each supplier role, attempt a credit override as a rep and a catalog edit as operations, allow the authorized finance and manager actions and inspect attributed audit events. Before shipping, each new functional supplier role, including invited analyst/finance operators for outside accountants or buyer AP, becomes eligible for RPT-006 only for its entitled report types. Outside recipients are invited operators, never bare addresses. Current sales/finance snapshot eligibility includes the exact functional grants above; AUTO-001 functional-reviewer routing/tasks/escalation is now proven; the named future source-backed financial/return capabilities keep this clause partial under ct\u2019s 21 October ruling.",
+      "text": "**ACC-005 \u2014 Supplier roles and separation of duties.** Owner manages installation and grants; sales managers control catalogs, prices, assignments and exceptions; reps sell only assigned accounts; operations staff manage fulfillment and returns; finance controls credit, refunds and reconciliation; analysts read authorized reports.",
       "to": "clause",
       "ids": [
         "ACC-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 51,
+      "text": "Permissions apply equally to screens, API, exports and background work, with amount limits for exceptions.",
+      "to": "base",
+      "ids": [
+        "BASE-ROLE-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 51,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for permission/role decisions, including actor/source/time/revision/reason, before its capability ships. Before shipping, operations-role access inherits RPT-003\u2019s report and its account/warehouse scope obligations. Before shipping, this clause inherits PRI-007 scoped manager exception authority and limits, with attributed reasons and audit. Before it ships, this clause replaces ORD-004\u2019s zero quote-discount limit (every discount needs a recorded owner/admin approval) with per-role amount limits for reps and sales managers. Before it ships, this clause gives the finance role its RPT-004 report access and refuses non-finance staff beyond their permitted summaries. Before it ships, this clause applies its role rights to AUTO-005 task reads, refresh, assignments, contacts, resolutions and staff exports. Before shipping, replace REP-004 owner/admin manager authority with the functional role limits while preserving private commission decisions and attributed policy audit. Before shipping, functional reviewer roles inherit ACC-001\u2019s owner/admin review, document privacy and attributed decisions, and AUTO-001\u2019s routes, review tasks and escalation. Implemented semantics (sx c25; grant policy approved by ct 22 Oct 2026): Native owner/admin installation authority remains unchanged; only the signed-in owner issues or revises seed grants to exact Native members with no company-buyer history. Grants bind current Native activation/version and a revision, functional role, explicit all-or-listed accounts/warehouses, named report entitlements, integer USD-cent discount/stock-exception allowances (zero by default), and an owner-fixed commission label for rep reports. Sales managers manage scoped accounts/prices and discounts, reps sell assigned accounts, operations use scoped fulfillment facts and all-warehouse reservation/release authority only, finance reads scoped invoiced orders/invoices/aging/exports, and analysts read only entitled whole-filter reports. Unknown doors and installation/access administration deny. Quote allowance is the sum of positive line discounts; over-limit rep proposals wait for a scoped manager within their allowance. Stock exception allowance measures the entire USD order; current Pier allocation still applies. Global commission-policy edits require an all-account manager; rep statements stay bound to their fixed label and current accounts. Follow-up reads, refresh, assignment, manual contact/resolution and CSV recheck role/account authority. Monthly sales/finance recipients may be exact activated functional staff whose grant covers the whole immutable filter; grant revisions, Native changes, removal, suppression and 90-day expiry revoke access without trimming or restoring outreach. Owner audit remains complete; functional staff read/export only their own current-scope decisions and own accountless refusals. Restored grants are revoked. Functional application review (ct 22 Oct 2026): the owner may add an explicit `applications` entitlement to a sales-manager grant covering all accounts; that reviewer holds ACC-001's queue, duplicate review, information requests, approve and decline and the application documents, each decision and download attributed in DATA-002. The owner may add a read-only `application-documents` entitlement to a finance grant for TAX-003 certificate review, with no decision. Reps, operations, analysts, listed-account managers and agents are refused at every application page, door, command, document and export; revision or revocation closes access immediately. Reviewer approvals invite the first buyer through ACC-002's exact-email company invitation and native sign-in; acceptance rechecks the original reviewer grant revision and recorded approval, without granting Native administration. Finance sees only company names and document metadata, not application answers or review history; bytes stay quarantined under DATA-004 until owner-configured scanning exists. Future doors inherit deny-by-default admission from this clause: PAY-004/005 credit/hold exceptions, PAY-010 refund decisions, INT-002/003 reconciliation and SHIP-004 physical returns must implement actual source-backed role/amount admission before shipping; ACC-006 (c26) supplies territory/delegated coverage. **Acceptance evidence:** Invite each supplier role, attempt a credit override as a rep and a catalog edit as operations, allow the authorized finance and manager actions and inspect attributed audit events. Before shipping, each new functional supplier role, including invited analyst/finance operators for outside accountants or buyer AP, becomes eligible for RPT-006 only for its entitled report types. Outside recipients are invited operators, never bare addresses. Current sales/finance snapshot eligibility includes the exact functional grants above; AUTO-001 functional-reviewer routing/tasks/escalation is now proven; the named future source-backed financial/return capabilities keep this clause partial under ct\u2019s 21 October ruling.",
+      "to": "clause",
+      "ids": [
+        "ACC-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -182,6 +345,12 @@
       "to": "clause",
       "ids": [
         "ACC-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -191,6 +360,12 @@
       "to": "clause",
       "ids": [
         "ACC-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -200,6 +375,12 @@
       "to": "clause",
       "ids": [
         "CAT-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -209,6 +390,12 @@
       "to": "clause",
       "ids": [
         "CAT-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -218,6 +405,12 @@
       "to": "clause",
       "ids": [
         "CAT-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -227,6 +420,12 @@
       "to": "clause",
       "ids": [
         "CAT-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -236,6 +435,12 @@
       "to": "clause",
       "ids": [
         "CAT-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -245,6 +450,12 @@
       "to": "clause",
       "ids": [
         "CAT-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -254,6 +465,12 @@
       "to": "clause",
       "ids": [
         "CAT-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -263,6 +480,12 @@
       "to": "clause",
       "ids": [
         "CAT-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -272,6 +495,12 @@
       "to": "clause",
       "ids": [
         "CAT-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -281,6 +510,12 @@
       "to": "clause",
       "ids": [
         "CAT-010"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -290,6 +525,12 @@
       "to": "clause",
       "ids": [
         "CAT-011"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -299,6 +540,12 @@
       "to": "clause",
       "ids": [
         "PRI-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -308,6 +555,12 @@
       "to": "clause",
       "ids": [
         "PRI-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -317,6 +570,12 @@
       "to": "clause",
       "ids": [
         "PRI-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -326,6 +585,12 @@
       "to": "clause",
       "ids": [
         "PRI-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -335,6 +600,12 @@
       "to": "clause",
       "ids": [
         "PRI-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -344,6 +615,12 @@
       "to": "clause",
       "ids": [
         "PRI-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -353,6 +630,12 @@
       "to": "clause",
       "ids": [
         "PRI-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -362,6 +645,12 @@
       "to": "clause",
       "ids": [
         "PRI-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -371,6 +660,12 @@
       "to": "clause",
       "ids": [
         "ORD-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -380,6 +675,12 @@
       "to": "clause",
       "ids": [
         "ORD-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -389,6 +690,12 @@
       "to": "clause",
       "ids": [
         "ORD-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -398,6 +705,12 @@
       "to": "clause",
       "ids": [
         "ORD-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -407,6 +720,12 @@
       "to": "clause",
       "ids": [
         "ORD-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -416,6 +735,12 @@
       "to": "clause",
       "ids": [
         "ORD-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -425,6 +750,12 @@
       "to": "clause",
       "ids": [
         "ORD-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -434,6 +765,12 @@
       "to": "clause",
       "ids": [
         "ORD-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -443,6 +780,12 @@
       "to": "clause",
       "ids": [
         "ORD-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -452,6 +795,12 @@
       "to": "clause",
       "ids": [
         "ORD-010"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -461,6 +810,12 @@
       "to": "clause",
       "ids": [
         "ORD-011"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -470,6 +825,12 @@
       "to": "clause",
       "ids": [
         "ORD-012"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -479,6 +840,12 @@
       "to": "clause",
       "ids": [
         "ORD-013"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -487,7 +854,15 @@
       "text": "**ORD-014 \u2014 Order confirmation documents.** Every submitted, accepted and revised order produces a numbered order confirmation PDF and CSV with seller and buyer identity, PO, bill-to and ship-to, product images, style/color/size quantities, wholesale prices and, where configured, MSRP (PRI-008), ship and cancel windows, payment terms, the attached sales-terms version and its acceptance or signature record (ORD-015). Each revision is a separate document; earlier revisions stay downloadable, and the confirmation email links or attaches the exact revision. Brand admins keep several named order export layouts (columns, order and per-variant or matrix shape), mark one as the default, and staff pick a layout when downloading; INT-020 uses the same layouts for ERP files. Staff can also select many orders, by filter or by hand (for example one season's spring delivery), and export them as one spreadsheet in a chosen layout, either one row per order line or totaled by style, color and size for production and cutting plans; the export names every included order and revision. Each confirmation revision appears on ORD-012's order timeline. Exact semantics: submission, buyer revision and supplier acceptance each atomically record a numbered immutable commercial snapshot (C1, C2, \u2026), downloadable as PDF and CSV from Orders and its ORD-012 timeline; historical orders without one are labeled as such, and supplier acceptance does not assert successful inventory reservation or delivery. Each snapshot copies the seller legal identity the owner or admin last saved (legal name, registered address, optional registration), the buyer, PO, bill-to and ship-to, the order's line-sheet season, payment terms, the accepted sales-terms version and its acceptance or signature record (ORD-015), and every line's style, color and size from owner/admin-recorded variant attributes, its product image, its own ship and cancel window (or the order's), wholesale price and, where configured, MSRP (PRI-008). A SKU and selling unit appears once per order, so each variant line carries one window; Pier receives the earliest requested date as its one promise date. Later identity, attribute, image, price, address or terms edits never rewrite a recorded revision. Revision (ORD-011 slice): the account buyer may change line quantities of a submitted order before supplier acceptance, when no stock is reserved, so nothing reaches Pier. Only the changed lines are re-priced, and only under unchanged account pricing; quoted lines and delivery-priced orders are refused, company limits and routes run again (a revision that needs company approval is refused), and current terms acceptance is required where the account requires it. The result is one revised confirmation naming the revision it revises and exactly the changed lines with before and after quantities and line cents. Email: each recorded revision is emailed once to the trade account's contact address through the AUTO-003 sender. The message carries only the confirmation number, stage and links to that revision's PDF and CSV behind the reader's own sign-in, never commercial values; the send result, never the address or body, is audited and shown beside the revision, and restored history never re-sends. Product images (ct approved as landed, 22 October 2026 22:15Z): the owner or admin records one RGB or grayscale baseline or progressive JPEG of at most 200 KiB per variant; EXIF, XMP, ICC and comment segments are removed before hashing; bytes stay only in this installation's D1 and its archives, keyed by SHA-256, and stay while any variant, order line or recorded confirmation names them. They are parsed as JPEG only, not malware-screened, and never served on a door of their own: the PDF embeds each line's image and the CSV names its SHA-256. ORD-014 closes neither DATA-001's media manifest nor DATA-004's malware screening for CAT-002. Named CSV layouts: the owner/admin acts for the brand admin until ACC-005, saves distinct ordered columns in a per-line or size-matrix shape and chooses the default; authorized buyer downloads follow that default, and supplier staff can explicitly select a named layout. A size-matrix layout includes style and only row columns (identities, PO, addresses, season, seller, style, color, ship window, terms days and units); recorded sizes become quantity columns, split by selling unit. Layout edits use the current settings revision and join the commercial audit and archive. Bulk (ct pattern 4): Orders \u2192 Bulk confirmation CSV loads the current filtered view of at most 50 orders, or every authorized recorded order of one line-sheet season (more than 50 refuses rather than truncating). Staff select orders by hand or all recorded rows and choose one exact numbered confirmation per order; the newest recorded number is the initial choice, not a claim of fulfillment. `POST /api/barrow/confirmations/selection` lists authorized recorded revision choices by order IDs or season; `POST /api/barrow/confirmations/export.csv` combines explicit order/number pairs in selection order in the chosen layout's per-line or matrix shape, or as production totals (`shape: totals`) that add exact base quantities by style, color, size and base unit and name every source confirmation. These doors reuse individual confirmation account authority and refuse agents; explicit named-layout selection retains the existing supplier restriction. Duplicate orders, missing revisions, empty-line snapshots and any unauthorized selection refuse the entire file. Omitted order, order_revision and confirmation identifiers are appended so every row names its exact source. Amounts, currency, quantities and units remain those of the selected immutable snapshot, and money is never combined across currencies. CSV retains RFC 4180 escaping and spreadsheet formula protection. Tax is not calculated (TAX-001/002). INT-020 inherits these same layout identities before adding ERP file delivery; ORD-011 inherits supplier-started and accepted-order edits; CAT-002 inherits the broader product-media store (zoom, attachments, private media) and its custody. **Acceptance evidence:** Submit a matrix order with two ship windows, download its confirmation PDF and CSV as buyer and rep, revise one quantity and download again. Both revisions are retained and differ only in the changed line, each names its terms version and acceptance, and another buyer is refused. Save a second export layout, set it as default and download again: the CSV follows the new layout. Select 50 orders from one season and export them in one file per line and totaled by style, color and size: the totals equal the sum of the selected orders' lines.",
       "to": "clause",
       "ids": [
-        "ORD-014"
+        "ORD-014",
+        "ORD-017",
+        "ORD-018"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -497,6 +872,12 @@
       "to": "clause",
       "ids": [
         "ORD-015"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -506,6 +887,12 @@
       "to": "clause",
       "ids": [
         "ORD-016"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -515,6 +902,12 @@
       "to": "clause",
       "ids": [
         "STK-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -524,6 +917,12 @@
       "to": "clause",
       "ids": [
         "STK-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -533,6 +932,12 @@
       "to": "clause",
       "ids": [
         "STK-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -542,6 +947,12 @@
       "to": "clause",
       "ids": [
         "STK-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -551,15 +962,51 @@
       "to": "clause",
       "ids": [
         "STK-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
       "file": "CONTRACT.md",
       "line": 147,
-      "text": "**REP-001 \u2014 Assigned-account rep ordering.** Reps switch only among assigned accounts, see their negotiated prices, stock, history and balances and create quotes or orders on behalf of the buyer with clear acting-as attribution. Buyer approval policies still apply; a rep cannot impersonate the purchasing approver. Reps send line sheets and suggested-products order forms to their assigned accounts through CAT-011. Implemented semantics (sx c26): a rep is the ACC-005 rep role holding accounts through ACC-006 assignments, so account selection, catalog and stock, negotiated prices, order history, quotes and balances are limited to accounts held today and any other account or territory is not found. Balances are the PAY-007 invoiced-total statement (page, CSV and PDF) of a held account; invoice exports stay with finance. Every draft a supplier-side person prepares records who prepared it and in which role (rep, sales manager, owner or admin), a quote records its requester, and the order and its history show \u201cprepared by <name> \u00b7 rep acting for the buyer\u201d beside the buyer who submitted it and the supplier who approved it. Buyer approval policy is not replaced: where the account has a signed-in company purchaser or approver, a rep or sales-manager role cannot submit the draft (BUYER_REQUIRED, 403) and cannot call any company-approval command; the buyer reviews and submits under their own ACC-002 limits and distinct-person approval, then the supplier approves as before. A supplier-assisted account with no signed-in buyer accepts the rep\u2019s own submission, which the order records as the rep\u2019s. Owner and admin keep their existing preparation and submission authority. Line-sheet and suggested-products sends remain CAT-011\u2019s. **Acceptance evidence:** Sign in as a rep, select an assigned account and prepare an order for buyer approval. Refuse another territory and show the rep plus buyer identities on the accepted order.",
+      "text": "**REP-001 \u2014 Assigned-account rep ordering.** Reps switch only among assigned accounts, see their negotiated prices, stock, history and balances and create quotes or orders on behalf of the buyer with clear acting-as attribution. Buyer approval policies still apply;",
       "to": "clause",
       "ids": [
         "REP-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 147,
+      "text": "a rep cannot impersonate the purchasing approver.",
+      "to": "base",
+      "ids": [
+        "BASE-AGENT-008"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 147,
+      "text": "Reps send line sheets and suggested-products order forms to their assigned accounts through CAT-011. Implemented semantics (sx c26): a rep is the ACC-005 rep role holding accounts through ACC-006 assignments, so account selection, catalog and stock, negotiated prices, order history, quotes and balances are limited to accounts held today and any other account or territory is not found. Balances are the PAY-007 invoiced-total statement (page, CSV and PDF) of a held account; invoice exports stay with finance. Every draft a supplier-side person prepares records who prepared it and in which role (rep, sales manager, owner or admin), a quote records its requester, and the order and its history show \u201cprepared by <name> \u00b7 rep acting for the buyer\u201d beside the buyer who submitted it and the supplier who approved it. Buyer approval policy is not replaced: where the account has a signed-in company purchaser or approver, a rep or sales-manager role cannot submit the draft (BUYER_REQUIRED, 403) and cannot call any company-approval command; the buyer reviews and submits under their own ACC-002 limits and distinct-person approval, then the supplier approves as before. A supplier-assisted account with no signed-in buyer accepts the rep\u2019s own submission, which the order records as the rep\u2019s. Owner and admin keep their existing preparation and submission authority. Line-sheet and suggested-products sends remain CAT-011\u2019s. **Acceptance evidence:** Sign in as a rep, select an assigned account and prepare an order for buyer approval. Refuse another territory and show the rep plus buyer identities on the accepted order.",
+      "to": "clause",
+      "ids": [
+        "REP-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -569,6 +1016,12 @@
       "to": "clause",
       "ids": [
         "REP-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -578,6 +1031,12 @@
       "to": "clause",
       "ids": [
         "REP-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -587,6 +1046,12 @@
       "to": "clause",
       "ids": [
         "REP-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -596,6 +1061,12 @@
       "to": "clause",
       "ids": [
         "REP-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -605,6 +1076,12 @@
       "to": "clause",
       "ids": [
         "REP-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -614,6 +1091,12 @@
       "to": "clause",
       "ids": [
         "REP-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -623,6 +1106,12 @@
       "to": "clause",
       "ids": [
         "MOB-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -632,6 +1121,12 @@
       "to": "clause",
       "ids": [
         "PAY-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -641,6 +1136,12 @@
       "to": "clause",
       "ids": [
         "PAY-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -650,6 +1151,12 @@
       "to": "clause",
       "ids": [
         "PAY-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -659,6 +1166,12 @@
       "to": "clause",
       "ids": [
         "PAY-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -668,6 +1181,12 @@
       "to": "clause",
       "ids": [
         "PAY-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -677,6 +1196,12 @@
       "to": "clause",
       "ids": [
         "PAY-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -686,6 +1211,12 @@
       "to": "clause",
       "ids": [
         "PAY-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -695,6 +1226,12 @@
       "to": "clause",
       "ids": [
         "PAY-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -704,6 +1241,12 @@
       "to": "clause",
       "ids": [
         "PAY-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -713,6 +1256,12 @@
       "to": "clause",
       "ids": [
         "PAY-010"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -722,6 +1271,12 @@
       "to": "clause",
       "ids": [
         "PAY-011"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -731,6 +1286,12 @@
       "to": "clause",
       "ids": [
         "PAY-012"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -740,6 +1301,12 @@
       "to": "clause",
       "ids": [
         "TAX-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -749,6 +1316,12 @@
       "to": "clause",
       "ids": [
         "TAX-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -758,6 +1331,12 @@
       "to": "clause",
       "ids": [
         "TAX-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -767,6 +1346,12 @@
       "to": "clause",
       "ids": [
         "TAX-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -776,6 +1361,12 @@
       "to": "clause",
       "ids": [
         "SHIP-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -785,6 +1376,12 @@
       "to": "clause",
       "ids": [
         "SHIP-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -794,6 +1391,12 @@
       "to": "clause",
       "ids": [
         "SHIP-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -803,6 +1406,12 @@
       "to": "clause",
       "ids": [
         "SHIP-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -812,6 +1421,12 @@
       "to": "clause",
       "ids": [
         "SHIP-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -821,6 +1436,12 @@
       "to": "clause",
       "ids": [
         "INT-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -830,6 +1451,12 @@
       "to": "clause",
       "ids": [
         "INT-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -839,6 +1466,12 @@
       "to": "clause",
       "ids": [
         "INT-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -848,6 +1481,12 @@
       "to": "clause",
       "ids": [
         "INT-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -857,6 +1496,12 @@
       "to": "clause",
       "ids": [
         "INT-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -866,6 +1511,12 @@
       "to": "clause",
       "ids": [
         "INT-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -875,6 +1526,12 @@
       "to": "clause",
       "ids": [
         "INT-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -884,6 +1541,12 @@
       "to": "clause",
       "ids": [
         "INT-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -893,6 +1556,12 @@
       "to": "clause",
       "ids": [
         "INT-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -902,6 +1571,12 @@
       "to": "clause",
       "ids": [
         "INT-010"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -911,6 +1586,12 @@
       "to": "clause",
       "ids": [
         "INT-011"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -920,15 +1601,51 @@
       "to": "clause",
       "ids": [
         "INT-012"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
       "file": "CONTRACT.md",
       "line": 237,
-      "text": "**INT-013 \u2014 Webhooks retry and failed-handoff queue.** Signed outbound events and authenticated incoming provider callbacks retain event identity, timestamp and delivery result. Backoff, rate limits, dead-letter state, replay and duplicate/out-of-order handling are visible to operators. A successful local enqueue is distinct from external acceptance. Current doors: only the signed-in owner may explicitly consent to an HTTPS endpoint and select account.saved, order.submitted, order.approved, quote.requested or quote.accepted. The immutable envelope contains only its opaque audit event ID, type, time, local audit ordinal and schema; no account identity, price, reason, message or document. HMAC-SHA256 signs the exact ID, current request timestamp and retained body; replay keeps event identity and bytes. AES-GCM server custody binds the secret to the subscription; owner configure, rotation, revocation and replay are attributed, searchable and exportable without secret values. URLs require a public HTTPS hostname on port 443 without credentials, query or fragment; IP literals and reserved local names are refused, redirects are refused, and this URL check does not claim exhaustive DNS rebinding protection. The owner must control and trust the receiver. Per-endpoint leases serialize requests at most once per ten seconds; backoff starts at thirty seconds, respects bounded HTTP 429 Retry-After, and six unsuccessful attempts leave a dead letter. Every attempt retains event ID, signing revision, times and generic result without response bodies. Only HTTP 2xx acknowledges acceptance; revocation and local replay leave unresolved work visible. A receiver must durably deduplicate event IDs; acknowledgment is external acceptance, not downstream completion. The owner sees the latest 200 handoffs and complete history export. Current incoming doors are Base-authenticated quote and report Resend callbacks, retaining receipt identity/time and duplicate/out-of-order outcomes without changing terminal state or repeating the failed-contact task. Subscriptions and secrets never enter archives; restored history cannot send, including after a new subscription. DATA-003 discloses configured processor hosts and installation-wide acknowledged copies without promising remote erasure. INT-002/003/004/005/006/007/008/009/010/015/016/017/018/019/020 must add their own authenticated intake, source-specific ordering and verified business effects before shipping. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. **Acceptance evidence:** Subscribe a test endpoint, reject several deliveries, replay a signed event and send out-of-order provider states. See one business effect, retained attempts and a queue item that clears only on acknowledged resolution.",
+      "text": "**INT-013 \u2014 Webhooks retry and failed-handoff queue.** Signed outbound events and authenticated incoming provider callbacks retain event identity, timestamp and delivery result. Backoff, rate limits, dead-letter state, replay and duplicate/out-of-order handling are visible to operators.",
       "to": "clause",
       "ids": [
         "INT-013"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 237,
+      "text": "A successful local enqueue is distinct from external acceptance.",
+      "to": "base",
+      "ids": [
+        "BASE-MAIL-001"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 237,
+      "text": "Current doors: only the signed-in owner may explicitly consent to an HTTPS endpoint and select account.saved, order.submitted, order.approved, quote.requested or quote.accepted. The immutable envelope contains only its opaque audit event ID, type, time, local audit ordinal and schema; no account identity, price, reason, message or document. HMAC-SHA256 signs the exact ID, current request timestamp and retained body; replay keeps event identity and bytes. AES-GCM server custody binds the secret to the subscription; owner configure, rotation, revocation and replay are attributed, searchable and exportable without secret values. URLs require a public HTTPS hostname on port 443 without credentials, query or fragment; IP literals and reserved local names are refused, redirects are refused, and this URL check does not claim exhaustive DNS rebinding protection. The owner must control and trust the receiver. Per-endpoint leases serialize requests at most once per ten seconds; backoff starts at thirty seconds, respects bounded HTTP 429 Retry-After, and six unsuccessful attempts leave a dead letter. Every attempt retains event ID, signing revision, times and generic result without response bodies. Only HTTP 2xx acknowledges acceptance; revocation and local replay leave unresolved work visible. A receiver must durably deduplicate event IDs; acknowledgment is external acceptance, not downstream completion. The owner sees the latest 200 handoffs and complete history export. Current incoming doors are Base-authenticated quote and report Resend callbacks, retaining receipt identity/time and duplicate/out-of-order outcomes without changing terminal state or repeating the failed-contact task. Subscriptions and secrets never enter archives; restored history cannot send, including after a new subscription. DATA-003 discloses configured processor hosts and installation-wide acknowledged copies without promising remote erasure. INT-002/003/004/005/006/007/008/009/010/015/016/017/018/019/020 must add their own authenticated intake, source-specific ordering and verified business effects before shipping. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. **Acceptance evidence:** Subscribe a test endpoint, reject several deliveries, replay a signed event and send out-of-order provider states. See one business effect, retained attempts and a queue item that clears only on acknowledged resolution.",
+      "to": "clause",
+      "ids": [
+        "INT-013"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -938,6 +1655,12 @@
       "to": "clause",
       "ids": [
         "INT-014"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -947,6 +1670,12 @@
       "to": "clause",
       "ids": [
         "INT-015"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -956,6 +1685,12 @@
       "to": "clause",
       "ids": [
         "INT-016"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -965,6 +1700,12 @@
       "to": "clause",
       "ids": [
         "INT-017"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -974,6 +1715,12 @@
       "to": "clause",
       "ids": [
         "INT-018"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -983,6 +1730,12 @@
       "to": "clause",
       "ids": [
         "INT-019"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -992,6 +1745,12 @@
       "to": "clause",
       "ids": [
         "INT-020"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1001,6 +1760,12 @@
       "to": "clause",
       "ids": [
         "RPT-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1010,6 +1775,12 @@
       "to": "clause",
       "ids": [
         "RPT-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1019,6 +1790,12 @@
       "to": "clause",
       "ids": [
         "RPT-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1028,6 +1805,12 @@
       "to": "clause",
       "ids": [
         "RPT-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1037,6 +1820,12 @@
       "to": "clause",
       "ids": [
         "RPT-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1045,7 +1834,15 @@
       "text": "**RPT-006 \u2014 Scheduled reports and operational search.** Authorized users save report filters, schedule recipient-scoped email/downloads and search accounts/orders by company, PO, external ID, SKU and tracking number. Large lists use pagination and usable sorting rather than loading the full business into the browser: on the 20,000-order fixture a PO, SKU or tracking-number search and a re-sort each return their first page within 2 seconds at the 95th percentile. **Acceptance evidence:** Find a known PO within 2 seconds in a multi-season fixture of 3 seasons, 400 accounts and 20,000 orders, re-sort the orders list by ship window, save a monthly filtered report and deliver it to an authorized finance user. Revoked recipients receive no private report and the report links to matching source records. Current partial operational search: `GET /api/barrow/orders/search` filters in D1 and returns at most 25 authorized order summaries per page, with on-demand source details in Orders. It searches recorded/current company name, literal PO, recorded Pier order ID/reference or invoice number, and recorded line SKU using ASCII case-insensitive substrings; fields combine with AND. Sorts use preparation time or the requested delivery date, with missing delivery dates last and order ID ties; pages read current data and concurrent edits may move rows. Recorded ISO currency and cents are unchanged. Carrier tracking is explicitly not recorded. The original workspace `GET /api/barrow/state` and `GET /api/barrow/orders/history` now also return at most 25 full orders, with `page`, `pageSize` and `hasNext`; the workspace adds a separate initial waiting draft, selected from all authorized drafts (newest stale account revision first, then newest draft). History keeps descending insertion order, Unicode en-US case-insensitive literal PO/SKU/location filters, inclusive America/New_York preparation-date bounds and original line/currency/revision snapshots. `status` (all, draft, review, submitted, reserving, shortfall, approved, releasing, cancelled) and exact `accountId` combine with those filters without granting access; review includes submitted/reserving/shortfall/releasing. History excludes superseded drafts; the bounded state page retains them for API history. Status counts cover the full visible active collection, and duplicate-PO flags and completed substitution links are checked outside the current page. People names belong to the returned page. Account draft pages and direct authorized draft reads keep every draft reachable in the order pad. Text fields accept at most 160 characters; page numbers are 1\u2013999999; current-data pages can move after concurrent writes. History reads at most 100 stored bodies per database batch and keeps only one page; its original Unicode/date filtering can scan batches and makes no separate latency claim. `docs/ORDER-SEARCH.md` describes operational search. Scheduled delivery follows ct scope-review-63 B: active owner/admin operator IDs only, never typed addresses, buyers or agent credentials. Each saved immutable sales or invoice-aging definition records exact filters, recipient operator version and role. Monthly runs execute on the first day at 09:00 UTC for the previous complete calendar month; an explicit run-now uses that same period and never creates a second run. Sales applies inclusive report-zone date bounds; invoice aging is as of the period's last day. One whole source-linked JSON snapshot freezes per schedule/period at its first run and expires exactly 90 elapsed days later. Each notification contains only report name, schedule, period, as-of date and one token-free link to `/app?reportRun=<run-id>` requiring the recipient's own sign-in; no figures, account names, POs or attachments. Both sending and `/api/barrow/report-runs/<run-id>.json` download recheck exact selected identity, active account, unchanged operator version, entitled role, removal, permanent address suppression and access covering the whole saved filter. Narrower access is refused and recorded, never trimmed. Staff recipients remove themselves while signed in; owner/admin can also remove selected recipients. Removal, role/status/version changes cancel queued deliveries and existing links return 403. Each recipient/run has one durable notification identity and one submission claim across restarts; provider acceptance is not delivery, and ambiguous or refused submissions remain recorded without automatic resubmission. Unconfigured or development installs send no report notification. Signed report delivery events use unmodified Base intake; bounce/complaint/rejection receipts permanently suppress that address. DATA-002 records every step. Owner archives preserve definitions/snapshots/audit but mark restored schedules inert and cancel unsent notifications; save a new native definition to resume, without rebinding historical recipient IDs. ACC-005 adds eligible invited analyst/finance roles by report type, ACC-006 (c26) adds whole-filter assignment coverage, and INT-015 retains suppression records before those capabilities ship. `docs/SCHEDULED-REPORTS.md` describes this slice. Account-list pagination now ships at `GET /api/barrow/accounts`: at most 25 current authorized full accounts, `page` 1\u2013999999, literal ASCII case-insensitive `q` across company name, account ID, email or Pier customer ID (at most 160 characters), and `sort` id/name-asc/name-desc with exact ID ties. The workspace includes only the first account page plus `accountPage` metadata; cards and all account selectors search/page independently and load the selected account by exact ID at `GET /api/barrow/accounts/by-id/<id>`. Pages read current data and concurrent writes may move rows. Original supplier/buyer/agent read scope is unchanged. Duplicate-company review scans bounded batches with ACC-004\u2019s original Unicode-normalized name/exact Pier-ID matching, returns 25 identity-only candidates per page, and requires each matching current revision at save; no match outside the workspace page is lost. History returns only its page\u2019s account revision map so stale-draft warnings do not depend on the account page. RPT-006 stays partial: tracking source/search/performance and broader report-type scheduling remain missing; functional finance/rep recipient acceptance belongs to ACC-005/ACC-006.",
       "to": "clause",
       "ids": [
-        "RPT-006"
+        "RPT-006",
+        "RPT-007",
+        "RPT-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1055,6 +1852,12 @@
       "to": "clause",
       "ids": [
         "AUTO-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1064,6 +1867,12 @@
       "to": "clause",
       "ids": [
         "AUTO-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1073,15 +1882,51 @@
       "to": "clause",
       "ids": [
         "AUTO-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
       "file": "CONTRACT.md",
       "line": 275,
-      "text": "**AUTO-004 \u2014 Order and fulfillment notifications.** Accepted orders, buyer- and staff-initiated changes (ORD-011), canceled-style drops (ORD-016), holds, backorders, shipments, delivery exceptions and return decisions trigger account-appropriate in-app and email notices with preferences and delivery tracking. Event replay cannot send duplicate confirmations and sensitive finance details are role-scoped. **Acceptance evidence:** Run an order through a split shipment and return with duplicate carrier events. Inspect one notice per material change, the correct recipients, preferences and an owned bounce exception.",
+      "text": "**AUTO-004 \u2014 Order and fulfillment notifications.** Accepted orders, buyer- and staff-initiated changes (ORD-011), canceled-style drops (ORD-016), holds, backorders, shipments, delivery exceptions and return decisions trigger account-appropriate in-app and email notices with preferences and delivery tracking.",
       "to": "clause",
       "ids": [
         "AUTO-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 275,
+      "text": "Event replay cannot send duplicate confirmations and sensitive finance details are role-scoped.",
+      "to": "base",
+      "ids": [
+        "BASE-OPS-003"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 275,
+      "text": "**Acceptance evidence:** Run an order through a split shipment and return with duplicate carrier events. Inspect one notice per material change, the correct recipients, preferences and an owned bounce exception.",
+      "to": "clause",
+      "ids": [
+        "AUTO-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1091,6 +1936,12 @@
       "to": "clause",
       "ids": [
         "AUTO-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1100,6 +1951,12 @@
       "to": "clause",
       "ids": [
         "AUTO-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1109,6 +1966,12 @@
       "to": "clause",
       "ids": [
         "AUTO-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1118,6 +1981,12 @@
       "to": "clause",
       "ids": [
         "AUTO-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1127,6 +1996,12 @@
       "to": "clause",
       "ids": [
         "MOVE-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1136,6 +2011,12 @@
       "to": "clause",
       "ids": [
         "MOVE-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1145,6 +2026,12 @@
       "to": "clause",
       "ids": [
         "MOVE-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1154,6 +2041,12 @@
       "to": "clause",
       "ids": [
         "MOVE-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1163,6 +2056,12 @@
       "to": "clause",
       "ids": [
         "MOVE-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1172,6 +2071,12 @@
       "to": "clause",
       "ids": [
         "MOVE-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1181,6 +2086,12 @@
       "to": "clause",
       "ids": [
         "MOVE-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1190,6 +2101,12 @@
       "to": "clause",
       "ids": [
         "MOVE-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1199,6 +2116,12 @@
       "to": "clause",
       "ids": [
         "MOVE-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1208,6 +2131,12 @@
       "to": "clause",
       "ids": [
         "DATA-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1217,6 +2146,12 @@
       "to": "clause",
       "ids": [
         "DATA-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1226,6 +2161,12 @@
       "to": "clause",
       "ids": [
         "DATA-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1235,6 +2176,12 @@
       "to": "clause",
       "ids": [
         "DATA-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1244,6 +2191,12 @@
       "to": "clause",
       "ids": [
         "BASE-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1253,6 +2206,12 @@
       "to": "clause",
       "ids": [
         "OPS-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1262,6 +2221,12 @@
       "to": "clause",
       "ids": [
         "AGT-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1271,6 +2236,12 @@
       "to": "clause",
       "ids": [
         "AGT-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1280,6 +2251,12 @@
       "to": "clause",
       "ids": [
         "AGT-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1289,6 +2266,12 @@
       "to": "clause",
       "ids": [
         "AGT-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1298,6 +2281,12 @@
       "to": "clause",
       "ids": [
         "AGT-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1307,6 +2296,12 @@
       "to": "clause",
       "ids": [
         "AGT-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1316,6 +2311,12 @@
       "to": "clause",
       "ids": [
         "AGT-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1325,6 +2326,12 @@
       "to": "clause",
       "ids": [
         "AGT-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
       ]
     },
     {
@@ -1467,10 +2474,7 @@
       "line": 393,
       "cell": "gap",
       "text": "Credit-change invalidation inherits to PAY-004 before it ships credit exposure; AUTO-002 supplies in-app notice of waiting and escalated approvals.",
-      "to": "gap",
-      "ids": [
-        "ACC-007"
-      ]
+      "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
@@ -1587,10 +2591,7 @@
       "line": 427,
       "cell": "gap",
       "text": "Supplier-published immutable text/PDF versions per series, per-account assignment with required or optional acceptance, buyer acceptance or supplier-captured on-device signature and printed name at `order.submit`, the acceptance and accepted text frozen in each confirmation PDF, signature download, exports and archive restore ship and are asserted by `tests/api/sales-terms.test.mjs`. Brand/season assignment, material-revision re-acceptance and offline capture are inherited obligations of CAT-006, CAT-008, ORD-011, ORD-016, REP-002 and REP-003.",
-      "to": "gap",
-      "ids": [
-        "ORD-015"
-      ]
+      "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
@@ -2007,30 +3008,21 @@
       "line": 489,
       "cell": "gap",
       "text": "ACC-005 now proves current functional reviewer routing, review tasks and escalation. Only owners/admins configure routing; each selected Native identity and grant is guarded at save and task creation. Removed reviewers cannot read or act; new routing and applicant/staff updates fall back to the current owner for a removed recipient, with existing decisions/closed tasks preserved.",
-      "to": "gap",
-      "ids": [
-        "AUTO-001"
-      ]
+      "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
       "line": 490,
       "cell": "gap",
       "text": "Credit exposure, limit and credit-hold checks inherit through PAY-004 and PAY-005; approval expiry would inherit STK-004\u2019s acknowledged release.",
-      "to": "gap",
-      "ids": [
-        "AUTO-002"
-      ]
+      "to": "changelog"
     },
     {
       "file": "CONTRACT.md",
       "line": 491,
       "cell": "gap",
       "text": "Live Resend and hosted deployment proof remain separately PENDING; native operating proof uses the real sender and signed intake with a controlled paid-provider edge.",
-      "to": "gap",
-      "ids": [
-        "AUTO-003"
-      ]
+      "to": "changelog"
     },
     {
       "file": "CONTRACT.md",

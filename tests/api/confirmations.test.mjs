@@ -66,7 +66,7 @@ test('ORD-014: numbered submitted and accepted confirmations retain exact commer
  assert.equal((await h.request(path,{as:'',headers:{authorization:`Bearer ${token}`}})).status,403);
 });
 
-test('ORD-014: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore',async t=>{
+test('ORD-017: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore',async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier);
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0}});
@@ -102,7 +102,7 @@ test('ORD-014: named per-line export layouts set default and selected column ord
  assert.equal(await(await target.request(path)).text(),await(await h.request(path)).text());
 });
 
-test('ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with named layouts, source identities and unchanged selling-unit bases',async t=>{
+test('ORD-018: bulk CSV combines 50 explicitly selected immutable revisions with named layouts, source identities and unchanged selling-unit bases',async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier,'10000');
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0,prices:[{sku:'OAT-1',unitCents:6500,minQty:1,units:[{code:'pallet',baseQuantity:'12',unitCents:74000,packContents:'12 cases'}]}]}});
@@ -240,7 +240,7 @@ test('ORD-014: a seasonal matrix order with two ship windows is confirmed with s
  assert.equal(target.mail.requests.length,0);
 });
 
-test('ORD-014: fifty recorded orders of one season export per line and as style, color and size production totals equal to their lines',async t=>{
+test('ORD-018: fifty recorded orders of one season export per line and as style, color and size production totals equal to their lines',async t=>{
  const f=await sheetFixture(t),{h,buyers,sheet,skus}=f,year=new Date().getUTCFullYear()+1,season=`Spring ${year}`;
  await h.command('variant.attributes',{revision:null,variants:sized(skus)});
  const summer=await h.command('sheet.publish',{accountId:'cedar',name:'Summer collection',season:`Summer ${year}`,display:'both',shipStart:`${year}-06-01`,shipEnd:`${year}-06-30`,skus});
