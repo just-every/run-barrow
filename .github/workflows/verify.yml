@@ -32,7 +32,15 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium
       - run: node scripts/contract-docs.mjs check
       - run: pnpm exec rer check --profile first-party
-      - run: pnpm exec rer verify --no-queue
+      - name: Verify with the pinned Base agent-door CLI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          base_dir="$RUNNER_TEMP/barrow-agent-base"
+          mkdir -p "$base_dir"
+          gh api repos/runeditrun/base/tarball/d555e789cffb744a9f83d76ebe42a2e3bdd7a055 > "$RUNNER_TEMP/barrow-agent-base.tar.gz"
+          tar -xzf "$RUNNER_TEMP/barrow-agent-base.tar.gz" --strip-components=1 -C "$base_dir"
+          node "$base_dir/bin/rer.mjs" verify --no-queue
       - name: Credit notes, limits and finance allowance screens
         if: matrix.shard == 1
         env:

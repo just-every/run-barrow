@@ -36,6 +36,32 @@ Accounts, legal sellers, currencies, source authorities and revisions are explic
 
 - **BAR-006 — Run site.** The separate public site introduces Barrow, links to /run and serves repository owner guides at /docs without reading installation data. Installed / remains the Lobby. The existing deployment gate controls publication. Target promises are distinct from the implementation status published by this contract. **Acceptance evidence:** Build with rer build --site, serve the output and traverse the homepage, /run, guide navigation, local assets and a missing guide. Confirm the installed route keeps its Lobby and the site contains no private account data.
 
+## Shared agent door adoption
+
+The shared door inherits BASE-AGENT-001, BASE-AGENT-002, BASE-AGENT-003,
+BASE-AGENT-004, BASE-AGENT-005, BASE-AGENT-006, BASE-AGENT-007,
+BASE-AGENT-008, BASE-AGENT-009, BASE-AGENT-010, BASE-AGENT-011,
+BASE-AGENT-012 and BASE-AGENT-013. These are Base duties, not new Barrow clause IDs.
+
+The initial registry in `agent-surface.json` exposes native account, order and
+shared-list reads plus the shared event reader. Business subjects bind to native
+operator IDs through signed settings. Local credentials retain only their native
+scoped order-read purpose on MCP; their existing draft/proposal HTTP jobs remain
+under BAR-003. No commercial mutation or personal approval is exposed on MCP.
+The specialist explains this limit. Native person, device, connector, import and
+installation doors retain their own authority and controls.
+
+Full adoption remains incomplete: the pinned Base ToolContext does not expose
+the authorizing consent or an execution ID to native services. AUTO-003 quote
+mail and RPT-007 scheduled report effects cannot preserve and recheck that exact
+consent before a queued provider send. No queued effect is registered while that
+hook is absent. Copying the shared runtime or passing its read-only journey does
+not establish the omitted mutation, escalation, Undo or queued-revocation duties,
+and does not promote any clause in Status. The declared Pier edge must also
+admit the native Origin header: the pinned isolated bridge currently refuses it
+before the provider fixture executes. That unresolved conformance refusal is a
+blocking dependency, not a successful agent journey.
+
 ## Target clauses — 17 October 2026
 
 ### Trade accounts and authority

@@ -28,6 +28,8 @@ For a real owner installation, run `npx -y @runeditrun/rer install just-every/ru
 
 The separate run site is built with `rer build --site` into `dist/site`. It introduces Barrow at `/`, provides the install-and-run instructions at `/run`, and renders the [owner guides](docs/README.md) from repository Markdown at `/docs`. An installed checkout keeps the Lobby at `/`. Site publishing is disabled until the run-site gate sets `RUN_SITE_DEPLOY=true`.
 
+Company-agent access and its current read-only limits are documented in [Company agents](docs/AGENTS.md).
+
 ## Connect the stock desk
 
 You need an existing [Pier](https://github.com/just-every/run-pier) installation with items, sellable stock in bins and a customer party. Barrow does not create a second stock ledger. Pier compatibility is exercised against commit `dcd4c5916a96b3237eafbec6abd6591df5c75dcd`.
