@@ -82,7 +82,7 @@ test('RPT-006: scoped SQL search and ship-window pages stay under two-second p95
 
 });
 
-test('RPT-006: original workspace, history and account drafts page the full authorized collection without losing stale drafts, duplicate POs or source actors', async t => {
+test('RPT-007 / RPT-014: original workspace, history and account drafts page the full authorized collection without losing stale drafts, duplicate POs or source actors', async t => {
  const h=await installation();t.after(()=>h.close());
  const owner=(await h.api('/api/barrow/state')).actor.id;
  for(const id of ['cedar','wren'])await h.command('account.save',{id,value:{...accountValue('source-'+id,id+'@example.test'),name:id,minimumCents:0}});
@@ -117,7 +117,7 @@ test('RPT-006: original workspace, history and account drafts page the full auth
  const before=await h.api('/api/barrow/export.json');await history({page:'2'},buyer);const after=await h.api('/api/barrow/export.json');assert.deepEqual(after.orders,before.orders);assert.deepEqual(after.audit,before.audit);
 });
 
-test('RPT-008, RPT-009 and RPT-015 / ACC-005 / ACC-006 / INT-015 / DATA-002: saved monthly reports freeze whole source-linked snapshots, email exact staff once, and revoke private downloads on recipient or authority changes',async t=>{
+test('RPT-008 / RPT-009 / RPT-010 / RPT-015 / ACC-005 / ACC-009 / INT-015 / DATA-002: saved monthly reports freeze whole source-linked snapshots, email exact staff once, and revoke private downloads on recipient or authority changes',async t=>{
  const {createHmac,randomBytes}=await import('node:crypto');
  const key=randomBytes(32),secret='whsec_'+key.toString('base64');
  const h=await installation({https:true,bindings:{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'report-test'}});t.after(()=>h.close());
@@ -205,7 +205,7 @@ test('RPT-008, RPT-009 and RPT-015 / ACC-005 / ACC-006 / INT-015 / DATA-002: sav
 });
 
 
-test('RPT-006 / ACC-004: duplicate company review spans pages and server rechecks every exact revision, including matches beyond the account workspace',async t=>{
+test('RPT-012 / ACC-004: duplicate company review spans pages and server rechecks every exact revision, including matches beyond the account workspace',async t=>{
  const h=await installation();t.after(()=>h.close());
  for(let i=0;i<30;i++){
   const id='duplicate-'+String(i).padStart(2,'0'),value={...accountValue('shared-source',`duplicate-${i}@example.test`),name:i===29?'ＣＥＤＡＲ   STREET pantry':`Separate company ${i}`};

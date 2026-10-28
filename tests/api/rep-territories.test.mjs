@@ -6,7 +6,7 @@ import { installation, stock, accountValue, activateStaff } from './harness.mjs'
 const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
 const policy = (role, extra = {}) => ({ role, accounts: [], warehouses: [], reports: [], discountLimitCents: 0, stockExceptionLimitCents: 0, ...extra });
 
-test('ACC-006: managers assign reps to territories and accounts with dated coverage; access, quote routing, reports, tasks, commissions and sends follow the current assignment and no history is rewritten', async t => {
+test('ACC-006 / ACC-008 / ACC-009 / ACC-010: managers assign reps to territories and accounts with dated coverage; access, quote routing, reports, tasks, commissions and sends follow the current assignment and no history is rewritten', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const products = await stock(pier, '100');
  const customers = { wren: await pier.command('party.save', { name: 'Wren Market', kind: 'customer' }), birch: await pier.command('party.save', { name: 'Birch Hollow', kind: 'customer' }), elm: await pier.command('party.save', { name: 'Elm Corner', kind: 'customer' }) };

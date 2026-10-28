@@ -13,7 +13,7 @@ async function quoting(t,bindings,https) {
  const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
  return {h,pier,buyer,wren,agent,quoteOf:(id,opts={})=>h.api(`/api/barrow/quotes/${id}`,undefined,opts)};
 }
-test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 / INT-015: quote emails preserve audiences and links, expiry is once per revision, signed bounce creates an owned persistent failed-contact task and restore sends nothing',async t=>{
+test('AUTO-003 / AUTO-009 / AUTO-010 / AUTO-011 / AUTO-012 / AUTO-013 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 / INT-015: quote emails preserve audiences and links, expiry is once per revision, signed bounce creates an owned persistent failed-contact task and restore sends nothing',async t=>{
  const key=randomBytes(32),{h,buyer,wren,agent,quoteOf}=await quoting(t,{MAIL_WEBHOOK_SECRET:'whsec_'+key.toString('base64'),MAIL_EVENT_TENANT:'barrow-test'},true);
  const admin={as:await h.signIn('rep@example.test','admin')};
  const quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:5}]},buyer);
@@ -111,7 +111,7 @@ test('AUTO-003 / ORD-005 / DATA-001 / DATA-002 / DATA-004 / AUTO-005 / OPS-001 /
 });
 
 
-test('AUTO-003 / DATA-003: expiry withdrawal, missing buyers, same-key retry window and unused-account custody erasure stay explicit through restore',async t=>{
+test('AUTO-003 / AUTO-009 / AUTO-010 / AUTO-013 / DATA-003: expiry withdrawal, missing buyers, same-key retry window and unused-account custody erasure stay explicit through restore',async t=>{
  const key=randomBytes(32),secret='whsec_'+key.toString('base64'),{h,buyer,wren,pier}=await quoting(t,{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'barrow-test'},true);
  const deliveries=async()=> (await h.command('quote-mail.dispatch',{})).deliveries;
  // Queue while unconfigured, then supersede the last-day revision before enabling submission.

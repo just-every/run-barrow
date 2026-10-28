@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { workspace, removeWorkspace, freshCheckout, rer, start, signIn, api, capture } from './install-harness.mjs';
 
-test('BASE-001 / RPT-006: fresh native setup, Lobby and app work without Pier; CLI export and empty restore preserve the installation', async t => {
+test('BASE-001: fresh native setup, Lobby and app work without Pier; CLI export and empty restore preserve the installation', async t => {
  const directory = await workspace();
  let running, browser;
  t.after(async () => {
@@ -111,7 +111,7 @@ test('BASE-001 / RPT-006: fresh native setup, Lobby and app work without Pier; C
  assert.deepEqual(restoredManifest.migrations, manifest.migrations);
 });
 
-test('RPT-006: native account directory and selectors keep later-page accounts reachable without full-directory browser loads', async t => {
+test('RPT-011: native account directory and selectors keep later-page accounts reachable without full-directory browser loads', async t => {
  const directory=await workspace();let running,browser;
  t.after(async()=>{try{if(running)await running.stop()}finally{try{await browser?.close()}finally{await removeWorkspace(directory)}}});
  const root=await freshCheckout(directory,'accounts');running=await start(root);

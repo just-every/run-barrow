@@ -66,7 +66,7 @@ test('ORD-014: numbered submitted and accepted confirmations retain exact commer
  assert.equal((await h.request(path,{as:'',headers:{authorization:`Bearer ${token}`}})).status,403);
 });
 
-test('ORD-014: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore',async t=>{
+test('ORD-017: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore',async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier);
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0}});
