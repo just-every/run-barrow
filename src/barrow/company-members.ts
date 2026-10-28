@@ -52,7 +52,7 @@ function preserveLastAdministrator(db: D1Database, member: CompanyMembership) {
    AND m.state='active' AND p.role='member' AND p.status='active' AND EXISTS(SELECT 1 FROM json_each(m.policy_json,'$.rights') WHERE value='administrator'))`, [member.id, member.accountId, member.id])
 }
 /** Reject supplier identities and every other company's contact-of-record or membership. */
-async function collision(db: D1Database, accountId: string, email: string) {
+export async function companyInvitationCollision(db: D1Database, accountId: string, email: string) {
  const [accounts, members, people] = await Promise.all([
   db.prepare("SELECT id,value_json FROM bw_accounts a WHERE id<>? AND NOT EXISTS(SELECT 1 FROM bw_company_members former WHERE former.account_id=a.id AND former.email_key=? AND former.state='removed')").bind(accountId,email).all<any>(),
   db.prepare("SELECT account_id,email_key FROM bw_company_members WHERE state IN ('invited','active') AND account_id<>?").bind(accountId).all<any>(),
@@ -93,7 +93,7 @@ function withdrawMemberMail(db: D1Database, userId: string, accountId: string) {
   WHERE recipient_id=? AND account_id=? AND status IN ('queued','not configured','rate_limited','uncertain') AND restored=0`).bind(new Date().toISOString(), userId, accountId)
 }
 
-export async function companyCommand(request: Request, env: Bindings, actor: Actor, type: string, p: any, imported?: {key:string;jobId:string;fingerprint:string;sourceJson:string}) {
+export async function companyCommand(request: Request, env: Bindings, actor: Actor, type: string, p: any, imported?: {key:string;jobId:string;fingerprint:string;sourceJson:string;rejectCollisions?:boolean}) {
  requirePerson(actor)
  if (type === 'company.accept') return acceptCompanyInvitation(env, actor, p)
  if (type === 'company.erase') return eraseCompanyUser(env, actor, p)
@@ -105,11 +105,12 @@ export async function companyCommand(request: Request, env: Bindings, actor: Act
   const identitySnapshot = await identityGuard(env.DB)
   const policy = await validateCompanyPolicy(env.DB, accountId, p.policy ?? p)
   if(imported){const previous=await env.DB.prepare('SELECT i.policy_json FROM bw_import_invitations link JOIN bw_company_invites i ON i.id=link.invitation_id WHERE link.source_key=?').bind(imported.key).first<{policy_json:string}>();if(previous){if(previous.policy_json!==JSON.stringify(policy))fail('IMPORT_INVITATION_CHANGED','This source invitation was already reviewed with different rights. Use the native company rights controls to change them.');return {status:'invitation requested',replayed:true}}}
-  const match = await collision(env.DB, accountId, email), id = crypto.randomUUID(), secret = token(), expiresAt = Date.now() + week
+  const match = await companyInvitationCollision(env.DB, accountId, email), id = crypto.randomUUID(), secret = token(), expiresAt = Date.now() + week
   const prior = await env.DB.prepare("SELECT * FROM bw_company_members WHERE email_key=? AND account_id=? AND state<>'removed'").bind(email, accountId).first<any>()
   // An active member is edited explicitly; invitation is still a uniform request.
   const previousCompany=!supplier(actor)&&await env.DB.prepare("SELECT 1 FROM bw_company_members WHERE email_key=? AND account_id<>?").bind(email,accountId).first()
   const blocked = match.reason ?? (previousCompany?'supplier review required for company transfer':null) ?? (prior?.state === 'active' ? 'already active in this company' : null)
+  if ((blocked || prior) && imported?.rejectCollisions) fail('IMPORT_EMAIL_COLLISION', 'The reviewed buyer identity now needs supplier review; no invitation was sent.', 409)
   const userId = match.person?.id ?? crypto.randomUUID(), memberId = prior?.id ?? crypto.randomUUID()
   // Read snapshots are fenced in the same batch, including Unicode collision keys
   // which SQLite cannot independently normalize.
@@ -187,7 +188,7 @@ async function acceptCompanyInvitation(env: Bindings, actor: Actor, p: any) {
  if (invite.status === 'collision') fail('COMPANY_COLLISION', 'This email is linked to another trade account; ask your supplier.', 409)
  if (invite.status !== 'requested' || invite.expires_at <= Date.now() || typeof p.token !== 'string' || await digest(p.token) !== invite.token_hash) fail('INVITATION_EXPIRED', 'This invitation was used, revoked or expired. Ask for a new invitation.', 409)
  const identitySnapshot = await identityGuard(env.DB)
- const match = await collision(env.DB, invite.account_id, invite.email_key)
+ const match = await companyInvitationCollision(env.DB, invite.account_id, invite.email_key)
  if (match.reason || match.person?.id !== actor.id) fail('COMPANY_COLLISION', 'This email is linked to another trade account; ask your supplier.', 409)
  const issuer = await env.DB.prepare("SELECT id,email,role,version FROM oa_operators WHERE id=? AND status='active'").bind(invite.created_by).first<any>()
  if (!issuer || issuer.version !== invite.issuer_version) fail('INVITATION_REVOKED', 'The inviter no longer has the invitation’s original authority.', 409)

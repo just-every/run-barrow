@@ -39,7 +39,7 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
    if(mail.reject)return Response.json({message:'Rejected test edge'}, {status:422});
    const deliveryKey=request.headers.get('idempotency-key');
    if(deliveryKey&&idempotency.has(deliveryKey))return Response.json({id:idempotency.get(deliveryKey)});
-   const id=randomUUID();if(deliveryKey)idempotency.set(deliveryKey,id);mail.deliveries.push({id,message,key:deliveryKey});return Response.json({id});
+   const id=randomUUID();if(deliveryKey)idempotency.set(deliveryKey,id);mail.deliveries.push({id,message,key:deliveryKey});if(mail.afterSend)await mail.afterSend(message);return Response.json({id});
   }
   if(networkEdge){const response=await networkEdge(request);if(response)return response}
   // Node fetch supplies its own framing when forwarding the workerd request.

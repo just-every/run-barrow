@@ -1,3 +1,4 @@
+import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
 import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
 import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
@@ -310,6 +311,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(match&&request.method==='GET'&&!match[2])return json(await readCutover(env,actor,match[1]))
    if(match&&request.method==='POST'&&match[2])return json(await undoCutover(env,actor,match[1]))
   }
+  if(path==='/api/barrow/imports/nuorder-companies/preview'&&request.method==='POST')return json(await previewNuorderCompanies(env,actor,await boundedJson(request,5000000)))
+  if(path==='/api/barrow/imports/nuorder-companies/apply'&&request.method==='POST')return json(await applyNuorderCompanies(request,env,actor,await boundedJson(request,5000000)))
   if(path==='/api/barrow/imports/nuorder'&&request.method==='GET')return json(await readPlatform(env,actor))
   if(path==='/api/barrow/imports/nuorder/preview'&&request.method==='POST')return json(await previewPlatform(env,actor,await boundedJson(request,18*1024*1024),'nuorder'))
   if(path==='/api/barrow/imports/nuorder/apply'&&request.method==='POST')return json(await applyPlatform(env,actor,await boundedJson(request,18*1024*1024),'nuorder'))

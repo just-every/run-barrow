@@ -116,3 +116,6 @@ export async function parseNuorder(input:NuorderInput,held:HeldNuorderImage[]=[]
  source.missing=['NuORDER retailer-network orders stop arriving at cutover; open orders remain labeled source history, never submitted to Pier','Companies, buyers and locations require MOVE-009; historical order prices never activate a current book',...(!priceBooks.length?['No separately supplied current price book; existing native books are unchanged']:[]),...(receivables.length?['Supplied receivables are compared and retained only; source ledger remains authoritative; no native financial authority is activated']:['Releases, invoices and balances not supplied; no financial authority is activated']),'Only sanitized JPEGs are accepted; no malware verdict or public image download door','Rebuild recipient line sheets and presentations from imported SKUs through native publishing; private incumbent layouts do not transfer; richer CAT-004 video and editorial media remain separate',...source.incomplete?['Filtered source scope remains incomplete']:[]]
  return source
 }
+
+export { table as nuorderTable }
+export type { Table as NuorderTable }

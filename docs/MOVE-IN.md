@@ -249,3 +249,112 @@ history, including open ones. Replay creates no second history record or list,
 and imports never reserve stock, issue an invoice, collect payment or send mail.
 NuORDER retailer-network orders stop arriving at cutover. Companies and buyers
 remain MOVE-009's. Missing source exports and provider rights remain labeled boundaries; this adapter makes no provider-access, legal-adequacy or malware claim. Broader media delivery, catalog delegation, manifests, erasure and scanning remain with their named receiving clauses.
+
+
+## NuORDER Company and Buyer workbooks
+
+In **Move in**, choose **NuORDER companies and buyers**. Upload a JSON manifest
+with `tenant`, `companies`, `buyers`, `locations`, `accounts`, `reps`,
+`priceLists`, `catalogs` and `effectiveOn`. The three source tables accept
+`{name, csv}` or `{name, base64, sheet}` with an exact sheet name for XLSX or
+values-only Excel 97–2003 XLS. Each table accepts at most 500 data rows;
+workbooks retain the existing 1 MiB limit. Formulas, macros, links and embedded
+objects are refused. Original source tables and explicit mappings remain in
+private installation custody and the owner's source-import export and archive.
+
+Use the documented source headers below, or each table's `columns` object to
+map a named semantic key to an exact brand-specific header. Unknown columns
+are listed as retained-only fields in preview. Authentication material must be
+removed from the export: password, credential, secret, token and session
+columns refuse intake. No source flag imports sign-in or company authority.
+
+| Table | Semantic key | Default source column | Native target |
+| --- | --- | --- | --- |
+| Companies | code | Customer Code | Stable identity within the exact source tenant |
+| Companies | name | Customer Name | Account name |
+| Companies | email | Company Email | Immutable native account email; normalized exact-email collision review |
+| Companies | currency | Currency | Explicit USD, CAD, EUR or GBP; no inferred conversion |
+| Companies | terms | Payment Terms | Net 0 through Net 365; account terms only |
+| Companies | rep | Sales Rep | Named active Native rep and dated ACC-006 primary assignment |
+| Companies | priceList | Price List | Explicit reference to a reviewed existing native account's current price book |
+| Companies | catalogs | Catalogs | Semicolon-separated source labels mapped to native assortment labels |
+| Buyers | code | Customer Code | Linked company |
+| Buyers | email | Buyer Email | Stable exact-email invitation identity within the source company |
+| Buyers | name | Buyer Name | Pending ACC-002 invitation display name |
+| Locations | code | Customer Code | Linked company |
+| Locations | id | Location Code | Stable source location key within that company |
+| Locations | kind | Type | `bill-to` or `ship-to` |
+| Locations | name | Location Name | Address display name |
+| Locations | line1 | Address 1 | Required street address |
+| Locations | line2 | Address 2 | Optional second street line |
+| Locations | city | City | Required city |
+| Locations | state | State | US state or territory code |
+| Locations | zip | Postal Code | State-consistent ZIP format, not carrier verification |
+| Locations | deliveryInstructions | Delivery Instructions | Optional ship-to instructions |
+
+Supply one Companies row per customer code and one Buyers row per exact buyer
+email. Locations is a separate table or workbook sheet, with one row per
+location code: include every supplied billing address and both stores when a
+company has two ship-tos. A duplicate company code is an error, not a second
+location. The first supplied location of each kind becomes its default only
+when no native default exists. Later imports preserve native address edits,
+archiving and defaults.
+
+`accounts` maps each source code to `{id, pierCustomerId}`. Those are deliberate
+native identities, never inferred from a company name or email. `reps` maps an
+exact source label to an active native rep's user ID. `priceLists` maps a source
+price-list label to the native account whose current book supplies its prices
+and order minimum; its ISO currency must match the source company's currency.
+`catalogs` maps source labels to the existing assortment labels used in Accounts;
+these labels grant no additional product or user authority. `effectiveOn` is the
+explicit reviewed YYYY-MM-DD start date of the primary rep assignment. Existing
+primary assignments must be resolved through the native Rep assignments screen;
+the importer never transfers or revives an ended assignment.
+
+Preview shows source and planned counts for companies, buyers, locations, rep
+assignments, referenced books and catalog assignments. Currency totals compare
+price-row counts, exact integer unit-price cents and order-minimum cents from
+the explicitly referenced native books against planned accounts. These are
+reference-book totals, not balances, receivables or a source credit-limit claim.
+Missing billing or delivery source records, rejected fields, unknown references,
+duplicate codes and email collisions are explicit. Preview writes no native
+record and sends no invitation. The fingerprint fences the source bytes,
+column mappings, identity claims, book revisions, rep grants and native state.
+Changed state requires a new preview and approval.
+
+Before apply, the signed-in owner reviews every listed buyer and explicitly
+approves each invitation alongside the exact fingerprint and an attributed
+reason. The importer uses ACC-002's existing single-use, exact-email, seven-day
+invitation: purchaser rights, all company locations, zero per-order and approval
+limits, no administrator rights. A fresh native sign-in and explicit acceptance
+are still required. Supplier identities, other companies' identities and
+unrelated pending memberships refuse the import invitation rather than silently
+joining or replacing them. Broader rights are reviewed separately in Accounts.
+
+Companies, locations, rep assignments and source custody commit together.
+Invitations then commit individually with a stable source link in the same
+transaction as the invitation. After interruption, repeat the **same manifest,
+fingerprint and explicit approval**: committed entities and invitations stay
+unchanged, and only the remaining reviewed invitations are requested. A lost
+mail response is not resent by replay. Native edits are preserved. Changed
+source identity or location contents are refused after import and must use
+native review controls. Restored approvals cannot resume under a different
+native owner identity; restored memberships and assignments remain inactive.
+Erasing a buyer retires matching source custody and blocks stale replay and
+older-archive restoration through DATA-003's current independent journal.
+
+Owner JSON and per-kind CSV exports include `companyusers`,
+`companyinvitations`, `repassignments`, accounts, prices, locations and
+`sourceimports`. Invitation exports contain no token, token digest or login
+material. Source custody and company authority records remain owner-only;
+buyer exports retain their existing account and finance scope.
+
+This slice does not establish access to a real NuORDER tenant or source-use
+rights. Equivalent NuORDER API reads and source credit-status activation remain
+owed by MOVE-009. Credit status is a retained-only field; it does not grant
+credit, set a hold or release one. Saved lists and product pack or increment
+rules use the existing NuORDER history importer, ORD-002 and PRI-003, with
+MOVE-007 reconciliation. Extra manifest sections refuse this bounded door
+instead of silently discarding those entities. No order, payment, automatic
+provider financing approval or outreach other than the explicitly approved
+ACC-002 invitations is created.

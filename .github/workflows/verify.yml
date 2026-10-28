@@ -67,7 +67,7 @@ jobs:
         if: matrix.shard == 4
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-nuorder-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/move-nuorder.test.mjs
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/move-nuorder.test.mjs tests/journeys/move-nuorder-companies.test.mjs
       - name: Catalog workbook and private image batch screens
         if: matrix.shard == 4
         env:

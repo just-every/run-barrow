@@ -18,11 +18,14 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['companyusers','companyinvitations','repassignments','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
+ companyusers:['id','account_id','user_id','email','display_name','policy_json','state','revision','created_at','updated_at','erased_at'],
+ companyinvitations:['id','account_id','member_id','email','display_name','policy_json','status','expires_at','created_by','created_at','reason','revision','delivery_status'],
+ repassignments:['id','user_id','kind','target','coverage','starts_on','ends_on','state','revision','reason','created_by','created_at','updated_at'],
  faireorders:['brand','source_id','revision','source_json','account_id','matched_json','state'],
  creditnotes:['kind','sourceId','freightCents','freightBasis','taxCents','taxBasis','id','revision','accountId','orderId','orderRevision','currency','amountCents','returnId','createdAt','actorId','reason','path'],
  creditlines:['id','creditId','revision','accountId','orderId','orderRevision','returnId','line','sku','quantity','currency','amountCents','basis','original'],
@@ -104,6 +107,11 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const faireorders=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_faire_orders ORDER BY brand,source_id').all<any>()).results:undefined
  const sourcehistory=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_import_history ORDER BY id').all<any>()).results:undefined
  const sourceimports=actor.role==='owner'&&!actor.staff?(await env.DB.prepare('SELECT * FROM bw_platform_imports ORDER BY id').all<any>()).results:undefined
+ const companyRecords=actor.role==='owner'&&!actor.staff?{
+  companyusers:(await env.DB.prepare('SELECT id,account_id,user_id,email,display_name,policy_json,state,revision,created_at,updated_at,erased_at FROM bw_company_members ORDER BY id').all<any>()).results,
+  companyinvitations:(await env.DB.prepare('SELECT id,account_id,member_id,email,display_name,policy_json,status,expires_at,created_by,created_at,reason,revision,delivery_status FROM bw_company_invites ORDER BY id').all<any>()).results,
+  repassignments:(await env.DB.prepare('SELECT id,user_id,kind,target,coverage,starts_on,ends_on,state,revision,reason,created_by,created_at,updated_at FROM bw_rep_assignments ORDER BY id').all<any>()).results,
+ }:{}
  const lists=financeOnly?[]:(await Promise.all(ids.map(async id=>{if(!supplier(actor)){try{await requireCompanyRight(env.DB,actor,id,'purchasing')}catch{return []}}return readLists(env.DB,actor,id)}))).flat().map(({mine,creatorName,...row})=>({...row,lines:json(row.lines)}))
  const profileRecords = await buyingProfileExport(env.DB, actor, ids, financeOnly)
  const cardRows=(await env.DB.prepare('SELECT value_json,revision FROM bw_card_payments').all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})).filter(row=>ids.includes(row.accountId)&&orderIds.has(row.orderId))
@@ -126,7 +134,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
   }),
   cardpayments:cardRows.map(row=>Object.fromEntries(columns.cardpayments.map(key=>[key,row[key]??'']))),
   cardevents:cardEvents.map(row=>({id:row.id,paymentId:row.payment_id,createdAt:row.created_at,...JSON.parse(row.value_json)})),
-  ...profileRecords,
+  ...profileRecords,...companyRecords,
   lists,...(faireorders?{faireorders}:{}),...(sourcehistory?{sourcehistory,sourceimports}:{}),
   ...(deltas?{deltas,deltasources,deltafeeds}:{}),
   ...(cutovers?{cutovers}:{}),

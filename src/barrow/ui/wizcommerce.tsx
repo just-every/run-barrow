@@ -7,8 +7,11 @@ type Entities = { customers: number; contacts: number; addresses: number }
 type CurrencyTotal = { currency: string; orders: number; quotes: number; totalCents: number; shippingCents: number; quantity: number; openQuantity?:number }
 type Preview = {
   fingerprint: string
-  source: Counts
-  planned: Counts & { newDocuments: number; newLists: number }
+  buyers?: Array<{name:string;email:string;accountId:string;status:string}>
+  companies?: unknown[]
+  locations?: unknown[]
+  source: Counts & Record<string,number>
+  planned: Counts & Record<string,number> & { newDocuments: number; newLists: number }
   receivables?: {hasDifferences:boolean}
   catalog?: unknown
   priceBooks?: Array<{accountId:string;currency:string;sourceRows:number;plannedRows:number;sourceUnitCents:number;plannedUnitCents:number}>
@@ -24,10 +27,21 @@ type Preview = {
   invitationCandidates: Array<{ accountId: string; email: string; name: string }>
 }
 type Review = { input: Record<string, unknown>; report: Preview }
-type Applied = { id?: string; fingerprint: string; replayed?: boolean }
+type Applied = { invitations?: Array<{id:string;accountId:string;name:string;status:string}>; id?: string; fingerprint: string; replayed?: boolean }
 
 function SourceReview({ report, name }: { report: Preview; name:string }) {
   const native = report.nativeEntities
+  if(report.buyers)return <div className="br-stack">
+    <p>{report.matches?'Source and planned totals match.':'Resolve the source differences before applying.'}</p>
+    <div className="br-table-wrap"><table><caption>Company and buyer reconciliation</caption><thead><tr><th scope="col">Entity</th><th scope="col">Source</th><th scope="col">Planned</th></tr></thead><tbody>{Object.entries(report.source).map(([kind,count])=><tr key={kind}><th scope="row">{kind}</th><td>{count}</td><td>{report.planned[kind]}</td></tr>)}</tbody></table></div>
+    <JsonDetail value={{source:report.totals,planned:report.plannedTotals}} label="Review referenced book currency totals" />
+    <JsonDetail value={report.companies} label="Review company mappings and terms" />
+    <JsonDetail value={report.locations} label="Review billing and delivery locations" />
+    <h4>Reviewed pending invitations</h4><p>Each listed buyer receives one ACC-002 invitation with purchaser rights, all company locations and a zero per-order limit. Sign-in and explicit invitation acceptance are still required; no active membership migrates.</p>
+    <ul>{report.buyers.map(buyer=><li key={buyer.email}>{buyer.name} · {buyer.email} · {buyer.accountId} · {buyer.status}</li>)}</ul>
+    {report.errors.length>0&&<Notice error><ul>{report.errors.map((message,index)=><li key={index}>{message}</li>)}</ul></Notice>}
+    <h4>Retained fields and missing entities</h4><ul>{[...report.rejectedFields,...report.missing].map((message,index)=><li key={index}>{message}</li>)}</ul>
+  </div>
   return <div className="br-stack">
     <div className="br-table-wrap"><table>
       <caption>{name} source and planned records</caption>
@@ -61,7 +75,8 @@ function SourceReview({ report, name }: { report: Preview; name:string }) {
 
 export function WizCommerceMoveIn({ reload }: { reload: () => Promise<void> }) {
   const [system,setSystem] = useState('wizcommerce')
-  const name=system==='nuorder'?'NuORDER':'WizCommerce'
+  const companySource=system==='nuorder-companies'
+  const name=companySource?'NuORDER companies':system==='nuorder'?'NuORDER':'WizCommerce'
   const [source, setSource] = useState('')
   const [review, setReview] = useState<Review | null>(null)
   const [reviewed, setReviewed] = useState(false)
@@ -92,13 +107,13 @@ export function WizCommerceMoveIn({ reload }: { reload: () => Promise<void> }) {
   const canApply = review && reviewed && reason.trim() && review.report.matches && review.report.errors.length === 0
   async function apply() {
     if (!review || !canApply) return
-    const result = await request<Applied>(`/api/barrow/imports/${system}/apply`, { ...review.input, fingerprint: review.report.fingerprint, reason: reason.trim() })
+    const result = await request<Applied>(`/api/barrow/imports/${system}/apply`, { ...review.input, fingerprint: review.report.fingerprint, reason: reason.trim(),...(companySource?{approveInvitations:true}:{}) })
     setApplied(result)
     try { await reload() } catch (cause) { throw new Error(`${name} import completed, but the latest records could not be loaded. Refresh records before continuing. ${errorMessage(cause)}`) }
   }
   return <section className="br-card br-stack" aria-label={`${name} move-in`} aria-busy={busy}>
     <h2>{name} move-in</h2>
-    <label>Source system<select aria-label="Source system" value={system} disabled={busy} onChange={event=>{setSystem(event.target.value);changeSource('')}}><option value="wizcommerce">WizCommerce</option><option value="nuorder">NuORDER</option></select></label>
+    <label>Source system<select aria-label="Source system" value={system} disabled={busy} onChange={event=>{setSystem(event.target.value);changeSource('')}}><option value="wizcommerce">WizCommerce</option><option value="nuorder">NuORDER</option><option value="nuorder-companies">NuORDER companies and buyers</option></select></label>
     <p>Upload or paste a JSON manifest containing your real CSV exports or a workbook encoded as base64 (NuORDER also accepts binary XLS), source scope and explicit customer and product mappings. Preview and review the exact source before applying.</p>
     <label>Choose {name} manifest<input type="file" accept=".json,application/json" disabled={busy} onChange={event => {
       const file = event.target.files?.[0]
@@ -108,15 +123,16 @@ export function WizCommerceMoveIn({ reload }: { reload: () => Promise<void> }) {
     <label>{name} source<textarea aria-label={`${name} source`} value={source} rows={9} spellCheck={false} disabled={busy} onChange={event => changeSource(event.target.value)} /></label>
     <div className="br-actions"><button type="button" disabled={busy || !source.trim()} onClick={() => void act(preview)}>Preview {name} import</button></div>
     {error && <Notice error>{error}</Notice>}
-    {applied && <Notice>{name} import completed.{applied.replayed ? ' Replay confirmed; this approval was already applied.' : ''}{applied.id ? ` Import reference: ${applied.id}.` : ''} {system==='nuorder'?'Review retained history, image slots, held files and retrieval failures; rebuild recipient line sheets and presentations in Line sheets.':'Review native customers, contacts and addresses in Accounts.'} Keep this exact source and reviewed fingerprint: replaying the same approval does not create duplicate records.</Notice>}
+    {applied && <Notice>{name} import completed.{applied.replayed ? ' Replay confirmed; this approval was already applied.' : ''}{applied.id ? ` Import reference: ${applied.id}.` : ''} {system==='nuorder'?'Review retained history, image slots, held files and retrieval failures; rebuild recipient line sheets and presentations in Line sheets.':'Review native customers, contacts and addresses in Accounts.'} {companySource?'The listed pending invitations were requested. Interrupted applies resume with this same approval.':''} Keep this exact source and reviewed fingerprint: replaying the same approval does not create duplicate records.</Notice>}
+    {applied?.invitations&&<div role="region" aria-label="Imported pending invitations"><h3>Pending buyer invitations</h3><ul>{applied.invitations.map(invitation=><li key={invitation.id}>{invitation.name} · {invitation.accountId} · {invitation.status==='requested'?'invitation requested':invitation.status}</li>)}</ul></div>}
     {review && <div className="br-stack" role="region" aria-label={`${name} preview`}>
       <h3>Review {name} import</h3>
       <p>{review.report.label}</p>
       <SourceReview report={review.report} name={name} />
       <label>{name} reviewed fingerprint<input value={review.report.fingerprint} readOnly className="br-mono" /></label>
       <label>{name} approval reason<textarea value={reason} rows={3} maxLength={1000} disabled={busy || !!applied} onChange={event => { setReason(event.target.value); setReviewed(false) }} /></label>
-      <label><input type="checkbox" style={{ width: 'auto', marginRight: 8 }} checked={reviewed} disabled={busy || !review.report.matches || review.report.errors.length > 0} onChange={event => setReviewed(event.target.checked)} />I reviewed this {name} source, native entities, mappings, totals, missing fields and exact fingerprint.</label>
-      <p>Applying creates only the native entities named in this preview and retains source history. Review invitations separately. Any source edit requires a fresh preview and approval.</p>
+      <label><input type="checkbox" style={{ width: 'auto', marginRight: 8 }} checked={reviewed} disabled={busy || !review.report.matches || review.report.errors.length > 0} onChange={event => setReviewed(event.target.checked)} />I reviewed this {name} source, native entities, mappings, totals, missing fields and exact fingerprint.{companySource?' I explicitly approve each listed zero-limit purchaser invitation.':''}</label>
+      <p>Applying creates only the native entities named in this preview and retains source history. {companySource?'Applying explicitly requests the listed pending invitations.':'Review invitations separately.'} Any source edit requires a fresh preview and approval.</p>
       <div className="br-actions"><button type="button" disabled={busy || !canApply} onClick={() => void act(apply)}>{applied ? `Replay reviewed ${name} import` : `Apply reviewed ${name} import`}</button></div>
     </div>}
   </section>
