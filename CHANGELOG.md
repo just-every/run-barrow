@@ -742,7 +742,7 @@ CAT-002: `tests/api/catalog-search.test.mjs` — “catalog search finds entitle
 
 CAT-003: `tests/api/line-sheets.test.mjs` — “recipient seasonal sheets retain exact variants, columns, ship windows and revision, and revocation closes every sheet door”: seasonal recipient snapshot, variants/barcodes/packs/availability/window/revision, scoped sales-manager publication/import/revocation, rep/operations refusals, cross-account page/PDF/form/preview refusal and revoked page/PDF/form/activity/preparation refusal. `tests/api/line-sheets.test.mjs` — “line-sheet size runs and fixed assortments preview exact extended-size prices, preserve Pier SKU quantities, and refuse unavailable sizes without redistribution”: exact size-run plus fixed-case quantities, higher-priced extended size, per-size wholesale/MSRP snapshots, real pinned Pier handoff, exhausted-size refusal without reallocation, uploaded matrix merge/replace and explicit PRI-003 corrections. `tests/api/pricing.test.mjs` — “MSRP books import and edit exact USD/CAD cents and preserve configured sheet, PDF and order document prices without changing wholesale totals”: import/edit/export of USD and CAD variant MSRP; missing MSRP; wholesale/both/retail sheet page and PDF; independently configured immutable confirmation PDF and order CSV columns; exact ISO minor units and 50.00%/59.98% margin; wholesale-only order totals, exact CAD cart-form CSV round-trip, USD-rate refusal for CAD quotes and stale-book refusal. `tests/api/line-sheets.test.mjs` — “line-sheet buyer opens and visible-item views appear independently in the scoped quote conversion report”: distinct buyer opens/views/SKU counts, account/period scoping and supplier-preview exclusion. `tests/journeys/line-sheets.test.mjs` — “supplier publishes recipient-priced seasonal matrices and two buyers order exact size runs on phones, download their own documents, and see a revoked share refused at desktop and phone”: built Worker and native sessions; account retail controls, price-book import, seasonal publication, both recipient pages/PDF/CSV, phone preparation/submission, CAD catalog/quotes/reorder, per-buyer report and revoked open-page request at 1440/390.
 
-CAT-004: 
+CAT-004:
 
 CAT-005: `src/barrow/ui/app.tsx`; `src/barrow/ui/order-pad.tsx`
 
@@ -750,13 +750,13 @@ CAT-006: `tests/api/pricing.test.mjs` — “CAT-006: one company buyer delibera
 
 CAT-007: `tests/api/line-sheets.test.mjs` — “line-sheet size runs and fixed assortments preview exact extended-size prices, preserve Pier SKU quantities, and refuse unavailable sizes without redistribution”: exact size-run plus fixed-case quantities, higher-priced extended size, per-size wholesale/MSRP snapshots, real pinned Pier handoff, exhausted-size refusal without reallocation, uploaded matrix merge/replace and explicit PRI-003 corrections. `tests/journeys/line-sheets.test.mjs` — “supplier publishes recipient-priced seasonal matrices and two buyers order exact size runs on phones, download their own documents, and see a revoked share refused at desktop and phone”: built Worker and native sessions; account retail controls, price-book import, seasonal publication, both recipient pages/PDF/CSV, phone preparation/submission, CAD catalog/quotes/reorder, per-buyer report and revoked open-page request at 1440/390.
 
-CAT-008: 
+CAT-008:
 
 CAT-009: `tests/api/move-rehearsal.test.mjs` — “CAT-009: owner previews a real catalog workbook, corrects duplicate barcodes and broken media, applies the approved fingerprint and exports stable source identities”: invalid workbook, corrected apply and open exports, Pier-owned field refusal, duplicate variants, explicit removals, read-only source against planned counts, absent financial sums, rejected fields and missing entities, exact attributed import.approved fingerprint, private image reference custody and buyer and agent refusal. Runs in Verify (4/4). `tests/journeys/catalog-maintenance.test.mjs` — “owner previews duplicate-barcode and broken-media XLSX, corrects the workbook, approves its fingerprint and downloads applied metadata at desktop and phone”: built Worker upload, preview, approval, applied end state and real downloads at 1440 and 390, run through heavy-slot outside push Verify. Every control has visible words.
 
 CAT-010: `tests/api/move-rehearsal.test.mjs` — “CAT-010: private batch preview, held style import and same-slot replacement preserve positions and deduplicate sanitized bytes” proves exact style and color targets and positions, misspelling reasons, read-only preview and stale approval refusal, automatic held-file attachment, changed-byte replacement with one slot on replay, metadata stripping and one stored copy, ZIP extraction and 1,000 matched files, archive restoration and current private-door refusals. `tests/journeys/catalog-maintenance.test.mjs` — “owner previews duplicate-barcode and broken-media XLSX, corrects the workbook, approves its fingerprint and downloads applied metadata at desktop and phone” proves built-screen batch preview, reasons, later workbook attachment and replacement at 1440 and 390; Verify shard 4 invokes this journey.
 
-CAT-011: 
+CAT-011:
 
 PRI-001: `src/barrow/imports/validation.ts`; `src/barrow/invoice.ts`; `src/barrow/ui/types.ts`; `tests/api/order-guarantee.test.mjs`
 
@@ -798,7 +798,7 @@ ORD-011: `tests/api/confirmations.test.mjs` — “ORD-014: a seasonal matrix or
 
 ORD-012: `src/barrow/timeline.ts`; `src/barrow/api.ts`; `src/barrow/ui/order-timeline.tsx`; `src/barrow/ui/orders.tsx`; `tests/api/timeline.test.mjs`
 
-ORD-013: 
+ORD-013:
 
 ORD-014: `tests/api/confirmations.test.mjs` — “ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep”: a line-sheet matrix order with two per-line ship windows, seller identity, explicit style/color/size, a metadata-stripped embedded product image and accepted terms; buyer and rep download identical PDF and CSV for C1 and the revised C2; C2 differs from C1 only in the changed line (quantity, base quantity, line cents) apart from its own identity and total; both PDFs name the terms version and buyer acceptance; another buyer is refused; supplier, stale, unaccepted-terms, unchanged and post-acceptance revisions are refused; size-matrix layout rows per window; Pier promise date is the earliest window; one email per revision links that exact revision without commercial values and the link downloads it; later identity and image edits and archive restore leave both revisions byte-identical and send nothing. “ORD-014: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore”: a second layout set as default changes the downloaded CSV. “ORD-014: fifty recorded orders of one season export per line and as style, color and size production totals equal to their lines”: season filter selects exactly the 50 recorded orders of that season (other-season and draft orders excluded, another buyer refused), the per-line file has every line and source, and the totals equal the sum of the selected lines and name all 50 confirmations. “ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with named layouts, source identities and unchanged selling-unit bases” and “ORD-014: numbered submitted and accepted confirmations retain exact commercial snapshots through edits, retry and cancellation” keep the hand-selected and base snapshot proofs. `tests/journeys/confirmations.test.mjs` — “owner records seller and variant details, a buyer revises a two-window seasonal order before acceptance, and the owner exports that season as style, color and size totals at desktop and phone” covers seller/variant/JPEG settings, buyer revision, confirmation list, season totals and saved/default size-matrix layout screens at 1440/390. External 50-order production journey on candidate 26bd6fb877221b593b237fb317f723b245b6734e: [workflow run 39847713165](https://github.com/just-every/run-barrow/actions/runs/39847713165). ct approved the landed product-image custody on 22 October 2026 at 22:15Z. ORD-014 closes neither DATA-001's media manifest nor DATA-004's malware screening for CAT-002.
 
@@ -808,7 +808,7 @@ ORD-018: `tests/api/confirmations.test.mjs` — “ORD-014: a seasonal matrix or
 
 ORD-015: `src/barrow/sales-terms.ts`; `migrations/core/0031_sales_terms.sql`; `src/barrow/orders.ts`; `src/barrow/confirmations.ts`; `src/barrow/export.ts`; `src/barrow/api.ts`; `src/barrow/ui/sales-terms.tsx`; `src/barrow/ui/orders.tsx`; `tests/api/sales-terms.test.mjs`; `docs/SALES-TERMS.md`
 
-ORD-016: 
+ORD-016:
 
 STK-001: `src/barrow/pier.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs`
 
@@ -822,81 +822,81 @@ STK-005: `src/barrow/substitutions.ts`; `src/barrow/substitution-preview.ts`; `s
 
 REP-001: `src/barrow/orders.ts`; `src/barrow/company-policy.ts`; `src/barrow/staff-access.ts`; `src/barrow/rep-scope.ts`; `tests/api/rep-ordering.test.mjs` — “REP-001: a rep switches only among assigned accounts, sees prices, stock, history and balances, prepares for the buyer, and the accepted order names rep and buyer”: assigned-only accounts, prices, live stock, history and statement/CSV balances, another territory refused for account, catalog, order, quote and statement, acting-as draft and quote attribution, refused rep submission and company approval, buyer review/submission and supplier approval naming rep and buyer, supplier-assisted submission, assignment end. `tests/journeys/rep-ordering.test.mjs` — “a rep prepares an order for an assigned account, the buyer submits it, and the accepted order names rep and buyer at desktop and phone”: the rep’s order pad lists only the assigned account, prepares the draft, is refused submission, the buyer submits and the accepted order names both at 1440/390.
 
-REP-002: 
+REP-002:
 
-REP-003: 
+REP-003:
 
 REP-004: `src/barrow/commission-rules.ts`; `src/barrow/commission-source.ts`; `src/barrow/commission-report.ts`; `src/barrow/orders.ts`; `src/barrow/ui/commissions.tsx`; `src/barrow/ui/commission-settings.tsx`; `migrations/core/0028_commissions.sql`; `tests/api/commissions.test.mjs` PAY-010 extension: `tests/api/credit-payments.test.mjs` — “one linked partial-return credit applies to an unpaid invoice and refunds the paid remainder once with exact dated balances and frozen commission reversals”: original approved currency and line price, one physical return credit, explicit verified principal allocation, part applied to the unpaid invoice, lost refund response, one stable refund request and signed replay, exact dated statement opening and closing plus CSV and PDF, scoped source-linked JSON and per-kind CSV counts and currency totals, attributed actor kind, source, time, revision and reason through source-order audit search and complete CSV, buyer and agent refusals and append-only audit, original order and stock preservation, original frozen commission links and no second physical-return reversal, and restored refund history refusing provider effects. “finance allowances bound source-priced corrections and refunds; confirmed cancellations credit the original invoice and freight without inventing tax or reversing commission twice”: Native finance activation and explicit per-decision USD allowances, source-order own-audit search and CSV, amount refusals and immediate allowance withdrawal, original price and delivery snapshots despite later rate edits, unverified-tax refusal, original cancellation invoice plus linked correcting credit, capped original split reversals, and verified refund-creation refusal with unused credit released.
 
 REP-005: `src/barrow/visits.ts`; `src/barrow/pier.ts`; `migrations/core/0038_visits.sql`; `src/barrow/ui/visits.tsx`; `tests/api/rep-ordering.test.mjs` — “REP-005: a rep plans a showroom visit for a held account, records buyer notes and a sample request, turns the show basket into a quote, assigns the follow-up, and sees Pier’s acknowledgment once the samples reach inventory”: planning only for a held account (another territory not found; buyers, agents and operations refused; invalid time refused); the visit and its next-action task readable only by holders; buyer notes; a sample request limited to the account’s collection with stale revisions refused; the show basket as a rep-requested quote, once; completion; follow-up dating and refused reassignment to a non-holder; the rep refused and operations allowed to hand samples to Pier once under one durable identity, with promiseable stock falling by the reserved units; the acknowledgment on the visit and its next action; audited steps. `tests/journeys/rep-ordering.test.mjs` — “a rep plans a showroom visit, records buyer notes and samples, turns the show basket into a quote, and sees the follow-up and Pier’s sample acknowledgment at desktop and phone”: the plan form, the planned visit, notes and sample request, basket quote and completion, operations’ sample queue and handoff, and the acknowledgment on the visit and in the rep’s Follow-ups at 1440/390.
 
-REP-006: 
+REP-006:
 
-REP-007: 
+REP-007:
 
 MOB-001: `src/barrow/ui/app.tsx`; `src/barrow/ui/order-pad.tsx`; `src/barrow/ui/orders.tsx`
 
 PAY-001: `tests/api/card-payments.test.mjs` — “hosted card review preserves the approved order, exact surcharge and authorization; lost capture and signed replay reconcile one receipt in every statement format” proves approved-order admission, unchanged agreed snapshots and Pier reservation, exact currency and cents, explicit amount consent, distinct authorization and capture, one recovered receipt, signed replay, scoped source exports and dated statement opening, surcharge, receipt and closing in JSON, CSV and PDF. “verified decline stays owned until provider cancellation and an authentication challenge stays unpaid” proves unpaid challenge, verified failure, owned source-linked work, manual-close refusal and positive cancellation resolution. “card surcharge is calculated only for verified credit funding and an explicitly permitted matching state” proves credit fees and debit, prepaid, unknown-funding and prohibited-state refusal. “hosted verification failure creates an unpaid owned exception and owner cancellation cannot later authorize it” proves mode and owner admission and terminal cancellation. “two installations under one Stripe merchant keep customer, checkout, idempotency and signed event effects separate” proves installation and customer binding. `tests/api/retention.test.mjs` — “DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floor, attributed PO erasure receipt and restore fence”, “ordered-account owner erasure revokes access, redacts personal classes, preserves financial evidence and returns attributed custody”, “independent erasure journal reapplies after D1 rewind and old archive import; missing or incomplete journal refuses data and auth” and “post-floor review defaults to personal redaction; explicit order deletion leaves reconciliable totals and exclusions have recorded reasons” prove exact UTC leap-day cutoff, pre-cutoff and expiry refusal, holds and attributed release, owner review and receipt, Stripe custody, financial preservation, reusable-reference removal and no resurrection. `tests/journeys/card-stripe-sandbox.mjs` — authorized local held-key run sx-barrow-c-i816 on 26 October 2026: real merchant connection form, hosted successful and declined cards, completed bank authentication, credit surcharge, verified debit and prohibiting-state exclusion, merchant capture and cancellation, one real lost capture response and signed provider-event replay; payment, owner exception, statement and custody screens at 1440 and 390. All sandbox result flags and endpoint removal were true.
 
-PAY-002: 
+PAY-002:
 
-PAY-003: 
+PAY-003:
 
 PAY-004: `tests/api/purchase.test.mjs` — “credit terms and exposure block an exhausted draft and quote, then verified principal restores available credit without double counting invoices”: net 30, USD limit, exact 300000 owed plus 800000 order refusal after drafting and quote refusal; verified 200000 partial allocation restores availability, invoice transition is counted once, bounded audited exception, current source-linked finance JSON and CSV, separate CAD due-on-receipt snapshots. `tests/api/company-approvals.test.mjs` — “ACC-007: amount and location routes run sequential approvers with delegation, escalation, withdrawal and fresh approval after any material change”: a finance policy change voids a partly approved request. `tests/api/order-guarantee.test.mjs` — “BAR-002: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities”: snapshot, acknowledgment, replay and shortfall inheritance. `tests/api/purchase.test.mjs` — “finance hold and exact-order release refuse buyers and reps, audit decisions, invalidate on exposure changes and appear in the order timeline”: audit attribution, search and CSV, no edits or deletion, private buyer and agent refusals, archive history and inert releases. `tests/journeys/credit-policy.test.mjs` — “finance configures net terms, holds checkout and releases one reviewed order after partial payment with current source-linked credit at desktop and phone”: checkout availability, finance settings, remediation request, source-linked report and both widths; Verify shard 1.
 
 PAY-005: `tests/api/purchase.test.mjs` — “finance hold and exact-order release refuse buyers and reps, audit decisions, invalidate on exposure changes and appear in the order timeline”: overdue, manual and provider-origin holds, named owner and expiry, buyer and rep checkout and quote refusal, owned remediation request, verified partial payment, bounded account and order release, current-exposure and revoked-authority refusals, timeline, private attributed audit search and CSV, append-only refusal and archive fencing. `tests/api/purchase.test.mjs` — “credit terms and exposure block an exhausted draft and quote, then verified principal restores available credit without double counting invoices”: exhaustion after drafting and exact exception bounds. `tests/api/company-approvals.test.mjs` — “ACC-007: amount and location routes run sequential approvers with delegation, escalation, withdrawal and fresh approval after any material change”: finance policy invalidation. `tests/api/order-guarantee.test.mjs` — “BAR-002: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities”: unchanged commercial and inventory guarantees. `tests/journeys/credit-policy.test.mjs` — “finance configures net terms, holds checkout and releases one reviewed order after partial payment with current source-linked credit at desktop and phone”: finance hold, buyer explanation and request, partial-payment release review and result at both widths; Verify shard 1.
 
-PAY-006: 
+PAY-006:
 
 PAY-007: `src/barrow/statements.ts`; `src/barrow/pdf.ts`; `src/barrow/ui/statement.tsx`; `tests/api/statements.test.mjs` PAY-010 extension: `tests/api/credit-payments.test.mjs` — “one linked partial-return credit applies to an unpaid invoice and refunds the paid remainder once with exact dated balances and frozen commission reversals”: original approved currency and line price, one physical return credit, explicit verified principal allocation, part applied to the unpaid invoice, lost refund response, one stable refund request and signed replay, exact dated statement opening and closing plus CSV and PDF, scoped source-linked JSON and per-kind CSV counts and currency totals, attributed actor kind, source, time, revision and reason through source-order audit search and complete CSV, buyer and agent refusals and append-only audit, original order and stock preservation, original frozen commission links and no second physical-return reversal, and restored refund history refusing provider effects. `tests/journeys/credit-payments.test.mjs` — “merchant issues a linked return credit, applies it and reviews pending and failed refunds with exact buyer balances and unchanged commission reversals at desktop and phone”: merchant allocation, return credit, application, exact refund approval, pending and failed statuses, finance and sales reports, frozen commission sources, buyer statement and read-only credit history, price correction, cancellation and explicit finance allowance fields at 1440 and 390; visible controls have text or a tooltip.
 
 PAY-008: `src/barrow/invoice.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs`
 
-PAY-009: 
+PAY-009:
 
 PAY-010: `tests/api/credit-payments.test.mjs` — “one linked partial-return credit applies to an unpaid invoice and refunds the paid remainder once with exact dated balances and frozen commission reversals”: original approved currency and line price, one physical return credit, explicit verified principal allocation, part applied to the unpaid invoice, lost refund response, one stable refund request and signed replay, exact dated statement opening and closing plus CSV and PDF, scoped source-linked JSON and per-kind CSV counts and currency totals, attributed actor kind, source, time, revision and reason through source-order audit search and complete CSV, buyer and agent refusals and append-only audit, original order and stock preservation, original frozen commission links and no second physical-return reversal, and restored refund history refusing provider effects. “unpaid returned principal is applied before refundable cash; invalid returns, over-credit, stale applications and cross-company effects are refused”: unpaid original principal first, physical quantity and unused-credit caps, currency and account admission, exact-amount refund approval, pending and failed refunds excluded from cash effects and aged balances, and foreign-company refusal. “finance allowances bound source-priced corrections and refunds; confirmed cancellations credit the original invoice and freight without inventing tax or reversing commission twice”: Native finance activation and explicit per-decision USD allowances, source-order own-audit search and CSV, amount refusals and immediate allowance withdrawal, original price and delivery snapshots despite later rate edits, unverified-tax refusal, original cancellation invoice plus linked correcting credit, capped original split reversals, and verified refund-creation refusal with unused credit released. `tests/api/retention.test.mjs` — “DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floor, attributed PO erasure receipt and restore fence”, “ordered-account owner erasure revokes access, redacts personal classes, preserves financial evidence and returns attributed custody”, “independent erasure journal reapplies after D1 rewind and old archive import; missing or incomplete journal refuses data and auth” and “post-floor review defaults to personal redaction; explicit order deletion leaves reconciliable totals and exclusions have recorded reasons”: every introduced credit, application, allocation, refund and provider-event time extends the exact UTC seven-calendar-year floor, leap day clamps, pre-floor and configured-expiry refusal, hold and attributed release, explicit owner review, attributed erasure, required financial preservation, inactive restored refund requests, Stripe separate custody and later-journal replay without resurrection. `tests/api/substitutions.test.mjs` — “STK-005: buyer declines then accepts a current-price split substitution; only execution replaces the real stock reservation and exports both links”: real accepted replacement, physical receipt, original order and line linkage, exact accepted replacement basis and linked JSON and CSV credit export. `tests/journeys/credit-payments.test.mjs` — “merchant issues a linked return credit, applies it and reviews pending and failed refunds with exact buyer balances and unchanged commission reversals at desktop and phone”: merchant allocation, return credit, application, exact refund approval, pending and failed statuses, finance and sales reports, frozen commission sources, buyer statement and read-only credit history, price correction, cancellation and explicit finance allowance fields at 1440 and 390; visible controls have text or a tooltip.  The same journey activates a Native finance member and asserts the saved USD 10.00 credit and USD 5.00 refund allowances and the exact 1000 and 500 cent edit values, with both states captured at 1440 and 390; Verify shard 1 invokes it.
 
-PAY-011: 
+PAY-011:
 
 PAY-012: `tests/api/card-payments.test.mjs` — “saved company card needs separate exact-amount authorization, withdrawal fences later charges and keeps receipts without exposing reusable tokens” proves explicit company consent, later exact cents and surcharge authorization, revoked preparation and authorization refusal with no provider collection request, private reusable tokens through payment reads and commercial exports, unchanged approved order and stock snapshots, retained receipts and inactive restore. “saved consent is bound to company delivery location and current company finance authority” proves location binding and live finance permission. `tests/journeys/card-stripe-sandbox.mjs` — held-key saved-card segment sx-barrow-c-i818, 26 October 2026, BARROW_SANDBOX_SAVED=true: buyer saves a real Stripe-hosted test card, authorizes and captures a later order, withdraws consent and sees a previously prepared new charge refused; masked consent, review, receipt, withdrawal and refusal screens at 1440 and 390. No new inventory handoff or invoice snapshot is introduced.
 
-TAX-001: 
+TAX-001:
 
-TAX-002: 
+TAX-002:
 
-TAX-003: 
+TAX-003:
 
-TAX-004: 
+TAX-004:
 
 SHIP-001: `src/barrow/shipping.ts`; `src/barrow/shipping-rules.ts`; `src/barrow/ui/shipping-settings.tsx`; `src/barrow/ui/order-shipping.tsx`; `src/barrow/ui/quote-shipping.tsx`; `src/barrow/orders.ts`; `src/barrow/quotes.ts`; `src/barrow/invoice.ts`; `src/barrow/sales-report.ts`; `tests/api/shipping.test.mjs`
 
-SHIP-002: 
+SHIP-002:
 
-SHIP-003: 
+SHIP-003:
 
-SHIP-004: 
+SHIP-004:
 
-SHIP-005: 
+SHIP-005:
 
 INT-001: `src/barrow/pier.ts`; `scripts/connect-pier.mjs`; `tests/api/flows.test.mjs`
 
-INT-002: 
+INT-002:
 
-INT-003: 
+INT-003:
 
-INT-004: 
+INT-004:
 
-INT-005: 
+INT-005:
 
-INT-006: 
+INT-006:
 
-INT-007: 
+INT-007:
 
-INT-008: 
+INT-008:
 
-INT-009: 
+INT-009:
 
-INT-010: 
+INT-010:
 
 INT-011: `tests/api/faire.test.mjs` — “Faire HTTP intake resumes paged reads, holds unknown SKUs for owner review and deduplicates source orders without collection” proves authorized paged HTTP, checkpoint recovery, explicit account and unknown-SKU review, original IDs, exact prices, fees and quantities, replay and no collection; “Faire owner decisions are private, attributed, append-only and fully exported; restored reads require fresh consent” proves audit search and complete export, owner-only authority and inactive restore; “Faire refuses invalid credentials, foreign destinations and malformed source pages without advancing a checkpoint” proves authenticated token and OAuth boundaries and safe refusals. `tests/journeys/faire.test.mjs` — “Faire source quantities and unknown fulfillment facts remain visible without a Pier connection” proves exact line quantities and explicit shipped, warehouse and delivery unknowns through the built report at 1440, with browser captures at 1440 and 390. The journey runs in Verify shard 3; the API file is selected by the standard filename shard allocator. “Faire refuses an older overlapping page after a newer complete poll returns to the same checkpoint” proves HTTP 409 for an obsolete response after quantity 8 is committed, preservation of that quantity and checkpoint, and in-flight refusal after consent changes. Consent audit checks assert four distinct revisions and explicit enable or disable sources through search and complete CSV. Reordered identical OAuth grants are refused before another source identity can be created. The built report asserts unknown-warehouse inclusion and unassigned-warehouse exclusion, with both states captured at 1440 and 390. The paged intake test places and partially dispatches a real Pier order before Faire ingestion, then asserts its ordered, shipped, allocated, outstanding, warehouse and fill values are unchanged. The owner-decision test independently hashes explicit source fixtures for both reviewed matching revisions and both page revisions, asserts exact matching and reconciliation sources and distinct supplied reasons, and bounds every decision time to its own HTTP request. Every CSV record repeats these independent checks, including actor ID and human kind; eight explicit decisions, including the initial disabled preview consent, cross the requested two-row page size.
 
@@ -908,13 +908,13 @@ INT-014: `tests/api/diagnostics.test.mjs` — “owner inspects connector sample
 
 INT-015: `src/barrow/accounts.ts`; `src/mail.server.mjs`; `tests/api/flows.test.mjs` ; `src/barrow/quote-mail.ts`; `src/barrow/quote-mail-events.ts`; `tests/api/quote-delivery.test.mjs`; `src/barrow/report-mail-events.ts`; `tests/api/order-search.test.mjs`
 
-INT-016: 
+INT-016:
 
-INT-017: 
+INT-017:
 
-INT-018: 
+INT-018:
 
-INT-019: 
+INT-019:
 
 INT-020: Native merchant-hosted SFTP trust/refusal: `tests/api/flat-file-feed.test.mjs` — “owner tests a pinned merchant SFTP destination through the Worker; wrong host trust, credentials and non-owner calls refuse”; isolated mapped product/customer/ATS rows, owned quarantine, stable replay, frozen named-layout new-order files and exact acknowledgment: `tests/api/move-rehearsal.test.mjs` — “owner rehearses and reconciles a source delta, signs scoped authority and exports only new orders; rollback preserves a dependent shipment”.
 
@@ -940,27 +940,27 @@ AUTO-002: `src/barrow/approval-notices.ts`; `src/barrow/approval-escalation.ts`;
 
 AUTO-003: `src/barrow/quote-mail.ts`; `src/barrow/quote-mail-events.ts`; `src/barrow/quote-mail-tasks.ts`; `src/barrow/quote-mail-custody.ts`; `src/barrow/quote-mail-config.ts`; `src/barrow/ui/diagnostics.tsx`; `migrations/core/0027_quote_delivery.sql`; `tests/api/quote-delivery.test.mjs`; `docs/QUOTE-NOTIFICATIONS.md`
 
-AUTO-004: 
+AUTO-004:
 
 AUTO-005: `src/barrow/followups.ts`; `src/barrow/followup-sources.ts`; `src/barrow/ui/followups.tsx`; `tests/api/followups.test.mjs` ; `tests/api/quote-delivery.test.mjs`
 
-AUTO-006: 
+AUTO-006:
 
-AUTO-007: 
+AUTO-007:
 
 AUTO-008: `tests/api/stock-promise.test.mjs` — “scheduled stock synchronization resumes an interrupted ACK, sends one requested private notice on replay, and retains an owned persistent exception”: source pagination and acknowledged resume, stable event replay, one private requested notice, completed reconciliation, prebook-window eligibility and replay, current buyer scope, persistent installation-owner assignment, attributed resolution and deliberate checkpoint restart. The existing “STK-002 / PRI-007: Pier stock by warehouse and incoming promise dates, account warehouse rules and a stale-stock limit with refresh or recorded exception” proves account warehouse scope and stale promise refusal. Both run in Verify (4/4). `tests/journeys/stock-sync.test.mjs` — “real Pier development sync resumes ACK interruption, reconciles once and shows private stock notice and assigned recovery at desktop and phone”: Pier 60fde60ffa1f44c2ae6a3ef47225117f36cf546a started through rer dev, built Barrow, native sessions, interrupted transport with real source replay, one stock and one requested prebook notice, completed reconciliation and visible assigned failure and attributed closure at 1440 and 390. Runs through heavy-slot outside push Verify; no Pier response is faked.
 
 MOVE-001: `tests/api/move-nuorder.test.mjs` — “NuORDER CSV and mapped XLSX reconcile history, open quantities, product keys and primary JPEGs with fingerprint approval and replay” proves explicit brand columns and normalized padded source identities, write-free preview, exact currency totals and open quantities, retained PO and ship windows, primary sanitized JPEG attachment, case and increment mapping including an unordered archived product, private current-price lists, native export and inert restore. “NuORDER refuses unmapped identities, changed approval, invalid source quantities and unauthorized activation without writes” proves owner-only custody and fail-closed source checks. `tests/journeys/move-nuorder.test.mjs` — “owner uploads mapped NuORDER sources, reviews exact reconciliation and applies retained history once” proves manifest upload, approval, completion, replay and unresolved identity through the built Move in screen; Verify shard 4.
 
-MOVE-002: 
+MOVE-002:
 
-MOVE-003: 
+MOVE-003:
 
 MOVE-004: `tests/api/move-sparklayer.test.mjs` — “SparkLayer detailed activity reconciles original scoped order and quote history, maps source rules, applies once and exports private current-price lists”: detailed source IDs, order and quote types, original shipping, tracking and custom fields, selected export dates and filters, incomplete scope and absent exports, source against planned counts and per-currency and by-status totals, write-free preview, fingerprint approval, replay, PRI-003 mapping, owner-only source custody, DATA-001 list and history exports, current repricing and inert archive restore. “SparkLayer refuses unmapped identities, malformed rows, conflicting replay and stale native approval; summary scope remains explicitly incomplete”: summary coverage, unmapped products and customers, date and header mapping refusals, changed native snapshots and immutable history. “SparkLayer account erasure retires shared originals and history atomically and prevents closed-account source reactivation”: owner erasure retires custody. `tests/journeys/move-sparklayer.test.mjs` — “owner uses an imported SparkLayer list at current prices and explicitly shares it at desktop and phone”: private imported list, explicit sharing and current USD preview at 1440 and 390; every dialog control has visible words.
 
 MOVE-005: `tests/api/move-wizcommerce.test.mjs` — “WizCommerce FTP UUID joins preserve separate order and quote facts, payments and units; workbook layouts replay without duplicate history”: genuine split and master XLSX plus separate FTP header, item and customer CSV, UUID and visible-reference joins, distinct document types, original source status, payment and selling units, PRI-003 rule mapping, per-currency and by-status reconciliation, retained entity counts and cross-format replay. “WizCommerce refuses orphan or ambiguous references, conflicting headers, unmapped customers and changed replay without losing original history”: unresolved join and source-change refusal, formula refusal and owner-only custody. “WizCommerce website users need an explicit replay-safe native invitation review and exact-email acceptance before purchasing access”: import creates no access or mail, explicit owner policy and consent, one pending native invitation, exact-email acceptance, erased-source refusal. `tests/journeys/move-wizcommerce.test.mjs` — “owner reviews a pending WizCommerce buyer and sees exact accepted purchasing rights at desktop and phone”: existing company screen at 1440 and 390, visible-word controls. `tests/api/move-wizcommerce.test.mjs` — “WizCommerce activates reviewed native customers contacts and addresses atomically with write-free reconciliation, stable replay and inert restore”: native customer settings kept separate from historical prices, explicit source identities, customer and contact and address source against planned counts, exact currency totals and quantities, no writes during preview, missing settings and absent entities named, address validation, fingerprint approval, no login grant, cross-format replay, native edits preserved, stale approval and source changes refused, native DATA-001 exports, inert restore and erased-source refusal. `tests/journeys/move-wizcommerce.test.mjs` — “owner previews workbook and FTP native activation, approves exact reconciliation and replays without duplicates at desktop and phone”: real-shaped FTP CSV and separate customer, contact and address XLSX workbooks with split and master document layouts, upload through the Move in screen, preview, approval, completion, replay, unresolved preview and native locations at 1440 and 390. All controls have visible words. These source formats supply no saved lists: zero list counts in dry-run reconciliation and zero native lists in export are asserted; any future list format inherits ORD-002 and its current-price cart preview.
 
-MOVE-006: 
+MOVE-006:
 
 MOVE-007: `src/barrow/imports/reconcile.ts`; `src/barrow/imports/service.ts`; `src/barrow/api.ts`; `src/barrow/ui/move-in.tsx`; `tests/api/move-rehearsal.test.mjs`
 
@@ -984,7 +984,7 @@ AGT-001: `src/barrow/api.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs`
 
 AGT-002: `tests/api/substitutions.test.mjs` — “approval-bound agent proposals preserve provenance and refusals, then reauthorize a newly reviewed revision and execute its exact key once” proves two native-priced, owner-approved replacements ranked by total, two priced delivery options, exact merchandise/freight differences, both approvals and one native handoff; “inventory changes invalidate a proposed basket; a buyer declines one reviewed substitute and approves a fresh source-bound revision” proves decline, revised basket, changed-inventory refusal and fresh acceptance. `tests/journeys/agent-proposals.test.mjs` — “owner scopes an external agent, manager and buyer review exact replacements, revoked execution is refused and a fresh revision completes once at desktop and phone” proves both screens at 1440/390.
 
-AGT-003: 
+AGT-003:
 
 AGT-004: `tests/api/reorder.test.mjs` — “buyer-authorized sell-through explains demand, outage uncertainty and open prebooks before an edited plan creates one human-reviewed draft”: buyer consent and authority, exact demand and open prebook subtraction, outage unknown, edited quantities and date, budget refusal, concurrent acceptance and replay without a second draft, separate native checkout, captured-versus-allocated payment measurement, dispatch distinct from delivery, scoped JSON and CSV export, source-feed hash and order revisions, native run identity and zero tool budgets, attributed audit and private audit refusal, legal-hold refusal, explicit owner erasure preserving the submitted commercial plan, and older-archive replay preserving erased access. Unsafe inputs and revoked purchaser authority are refused. Location-scoped planning matches ordinary order reads for commitments, cadence, source references and acceptance guards; hidden commitments cannot change the visible fingerprint. Runs in Verify shard 3 of 4. `docs/SELL-THROUGH.md` documents the public commands and normalized CSV. The same API test proves scoped sales contact review, buyer and agent refusal, wrong role and account refusal, invalid and stale review refusal, rescheduling without outreach or purchase effects, revoked access, closed-order refusal and inert archive restoration. `tests/journeys/reorder.test.mjs` — “a buyer edits and accepts one sell-through plan and a scoped rep reviews its contact date at desktop and phone” proves buyer authorization, exact demand and commitments, date and quantity edits requiring recalculation, outage acknowledgment, one-draft acceptance and rep contact review. Assertions run at 1440; the changed screens are captured at 1440 and 390 in Verify shard 3 of 4. All added controls have visible text labels.
 
@@ -995,4 +995,3 @@ AGT-006: `tests/api/move-rehearsal.test.mjs` — “native cutover agent cites w
 AGT-007: `tests/api/followups.test.mjs` — “AGT-007: grounded account plan puts late fulfillment first, reviews exact outreach, sends once and retains ownership until a buyer response or human resolution”: actual late Pier fulfillment and unanswered quote with source links, delivery-first actions, recipient and exact content and contact date review, one approved message and one suppression, one thread and email effect on replay, open ownership until buyer response, explicit rep resolution, stale-source refusal, exported provenance and inert archive restore. `tests/journeys/approval-escalation.test.mjs` — “account follow-up reviews delayed fulfillment before stock, approves exact delivery outreach, suppresses a quote and records a buyer response at desktop and phone”: the built Worker journey proves account selection, grounded plan, exact review, approval, suppression, sent-but-assigned work, buyer response and visible closure at 1440 and 390. All controls in the changed plan panels have visible labels.
 
 AGT-008: `tests/api/substitutions.test.mjs` — “approval-bound agent proposals preserve provenance and refusals, then reauthorize a newly reviewed revision and execute its exact key once” proves source/model/run/tool/effect history and exact manager/buyer approvals; source-price change and grant revocation refuse without a Pier effect, an explicitly withdrawn revision retains its history, a newly scoped and reviewed revision executes once and exact-key replay produces no further reservation or email. “scoped proposal authority refuses foreign doors, injected instructions and over-budget work without inventory effects” proves account-only tools, owner consent, closed structured input, concurrent reported-cost and contact caps, safe refusal history and terms refusal. “inventory changes invalidate a proposed basket; a buyer declines one reviewed substitute and approves a fresh source-bound revision” proves live ATP invalidation and buyer decisions. “proposal effects require current functional manager limits and the approving buyer’s still-active purchasing authority” proves current commercial/stock limits, manager/buyer revocation and company approval before any release. “a changed replacement basket invalidates its agent approval before any original stock release” proves binding to the exact accepted commercial basis. `tests/journeys/agent-proposals.test.mjs` — “owner scopes an external agent, manager and buyer review exact replacements, revoked execution is refused and a fresh revision completes once at desktop and phone” proves the owner scope, private credential, exact basket, provenance, revoked history and completed end states at 1440/390.
-

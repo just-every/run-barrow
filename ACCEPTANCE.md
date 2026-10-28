@@ -668,7 +668,7 @@ Core · target · **done** · From ORD-014 · Cites BASE-ROLE-001, BASE-AUDIT-00
 **Acceptance.**
 1. Save a second export layout, set it as default and download a confirmation: the CSV follows that layout.
 
-**Evidence.** `tests/api/confirmations.test.mjs` — “ORD-017: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore”; `tests/journeys/confirmations.test.mjs` — “owner records seller and variant details, a buyer revises a two-window seasonal order before acceptance, and the owner exports that season as style, color and size totals at desktop and phone”
+**Evidence.** `tests/api/confirmations.test.mjs` — “ORD-017: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore”; `tests/journeys/confirmations.test.mjs` — “owner records seller and variant details, a buyer revises a two-window seasonal order before acceptance, and the owner exports that season as style, color and size totals at desktop and phone”; `tests/api/confirmations.test.mjs` — “ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep”
 **Gap.** None.
 
 #### ORD-018 — Bulk order and production exports

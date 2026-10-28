@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "b6d9dfdd6092abfe20884c59e8e9c457cd71e6ca327b0daa4f3a39315712c30d",
+      "sha256": "fecd6ecb2a94b1ee268c954992d58006401086201cab8f2cb2796cbf9941cd56",
       "executable": false
     },
     "AGENTS.md": {
@@ -132,7 +132,7 @@
       "executable": false
     },
     "CHANGELOG.md": {
-      "sha256": "5074d4111d085b819e682f0d62c6f16a40bd49459508b9d04afc70f791042d3b",
+      "sha256": "4841216f4f06dc1a3cefe1b1c07635d01292cfb95fd16bbb84e8a4c3e03db3e9",
       "executable": false
     },
     "CLAUDE.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "966f4578dd1fcf02e42852d913313bdc7b86753e5f53fc29faeb28464e9f4854",
+      "sha256": "ef6d1baa51af0655d567144a218906fa091bf54c6b40bc68e6177edcada672f7",
       "executable": false
     },
     "DEMO.md": {
@@ -187,6 +187,10 @@
       "sha256": "731ec554377866fae63eb85c0c05b30fb53630a8a33bb38c76037c74f5483575",
       "executable": false
     },
+    "docs/COMMERCIAL-RULES.md": {
+      "sha256": "fae8d1e2d2453096aad07020a5b7c5061b493d397aef5808c4b0789b88c79c79",
+      "executable": false
+    },
     "docs/CONNECTION-SECURITY.md": {
       "sha256": "f52b5eb05d9282c37340e57acba36e562e580ad98230b78325bad2a7140ad7d7",
       "executable": false
@@ -197,6 +201,10 @@
     },
     "docs/contract/COVERAGE.json": {
       "sha256": "45d47a60a518c143bb1435d981f29d11199aa758e03491af7382d2a9ce3f82a0",
+      "executable": false
+    },
+    "docs/contract/DONE-AUDIT.md": {
+      "sha256": "a41e6c9f8df7becd01d55163ad7d700799a83743cd14fc3a46efa2512afa7610",
       "executable": false
     },
     "docs/contract/ID-MAP.json": {
@@ -865,6 +873,10 @@
     },
     "rer-setup.json": {
       "sha256": "2718254968816f6ed615173ebb7c2d78b6e3d69df9f0c8880cc1ff1fa6365cc2",
+      "executable": false
+    },
+    "RULINGS.md": {
+      "sha256": "f21498a82cbc8d11e368b13134f06db88c96d92d6ffa5fb1e36901210fe13f2f",
       "executable": false
     },
     "RUN-LOCALLY.md": {
