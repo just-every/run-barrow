@@ -56,6 +56,7 @@ export async function parseNuorderCompanies(input: CompanyInput) {
  const buyers=buyerRows.map(({fields:f})=>({code:text(f.code,'Buyer customer code',100),email:email(f.email),name:text(f.name,'Buyer name',120)}))
  for (const buyer of buyers) {
   if (!companies.some(company=>company.code===buyer.code)) errors.push(`Buyer ${buyer.name} names unknown company ${buyer.code}`)
+  if (companies.some(company=>company.code!==buyer.code&&company.email===buyer.email)) errors.push(`Buyer ${buyer.name} email collision: another incoming company contact`)
   if (buyers.filter(other=>other.email===buyer.email).length>1) errors.push(`Duplicate buyer email for ${buyer.name}; resolve the source rows before apply`)
  }
  const locations=placeRows.map(({fields:f})=>{

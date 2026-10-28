@@ -1,5 +1,10 @@
+import { trackingCommand, trackingView } from './shipment-tracking'
 import { orderFollowthrough } from './order-followthrough'
+import { paymentPromiseCommand, readPaymentPromises } from './payment-promises'
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
+import { integrationResponse } from './integration-api'
+import {campaignCommand,campaignWorkspace,campaignSummary,campaignRecipient} from './campaigns'
+import {campaignMailWebhook} from './campaign-mail-events'
 import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
 import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
@@ -122,6 +127,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const fenced=await erasureRestoreResponse(env);if(fenced)return fenced
   const application=await applicationResponse(request,env)
   if(application)return application
+  if(path==='/api/barrow/campaign-mail/webhook')return await campaignMailWebhook(request,env)
   if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
   if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
   if(path==='/api/barrow/card-webhook')return await cardWebhook(request,env)
@@ -129,6 +135,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
   })
+  if(actor.integration&&!path.startsWith('/api/barrow/v1/'))fail('FORBIDDEN','Use the versioned integration API within the granted scopes.',403)
   const proposalScope=actor.agent&&actor.grantId?await readProposalGrant(env.DB,actor.grantId):null
   if(actor.agentScope==='proposal'&&!proposalScope)fail('AUTH','The scoped proposal grant is unavailable. A new explicit owner grant is required.',401)
   if(proposalScope) {
@@ -139,13 +146,15 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(!(request.method==='POST'&&path==='/api/barrow/commands'))fail('FORBIDDEN','This credential may read its account catalogue/orders and submit structured proposals only.',403)
   }
   actor.staff=await readStaffGrant(env.DB,actor)
-  await staffRequestGate(env,actor,path,request.method)
+  if(!path.startsWith('/api/barrow/v1/'))await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
+  if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
   if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/payment-promises'&&request.method==='GET')return json(await readPaymentPromises(env,actor,url.searchParams))
   if(path==='/api/barrow/account-credit'&&request.method==='GET')return json(await readAccountCredit(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/credits'&&request.method==='GET')return json(await readCredits(env,actor,url.searchParams.get('orderId')??''))
   const creditPath=/^\/api\/barrow\/credits\/([-a-zA-Z0-9_]+)$/.exec(path),refundPath=/^\/api\/barrow\/refunds\/([-a-zA-Z0-9_]+)$/.exec(path)
@@ -213,6 +222,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(termsDocument && request.method==='GET') return await termsDocumentResponse(env,actor,decodeURIComponent(termsDocument[1]),Number(termsDocument[2]))
   const termsSignature=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/terms-signature$/.exec(path)
   if(termsSignature && request.method==='GET') return await termsSignatureResponse(env,actor,await readOrder(env.DB,actor,termsSignature[1]))
+  if(path==='/api/barrow/campaigns'&&request.method==='GET')return json(await campaignWorkspace(env,actor))
+  const campaignDoor=/^\/api\/barrow\/campaigns\/([a-f0-9-]+)$/.exec(path)
+  if(campaignDoor&&request.method==='GET')return json(await campaignSummary(env,actor,campaignDoor[1]))
+  const campaignBuyer=/^\/api\/barrow\/campaign-deliveries\/([a-f0-9-]+)(?:\.(pdf|xlsx))?$/.exec(path)
+  if(campaignBuyer&&request.method==='GET'){const d=await campaignRecipient(env,actor,campaignBuyer[1]);if(campaignBuyer[2])return sheetDownload(env,actor,d.sheet_id,campaignBuyer[2] as 'pdf'|'xlsx');return json({...await readSheet(env,actor,d.sheet_id),campaignDeliveryId:d.id})}
   if(path==='/api/barrow/line-sheets'&&request.method==='GET')return json(await listSheets(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/price-book.csv'&&request.method==='GET')return await priceBookCsv(env,actor,url.searchParams.get('accountId')??'')
   const sheetRoute=/^\/api\/barrow\/line-sheets\/([a-f0-9-]+)(?:\.(pdf|csv))?$/.exec(path)
@@ -286,10 +300,12 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   // RPT-001 drill-down: one order as its reader may see it.
   const one=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
+  const tracking=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/tracking$/.exec(path)
+  if(tracking && request.method==='GET') return json(await trackingView(env,actor,tracking[1]))
   const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
   if(followthrough && request.method==='GET') return json(await orderFollowthrough(env,actor,followthrough[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
-  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
+  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1]),actor))
   if(path==='/api/barrow/feeds/probe'&&request.method==='POST')return json(await probeSftp(env,actor,await boundedJson(request,10000)))
   if(path==='/api/barrow/cutover/deltas') {
    if(request.method==='GET')return json(await listDeltas(env,actor))
@@ -355,6 +371,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent && !['order.prepare','cart.preview','cart.form','proposal.submit'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
+   if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
    if(['prebook.publish','prebook.close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
    if(['prebook.release','prebook.delay'].includes(body.type))return json({result:await orderCommand(env,actor,body.type,body.payload)})
@@ -362,6 +379,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
+   if(body.type.startsWith('promise.'))return json({result:await paymentPromiseCommand(env,actor,body.type,body.payload)})
    if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
@@ -373,6 +391,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
    if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
    if(body.type==='catalog.refresh')return json({result:await refreshCatalogIndex(env,actor,body.payload)})
+   if(body.type==='segment.save'||body.type.startsWith('campaign.'))return json({result:await campaignCommand(env,actor,body.type,body.payload)})
    if(body.type==='price-book.import')return json({result:await importPriceBook(env,actor,body.payload)})
    if(['sheet.publish','sheet.revoke','sheet.view','sheet.preview'].includes(body.type))return json({result:await sheetCommand(env,actor,body.type,body.payload)})
    if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})

@@ -12,13 +12,15 @@ export function staffScope(actor:Actor,column:string) {
 }
 export const staffSells=(actor:Actor)=>Boolean(actor.staff&&selling.includes(actor.staff.role))
 export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role==='finance')
-export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}) {
+export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;warehouses?:string[]}) {
  const grant=actor.staff
  if(!grant)return true
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
  if(task.kind==='fulfillment'&&grant.warehouses!=='all')return false
- return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
+ if(task.kind==='tracking'&&grant.warehouses!=='all'&&(!task.warehouses?.length||task.warehouses.some(w=>!grant.warehouses.includes(w))))return false
+ if(task.kind==='payment-promise')return grant.role==='finance'
+ return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','tracking','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
 }
 async function denied(env:Bindings,actor:Actor,source:string):Promise<never> {
  await commit(env.DB,actor,[audit(env.DB,actor,actor.id,'staff.permission-refused',{revision:actor.staff!.revision,source,reason:'Current owner-granted functional role does not authorize this door; no commercial action or outreach performed.'})])
@@ -44,9 +46,10 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
+ if(method==='GET'&&relative==='payment-promises'&&role==='finance')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
- if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(followthrough|timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
+ if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(tracking|followthrough|timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
  if(method==='GET'&&/^payments(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&(role==='finance'||selling.includes(role)))return
  if(method==='GET'&&/^(?:credits|refunds)(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&role==='finance')return
@@ -58,11 +61,13 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(selling.includes(role)&&method==='GET'&&/^statements\/[-a-zA-Z0-9._:]+?(?:\.(csv|pdf))?$/.test(relative))return // REP-001: balances of accounts held today; account() scopes the read
  if(method==='GET'&&/^sales-terms\/[^/]+\/[1-9]\d*\/document$/.test(relative))return
  if(method==='GET'&&(/^(invoices|statements)\//.test(relative)||/^export(?:\.json|\/[^/]+\.csv)$/.test(relative))&&(role==='finance'||selling.includes(role)&&relative==='export/followups.csv'))return
- if(selling.includes(role)&&method==='GET'&&(relative==='line-sheets'||/^line-sheets\/[a-f0-9-]+(\.(pdf|csv))?$/.test(relative)||relative==='catalogue'||relative==='buying-profiles'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
+ if(selling.includes(role)&&method==='GET'&&(relative==='campaigns'||/^campaigns\/[a-f0-9-]+$/.test(relative)||relative==='line-sheets'||/^line-sheets\/[a-f0-9-]+(\.(pdf|csv))?$/.test(relative)||relative==='catalogue'||relative==='buying-profiles'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
  return denied(env,actor,path)
 }
 
 const commandRoles:Record<string,string[]>={
+ 'promise.record':['finance'],'promise.revise':['finance'],'promise.withdraw':['finance'],'promise.resolve':['finance'],'promise.pause':['finance'],'promise.refresh':['finance'],
+ 'segment.save':selling,'campaign.save':selling,'campaign.test':selling,'campaign.schedule':selling,'campaign.send':selling,
  'credit-policy.request':selling,'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
  'credit.issue':['finance'],'credit.apply':['finance'],'card.allocate':['finance'],'refund.request':['finance'],'refund.refresh':['finance'],
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
@@ -74,7 +79,7 @@ const commandRoles:Record<string,string[]>={
  'cart.preview':selling,'cart.form':selling,'list.save':selling,'list.duplicate':selling,'list.delete':selling,
  'quote.request':selling,'quote.propose':selling,'quote.approve':['sales-manager'],'quote.message':selling,'quote.read':selling,
  'shipping.select':selling,'shipping.quote':['sales-manager'],
- 'prebook.release':operating,'prebook.delay':operating,'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
+ 'prebook.release':operating,'prebook.delay':operating,'tracking.bind':operating,'tracking.refresh':operating,'tracking.dispute':['sales-manager','rep','operations'],'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
  'substitution.preview':['sales-manager'],'substitution.propose':['sales-manager'],'substitution.execute':operating,
  'location.save':['sales-manager'],'location.archive':['sales-manager'],
  'rep.assign':['sales-manager'],'rep.cover':['sales-manager'],'rep.end':['sales-manager'],'rep.transfer':['sales-manager'],

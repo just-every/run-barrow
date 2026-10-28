@@ -124,7 +124,7 @@ async function assertCurrentPricing(env:Bindings,actor:Actor,selected:Account,or
   if(lines.reduce((sum,line)=>sum+line.lineCents!,0)<selected.value.minimumCents)fail('MINIMUM','The order is below this customer’s minimum order value.')
  }
 }
-export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
+export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any,basis?:{accountRevision:string;currency:string}) {
  if(type==='order.sellthrough-outcomes')return sellThroughOutcomes(env,actor,await readOrder(env.DB,actor,text(p.orderId,'Order')))
  if(type==='order.sellthrough-preview'||type==='order.sellthrough') {
   if(type==='order.sellthrough-preview')return (await sellThroughReview(env,actor,p)).review
@@ -155,7 +155,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(context.review.blockers.length) fail('REORDER_BLOCKED',context.review.blockers.join(' '))
   return prepareOrder(env,actor,{accountId:context.selected.id,profileId:context.selected.buyingProfile?.id,reference:p.reference,deliveryLocation:context.review.deliveryLocation,shipToId:context.review.shipToId,lines:context.review.lines.map(line=>({sku:line.sku,unit:line.unit,quantity:line.quantity}))},context)
  }
- if(type==='order.prepare') return prepareOrder(env,actor,p)
+ if(type==='order.prepare') return prepareOrder(env,actor,p,undefined,undefined,basis)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
  if(type==='order.sellthrough-contact') {
@@ -216,6 +216,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   return save(env,actor,{...order,delivery,totalCents:deliveryTotal(order.lines,delivery)},'shipping.selected',[],'Selected delivery for review; buyer acceptance is still required at submission.')
  }
  if(type==='order.submit') {
+  if(order.campaign)await (await import('./campaigns')).campaignRecipient(env,actor,order.campaign.deliveryId)
   if(order.status!=='draft') return order
   const selected=(await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected
   requireActiveAccount(selected)
@@ -308,11 +309,14 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  fail('NOT_FOUND','Unknown order command.',404)
 }
 
-async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<ReturnType<typeof reviewReorder>>,plan?:SellThroughAcceptance) {
+async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<ReturnType<typeof reviewReorder>>,plan?:SellThroughAcceptance,basis?:{accountRevision:string;currency:string}) {
   const base=context?.selected ?? await account(env.DB,actor,text(p.accountId,'Account'))
   const profile=await resolveBuyingProfile(env.DB,actor,base,p.profileId??base.buyingProfile?.id),selected=profile.selected
   requireActiveAccount(selected)
+  if(basis&&basis.accountRevision!==base.revision)fail('CHANGED','The account revision changed. Refresh before preparing a draft.')
+  if(basis&&basis.currency!==(selected.value.currency??'USD'))fail('CURRENCY','The requested currency differs from the current price book.',400)
   if(plan&&(selected.revision!==plan.review.accountRevision||JSON.stringify(selected.buyingProfile)!==JSON.stringify(plan.review.buyingProfile)))fail('SELLTHROUGH_CHANGED','The account changed; review the plan again.')
+  const campaign=await (await import('./campaigns')).campaignOrder(env,actor,p)
   const sheet=p.lineSheetId===undefined?undefined:await (await import('./line-sheets')).sheetForOrder(env,actor,p,selected)
   const entryGuard=await deltaEntryGuard(env.DB,selected.id)
   const member=await requireCompanyRight(env.DB,actor,selected.id,'purchaser')
@@ -340,7 +344,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   if(member&&member.locations!=='all'&&!shipTo)fail('FORBIDDEN','Choose one of your permitted ship-to locations.',403)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
   const policy=await creditPolicy(env.DB,selected.id)
-  const order:Order={creditPolicySnapshot:creditSignature(policy),...(prebook?{prebook,season:prebook.season.name}:{}),usdConversion:conversionSnapshot(selected,await now()),...(plan?{sellThrough:(({guards,...saved})=>saved)(plan)}:{}),...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:policy?.termsDays??selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
+  const order:Order={...(campaign?{campaign}:{}),creditPolicySnapshot:creditSignature(policy),...(prebook?{prebook,season:prebook.season.name}:{}),usdConversion:conversionSnapshot(selected,await now()),...(plan?{sellThrough:(({guards,...saved})=>saved)(plan)}:{}),...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:policy?.termsDays??selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`}),env.DB.prepare('UPDATE bw_approval_notices SET closed_at=?,closed_reason=? WHERE order_id=? AND closed_at IS NULL').bind(new Date().toISOString(),`Superseded by revised request ${id}; it needs fresh approval at every step.`,replaced.id)]:[]
   await commit(env.DB,actor,[...(plan?.guards??[]),profile.guard,entryGuard,companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),...(sheet?[env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_line_sheets WHERE id=? AND revision=? AND json_extract(value_json,'$.state')='published') THEN 1 ELSE 0 END").bind(sheet.id,sheet.revision)]:[]),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...(plan?[audit(env.DB,actor,id,'sellthrough.accepted',{accountId:selected.id,orderId:id,revision,source:'order.sellthrough',reason:'Buyer explicitly authorized a POS export and accepted its exact dated arithmetic and edited quantities; one draft, zero contacts and no stock effect.'})]:[]),...supersede])

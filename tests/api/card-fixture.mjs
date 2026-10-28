@@ -45,9 +45,9 @@ export function cardEdge() {
   const response=await h.raw('/api/barrow/card-webhook',{method:'POST',headers:{'content-type':'application/json','stripe-signature':`t=${time},v1=${sig}`},body:tamper?body+' ':body});return {response,event,body,signature:`t=${time},v1=${sig}`};
  }};
 }
-export async function cardFixture(t,{built=false,https=false,edge=cardEdge(),connect=true}={}) {
+export async function cardFixture(t,{built=false,https=false,edge=cardEdge(),connect=true,bindings={},clock}={}) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const product=await stock(pier,'200');
- const h=await installation({built,https,networkEdge:edge.networkEdge,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,CARD_WEBHOOK_ORIGIN:'https://synthetic-barrow.example.test'}});t.after(()=>h.close());
+ const h=await installation({built,https,clock,networkEdge:edge.networkEdge,bindings:{...bindings,PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,CARD_WEBHOOK_ORIGIN:'https://synthetic-barrow.example.test'}});t.after(()=>h.close());
  const account=await h.command('account.save',{id:'cedar',value:{...accountValue(product.customer.id),state:'NY'}}),buyer={as:await h.signIn(account.value.email)};
  const otherParty=await pier.command('party.save',{kind:'customer',name:'Wren Foods'});await h.command('account.save',{id:'wren',value:{...accountValue(otherParty.id,'wren@example.test'),name:'Wren Foods'}});const other={as:await h.signIn('wren@example.test')};
  if(connect)await h.command('card.connect',{secretKey:'synthetic-barrow-1',consent:true,reason:'Owner reviewed Stripe custody and permitted New York credit-card policy.',surchargeBps:200,allowedStates:['NY']});

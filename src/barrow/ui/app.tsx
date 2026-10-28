@@ -1,3 +1,4 @@
+import { PaymentPromises } from './payment-promises'
 import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
 import { CreditSettings, CreditBalance } from './account-credit'
@@ -99,6 +100,7 @@ export function BarrowApp() {
     if ((new URLSearchParams(window.location.search).get('task') ?? '').startsWith('quote-mail:')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('reportRun')) setTab('Data')
     if (new URLSearchParams(window.location.search).has('application') && (!staff || applicationRight==='review')) setTab('Accounts')
+    if (new URLSearchParams(window.location.search).has('campaignDelivery')||new URLSearchParams(window.location.search).has('campaignPreview')) setTab('Line sheets')
     if (new URLSearchParams(window.location.search).has('cardPayment')) setTab('Orders')
     if (/^Q-\d{1,9}$/.test(new URLSearchParams(window.location.search).get('quote') ?? '')) setTab('Orders')
     void load()
@@ -198,7 +200,7 @@ export function BarrowApp() {
             : accountId ? <p role="status">{accountLoading?'Loading selected trade account…':'The selected trade account could not be loaded. Refresh records to try again.'}</p> : <div className="br-page-empty">{staff?<Empty title="No assigned trade accounts">The owner must explicitly assign accounts before you can sell.</Empty>:legacySupplier
               ? <Empty title="Your first trade relationship starts here" actions={<><button onClick={() => go('Accounts')}>Add trade account</button><button className="br-secondary" onClick={() => go('Move in')}>Move in accounts</button></>}>Add a trade account with its agreed prices, then write its orders here, styles down and sizes across.</Empty>
               : <Empty title="Your account is not linked yet">Ask your supplier to connect this email to your trade account.</Empty>}</div>)}
-          {activeTab === 'Line sheets' && <LineSheets accounts={state.accounts} merchant={Boolean(legacySupplier||staff?.role==='sales-manager')} version={state} onPrepared={()=>{void reload();setTab('Orders')}}/>}
+          {activeTab === 'Line sheets' && <LineSheets accounts={state.accounts} merchant={Boolean(legacySupplier||staff?.role==='sales-manager')} canCampaign={Boolean(legacySupplier||staffSelling)} version={state} onPrepared={()=>{void reload();setTab('Orders')}}/>}
           {activeTab === 'Line sheets' && legacySupplier && <ConfirmationSettings />}
           {activeTab === 'Accounts' && <Accounts canCreate={!staff||staff.accounts==='all'} canInvite={legacySupplier} version={state} run={run} busy={busy} onOrder={id => openPad(id)} />}
           {activeTab === 'Accounts' && (legacySupplier||staff?.role==='sales-manager'&&staff.accounts==='all') && <RepAssignments version={state} run={run} busy={busy}/>}
@@ -234,6 +236,7 @@ export function BarrowApp() {
           {activeTab === 'Data'&&legacySupplier&&<PrebookSettings version={state} run={run} busy={busy}/>}
           {activeTab === pad && !supplier && selected && <StockAlerts accountId={selected.id} skus={selected.value.prices.map(price=>price.sku)} />}
           {activeTab === 'Data' && legacySupplier && <ProfileConfiguration accounts={state.accounts} version={state}/>}
+          {(activeTab === 'Data' && legacySupplier || activeTab === 'Reports' && staff?.role==='finance') && <PaymentPromises accounts={state.accounts}/>}
           {(activeTab === 'Data' && legacySupplier || activeTab === 'Reports' && staff?.role==='finance') && <CreditSettings accounts={state.accounts} ownerId={state.actor.id} ownerLabel={state.actor.email}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <details className="br-details"><summary>Payment settings</summary><CardSettings /></details>}
           {activeTab === 'Data' && supplier && <DataTools owner={state.actor.role==='owner'} accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
