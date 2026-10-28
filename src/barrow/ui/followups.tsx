@@ -26,8 +26,8 @@ function TaskEditor({ task, people, busy, update, command }: { task: Task; peopl
         <label>Contact note<textarea value={note} onChange={event => setNote(event.target.value)} maxLength={1000} /></label>
         <button className="br-secondary" disabled={busy || !note.trim()} onClick={() => void save({ contact: { outcome, note } })}>Record contact</button>
       </div></details>
-      <label>Resolution<textarea value={resolution} onChange={event => setResolution(event.target.value)} maxLength={1000} /></label>
-      <div className="br-actions"><button className="br-secondary" disabled={busy || !resolution.trim()} onClick={() => void save({ close: true, resolution })}>Close with resolution</button></div>
+      {task.kind === 'payment-promise' ? <p>Use Buyer payment promises in Data or Reports to record an attributed finance resolution or buyer withdrawal.</p> : <><label>Resolution<textarea value={resolution} onChange={event => setResolution(event.target.value)} maxLength={1000} /></label>
+      <div className="br-actions"><button className="br-secondary" disabled={busy || !resolution.trim()} onClick={() => void save({ close: true, resolution })}>Close with resolution</button></div></>}
     </>}
     {!!task.contacts.length && <details><summary>Recorded contacts ({task.contacts.length})</summary><ul>{task.contacts.map((contact, index) => <li key={index}>{contact.at} · {contact.outcome} · {contact.note}</li>)}</ul></details>}
   </article>

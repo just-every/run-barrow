@@ -4,6 +4,7 @@ import { quantityOf, rowCents, rowUnits, type StyleRow } from './styles'
 import type { CatalogueItem } from './types'
 import { quantityProblem } from '../quantity-rules'
 import { money as formatMoney, when } from './types'
+import type { FieldProblem } from './primitives'
 
 /** A draft line whose agreed price moved after the draft was written. */
 export interface PriceChange { from: number; to: number; currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP' }
@@ -22,13 +23,14 @@ export const quantityId = (prefix: string, sku: string) => `${prefix}-quantity-$
 
 interface Props {
   prefix: string
+  problems: FieldProblem[]
   rows: StyleRow[]; columns: string[]; quantities: Record<string, string>; busy: boolean; selected: string; customer: string
   pricingReasons?:Record<string,string>; lineCents?:Record<string,number>; changes: Record<string, PriceChange>; kept: Set<string>; writtenAt?: string; cells: RefObject<Map<string, HTMLInputElement>>
   onQuantity: (sku: string, value: string) => void; onSelect: (key: string) => void; onKeep: (key: string) => void; onRemove: (row: StyleRow) => void
 }
 
 // Styles down, sizes across, then Units and Line $. A price that moved since the draft is settled inside its own row.
-export function StyleMatrix({ prefix, rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
+export function StyleMatrix({ prefix, problems, rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
   const money=(cents:number,code:'USD'|'AUD'|'CAD'|'EUR'|'GBP'=rows[0]?.currency??'USD')=>formatMoney(cents,code)
   return <div className="br-matrix-wrap"><table className="br-matrix" style={{ ['--br-sizes' as string]: columns.length }}>
     <caption className="br-sr-only">Order quantities by style and size</caption>
@@ -50,7 +52,7 @@ export function StyleMatrix({ prefix, rows, columns, quantities, busy, selected,
           {columns.map(size => {
             const item = row.cells[size]
             if (!item) return <td key={size} className="br-col-size"><span className="br-cell br-cell-none" title={`${size} is not offered`}>–</span></td>
-            const value = quantities[item.sku] ?? '', problem = cellProblem(item, value)
+            const value = quantities[item.sku] ?? '', problem = problems.filter(problem => problem.id === quantityId(prefix, item.sku)).map(problem => problem.message).join(' ')
             return <td key={size} className="br-col-size"><input id={quantityId(prefix, item.sku)} ref={element => { if (element) cells.current?.set(item.sku, element); else cells.current?.delete(item.sku) }}
               className={`br-cell${quantityOf(value) > 0 ? ' br-cell-filled' : ''}`} type="number" inputMode="numeric" min="0" step="1" placeholder="–" value={value} readOnly={busy}
               aria-label={`${size} quantity for ${row.name}`} aria-invalid={problem ? true : undefined} aria-describedby={problem ? `${quantityId(prefix, item.sku)}-error` : undefined} title={problem || `${item.sku} · ${item.available} available${item.awaitingRelease ? ` · ${item.awaitingRelease} held until Pier confirms a cancelled order’s release` : ''}`}

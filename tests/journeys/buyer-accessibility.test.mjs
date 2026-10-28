@@ -20,7 +20,7 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  await pier.command('po.commit', { poId: po.id, version: po.version });
  await pier.command('receipt.create', { poId: po.id, supplierReference: 'synthetic-barrow-40', lines: po.lines.map(line => ({ poLineId: line.id, locationId: base.location.id, quantity: '100', cost: '10.00' })) });
  const h = await installation({ built: true, https: true, bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
- await h.command('account.save', { id: 'cedar', value: { ...accountValue(base.customer.id, email(40)), minimumCents: 0, prices: items.map((item, index) => ({ sku: item.sku, unitCents: 1000, minQty: index === 0 ? 6 : 1, ...(index === 0 ? { casePack: 6 } : {}) })) } });
+ await h.command('account.save', { id: 'cedar', value: { ...accountValue(base.customer.id, email(40)), minimumCents: 45000, prices: items.map((item, index) => ({ sku: item.sku, unitCents: 1000, minQty: index === 0 ? 6 : 1, ...(index === 0 ? { casePack: 6 } : {}) })) } });
  const admin = { as: await h.signIn(email(40)) };
  async function join(number, name, rights) {
   await h.command('company.invite', { accountId: 'cedar', email: email(number), name, policy: { rights, locations: 'all', perOrderLimitCents: 100, approvalLimitCents: null }, reason: 'Administrator assigned explicit purchasing authority.' }, admin);
@@ -75,6 +75,17 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  await buyer.getByRole('button', { name: 'Use 6 for ST01-S', exact: true }).focus(); await buyer.keyboard.press('Enter');
  await expect(first).toBeFocused(); await expect(first).toHaveValue('6'); await expect(first).not.toHaveAttribute('aria-invalid', 'true');
  await expect(summary).toHaveCount(0);
+ // Valid quantities below the account minimum retain their linked field error.
+ await first.fill(''); await prepare.press('Enter'); await expect(summary).toBeFocused();
+ const minimumLink = summary.getByRole('link', { name: /meet the minimum/ });
+ await minimumLink.press('Enter');
+ const minimumField = cells.nth(1);
+ await expect(minimumField).toBeFocused(); await expect(minimumField).toHaveAttribute('aria-invalid', 'true');
+ const minimumDescription = await minimumField.getAttribute('aria-describedby'); assert.ok(minimumDescription);
+ await expect(buyer.locator(`[id=${JSON.stringify(minimumDescription)}]`)).toContainText('meet the minimum');
+ await captureWidths(buyer, 'buyer-linked-account-minimum-error');
+ await first.fill('6'); await expect(summary).toHaveCount(0);
+ await expect(minimumField).not.toHaveAttribute('aria-invalid', 'true'); await expect(minimumField).not.toHaveAttribute('aria-describedby');
  const reference = buyer.getByLabel('Your purchase order / reference', { exact: true });
  await reference.focus(); await buyer.keyboard.type('synthetic-barrow-keyboard-40');
  // Dismissal returns to the exact opener, leaving the cart in place.
@@ -143,7 +154,10 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  await reviewer.getByRole('alert').filter({ hasText: 'request is not confirmed' }).waitFor(); await expect(approve).toBeEnabled(); await expect(approve).toBeFocused();
  await expect(purchase(reviewer).getByText('awaiting-company-approval', { exact: true })).toBeVisible();
  await expect(reviewer.getByRole('status').filter({ hasText: 'Company purchase approved' })).toHaveCount(0); await clear();
- await approve.press('Enter'); await expect(result(reviewer)).toBeFocused(); await expect(result(reviewer)).toContainText('Submitted for supplier review');
+ const companyFilter = reviewer.getByRole('group', { name: 'Show orders' }).getByRole('button', { name: /^Company approval/ });
+ await companyFilter.press('Enter'); await expect(companyFilter).toHaveAttribute('aria-pressed', 'true');
+ await reviewer.locator('.br-orders[aria-busy="false"]').waitFor();
+ await approve.press('Enter'); await expect(result(reviewer)).toContainText('Submitted for supplier review'); await expect(result(reviewer)).toBeFocused();
  const released = await h.api(`/api/barrow/orders/${draft.id}`, undefined, approver);
  assert.equal(released.companyApprovedBy, approver.actor.id); assert.notEqual(released.preparedBy, released.companyApprovedBy);
  await captureWidths(reviewer, 'buyer-company-approved-result');
