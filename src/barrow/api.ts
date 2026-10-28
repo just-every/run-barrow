@@ -1,4 +1,6 @@
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
+import {campaignCommand,campaignWorkspace,campaignSummary,campaignRecipient} from './campaigns'
+import {campaignMailWebhook} from './campaign-mail-events'
 import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
 import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
@@ -121,6 +123,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const fenced=await erasureRestoreResponse(env);if(fenced)return fenced
   const application=await applicationResponse(request,env)
   if(application)return application
+  if(path==='/api/barrow/campaign-mail/webhook')return await campaignMailWebhook(request,env)
   if(path==='/api/barrow/report-mail/webhook')return await reportMailWebhook(request,env)
   if(path==='/api/barrow/quote-mail/webhook')return await quoteMailWebhook(request,env)
   if(path==='/api/barrow/card-webhook')return await cardWebhook(request,env)
@@ -212,6 +215,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(termsDocument && request.method==='GET') return await termsDocumentResponse(env,actor,decodeURIComponent(termsDocument[1]),Number(termsDocument[2]))
   const termsSignature=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/terms-signature$/.exec(path)
   if(termsSignature && request.method==='GET') return await termsSignatureResponse(env,actor,await readOrder(env.DB,actor,termsSignature[1]))
+  if(path==='/api/barrow/campaigns'&&request.method==='GET')return json(await campaignWorkspace(env,actor))
+  const campaignDoor=/^\/api\/barrow\/campaigns\/([a-f0-9-]+)$/.exec(path)
+  if(campaignDoor&&request.method==='GET')return json(await campaignSummary(env,actor,campaignDoor[1]))
+  const campaignBuyer=/^\/api\/barrow\/campaign-deliveries\/([a-f0-9-]+)(?:\.(pdf|xlsx))?$/.exec(path)
+  if(campaignBuyer&&request.method==='GET'){const d=await campaignRecipient(env,actor,campaignBuyer[1]);if(campaignBuyer[2])return sheetDownload(env,actor,d.sheet_id,campaignBuyer[2] as 'pdf'|'xlsx');return json({...await readSheet(env,actor,d.sheet_id),campaignDeliveryId:d.id})}
   if(path==='/api/barrow/line-sheets'&&request.method==='GET')return json(await listSheets(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/price-book.csv'&&request.method==='GET')return await priceBookCsv(env,actor,url.searchParams.get('accountId')??'')
   const sheetRoute=/^\/api\/barrow\/line-sheets\/([a-f0-9-]+)(?:\.(pdf|csv))?$/.exec(path)
@@ -370,6 +378,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
    if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
    if(body.type==='catalog.refresh')return json({result:await refreshCatalogIndex(env,actor,body.payload)})
+   if(body.type==='segment.save'||body.type.startsWith('campaign.'))return json({result:await campaignCommand(env,actor,body.type,body.payload)})
    if(body.type==='price-book.import')return json({result:await importPriceBook(env,actor,body.payload)})
    if(['sheet.publish','sheet.revoke','sheet.view','sheet.preview'].includes(body.type))return json({result:await sheetCommand(env,actor,body.type,body.payload)})
    if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})
