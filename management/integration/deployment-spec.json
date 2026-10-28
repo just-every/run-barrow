@@ -400,6 +400,12 @@
       "name": "0061_payment_promises.sql",
       "sha256": "0af5a8913788a329706bc4a6f872013823065fb2f59ee89e48a91f3a83e20b17",
       "sql": "CREATE TABLE bw_payment_promises (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL UNIQUE,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_payment_promises_account ON bw_payment_promises(account_id);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0062_return_claims.sql",
+      "sha256": "decd7e89a6fd38b8fc31ffeae6279bd118e1323b5f7817de6a1ee90d5c5a6129",
+      "sql": "CREATE TABLE bw_return_claims (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_return_claims_order ON bw_return_claims(order_id);\nCREATE TABLE bw_return_claim_epoch (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL);\nINSERT INTO bw_return_claim_epoch VALUES(1,0);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",

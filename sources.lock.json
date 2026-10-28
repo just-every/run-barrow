@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "62abf341ca861956f0e862d484991a3bf2569a590982a4f38c1ea0bc918ff90c",
+      "sha256": "911bfbdf63830b9770e1fc31e6b34f34b20cd1ca3e6c039c73a650e01240bf58",
       "executable": false
     },
     ".gitignore": {
@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "32956d7244ced4cf50a4e801afa5a48442876cb85b2d2c65c373cc4656a7bacc",
+      "sha256": "55ae7a4d71da6e835a05ddccd08d56c271eb630b2c755dfb23c09b6ae2446f01",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "dadd0348a6381c8ae32d8ea4efd8fbbca73a568ea2fc1436b7d8cb4414696fb3",
+      "sha256": "8c0d4e27afcb48f5d8971815b29bf6f6eccbbd042520fddc62e306b3d0592c1f",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "480c79af9f9baa761c9747ff4546459ef110be0615f15ebd81144e853ff89226",
+      "sha256": "2d9eae7f28f7619b2cba28c6e11501f84ca9813993078dfe5b4ef1742e7884bf",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -320,7 +320,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "fb36e2757ade7753921a958f0f533a1c4a5328ebe139a7271f38847df79fb9d3",
+      "sha256": "48fe9a276f9638cc36cdba4516c1e74960ae25fa7d0289b43756952618e95b51",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -581,6 +581,10 @@
     },
     "migrations/core/0061_payment_promises.sql": {
       "sha256": "0af5a8913788a329706bc4a6f872013823065fb2f59ee89e48a91f3a83e20b17",
+      "executable": false
+    },
+    "migrations/core/0062_return_claims.sql": {
+      "sha256": "decd7e89a6fd38b8fc31ffeae6279bd118e1323b5f7817de6a1ee90d5c5a6129",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1124,7 +1128,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "c1ce25fce9191e3736e8d046b3b631a66b8502d457a57409cc4647a5d90e6e40",
+      "sha256": "13020d69925938e99c9e9ff4f3d2b001e3bd9645c63b7e1f10720c45d1082c34",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1152,7 +1156,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "2877afcf6fa4003a258a8e5ad7edbbb3b54d4a5deb7cf720f39b7c83e3ea992a",
+      "sha256": "572b5dac5a2542203a255c89c0ae7e6b0bd92c9dc0c8a6a22dcc495268f694a3",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1432,7 +1436,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "d5e1086bea3af42bed61e7a07766874e51782aa4cdab97662d7a2610dab57399",
+      "sha256": "2da5090d1395e05e965f337df9ac32586ecb82c590a149b8f13c3c549bf69511",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -1484,7 +1488,7 @@
       "executable": false
     },
     "src/barrow/followup-sources.ts": {
-      "sha256": "ae164078c28222acd4bd7208d84faaaeaacb11ae045b91bcad553b02cf658e50",
+      "sha256": "e1fd653d9a7dace9d95150016144870238905e178b692806b01ed10b9f09d272",
       "executable": false
     },
     "src/barrow/followups.ts": {
@@ -1728,7 +1732,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "3c813752d1de345edfe2d2ac483ec1475725cec27726606508519c26abd03cf7",
+      "sha256": "b4c1cbf1909fcebe801cd3ece8effa1fa5b5aeddcf620834b14173aa02d1b7d6",
       "executable": false
     },
     "src/barrow/prebook-view.ts": {
@@ -1883,6 +1887,10 @@
       "sha256": "3c8367cf7014e559f13e6cd47061daa48e098d65f7d27f8870fcf4e789f60369",
       "executable": false
     },
+    "src/barrow/return-claims.ts": {
+      "sha256": "c76ec872900dcbe7cb09eb5bbf961f45be12d644339b182f087a5d36e9dbdb1d",
+      "executable": false
+    },
     "src/barrow/sales-report.ts": {
       "sha256": "9d63220729670c14c873ee7701805f81753f2e5bd3e30656a66ba84fbc4b29df",
       "executable": false
@@ -1912,7 +1920,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "583f536a158481abc718dd1982b6fc97336e675882a222b0a30adbab3bc8677c",
+      "sha256": "c1e237b438059240d5fbcce3f87228d2f34d21741c8a2abbd50fc29165402e56",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -2208,7 +2216,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "58e06d7d78e381b6b534bcd98cb9193218acea16caea1a22be13449c0d0cc609",
+      "sha256": "7b569dfd8455c0ed9dbaa5fa497c3edf179125bf8caff89fd3fba79b192427dc",
       "executable": false
     },
     "src/barrow/ui/payment-promises.tsx": {
@@ -2269,6 +2277,10 @@
     },
     "src/barrow/ui/retail-settings.tsx": {
       "sha256": "5d46c3fffbe9d1180d91b1d628914e8987e982a896726335d69b753bfa3493bd",
+      "executable": false
+    },
+    "src/barrow/ui/return-claims.tsx": {
+      "sha256": "c0e3e6ae34f24f324c42382f88c40401d846f999287f0e6f658e7bbad9fd07bf",
       "executable": false
     },
     "src/barrow/ui/sales-report.tsx": {
@@ -4631,6 +4643,14 @@
       "sha256": "e82c8760f117294e23b145fabef91cbcc7d9a577768500b9ed6b92c386b18b65",
       "executable": false
     },
+    "tests/api/return-claims-fixture.mjs": {
+      "sha256": "a2ced3adb8ee33b4f0b97f8d151cf9ee6411293b5e44087cdbcc7203a31bc69f",
+      "executable": false
+    },
+    "tests/api/return-claims.test.mjs": {
+      "sha256": "7b133c3a712eeac76f1080768dba7967a66d94a4ae200bc8c6368264c7a0cbbe",
+      "executable": false
+    },
     "tests/api/sales-report.test.mjs": {
       "sha256": "028c1aec4cc8ef420ca38382d516f1950028913509e86ab5af540890afe05000",
       "executable": false
@@ -4861,6 +4881,10 @@
     },
     "tests/journeys/retention.test.mjs": {
       "sha256": "720d02533c55dcdc82dfa16b171087110ba641f61fb081f4da4dadbaf8d5dcea",
+      "executable": false
+    },
+    "tests/journeys/return-claims.test.mjs": {
+      "sha256": "32072607d616ecb3c9ed8b1ed22b8c3c4ed6f3426dabeda32ceafe52a0327234",
       "executable": false
     },
     "tests/journeys/staff.test.mjs": {

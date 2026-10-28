@@ -1,3 +1,4 @@
+import { returnRecords } from './return-claims'
 import { creditRecords } from './credit-ledger'
 import { buyingProfileColumns, buyingProfileExport, orderProfileColumns, orderProfileExport } from './buying-profile-export'
 import { readLists } from './lists'
@@ -18,11 +19,12 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['companyusers','companyinvitations','repassignments','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['returnclaims','companyusers','companyinvitations','repassignments','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  ...buyingProfileColumns,
+ returnclaims:['id','revision','accountId','orderId','orderRevision','line','currency','basis','original','pierOrigin','pierOrderId','quantity','reason','condition','createdBy','createdAt','decision','receipts','history','restored'],
  companyusers:['id','account_id','user_id','email','display_name','policy_json','state','revision','created_at','updated_at','erased_at'],
  companyinvitations:['id','account_id','member_id','email','display_name','policy_json','status','expires_at','created_by','created_at','reason','revision','delivery_status'],
  repassignments:['id','user_id','kind','target','coverage','starts_on','ends_on','state','revision','reason','created_by','created_at','updated_at'],
@@ -124,6 +126,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const refundById = new Map(refunds.map(refund => [refund.id, refund]))
  const refundEvents = (await env.DB.prepare('SELECT id,refund_id,created_at,value_json FROM bw_refund_events ORDER BY created_at,id').all<{id:string;refund_id:string;created_at:string;value_json:string}>()).results.filter(row => refundById.has(row.refund_id))
  const records = { ...stockRecords,
+  returnclaims:(await returnRecords(env.DB)).filter(row=>inScope(row)&&!actor.staff).map(row=>financialFields('returnclaims',{...row,basis:json(row.basis),original:json(row.original),decision:json(row.decision?{...row.decision,by:supplier(actor)?row.decision.by:'supplier'}:undefined),receipts:json(row.receipts.map(receipt=>({...receipt,by:supplier(actor)?receipt.by:'supplier'}))),history:supplier(actor)?json(row.history):'',createdBy:supplier(actor)?row.createdBy:'company buyer'})),
   creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit,freightBasis:json(credit.freightBasis), path: `/api/barrow/credits/${credit.id}` })),
   creditlines: credits.flatMap(credit => credit.lines.map((line, index) => ({ id: `${credit.id}:${index + 1}`, creditId: credit.id, revision: credit.revision, accountId: credit.accountId, orderId: credit.orderId, orderRevision: credit.orderRevision, returnId: credit.returnId, line: line.line, sku: line.sku, quantity: line.quantity, currency: credit.currency, amountCents: line.amountCents, basis: json(line.basis), original: json(line.original) }))),
   creditapplications: applications.map(application => financialFields('creditapplications', application)),
