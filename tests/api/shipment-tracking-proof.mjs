@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import {shipmentTrackingFixture,trackedReplacement} from './shipment-tracking-fixture.mjs';
-import {activateStaff,archive,installation,restore} from './harness.mjs';
+import {activateStaff,archive,installation,restore,accountValue} from './harness.mjs';
 import {verifiedRequest,erasurePayload} from './retention-fixture.mjs';
 
 export async function proveShipmentTracking(t) {
+ await proveWarehouseTrackingReport(t);
  const f=await shipmentTrackingFixture(t),{h,pier,buyer,order,bind,view,set,event,refresh}=f;
  const before=await h.api('/api/barrow/orders/'+order.id),confirmations=await h.api(`/api/barrow/orders/${order.id}/confirmations`);
  await h.command('followup.refresh',{});assert.ok((await h.api('/api/barrow/followups?view=all')).tasks.some(t=>t.id==='tracking-missing:'+f.shipment.id));
@@ -48,4 +49,53 @@ export async function proveShipmentTracking(t) {
  await h.configure({BARROW_TEST_CLOCK:'2031-01-15T14:00:00.000Z'});set(1,[event('delivered','2031-01-15T13:00:00Z','Carrier verified delivery after buyer review')]);await refresh(1);assert.equal((await view()).tasks.find(t=>t.id==='dispute:'+first.id).status,'closed');assert.match((await view()).tasks.find(t=>t.id==='dispute:'+first.id).resolution,/2031-01-15T13:00/);
  await verifiedRequest(h,'cedar',false);const preview=await h.command('retention.preview',{accountId:'cedar'});assert.equal(preview.classes.find(c=>c.kind==='carrier tracking').count,3);await h.command('retention.erase-account',erasurePayload(preview));assert.equal((await view()).packages.length,0);const retained=await h.api('/api/barrow/orders/'+order.id);assert.deepEqual([retained.currency,retained.lines,retained.totalCents,retained.invoice],[before.currency,before.lines,before.totalCents,before.invoice]);assert.equal((await h.request(`/api/barrow/orders/${order.id}/tracking`,buyer)).status,401);await bind(1,'4',{status:409});
  const fenced=await installation();t.after(()=>fenced.close());await restore(fenced,older);assert.equal((await fenced.api(`/api/barrow/orders/${order.id}/tracking`)).packages.length,0);
+}
+
+async function proveWarehouseTrackingReport(t) {
+ const f=await shipmentTrackingFixture(t),{h,pier,product,buyer,event,set}=f;
+ const item=await pier.command('item.save',{sku:'NUT-1',name:'Roasted nuts',unit:'case',packSize:'1'});
+ const location=await pier.command('location.save',{name:'Shelf B1',warehouse:'Los Angeles',kind:'bin'});
+ const po=await pier.command('po.draft',{supplierId:product.supplier.id,promiseDate:'2031-01-15',reason:'Mixed warehouse source stock',lines:[{itemId:item.id,quantity:'12',price:'20.00'}]});
+ await pier.command('po.approve',{poId:po.id,version:po.version});await pier.command('po.commit',{poId:po.id,version:po.version});
+ await pier.command('receipt.create',{poId:po.id,supplierReference:'synthetic-barrow-320',lines:[{poLineId:po.lines[0].id,locationId:location.id,quantity:'12',cost:'20.00'}]});
+ let rule=await pier.command('routing.save',{source:'manual',mode:'rules',shortage:'split',zones:[],defaultEligible:['New York','Los Angeles']});
+ rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
+ const account={...accountValue(product.customer.id,f.email),currency:'USD'};account.prices.push({sku:'NUT-1',unitCents:6500,minQty:2});
+ const currentAccount=await h.api('/api/barrow/accounts/by-id/cedar');
+ await h.command('account.save',{id:'cedar',revision:currentAccount.revision,value:account});
+ const place=async reference=>{
+  const order=await h.command('order.prepare',{accountId:'cedar',reference,requestedDate:'2031-01-15',lines:[{sku:'OAT-1',quantity:2},{sku:'NUT-1',quantity:2}]},buyer);
+  await h.command('order.submit',{orderId:order.id},buyer);return h.command('order.approve',{orderId:order.id});
+ };
+ const order=await place('synthetic-barrow-321'),before=await h.api('/api/barrow/orders/'+order.id);
+ const dispatch=async(order,items,reference)=>{
+  const upstream=(await pier.api('/api/pier/state')).orders.find(row=>row.id===order.pierOrderId);
+  return pier.command('dispatch.create',{orderId:upstream.id,warehouse:items[0].id===product.item.id?'New York':'Los Angeles',shipmentReference:reference,lines:items.map(item=>({orderLineId:upstream.lines.find(line=>line.itemId===item.id).id,quantity:'2'}))});
+ };
+ const bind=async(order,shipment,items,n,status)=>{
+  set(n,[event(status,'2031-01-15T10:00:00Z')]);
+  return h.command('tracking.bind',{orderId:order.id,shipmentId:shipment.id,trackerId:'trk_syntheticbarrow'+n,carrier:'UPS',code:'synthetic-barrow-'+n,lines:items.map(item=>({itemId:item.id,quantity:'2'}))});
+ };
+ await bind(order,await dispatch(order,[product.item],'synthetic-barrow-322'),[product.item],4,'delivered');
+ await bind(order,await dispatch(order,[item],'synthetic-barrow-323'),[item],5,'failure');
+ const policy={role:'operations',accounts:['cedar'],warehouses:['New York'],reports:['fulfillment'],discountLimitCents:0,stockExceptionLimitCents:0};
+ const scoped=await activateStaff(h,['synthetic-barrow-324','example.test'].join('@'),policy);
+ assert.equal((await h.request(`/api/barrow/orders/${order.id}/tracking`,scoped.who)).status,403);
+ const path='/api/barrow/reports/fulfillment?accountId=cedar&warehouse=New+York';
+ const report=await h.api(path,undefined,scoped.who),line=report.lines.find(row=>row.orderId===order.id);
+ assert.ok(line,'The permitted warehouse line remains available');
+ assert.equal(line.tracking,'UPS synthetic-barrow-4: delivered','A New York report must exclude another SKU’s Los Angeles tracking code and status');
+ assert.deepEqual([line.trackedQuantity,line.deliveredQuantity,line.onTimeDeliveredQuantity],['2','2','2']);
+ assert.ok(!JSON.stringify(report).includes('synthetic-barrow-5'),'Neither report representation exposes the foreign package');
+ const full=await activateStaff(h,['synthetic-barrow-325','example.test'].join('@'),{...policy,warehouses:'all'});
+ for(const who of [{},full.who]) {
+  const all=await h.api('/api/barrow/reports/fulfillment?accountId=cedar',undefined,who);
+  assert.equal(all.lines.find(row=>row.orderId===order.id&&row.sku==='OAT-1').tracking,'UPS synthetic-barrow-4: delivered');
+  assert.equal(all.lines.find(row=>row.orderId===order.id&&row.sku==='NUT-1').tracking,'UPS synthetic-barrow-5: failure');
+ }
+ const refused=await h.api('/api/barrow/reports/fulfillment?accountId=cedar&warehouse=Los+Angeles',undefined,{...scoped.who,status:403});assert.equal(refused.error.code,'FORBIDDEN');
+ assert.ok(!JSON.stringify(refused).includes('synthetic-barrow-5'));
+ assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),before,'Reporting changes no agreed order snapshot');
+ await h.command('staff.revoke',{userId:scoped.id,revision:scoped.grant.revision,reason:'Owner withdrew warehouse report authority.'});
+ assert.equal((await h.request(path,scoped.who)).status,403);
 }

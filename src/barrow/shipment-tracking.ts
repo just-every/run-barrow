@@ -142,8 +142,9 @@ export async function trackingExceptionSources(env: Bindings) {
 }
 
 /** Measures count only packages tied to the currently acknowledged source shipment. */
-export async function trackingMeasures(env: Bindings, order: Order, sku: string, promisedDate: string | null, zone: string, state: any) {
- const packages=(await trackingPackages(env.DB,order.id)).filter(p=>!p.restored&&p.sourceOrigin===order.pierOrigin&&state.shipments?.some((s:any)=>s.id===p.shipmentId&&s.orderId===order.pierOrderId))
+export async function trackingMeasures(env: Bindings, actor: Actor, order: Order, sku: string, promisedDate: string | null, zone: string, state: any) {
+ const packages=(await trackingPackages(env.DB,order.id)).filter(p=>p.lines.some(line=>line.sku===sku)&&!p.restored&&p.sourceOrigin===order.pierOrigin&&state.shipments?.some((s:any)=>s.id===p.shipmentId&&s.orderId===order.pierOrderId))
+ for (const p of packages) warehouseAuthority(actor, p.warehouses)
  let tracked=0n,delivered=0n,onTime=0n
  for(const p of packages)for(const line of p.lines.filter(l=>l.sku===sku)) {tracked+=decimal(line.quantity);const event=deliveryEvent(p);if(event){delivered+=decimal(line.quantity);if(promisedDate&&calendarDate(new Date(event.at),zone)<=promisedDate)onTime+=decimal(line.quantity)}}
  return {trackedQuantity:formatMicro(tracked),deliveredQuantity:formatMicro(delivered),onTimeDeliveredQuantity:promisedDate?formatMicro(onTime):null,tracking:packages.length?packages.map(p=>`${p.carrier} ${p.code}: ${packageStatus(p)}`).join('; '):'Not recorded: no connected carrier source',delivery:delivered>0n?'partially verified':'unknown',onTimeDelivery:delivered>0n&&promisedDate?onTime===delivered:null}
