@@ -42,7 +42,7 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
     <p>Fill {line.fillBasisPoints === null ? 'not applicable' : `${(line.fillBasisPoints / 100).toFixed(2)}%`} · age since approval {line.ageDays} days{line.overdue ? ' · past requested date' : ''}</p>
     <p>Agreed date {line.agreedDate ?? 'not recorded'} · Pier promise {line.promisedDate ?? 'not recorded'}{line.promiseChanged ? ' · differs from agreed date' : ''} · promise history: {line.promiseHistory}</p>
     <p>Dispatched by requested date: {line.dispatchedByDate ?? 'unknown'} · dispatched late: {line.dispatchedLate ?? 'unknown'}</p>
-    <p>Delivery: unknown · on-time delivery: unknown · {line.tracking}</p>
+    <p>Delivery: {line.delivery} · tracked {line.trackedQuantity} · verified delivered {line.deliveredQuantity} · delivered by promise {line.onTimeDeliveredQuantity??'unknown'} · {line.tracking}</p>
     <ul>{line.warehouses.map(row => <li key={row.warehouse}>{row.warehouse}: {row.allocated} allocated, {row.shipped} shipped</li>)}{line.unassignedBackorder !== '0' && <li>Unassigned backorder: {line.unassignedBackorder}</li>}</ul>
     <p>Source order <code>{line.sourceOrderId}</code></p>{line.action && <Notice>Owner: {line.owner}. {line.action}</Notice>}
    </article>)}

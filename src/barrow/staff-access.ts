@@ -12,14 +12,15 @@ export function staffScope(actor:Actor,column:string) {
 }
 export const staffSells=(actor:Actor)=>Boolean(actor.staff&&selling.includes(actor.staff.role))
 export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role==='finance')
-export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}) {
+export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;warehouses?:string[]}) {
  const grant=actor.staff
  if(!grant)return true
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
- if((task.kind==='fulfillment'||task.kind==='tracking')&&grant.warehouses!=='all')return false
+ if(task.kind==='fulfillment'&&grant.warehouses!=='all')return false
+ if(task.kind==='tracking'&&grant.warehouses!=='all'&&(!task.warehouses?.length||task.warehouses.some(w=>!grant.warehouses.includes(w))))return false
  if(task.kind==='payment-promise')return grant.role==='finance'
- return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
+ return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','tracking','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
 }
 async function denied(env:Bindings,actor:Actor,source:string):Promise<never> {
  await commit(env.DB,actor,[audit(env.DB,actor,actor.id,'staff.permission-refused',{revision:actor.staff!.revision,source,reason:'Current owner-granted functional role does not authorize this door; no commercial action or outreach performed.'})])
@@ -48,7 +49,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='payment-promises'&&role==='finance')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
- if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(followthrough|timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
+ if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(tracking|followthrough|timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
  if(method==='POST'&&['confirmations/selection','confirmations/export.csv'].includes(relative))return
  if(method==='GET'&&/^payments(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&(role==='finance'||selling.includes(role)))return
  if(method==='GET'&&/^(?:credits|refunds)(?:\/[-a-zA-Z0-9_]+)?$/.test(relative)&&role==='finance')return
