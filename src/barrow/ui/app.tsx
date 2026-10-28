@@ -108,6 +108,7 @@ export function BarrowApp() {
     if (lock.current) return false
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setFocusOrderId('')
+    const orderAction = ['order.prepare', 'order.submit', 'order.company-approve', 'order.approve', 'order.refresh'].includes(type)
     lock.current = true; setBusy(true); setError(''); setNotice('')
     try {
       const response=await request<{result?:{id?:string;status?:string;order?:{id?:string;status?:string}}}>('/api/barrow/commands', { type, payload })
@@ -116,7 +117,7 @@ export function BarrowApp() {
         setError(`The action completed, but the latest records could not be loaded. Refresh before taking another action. ${errorMessage(error)}`)
         return !['order.prepare', 'order.reorder'].includes(type)
       }
-      if (['order.prepare', 'order.submit', 'order.company-approve', 'order.approve', 'order.refresh'].includes(type)) setFocusOrderId(response.result?.order?.id ?? response.result?.id ?? String(payload.orderId ?? ''))
+      if (orderAction) setFocusOrderId(response.result?.order?.id ?? response.result?.id ?? String(payload.orderId ?? ''))
       const messages: Record<string, string> = {
         'account.save': 'Trade account saved.', 'account.invite': 'Invitation requested. Check the account email for the sign-in message.',
         'account.erase': 'Account erasure completed.', 'order.prepare': 'Draft prepared. Review it in Orders before submitting.',
@@ -127,7 +128,7 @@ export function BarrowApp() {
       setNotice(response.result?.status==='awaiting-company-approval'||response.result?.order?.status==='awaiting-company-approval'?'Order awaits company approval. A different authorized approver must release it before supplier review.':type==='order.company-approve'?'Company purchase approved and submitted for supplier review.':messages[type] ?? 'Action completed.')
       return true
     } catch (error) {
-      setError(`${errorMessage(error)} The request is not confirmed here. Review refreshed orders before retrying; your entered work is retained.`)
+      setError(orderAction ? `${errorMessage(error)} The request is not confirmed here. Review refreshed orders before retrying; your entered work is retained.` : errorMessage(error))
       // A failed provider step may still have recorded a pending state (reserving, releasing): show it.
       try { await reload() } catch {}
       return false
@@ -139,7 +140,13 @@ export function BarrowApp() {
     if (busy || focusOrderId || !returnFocus.current) return
     const target = returnFocus.current
     const restore = () => {
-      if (!target.isConnected || document.activeElement !== document.body && document.activeElement !== target) return true
+      if (document.activeElement !== document.body && document.activeElement !== target) { returnFocus.current = null; return true }
+      if (document.getElementById('main-content')?.querySelector('[aria-busy="true"]')) return false
+      if (!target.isConnected) {
+        document.getElementById('command-error')?.focus()
+        returnFocus.current = null
+        return true
+      }
       if (target.matches(':disabled')) return false
       target.focus()
       returnFocus.current = null
@@ -147,7 +154,7 @@ export function BarrowApp() {
     }
     // Child workspaces can finish their record refresh after the command itself.
     const observer = new MutationObserver(() => { if (restore()) observer.disconnect() })
-    observer.observe(document.getElementById('main-content')!, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled'] })
+    observer.observe(document.getElementById('main-content')!, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'aria-busy'] })
     const frame = requestAnimationFrame(() => { if (restore()) observer.disconnect() })
     return () => { cancelAnimationFrame(frame); observer.disconnect() }
   }, [busy, focusOrderId, state])
@@ -173,7 +180,7 @@ export function BarrowApp() {
     </header></HydrationUnit>
     <main id="main-content" className={`br-main${activeTab === pad && selected ? ' br-main-pad' : ''}`} aria-busy={loading || busy}>
       <HydrationUnit><section>
-        {error && <Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice>}
+        {error && <div id="command-error" tabIndex={-1}><Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice></div>}
         {notice && <Notice>{notice}</Notice>}{invitationMessages.map(message=><Notice key={message}>{message}</Notice>)}
         {!state && loading && <p role="status" className="br-loading">Loading your wholesale workspace…</p>}
         {invitation&&<CompanyInvitation {...invitation} onAccepted={()=>{setInvitation(null);void load()}}/>}

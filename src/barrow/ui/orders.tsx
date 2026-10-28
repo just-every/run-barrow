@@ -48,20 +48,21 @@ export function Orders({ focusOrderId='', onResultFocused, orders: all, accounts
   const [query,setQuery] = useState({po:'',from:'',to:'',sku:'',location:''})
   const [searchError,setSearchError] = useState('')
   const historyKey = useRef('')
+  const loadedOrders = useRef<Order[] | null>(null)
   useEffect(() => {
     let current=true
     const nextKey = JSON.stringify([query,filter,page])
     if (historyKey.current !== nextKey) setHistory(null)
     historyKey.current = nextKey
     setLoading(true);setSearchError('')
-    void request<HistoryPage>(`/api/barrow/orders/history?${new URLSearchParams({...query,status:filter,page:String(page)})}`).then(value => {if(current)setHistory(value)}).catch(error => {if(current)setSearchError(errorMessage(error))}).finally(()=>{if(current)setLoading(false)})
+    void request<HistoryPage>(`/api/barrow/orders/history?${new URLSearchParams({...query,status:filter,page:String(page)})}`).then(value => {if(current){loadedOrders.current = all;setHistory(value)}}).catch(error => {if(current)setSearchError(errorMessage(error))}).finally(()=>{if(current)setLoading(false)})
     return () => {current=false}
   },[query,filter,page,all])
   useEffect(() => {
-    if (!focusOrderId || loading || busy || !history) return
+    if (!focusOrderId || loading || busy || !history || loadedOrders.current !== all) return
     const result = document.getElementById(`order-result-${focusOrderId}`)
     if (result) { result.focus(); onResultFocused?.() }
-  }, [focusOrderId, loading, busy, history, onResultFocused])
+  }, [focusOrderId, loading, busy, history, all, onResultFocused])
   const orders = history?.orders ?? []
   const duplicate = (order: Order) => history?.duplicatePOs.includes(order.id) ?? false
   const counts=history?.counts ?? {}
@@ -74,7 +75,7 @@ export function Orders({ focusOrderId='', onResultFocused, orders: all, accounts
   }
   const person = (id: string) => id.startsWith('agent:') ? 'Your agent' : id === viewer ? 'You' : history?.people[id] ?? people[id] ?? 'A former user'
   const shown = orders
-  return <div className="br-stack br-orders">
+  return <div className="br-stack br-orders" aria-busy={loading || busy}>
     <div className="br-heading-row"><h2>{supplier ? 'All orders' : 'Your orders'}</h2>
       <div className="br-segments" role="group" aria-label="Show orders">{filters.map(([name, status]) => <button key={name} type="button" aria-pressed={filter === status} disabled={loading} onClick={() => {setPage(1);setFilter(status)}}>{name} <span>{count(status)}</span></button>)}</div>
     </div>

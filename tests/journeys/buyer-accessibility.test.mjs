@@ -89,7 +89,7 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  await uploadSummary.getByRole('link', { name: /Row 2/ }).press('Enter');
  await expect(dialog.getByRole('button', { name: 'Leave out row 2', exact: true })).toBeFocused();
  await captureWidths(buyer, 'buyer-upload-correction-summary');
- await buyer.keyboard.press('Escape'); await expect(paste).toBeFocused(); await expect(first).toHaveValue('6');
+ await dialog.getByRole('button', { name: 'Cancel', exact: true }).press('Enter'); await expect(paste).toBeFocused(); await expect(first).toHaveValue('6');
  // Dates expose a persistent description and a summary link that opens the disclosure.
  await buyer.getByText('Delivery dates & instructions', { exact: true }).press('Enter');
  await buyer.getByLabel('Requested delivery date (Eastern time)', { exact: true }).fill('2098-02-10');
@@ -153,6 +153,7 @@ test('keyboard buyer corrects a forty-line size matrix, recovers interrupted req
  await purchase(supplier).getByRole('button', { name: 'Approve & reserve stock', exact: true }).press('Enter');
  await supplier.getByRole('alert').filter({ hasText: 'request is not confirmed' }).waitFor();
  await expect(purchase(supplier).getByText('approved', { exact: true })).toBeVisible();
+ await expect(supplier.locator('#command-error')).toBeFocused();
  await expect(supplier.getByRole('status').filter({ hasText: 'Reservation requested.' })).toHaveCount(0); await clear();
  const approved = await h.api(`/api/barrow/orders/${draft.id}`); assert.equal(approved.status, 'approved'); assert.ok(approved.pierOrderId);
  await buyer.reload(); await buyer.getByRole('button', { name: 'Orders', exact: true }).press('Enter');

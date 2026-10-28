@@ -1960,7 +1960,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "98e0885982ad1340afa789ba27ab193a835a063363d8693df905b4bc29621d87",
+      "sha256": "48c61c082ff4208f7bc3a38303d260e6d46056dc01fb9bccf5a7d1464e231e51",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -2180,7 +2180,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "2655163d2116b2857cb170ee0f7b7bb3b7ff3e051e1cb5b8e0e44041efc23a0b",
+      "sha256": "97f46ba538a19b321eb51a98fa4b980aba17f0764fdb7053b3416cab9154e730",
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {
@@ -4716,7 +4716,7 @@
       "executable": false
     },
     "tests/journeys/buyer-accessibility.test.mjs": {
-      "sha256": "41edd153c267ce852940c59f2321ad5b37127b01568b2f1d2e74e3463901c097",
+      "sha256": "c6e4167e8c6a70d1a713f0c9ea6066176e667a44685938734aeea53657963011",
       "executable": false
     },
     "tests/journeys/card-stripe-sandbox.mjs": {
