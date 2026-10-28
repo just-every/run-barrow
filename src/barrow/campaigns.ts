@@ -222,8 +222,12 @@ export async function campaignRecipient(env:Bindings,actor:Actor,id:string){
  return d
 }
 export async function campaignOrder(env:Bindings,actor:Actor,p:any){
- if(p.campaignDeliveryId===undefined)return undefined
- const d=await campaignRecipient(env,actor,text(p.campaignDeliveryId,'Campaign recipient'))
+ let deliveryId=p.campaignDeliveryId
+ // The authenticated recipient's own suggested form is a campaign source too.
+ // An ordinary order without that private sheet never gains attribution.
+ if(deliveryId===undefined&&typeof p.lineSheetId==='string')deliveryId=(await env.DB.prepare('SELECT id FROM bw_campaign_deliveries WHERE sheet_id=? AND recipient_id=?').bind(p.lineSheetId,actor.id).first<{id:string}>())?.id
+ if(deliveryId===undefined)return undefined
+ const d=await campaignRecipient(env,actor,text(deliveryId,'Campaign recipient'))
  if(p.lineSheetId!==d.sheet_id)campaignMissing()
  return {id:d.campaign_id,deliveryId:d.id}
 }

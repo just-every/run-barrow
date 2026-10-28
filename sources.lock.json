@@ -1104,7 +1104,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "0488259cecf2271f1b51e23977ceee007f09420c9064698cd148cdcd8edbca5c",
+      "sha256": "251f28b73b26dfc67e045b0ae560afe27649ca5c8d2e63105594a5744f2dd14b",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1120,7 +1120,7 @@
       "executable": false
     },
     "src/barrow/accounts.ts": {
-      "sha256": "2dddff5e4ad072cdb623c6ba442f0a107bf4022ab9a58c50e78e42da32b65256",
+      "sha256": "c941e6e3a1698d2f342a386c94a1dc21d0bb4719609692d03ce68e1466d42266",
       "executable": false
     },
     "src/barrow/agent-proposal-model.ts": {
@@ -1215,12 +1215,16 @@
       "sha256": "3d3a8625eea336d966118466a9189767a31c729db3ef1a1c580c3e18fbedff02",
       "executable": false
     },
+    "src/barrow/campaign-custody.ts": {
+      "sha256": "7c27681bdfe35ee452252c45e92b569d93a93676ae442255f7c9de7e89d39aee",
+      "executable": false
+    },
     "src/barrow/campaign-mail-events.ts": {
       "sha256": "a3bcdcac9b4fcb62f48d9dd02244be26e47cccc09f0a799918413767541259ca",
       "executable": false
     },
     "src/barrow/campaigns.ts": {
-      "sha256": "4542d198d955da8abe7068b74bed95faa3d9e0f1fc1271b7e9ce59aaa08200f7",
+      "sha256": "889a083e902fed59f2dafec8010354fdc7bdcce75a1e1d9016c128564d50a744",
       "executable": false
     },
     "src/barrow/card-customer.ts": {
@@ -1320,7 +1324,7 @@
       "executable": false
     },
     "src/barrow/company-members.ts": {
-      "sha256": "ec6faabde6254aa3c99fe7d59cb160730dd9e13ecc7a24d5335f8f22ce4a9f30",
+      "sha256": "bdb8c7651ba880d02a6b0702c45a60d30cbbd4d2f3120c64a7576d3c535eac42",
       "executable": false
     },
     "src/barrow/company-policy.ts": {
@@ -1632,7 +1636,7 @@
       "executable": false
     },
     "src/barrow/legacy-erasure-journal.ts": {
-      "sha256": "4313f95b6227384d96dcad2fa7a05b34e1e5fc86fdf5c48e6ce86762aa7234cb",
+      "sha256": "4c6443f30727a717d5d35a5c892ee9d622043f6b42c4b0ef44873953d51621d7",
       "executable": false
     },
     "src/barrow/line-sheets.ts": {
@@ -4464,7 +4468,7 @@
       "executable": false
     },
     "tests/api/line-sheets.test.mjs": {
-      "sha256": "a80473a3395ce2e3571a3bd9fb511cd94192eaf97228c845222beecdbc841eae",
+      "sha256": "19e418c8a72434324b12d51328f343f890959560cdbd92e31e998a328ba69f79",
       "executable": false
     },
     "tests/api/locations.test.mjs": {
