@@ -39,9 +39,10 @@ export async function cardCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='card.prepare'||type==='card.schedule') {
   const order=await readOrder(env.DB,actor,text(p.orderId,'Order'));await permitted(env,actor,{accountId:order.accountId,orderId:order.id} as CardPayment);payable(order)
   const config=await connection(env)
-  if(type==='card.schedule'){cardMerchant(actor);return scheduleCollections(env,actor,order,p,config)}
+  if(type==='card.schedule'){cardMerchant(actor);const schedule=await scheduleCollections(env,actor,order,p,config);return {payments:schedule.payments.map(publicCard)}}
   const value=p.paymentId?(await storedCard(env,text(p.paymentId,'Payment'))).value:await newCollection(env,actor,order,p,config),id=value.id
-  if(value.orderId!==order.id||value.accountId!==order.accountId||value.providerAccountId!==config.account_id||!!value.livemode!==!!config.livemode)fail('PAYMENT_SCOPE','Use the planned payment of this invoice and connected merchant.',409)
+  if(value.orderId!==order.id||value.accountId!==order.accountId)fail('NOT_FOUND','Payment source not found.',404)
+  if(value.providerAccountId!==config.account_id||!!value.livemode!==!!config.livemode)fail('PAYMENT_SCOPE','Use the planned payment of this invoice and connected merchant.',409)
   const row=await storedCard(env,id)
   if(row.value.restored)fail('RESTORED','Restored payment history cannot initiate charges.',409)
   if(p.amountCents!==undefined&&p.amountCents!==row.value.amountCents)fail('PAYMENT_CHANGED','A collection identity retains its original exact principal.',409)

@@ -42,6 +42,17 @@ export async function followupSources(db: D1Database, at: Date) {
    if(unused===0&&allocations.length)resolved.set(depositId,`Verified deposit principal accounted for by immutable allocations ${allocations.map(row=>row.id).join(', ')} and recorded refund reservations.`)
    else candidates.push({id:depositId,kind:'credit',accountId:payment.accountId,sourceId:payment.id,sourcePath:`/api/barrow/payments/${payment.id}`,title:`Review seasonal deposit ${payment.id}`,reason:`Captured ${payment.amountCents} ${payment.currency} principal; ${unused} remains unapplied. Finance must review linked release invoices; capture alone is not settlement.`,priority:1})
   }
+  if(!orders.some(order=>order.id===payment.orderId&&order.prebook)) {
+   const allocations=financial.allocations.filter(row=>row.paymentId===payment.id),unused=unappliedPrincipal(payment,financial),allocationId=`payment-allocation:${row.id}`,scheduledId=`scheduled-payment:${row.id}`
+   if(payment.state==='captured'&&unused===0&&allocations.length) {
+    const proof=`Verified principal settled by immutable allocations ${allocations.map(row=>row.id).join(', ')}.`
+    resolved.set(allocationId,proof);resolved.set(scheduledId,proof)
+   } else if(payment.state==='captured'&&unused>0&&!payment.restored)candidates.push({id:allocationId,kind:'credit',accountId:payment.accountId,sourceId:payment.id,sourcePath:`/api/barrow/payments/${payment.id}`,title:`Allocate partial payment ${payment.id}`,reason:`Verified captured principal has ${unused} ${payment.currency} unapplied. Finance must review the original invoice before settlement.`,priority:1})
+   if(payment.scheduleId&&!payment.restored) {
+    if(payment.state==='cancelled')resolved.set(scheduledId,'The merchant explicitly cancelled this scheduled collection; no paid invoice is inferred.')
+    else if(payment.dueDate&&payment.dueDate<=supplierDate(at)&&!resolved.has(scheduledId))candidates.push({id:scheduledId,kind:'credit',accountId:payment.accountId,sourceId:payment.id,sourcePath:`/api/barrow/payments/${payment.id}`,title:`Review dated payment ${payment.id}`,reason:`Due ${payment.dueDate}: ${payment.amountCents} ${payment.currency} principal still needs verified collection and allocation. No automatic charge or contact is authorized.`,priority:1})
+   }
+  }
   const exception = payment.exception
   // Only an explicitly verified exception is actionable; payment state or absence never proves resolution.
   if (!exception?.verifiedAt) continue

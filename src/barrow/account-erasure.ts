@@ -159,7 +159,7 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
    sql("UPDATE bw_card_payments SET value_json=json_set(json_remove(value_json,'$.paymentMethodId','$.providerCustomerId','$.setupSessionId','$.checkoutUrl','$.actionUrl'),'$.restored',json('true')),revision=? WHERE id=?",op.id,payment.id),
   ])
   add('card personal details','card-personal:'+payment.id,'remove card details','Card brand, last four digits, funding and address state are outside the financial floor',[
-   sql("UPDATE bw_card_payments SET value_json=json_remove(value_json,'$.card'),revision=? WHERE id=?",op.id,payment.id),
+   sql("UPDATE bw_card_payments SET value_json=json_remove(value_json,'$.card','$.scheduleReason'),revision=? WHERE id=?",op.id,payment.id),
   ])
   for(const event of r.bw_card_events.filter(row=>row.payment_id===payment.id))add('card financial history','card-event:'+event.id,'keep financial history','Keep the attributed verified provider event and its financial time',[],floor)
  }

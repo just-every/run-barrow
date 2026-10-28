@@ -25,6 +25,7 @@ export async function assertCollection(env:Bindings,order:Order,payment:CardPaym
  if(current.rows.some(row=>row.restored)||payment.amountCents>current.availableCents)fail('PAYMENT_BALANCE','This collection exceeds current unpaid principal after other receipts and planned payments. Review credits and cancel unused attempts first.',409)
 }
 export async function newCollection(env:Bindings,actor:Actor,order:Order,p:any,config:CardConnection):Promise<CardPayment> {
+ if(order.prebookRelease?.restored)fail('RESTORED','Restored release history cannot initiate collections.',409)
  const key=p.collectionKey===undefined?undefined:collectionKey(p.collectionKey)
  if(order.prebook&&(key||p.amountCents!==undefined&&p.amountCents!==order.prebook.depositCents))fail('PREBOOK_DEPOSIT','Collect the original deposit requirement once; partial balance collections belong to release invoices.',409)
  const id=key?`card-${order.id}-${key}`:`card-${order.id}`
@@ -33,7 +34,7 @@ export async function newCollection(env:Bindings,actor:Actor,order:Order,p:any,c
  if(current.rows.some(row=>row.restored))fail('RESTORED','Restored financial history cannot initiate collections.',409)
  const amountCents=p.amountCents===undefined?current.availableCents:integer(p.amountCents,'Collection cents',1)
  if(amountCents<=0||amountCents>current.availableCents)fail('PAYMENT_BALANCE','Collect only the available unpaid principal after other receipts and planned payments.',409)
- const at=(await now()).toISOString(),value:CardPayment={id,collectionKey:key,installationId:await cardInstallation(env.DB),orderId:order.id,accountId:order.accountId,orderRevision:order.revision,currency:order.currency??'AUD',amountCents,surchargeCents:0,state:'prepared',createdAt:at,updatedAt:at,providerAccountId:config.account_id,livemode:!!config.livemode}
+ const at=(await now()).toISOString(),value:CardPayment={id,collectionKey:key,installationId:await cardInstallation(env.DB),orderId:order.id,accountId:order.accountId,orderRevision:order.revision,currency:order.currency??'AUD',amountCents,surchargeCents:0,state:'prepared',createdAt:at,updatedAt:at,latestFinancialAt:at,providerAccountId:config.account_id,livemode:!!config.livemode}
  await commit(env.DB,actor,[...guards,orderGuard(env,order),env.DB.prepare('INSERT INTO bw_card_payments VALUES(?,?,?,?,?)').bind(id,order.accountId,order.id,JSON.stringify(value),crypto.randomUUID()),audit(env.DB,actor,id,'card.collection-prepared',{accountId:order.accountId,orderId:order.id,revision:order.revision,source:order.id,reason:'Explicitly prepared exact invoice principal; hosted verification and separate authorization remain required.'})])
  return value
 }

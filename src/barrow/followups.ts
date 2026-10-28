@@ -134,9 +134,9 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  }
  if (p.close === true) {
   if(before.kind==='payment-promise')fail('PROMISE_RESOLUTION','Resolve or withdraw the promise through its finance decision door; contact records cannot close it.',409)
-  if(before.kind==='credit'&&before.id.startsWith('deposit-allocation:')) {
+  if(before.kind==='credit'&&['deposit-allocation:','payment-allocation:','scheduled-payment:'].some(prefix=>before.id.startsWith(prefix))) {
    const financial=await financialGuard(env.DB),sources=await followupSources(env.DB,await now()),resolution=sources.resolved.get(before.id)
-   if(!resolution)fail('DEPOSIT_UNRESOLVED','This deposit requires recorded principal allocations or refund evidence before it can close.',409)
+   if(!resolution)fail('DEPOSIT_UNRESOLVED','This financial review requires recorded principal allocations or verified cancellation evidence before it can close.',409)
    value.resolution=resolution
    statements.push(...financial)
   } else if (before.kind === 'card-payment') {

@@ -37,7 +37,7 @@ const columns: Record<Kind, string[]> = {
  stockwindows:['sku','opensAt','closesAt','revision'],
  stockwatches:['id','account_id','user_id','sku','kind','active','created_at'],
  stocknotices:['id','watch_id','account_id','user_id','sku','kind','event_id','created_at'],
- cardpayments:['collectionKey','scheduleId','dueDate','scheduledBy','scheduledAt','scheduleReason','id','revision','accountId','orderId','currency','amountCents','surchargeCents','state','providerAccountId','providerPaymentId','createdAt','updatedAt','latestFinancialAt','capturedAt'],
+ cardpayments:['id','revision','accountId','orderId','currency','amountCents','surchargeCents','state','providerAccountId','providerPaymentId','createdAt','updatedAt','latestFinancialAt','capturedAt','collectionKey','scheduleId','dueDate','scheduledBy','scheduledAt','scheduleReason'],
  cardevents:['id','paymentId','createdAt','type','providerPaymentId','state','amountCents','currency','verifiedAt'],
  sourcehistory:['id','system','tenant','source_id','document_type','account_id','value_json','content_hash','import_id'],
  sourceimports:['id','fingerprint','system','tenant','scope_json','source_json','report_json','actor_id','created_at'],
