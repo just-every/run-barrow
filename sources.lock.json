@@ -4660,7 +4660,7 @@
       "executable": false
     },
     "tests/journeys/promotions.test.mjs": {
-      "sha256": "1cab54c940852acfe970f3310ba3924078a09eb225fe1265102adbc0063ff6a4",
+      "sha256": "e260814df86b5fc807ddaf65a4c7a8be03ff9ce0d669f752f99184797f470318",
       "executable": false
     },
     "tests/journeys/reorder.test.mjs": {
