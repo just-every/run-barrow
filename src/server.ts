@@ -1,6 +1,9 @@
+import { agentDoorResponse } from './agent-door/response.server'
+import { barrowAgentDoor } from './agent-door/index.server'
+import { businessSettings } from './business.server'
 import { runStockSync } from './barrow/stock-sync'
 import { dispatchWebhooks } from './barrow/webhook-delivery'
-import { reconcileErasureJournal } from './barrow/erasure-journal'
+import { erasureRestoreResponse, reconcileErasureJournal } from './barrow/erasure-journal'
 import { purgeUnverified } from './barrow/application-records'
 import { dispatchReports } from './barrow/report-delivery'
 import { dispatchQuoteMail } from './barrow/quote-mail'
@@ -36,6 +39,15 @@ export default withDemo({
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
+    const bindings = runtimeBindings(env)
+    if (/^\/(?:api\/rer(?:\/|$)|agents(?:\/|$)|mcp(?:\/|$))/.test(new URL(request.url).pathname)) {
+      const fenced = await erasureRestoreResponse(bindings)
+      if (fenced) return fenced
+    }
+    const settings = await businessSettings(bindings).handle(request)
+    if (settings) return settings
+    const door = await barrowAgentDoor(bindings).handle(request)
+    if (door) return agentDoorResponse(door)
     const barrow = await barrowResponse(request, env)
     if (barrow) return barrow
     const auth = await authResponse(request, env)

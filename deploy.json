@@ -49,12 +49,14 @@
     {
       "binding": "PIER_ORIGIN",
       "environment": "PIER_ORIGIN",
-      "optional": true
+      "optional": true,
+      "verifyStandIn": "https://barrow-agent-inventory.example.invalid"
     },
     {
       "binding": "PIER_SESSION",
       "environment": "PIER_SESSION",
-      "optional": true
+      "optional": true,
+      "verifyStandIn": "barrow-agent-conformance"
     },
     {
       "binding": "BARROW_SFTP_SECRETS",

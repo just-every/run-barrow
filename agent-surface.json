@@ -1,0 +1,281 @@
+{
+  "schema": "rer-agent-surface/1",
+  "seed": "barrow",
+  "specialist": "wholesale account operator",
+  "tools": [
+    {
+      "name": "barrow.accounts.list",
+      "scope": "accounts:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BAR-001"
+      ]
+    },
+    {
+      "name": "barrow.accounts.read",
+      "scope": "accounts:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BAR-001",
+        "ACC-004"
+      ]
+    },
+    {
+      "name": "barrow.orders.list",
+      "scope": "orders:list",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BAR-002",
+        "RPT-006"
+      ]
+    },
+    {
+      "name": "barrow.orders.read",
+      "scope": "orders:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BAR-002",
+        "ORD-010"
+      ]
+    },
+    {
+      "name": "barrow.lists.list",
+      "scope": "lists:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "ORD-002"
+      ]
+    },
+    {
+      "name": "barrow.lists.read",
+      "scope": "lists:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "ORD-002"
+      ]
+    },
+    {
+      "name": "barrow.events.list",
+      "scope": "events:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-010"
+      ]
+    }
+  ],
+  "notTools": [
+    {
+      "clauses": [
+        "BAR-006"
+      ],
+      "reason": "screen"
+    },
+    {
+      "clauses": [
+        "REP-002",
+        "REP-003",
+        "REP-006"
+      ],
+      "reason": "device"
+    },
+    {
+      "clauses": [
+        "INT-001",
+        "INT-002",
+        "INT-003",
+        "INT-004",
+        "INT-005",
+        "INT-006",
+        "INT-007",
+        "INT-008",
+        "INT-009",
+        "INT-010",
+        "INT-011",
+        "INT-012",
+        "INT-013",
+        "INT-014",
+        "INT-015",
+        "INT-016",
+        "INT-017",
+        "INT-018",
+        "INT-019",
+        "INT-020"
+      ],
+      "reason": "connector"
+    },
+    {
+      "clauses": [
+        "MOVE-001",
+        "MOVE-002",
+        "MOVE-003",
+        "MOVE-004",
+        "MOVE-005",
+        "MOVE-006",
+        "MOVE-007",
+        "MOVE-008",
+        "MOVE-009"
+      ],
+      "reason": "import-door"
+    },
+    {
+      "clauses": [
+        "BASE-001"
+      ],
+      "reason": "installation"
+    }
+  ],
+  "resources": [
+    "barrow://accounts/{id}",
+    "barrow://lists/{id}"
+  ],
+  "witness": {
+    "tool": "barrow.accounts.list",
+    "args": {}
+  },
+  "escalations": [],
+  "verification": {
+    "owner": {
+      "initializer": "tests/agent/owner.mjs"
+    },
+    "network": {
+      "module": "tests/agent/network.mjs",
+      "origins": [
+        "https://barrow-agent-inventory.example.invalid"
+      ]
+    }
+  },
+  "journey": [
+    {
+      "id": "accounts",
+      "tool": "barrow.accounts.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "tool": "barrow.accounts.read",
+      "args": {
+        "id": "cedar"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ],
+      "inject": {
+        "classes": [
+          "external"
+        ],
+        "internal": false,
+        "confirmExternal": true
+      }
+    },
+    {
+      "id": "orders",
+      "tool": "barrow.orders.list",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "order",
+      "tool": "barrow.orders.read",
+      "args": {
+        "id": "ORD-10001"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "lists",
+      "tool": "barrow.lists.list",
+      "args": {
+        "accountId": "cedar"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "list",
+      "tool": "barrow.lists.read",
+      "args": {
+        "id": {
+          "$from": "lists",
+          "pointer": "/lists/0/id"
+        }
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "events",
+      "tool": "barrow.events.list",
+      "args": {
+        "limit": 200
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    }
+  ]
+}

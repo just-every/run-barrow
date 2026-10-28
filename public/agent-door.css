@@ -1,0 +1,4 @@
+/* Shared Base controls already have a 44px height; short links need the same width. */
+a {
+  min-width: 44px;
+}
