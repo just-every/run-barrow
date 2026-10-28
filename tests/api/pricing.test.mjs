@@ -197,24 +197,40 @@ test('CAT-006: one company buyer deliberately selects approved brand price books
 
 test('promotion mix qualification, removal, exclusive precedence and source-priced partial returns reconcile once in the scoped conversion report',async t=>{
  const {promotionFixture,promotedReturn}=await import('./promotion-fixture.mjs');const f=await promotionFixture(t),{h,buyer,lines,offer}=f;
- let preview=await f.preview();assert.equal(preview.basisCents,4004);assert.equal(preview.totalCents,3604);assert.equal(preview.discountCents,400);assert.equal(preview.beforeMarginCents,2004);assert.equal(preview.marginCents,2404);
+ let preview=await f.preview();assert.equal(preview.currentTotalCents,3204);assert.equal(preview.basisCents,4004);assert.equal(preview.totalCents,3604);assert.equal(preview.discountCents,400);assert.equal(preview.beforeMarginCents,2004);assert.equal(preview.marginCents,2404);
  const draft=await f.prepare();assert.equal(draft.totalCents,3604);
  const removed=await f.prepare([lines[0]],{replaces:draft.id});assert.equal(removed.totalCents,1602);assert.equal(removed.lines[0].promotion,undefined);assert.equal((await h.api('/api/barrow/orders/'+draft.id,undefined,buyer)).status,'superseded');
  await f.save([offer,{...offer,id:'exclusive',name:'Priority exclusive',bps:2500,priority:20}]);
  preview=await f.preview();assert.equal(preview.totalCents,3004);assert.equal(preview.discountCents,1000);assert.equal(preview.marginCents,1804);assert.deepEqual(preview.lines.map(l=>l.promotion.offers.map(o=>o.id)),[['exclusive'],['exclusive']]);
  await h.command('order.submit',{orderId:removed.id},buyer);
- const {order,credit,payload}=await promotedReturn(f);assert.equal(order.totalCents,3004);assert.equal(credit.amountCents,751);assert.equal(credit.lines[0].basis.promotion.discountCents,500);
+ const {order,credit,payload}=await promotedReturn(f);assert.equal(order.totalCents,3004);assert.equal(credit.amountCents,751);assert.equal(credit.lines[0].basis.promotion.discountCents,500);assert.deepEqual(order.lines.map(l=>[l.promotion.basisCents,l.promotion.discountCents,l.promotion.offers]),[[2002,500,[{id:'exclusive',name:'Priority exclusive',discountCents:500}]],[2002,500,[{id:'exclusive',name:'Priority exclusive',discountCents:500}]]]);
  await f.save([{...offer,bps:9000}]);const replay=await h.command('credit.issue',payload);assert.equal(replay.id,credit.id);assert.equal(replay.amountCents,751);
  const report=await h.api('/api/barrow/reports/quotes?from=2000-01-01&to=2099-12-31&currency=USD');assert.equal(report.totals.promotedOrders,1);assert.equal(report.totals.promotionGrossCents,3004);assert.equal(report.totals.promotionDiscountCents,1000);assert.equal(report.totals.promotionReturnedCents,751);assert.equal(report.totals.netPromotedCents,2253);assert.deepEqual(report.promotionOffers,[{id:'exclusive',name:'Priority exclusive',orders:1,discountCents:1000,grossCents:3004,returnedCents:751,netCents:2253}]);assert.match(report.definitions.promotions,/frozen offer IDs/);
  assert.equal(report.byProduct.find(r=>r.name===lines[0].sku).netPromotedCents,751);assert.equal(report.byProduct.find(r=>r.name===lines[1].sku).netPromotedCents,1502);
  const other=await h.api('/api/barrow/reports/quotes?accountId=wren&from=2000-01-01&to=2099-12-31&currency=CAD');assert.equal(other.totals.promotedOrders,0);
  const current=await h.api('/api/barrow/orders/'+order.id,undefined,buyer);assert.deepEqual(current,order);assert.equal((await h.api('/api/barrow/credits?orderId='+order.id)).credits.length,1);
- const state=await h.api('/api/barrow/export.json');assert.ok(state.lines.some(l=>l.orderId===order.id&&JSON.parse(l.promotion).offers[0].id==='exclusive'));
+ const state=await h.api('/api/barrow/export.json');assert.deepEqual(state.lines.filter(l=>l.orderId===order.id).map(l=>JSON.parse(l.promotion)),[{basisCents:2002,discountCents:500,offers:[{id:'exclusive',name:'Priority exclusive',discountCents:500}]},{basisCents:2002,discountCents:500,offers:[{id:'exclusive',name:'Priority exclusive',discountCents:500}]}]);
  // Successive physical receipts consume original net cents, including the final rounding residue.
  await f.save([{...offer,bps:2500}]);let odd=await f.prepare(lines.map(l=>({...l,quantity:3})));await h.command('order.submit',{orderId:odd.id},buyer);odd=await h.command('order.approve',{orderId:odd.id});assert.equal(odd.lines[0].lineCents,2252);
  const upstream=(await f.pier.api('/api/pier/state')).orders.find(o=>o.id===odd.pierOrderId),shipment=await f.pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'Rounding residue shipment',lines:upstream.lines.map(l=>({orderLineId:l.id,quantity:l.quantity}))}),amounts=[];
  for(let n=0;n<3;n++){const receipt=await f.pier.command('return.create',{shipmentId:shipment.id,shipmentLineId:shipment.lines[0].id,locationId:f.source.location.id,quantity:'1',reason:'Received original discounted unit.'});const note=await h.command('credit.issue',{orderId:odd.id,returnId:receipt.id,lines:[{line:1,quantity:1}],reason:'Reverse only remaining original net value.'});amounts.push(note.amountCents)}assert.deepEqual(amounts,[751,751,750]);
  const allReturns=await h.api('/api/barrow/reports/quotes?from=2000-01-01&to=2099-12-31&currency=USD');assert.equal(allReturns.totals.promotionReturnedCents,3003);assert.equal(allReturns.totals.netPromotedCents,4505);
+
+ // Fixed historical preparation instants isolate period, account and currency independently.
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.preparedAt','2026-04-12T16:00:00Z') WHERE id IN (?,?)").bind(order.id,odd.id).run();
+ const scoped=()=>h.api('/api/barrow/reports/quotes?from=2026-04-01&to=2026-04-30&currency=USD&accountId=cedar');
+ const april=await scoped();assert.deepEqual([april.totals.promotedOrders,april.totals.promotionDiscountCents,april.totals.promotionGrossCents,april.totals.promotionReturnedCents,april.totals.netPromotedCents],[2,2502,7508,3003,4505]);
+ assert.deepEqual(april.byRep.map(r=>[r.name,r.promotedOrders,r.promotionDiscountCents,r.promotionGrossCents,r.promotionReturnedCents,r.netPromotedCents]),[['Unassigned',2,2502,7508,3003,4505]]);
+ assert.deepEqual(april.byCohort.map(r=>[r.name,r.promotedOrders,r.promotionDiscountCents,r.promotionGrossCents,r.promotionReturnedCents,r.netPromotedCents]),[['2026-04',2,2502,7508,3003,4505]]);
+ assert.deepEqual(april.byProduct.map(r=>[r.name,r.promotedOrders,r.promotionDiscountCents,r.promotionGrossCents,r.promotionReturnedCents,r.netPromotedCents]),[[lines[1].sku,2,1251,3754,0,3754],[lines[0].sku,2,1251,3754,3003,751]]);
+ for(const query of ['from=2026-05-01&to=2026-05-31&currency=USD&accountId=cedar','from=2026-04-01&to=2026-04-30&currency=USD&accountId=wren','from=2026-04-01&to=2026-04-30&currency=CAD&accountId=cedar']){const empty=await h.api('/api/barrow/reports/quotes?'+query);assert.deepEqual([empty.totals.promotedOrders,empty.totals.promotionDiscountCents,empty.totals.promotionGrossCents,empty.totals.promotionReturnedCents,empty.totals.netPromotedCents],[0,0,0,0,0]);assert.deepEqual(empty.promotionOffers,[]);}
+ // Each non-placed state and cancellation is excluded, even with a frozen promotion.
+ const ignored=await f.prepare();await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.preparedAt','2026-04-12T16:00:00Z') WHERE id=?").bind(ignored.id).run();
+ assert.equal((await scoped()).totals.promotedOrders,2);await h.command('order.submit',{orderId:ignored.id},buyer);assert.equal((await scoped()).totals.promotedOrders,3);await h.command('order.cancel',{orderId:ignored.id});assert.equal((await scoped()).totals.promotedOrders,2);
+ await f.pier.close();const unknown=await scoped();assert.equal(unknown.returnsSource,'unavailable');assert.deepEqual([unknown.totals.promotedOrders,unknown.totals.promotionGrossCents,unknown.totals.promotionReturnedCents,unknown.totals.netPromotedCents],[2,7508,null,null]);
+ assert.deepEqual(unknown.promotionOffers.map(r=>[r.id,r.returnedCents,r.netCents]),[['exclusive',null,null],['spring-mix',null,null]]);
+ for(const rows of [unknown.byProduct,unknown.byRep,unknown.byCohort]){assert.ok(rows.length>0);for(const row of rows)assert.deepEqual([row.promotionReturnedCents,row.netPromotedCents],[null,null]);}
+
 
 });
 
@@ -228,7 +244,34 @@ test('fixed bundle requirements, dated account eligibility, ordered stacking and
  await f.save([offer]);const draft=await f.prepare();await f.save([{...offer,bps:1500}]);const refused=await h.command('order.submit',{orderId:draft.id},{...buyer,status:409});assert.equal(refused.error.code,'PRICE_CHANGED');
  await h.command('promotion.save',{revision:f.settings.revision,offers:[offer]}, {...buyer,status:403});await h.command('promotion.preview',{accountId:'cedar',lines},{...buyer,status:403});assert.equal((await h.request('/api/barrow/promotions',buyer)).status,403);
  const revise=await f.prepare();await h.command('order.submit',{orderId:revise.id},buyer);const submitted=await h.api('/api/barrow/orders/'+revise.id,undefined,buyer);const revised=await h.command('order.revise',{orderId:submitted.id,revision:submitted.revision,changes:[{line:0,quantity:1}]},buyer);assert.equal(revised.totalCents,2403);assert.ok(revised.lines.every(l=>!l.promotion));
- await h.command('promotion.save',{revision:null,offers:[]},{status:409});await h.command('promotion.save',{revision:f.settings.revision,offers:[{...offer,bps:10001}]},{status:400});
+
+ const noCost=await h.command('promotion.preview',{accountId:'cedar',lines});assert.deepEqual([noCost.currentTotalCents,noCost.costCents,noCost.beforeMarginCents,noCost.marginCents,noCost.marginImpactCents,noCost.marginBps],[3204,null,null,null,null,null]);
+ const admin={as:await h.signIn('admin@example.test','admin')};const adminSaved=await h.command('promotion.save',{revision:f.settings.revision,offers:[offer]},admin);assert.notEqual(adminSaved.revision,f.settings.revision);assert.deepEqual((await h.api('/api/barrow/promotions')).offers,adminSaved.offers);await h.command('promotion.save',{revision:adminSaved.revision,offers:[offer]});
+ // Refresh the fixture revision after publication by the independently authorized admin.
+ const settings=await h.api('/api/barrow/promotions');await h.command('promotion.save',{revision:settings.revision,offers:[]});
+ // Synchronize f.save through a fresh fixture settings read below, without privileged price writes.
+ let revision=(await h.api('/api/barrow/promotions')).revision;
+ const publish=async offers=>{const saved=await h.command('promotion.save',{revision,offers});revision=saved.revision;return saved};
+ await publish([offer]);const unrelated=await f.preview([...lines,{sku:f.skus[2],quantity:2}]);assert.equal(unrelated.totalCents,5206);assert.deepEqual(unrelated.lines.map(l=>[l.sku,l.lineCents,l.promotion?.discountCents??0]),[[lines[0].sku,1802,200],[lines[1].sku,1802,200],[f.skus[2],1602,0]]);
+ const twice=await f.preview(lines.map(l=>({...l,quantity:4})));assert.deepEqual([twice.basisCents,twice.discountCents,twice.totalCents],[8008,800,7208]);assert.deepEqual(twice.lines.map(l=>l.promotion.offers),[[{id:'spring-mix',name:'Spring mix',discountCents:400}],[{id:'spring-mix',name:'Spring mix',discountCents:400}]]);
+ await publish([{...offer,id:'z-tie',bps:9000},{...offer,id:'a-tie',bps:2500}]);const tied=await f.preview();assert.equal(tied.totalCents,3004);assert.deepEqual(tied.lines.map(l=>l.promotion.offers.map(o=>o.id)),[['a-tie'],['a-tie']]);
+ let account=(await h.api('/api/barrow/state')).accounts.find(a=>a.id==='cedar');
+ const changePrices=async edit=>account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:account.value.prices.map(edit)}});
+ await changePrices(p=>({...p,pricing:{effectiveFrom:'2000-01-01',effectiveTo:'2099-12-31',groupDiscount:{name:'Trade group',bps:3000}},units:[{code:'pair',baseQuantity:'2',unitCents:2002,packContents:'Two pieces'}]}));
+ await publish([{...offer,bps:2500}]);const grouped=await f.preview();assert.deepEqual([grouped.currentTotalCents,grouped.basisCents,grouped.totalCents],[2802,4004,3004]);
+ const pairs=lines.map(l=>({...l,quantity:1,unit:'pair'}));const mixedUnits=await f.preview(pairs);assert.equal(mixedUnits.totalCents,3004);assert.deepEqual(mixedUnits.lines.map(l=>l.baseQuantity),['2','2']);
+ await publish([fixed]);assert.equal((await f.preview(pairs)).totalCents,3604);assert.equal((await f.preview([pairs[0],{...lines[1],quantity:1}])).discountCents,0);
+ await changePrices(p=>({...p,pricing:{effectiveFrom:'2000-01-01',effectiveTo:'2099-12-31',override:{unitCents:701,reason:'Supplier approved price'}}}));
+ await publish([offer]);const overridden=await f.preview();assert.equal(overridden.totalCents,2804);assert.ok(overridden.lines.every(l=>!l.promotion));
+ await changePrices(p=>({...p,pricing:{effectiveFrom:'2000-01-01',effectiveTo:'2099-12-31',accountDiscountBps:2000}}));
+ const requested=await h.command('quote.request',{accountId:'cedar',lines},buyer);const proposed=await h.command('quote.propose',{quoteId:requested.id,revision:requested.revision,validUntil:'2099-12-31',lines:lines.map(l=>({...l,unitCents:700}))});
+ const allowed=await h.command('quote.approve',{quoteId:requested.id,revision:proposed.revision,number:1,reason:'Explicit negotiated offer'});const accepted=await h.command('quote.accept',{quoteId:allowed.id,number:1},buyer);const quoted=await h.api('/api/barrow/orders/'+accepted.order.id,undefined,buyer);assert.equal(quoted.totalCents,2800);assert.ok(quoted.lines.every(l=>l.quote&&!l.promotion));
+ const awaiting=await f.prepare();await h.command('order.submit',{orderId:awaiting.id},buyer);await publish([{...offer,bps:1500}]);assert.equal((await h.command('order.approve',{orderId:awaiting.id},{status:409})).error.code,'PRICE_CHANGED');assert.equal((await h.api('/api/barrow/orders/'+awaiting.id)).status,'submitted');
+ // A placed stacked order appears under both frozen offers, but only once in the summary.
+ await publish([stack,{...stack,id:'second',bps:2000,priority:20}]);const stacked=await f.prepare();await h.command('order.submit',{orderId:stacked.id},buyer);await h.command('order.approve',{orderId:stacked.id});
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.preparedAt','2026-06-12T16:00:00Z') WHERE id=?").bind(stacked.id).run();
+ const stackedReport=await h.api('/api/barrow/reports/quotes?from=2026-06-01&to=2026-06-30&currency=USD');assert.deepEqual([stackedReport.totals.promotedOrders,stackedReport.totals.promotionDiscountCents,stackedReport.totals.promotionGrossCents,stackedReport.totals.promotionReturnedCents,stackedReport.totals.netPromotedCents],[1,896,2308,0,2308]);assert.deepEqual(stackedReport.promotionOffers,[{id:'first',name:'Spring mix',orders:1,discountCents:320,grossCents:2308,returnedCents:0,netCents:2308},{id:'second',name:'Spring mix',orders:1,discountCents:576,grossCents:2308,returnedCents:0,netCents:2308}]);
+ await h.command('promotion.save',{revision:null,offers:[]},{status:409});await h.command('promotion.save',{revision,offers:[{...offer,bps:10001}]},{status:400});
 });
 
 test('scheduled book revisions quote exact USD prices on either side of midnight Eastern and refuse stale cart and quote acceptance',async t=>{
