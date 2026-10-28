@@ -1,3 +1,4 @@
+import { integrationResponse } from './integration-api'
 import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
 import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
@@ -127,6 +128,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
   })
+  if(actor.integration&&!path.startsWith('/api/barrow/v1/'))fail('FORBIDDEN','Use the versioned integration API within the granted scopes.',403)
   const proposalScope=actor.agent&&actor.grantId?await readProposalGrant(env.DB,actor.grantId):null
   if(actor.agentScope==='proposal'&&!proposalScope)fail('AUTH','The scoped proposal grant is unavailable. A new explicit owner grant is required.',401)
   if(proposalScope) {
@@ -137,9 +139,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(!(request.method==='POST'&&path==='/api/barrow/commands'))fail('FORBIDDEN','This credential may read its account catalogue/orders and submit structured proposals only.',403)
   }
   actor.staff=await readStaffGrant(env.DB,actor)
-  await staffRequestGate(env,actor,path,request.method)
+  if(!path.startsWith('/api/barrow/v1/'))await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
+  if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
   if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))

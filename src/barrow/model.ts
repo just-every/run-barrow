@@ -2,7 +2,7 @@ export class Problem extends Error {
  constructor(public code: string, message: string, public status = 409) { super(message) }
 }
 export function fail(code: string, message: string, status = 409): never { throw new Problem(code, message, status) }
-export type Actor = { id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string; agentScope?: 'draft'|'proposal'; staff?: import('./staff-policy').StaffGrant|null; company?: import('./company-policy').CompanyMembership|null }
+export type Actor = { id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string; agentScope?: 'draft'|'proposal'|'integration'; integration?: import('./integration-grants').IntegrationGrant; integrationAt?: number; staff?: import('./staff-policy').StaffGrant|null; company?: import('./company-policy').CompanyMembership|null }
 export type Price = { sku: string; msrpCents?: number; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('./units').UnitDefinition[]; pricing?: import('./pricing').Pricing }
 export type { AccountValue } from './imports/validation'
 import type { AccountValue } from './imports/validation'
