@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "3f5a94c1907ae858c5625ef93577b65c9398d1c5300b42fe76dd71793b591813",
+      "sha256": "98faaa6931a944c3f728185eb5c3b029bd3290661c0613ba19a8a796f2af4f1c",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "19184cb2ec1758f75ed3dd050b37c2fbcd1a44b0a23b2d50462b8722a732d913",
+      "sha256": "b696c95f7ac7b66a60e1616f109781731b482f237ff3e9934b64096022f26b12",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "771af85a9cc69b26b1c5db084878e43ec4ecf9d4d273af8930e2cbdf1ff3501f",
+      "sha256": "dacb42b58a0fbccf8e1504676883c4d8233894f92e06c1330d260539e42b0c76",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
