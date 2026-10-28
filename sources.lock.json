@@ -1580,7 +1580,7 @@
       "executable": false
     },
     "src/barrow/imports/platform-history.ts": {
-      "sha256": "6a222029d3fd7f01384cfdf84e81d224c79bddbc24fd596cd4c6cad679decc7e",
+      "sha256": "883ba17134b7085f528e907b582d37a13a70ce1bcfe7cb1f4fe76a0160553c6c",
       "executable": false
     },
     "src/barrow/imports/reconcile.ts": {
@@ -4452,7 +4452,7 @@
       "executable": false
     },
     "tests/api/move-nuorder.test.mjs": {
-      "sha256": "06ce138b0287dd9e82519510a59c0dcb911fe7737d16aa44aa0cc82dc297c81e",
+      "sha256": "82af43fc8c0632d23ae1c47a88094fc6fe36ac16679f72d30e8e316ee72060b3",
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {

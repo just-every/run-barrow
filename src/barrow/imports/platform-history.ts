@@ -24,7 +24,7 @@ const snapshot=async(db:D1Database,query:string)=>(await db.prepare(query).all<a
 async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|NuorderInput,system:'sparklayer'|'wizcommerce'|'nuorder'='sparklayer') {
  platformOwner(actor)
  const db=env.DB
- const latest=system==='nuorder'?await db.prepare("SELECT source_json FROM bw_platform_imports WHERE system='nuorder' AND tenant=? ORDER BY rowid DESC LIMIT 1").bind(input.tenant).first<{source_json:string}>():null
+ const latest=system==='nuorder'?await db.prepare("SELECT source_json FROM bw_platform_imports WHERE system='nuorder' AND tenant=? ORDER BY created_at DESC,id DESC LIMIT 1").bind(text((input as NuorderInput)?.tenant,'Source tenant',100)).first<{source_json:string}>():null
  const retained=latest?JSON.parse(latest.source_json).catalog?.heldImages??[]:[]
  const retainedHashes=[...new Set<string>(retained.filter((file:any)=>!file.image.base64).map((file:any)=>file.image.sha256))]
  if(retainedHashes.length){const present=(await db.prepare('SELECT sha256 FROM bw_product_images WHERE sha256 IN (SELECT value FROM json_each(?))').bind(JSON.stringify(retainedHashes)).all<{sha256:string}>()).results;if(present.length!==retainedHashes.length)fail('IMPORT_IMAGES','Retained media bytes are unavailable; restore the complete owner archive before applying.')}
