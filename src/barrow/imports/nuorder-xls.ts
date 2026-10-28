@@ -166,6 +166,6 @@ function sheets(bytes: Buffer) {
    if (id === 0x0205) { if (data[7]) refuse('Resolve Excel cell errors before import.'); put(row, column, data[6] ? 'true' : 'false') }
    if (id === 0x0204) put(row, column, stringReader([data.subarray(6)]).text())
   }
-  return { sheet: sheet.name, data: Array.from({ length: rows.length }, (_, row) => Array.from({ length: rows[0]?.length ?? 0 }, (_, column) => rows[row]?.[column] ?? '')) }
+  return { sheet: sheet.name, data: Array.from({ length: rows.length }, (_, row) => Array.from({ length: rows[row]?.length ?? 0 }, (_, column) => rows[row]?.[column] ?? '')) }
  })
 }

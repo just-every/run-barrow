@@ -8,9 +8,13 @@ import { now } from './clock'
 import { csvText } from './cart-csv'
 import { previewCart, orderForm } from './cart-import'
 import { displayMode, marginBps, priceLabels, type PriceDisplay } from './price-display'
-import { textPdf } from './pdf'
+import { textPdf, imagePdf, type PdfEntry } from './pdf'
+import { presentation, type Presentation } from './presentation'
+import { variantAttributes } from './variant-attributes'
+import { readImages, type ImageRef } from './product-images'
+import { catalogStore } from './catalog-maintenance-model'
 
-export type Sheet = {id:string;revision:string;accountId:string;name:string;season:string;display:PriceDisplay;state:'published'|'revoked';publishedAt:string;publishedBy:string;bookRevision:string;bookEffectiveFrom?:string;currency:'USD'|'CAD'|'EUR'|'GBP';shipStart:string;shipEnd:string;items:Awaited<ReturnType<typeof catalogue>>['items'];packs:{id:string;name:string;kind:'run'|'assortment';lines:{sku:string;quantity:number}[]}[]}
+export type Sheet = {presentation?:Presentation;imageRefs?:Record<string,ImageRef>;id:string;revision:string;accountId:string;name:string;season:string;display:PriceDisplay;state:'published'|'revoked';publishedAt:string;publishedBy:string;bookRevision:string;bookEffectiveFrom?:string;currency:'USD'|'CAD'|'EUR'|'GBP';shipStart:string;shipEnd:string;items:Awaited<ReturnType<typeof catalogue>>['items'];packs:{id:string;name:string;kind:'run'|'assortment';lines:{sku:string;quantity:number}[]}[]}
 function merchant(actor:Actor) {
  requirePerson(actor)
  if(!['owner','admin'].includes(actor.role)&&actor.staff?.role!=='sales-manager')fail('FORBIDDEN','Only the supplier owner, admin or scoped sales manager may publish or revoke line sheets.',403)
@@ -27,15 +31,16 @@ async function stored(env:Bindings,actor:Actor,id:string,includeRevoked=false):P
 }
 /** Live availability is always Pier's; the recipient's published book and assortment stay immutable. */
 async function offered(env:Bindings,actor:Actor,sheet:Sheet) {
- const selected=await account(env.DB,actor,sheet.accountId),live=await catalogue(env,selected)
+ const selected=await account(env.DB,actor,sheet.accountId),live=await catalogue(env,selected),catalog=await catalogStore(env.DB)
+ const removed=new Set(catalog.listings.filter(row=>row.listing==='removed').map(row=>row.sku))
  const items=sheet.items.map(item=>{
-  const current=live.items.find(row=>row.sku===item.sku)
-  return {...item,available:current?.available??'0',warehouses:current?.warehouses??[],incoming:current?.incoming??[]}
+  const current=live.items.find(row=>row.sku===item.sku&&!removed.has(row.sku))
+  return {...item,eligible:Boolean(current),available:current?.available??'0',warehouses:current?.warehouses??[],incoming:current?.incoming??[]}
  })
  return {selected,catalogue:{...live,items,currency:sheet.currency}}
 }
 function publicSheet(sheet:Sheet,items:Sheet['items']) {
- return {id:sheet.id,revision:sheet.revision,accountId:sheet.accountId,name:sheet.name,season:sheet.season,display:sheet.display,currency:sheet.currency,shipStart:sheet.shipStart,shipEnd:sheet.shipEnd,publishedAt:sheet.publishedAt,packs:sheet.packs,items:items.map(item=>({sku:item.sku,name:item.name,barcode:item.barcode,unit:item.unit,minQty:item.minQty,casePack:item.casePack,increment:item.increment,available:item.available,incoming:item.incoming,...(sheet.display!=='retail'?{unitCents:item.unitCents}:{}),...(sheet.display!=='wholesale'?{msrpCents:item.msrpCents??null}:{}),...(sheet.display==='both'?{marginBps:marginBps(item.unitCents,item.msrpCents)}:{})}))}
+ return {id:sheet.id,revision:sheet.revision,accountId:sheet.accountId,name:sheet.name,season:sheet.season,display:sheet.display,currency:sheet.currency,shipStart:sheet.shipStart,shipEnd:sheet.shipEnd,publishedAt:sheet.publishedAt,packs:sheet.packs,...(sheet.presentation?{presentation:sheet.presentation}:{}),items:items.map(item=>({itemId:item.itemId,eligible:(item as typeof item&{eligible?:boolean}).eligible??true,sku:item.sku,name:item.name,barcode:item.barcode,unit:item.unit,minQty:item.minQty,casePack:item.casePack,increment:item.increment,available:item.available,incoming:item.incoming,...(sheet.display!=='retail'?{unitCents:item.unitCents}:{}),...(sheet.display!=='wholesale'?{msrpCents:item.msrpCents??null}:{}),...(sheet.display==='both'?{marginBps:marginBps(item.unitCents,item.msrpCents)}:{})}))}
 }
 export async function listSheets(env:Bindings,actor:Actor,accountId:string) {
  requirePerson(actor)
@@ -52,6 +57,12 @@ export async function sheetDownload(env:Bindings,actor:Actor,id:string,format:'p
  let body:string|Uint8Array<ArrayBuffer>
  if(format==='csv')body=orderForm(live.selected,live.catalogue.items,{layout:'matrix'}).csv
  else body=textPdf([sheet.name,`${sheet.season} | Account ${sheet.accountId} | Revision ${sheet.revision}`,`Ship window ${sheet.shipStart} to ${sheet.shipEnd} | ${sheet.currency}`,...live.catalogue.items.flatMap(item=>[`${item.sku} | ${item.name}`,priceLabels(item,sheet.currency,sheet.display),`Available ${item.available} ${item.unit}; minimum ${item.minQty}${item.casePack?`; case pack ${item.casePack}`:''}${item.increment?`; increment ${item.increment}`:''}`]),...sheet.packs.flatMap(pack=>[`${pack.kind}: ${pack.name}`,pack.lines.map(line=>`${line.sku} x ${line.quantity}`).join(', ')]),'Availability is observed, never reserved. Order totals use wholesale prices only.'].flatMap(line=>line.match(/.{1,82}(?:\s|$)|.{1,82}/g)?.map(part=>part.trimEnd())??['']))
+ if(format==='pdf'&&sheet.presentation){
+  const liveItems=publicSheet(sheet,live.catalogue.items).items,entries:PdfEntry[]=[sheet.presentation.title,sheet.presentation.introduction,`${sheet.name} | ${sheet.currency} | Account ${sheet.accountId}`]
+  for(const section of sheet.presentation.sections){entries.push(section.title,section.text);for(const sku of section.skus){const item=liveItems.find(item=>item.sku===sku)!;entries.push(`${sku} | ${item.name} | ${item.eligible?'Live stock '+item.available:'Unavailable'}`,priceLabels(sheet.items.find(item=>item.sku===sku)!,sheet.currency,sheet.display));const image=sheet.imageRefs?.[sku];if(image)entries.push({image:image.sha256})}}
+  const wrapped=entries.flatMap<PdfEntry>(entry=>typeof entry==='string'?entry.match(/.{1,82}(?:\s|$)|.{1,82}/g)?.map(part=>part.trimEnd())??['']:[entry])
+  body=imagePdf(wrapped,await readImages(env.DB,Object.values(sheet.imageRefs??{})))
+ }
  return new Response(body,{headers:{'content-type':format==='pdf'?'application/pdf':'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename="line-sheet-${sheet.id}.${format}"`}})
 }
 const date=(v:unknown)=>{if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v)||!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v)fail('INPUT','Use valid YYYY-MM-DD ship dates.',400);return v}
@@ -72,7 +83,8 @@ export async function sheetCommand(env:Bindings,actor:Actor,type:string,p:any) {
    return {id:text(pack.id,'Pack ID',100),name:text(pack.name,'Pack name',100),kind:pack.kind,lines}
   })
   if(new Set(packs.map(pack=>pack.id)).size!==packs.length)fail('INPUT','Use unique pack IDs.',400)
-  const id=crypto.randomUUID(),revision=crypto.randomUUID(),sheet:Sheet={id,revision,accountId:selected.id,name:text(p.name,'Sheet name',100),season:text(p.season,'Season',80),display:displayMode(p.display),state:'published',publishedAt:(await now()).toISOString(),publishedBy:actor.id,bookRevision:selected.revision,bookEffectiveFrom:activeBookDate(selected,await now()),currency:live.currency,shipStart,shipEnd,items:live.items.filter(item=>skus.includes(item.sku)),packs}
+  const editorial=presentation(p.presentation,skus),attributes=await variantAttributes(env.DB),imageRefs=Object.fromEntries(skus.flatMap(sku=>attributes.variants[sku]?.image?[[sku,attributes.variants[sku].image!]]:[]))
+  const id=crypto.randomUUID(),revision=crypto.randomUUID(),sheet:Sheet={...(editorial?{presentation:editorial,imageRefs}:{}),id,revision,accountId:selected.id,name:text(p.name,'Sheet name',100),season:text(p.season,'Season',80),display:displayMode(p.display),state:'published',publishedAt:(await now()).toISOString(),publishedBy:actor.id,bookRevision:selected.revision,bookEffectiveFrom:activeBookDate(selected,await now()),currency:live.currency,shipStart,shipEnd,items:live.items.filter(item=>skus.includes(item.sku)),packs}
   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN (SELECT revision FROM bw_accounts WHERE id=?)=? THEN 1 ELSE 0 END').bind(selected.id,selected.revision),env.DB.prepare('INSERT INTO bw_line_sheets VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(sheet),revision),audit(env.DB,actor,id,'sheet.published',{accountId:selected.id,revision,source:type,reason:`Published ${sheet.name} for this account only, using ${sheet.currency} book ${selected.revision}.`})])
   return {id,revision}
  }
@@ -108,6 +120,8 @@ export async function sheetForOrder(env:Bindings,actor:Actor,p:any,selected:Acco
  const sheet=await stored(env,actor,text(p.lineSheetId,'Line sheet'))
  if(sheet.accountId!==selected.id)fail('NOT_FOUND','Line sheet not found.',404)
  if(sheet.revision!==p.lineSheetRevision||sheet.bookRevision!==selected.revision||sheet.bookEffectiveFrom!==activeBookDate(selected,await now()))fail('CHANGED','The recipient book or sheet changed. Ask the supplier to publish a current sheet before preparing.')
+ const removed=new Set((await catalogStore(env.DB)).listings.filter(row=>row.listing==='removed').map(row=>row.sku))
+ if(Array.isArray(p.lines)&&p.lines.some((line:any)=>removed.has(line.sku)))fail('UNAVAILABLE','A selected presentation or line-sheet item is no longer available.')
  if(!Array.isArray(p.lines)||p.lines.some((line:any)=>!sheet.items.some(item=>item.sku===line.sku)))fail('INPUT','Order only variants on this line sheet.',400)
  return sheet
 }

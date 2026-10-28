@@ -145,12 +145,11 @@ not a claim that every brand uses one standard NuORDER archive.
 
 The JSON manifest contains `tenant`, `products`, `orders`, `authority`, `scope`
 and optional `images` and `lists`. Each source table is either `{name,csv}` or
-`{name,base64,sheet}` for an XLSX workbook, with an exact sheet name. Binary legacy
-XLS is not accepted: save it as XLSX or CSV first. Each table accepts `columns`,
+`{name,base64,sheet}` for an XLSX or Excel 97–2003 binary XLS workbook, with an exact sheet name. The binary reader accepts ordinary values and native Excel dates; formulas, encryption, macros and external workbook links are refused. Each table accepts `columns`,
 a mapping from the logical field below to the brand's actual source header.
 Unrecognized source columns are retained verbatim and reported as retained only.
-CSV files are bounded to 256 KiB and 500 rows; XLSX files to 1 MiB before parsing,
-with formula and unsafe archive refusal inherited from the existing workbook reader.
+CSV files are bounded to 256 KiB and 500 rows; workbooks to 1 MiB before parsing,
+with formula and unsafe archive refusal inherited from the existing workbook reader. The complete NuORDER manifest is bounded to 18 MiB; split larger supplied exports into separately reviewed batches.
 
 | Logical product field | Default source header |
 | --- | --- |
@@ -204,17 +203,15 @@ CAT-010 archive batches are still separate work.
 For an export-supplied URL, use `{name,url,style}` instead of base64 and explicitly
 set `retrieveImages: true` and `imageHosts: ["media.example.test"]`. Each URL must
 name an exact declared public HTTPS host, with no credentials, query, fragment or
-custom port. Redirects are refused, retrieval is bounded by five seconds and the
-JPEG byte limit, and both preview and apply retrieve the current bytes. Changed
+custom port. Both address families are resolved over authenticated HTTPS; every returned address must be public. A TLS socket connects to the checked address with the original hostname, so a later DNS change cannot redirect it to a private address. Redirects are refused. The five-second bound includes resolution, TLS and body streaming; transferred body bytes stop at 204 KiB, before the 200 KiB sanitized limit, and both preview and apply retrieve the current bytes. Changed
 bytes invalidate the old approval. Only images that fail retrieval or JPEG
 validation appear in `missingImages`, by source style, filename and safe reason;
 nonmatching downloaded files appear in `heldImages`. A failed URL cannot silently
 reuse older held bytes. No image is served on a new public download door and no
-malware verdict is claimed. This broader private slot and retrieval default awaits
-ct approval; MOVE-001 remains partial.
+malware verdict is claimed. CT approved this owner-operated migration boundary with riders on 27 October 2026; broader catalog-media delegation and delivery remain separate receiving duties.
 
 Optional `priceBooks` entries each name a mapped `customerId` and a separately
-supplied `file` in the same CSV or XLSX table shape. Logical fields `productId`,
+supplied `file` in the same CSV or workbook table shape. Logical fields `productId`,
 `currency`, `unitPrice` and `minQty` default to `Product ID`, `Currency`,
 `Wholesale Price` and `Minimum Quantity`; explicit `columns` map brand headers.
 Each account receives one current USD or CAD book of active mapped products,
@@ -227,8 +224,21 @@ activate a current book and remain unchanged when a supplied current book change
 
 After applying, use the native Line sheets publishing door to rebuild a CAT-003
 recipient document from the imported SKU assortment, current book, season and ship
-window. Its PDF retains that recipient snapshot. CAT-004 presentations are not yet
-rebuilt by this adapter.
+window. Its PDF retains that recipient snapshot. The optional **Presentation collections** field rebuilds editorial text and product collections on that same recipient share. Its hotspots link to eligible native products, its PDF embeds the approved primary JPEGs, and price, stock, current book and share-revocation checks remain active. This rebuild does not copy incumbent private layouts. CAT-004 still owns broader video, editorial-media composition and its complete lookbook capability.
+
+For example, publish the imported SKU assortment with this optional presentation:
+
+```json
+{"title":"Spring presentation","introduction":"Approved imported assortment.","sections":[{"title":"Pantry collection","text":"Source products rebuilt for this buyer.","skus":["OAT-1"]}]}
+```
+
+When a source ledger is supplied, add `receivables` with `file`, `mappings` and optional `dispositions`. The table's logical fields `id`, `orderId`, `customerId`, `currency` and `balance` default to `Invoice ID`, `Order Number`, `Company Code`, `Currency` and `Balance`; `file.columns` maps other brand headers. Every invoice must name a supplied order with the same mapped company and currency. Original columns and artifacts stay in private source custody and the owner export.
+
+Map each source invoice ID to an issued native order ID to compare independently against its recorded invoice outstanding after captured-principal allocations and applied credits. The preview shows source and planned counts and exact per-currency balances. A missing, duplicate, foreign-account or wrong-currency target refuses activation. A balance difference requires its own explicit owner disposition; changing the native invoice or financial records invalidates the reviewed fingerprint. Alternatively, map an invoice to `retain-history` and give its disposition: that balance remains labeled source ledger history and grants no native collection authority. The source ledger remains authoritative; recorded native outstanding is not proof of provider-confirmed unpaid balances. Applying the comparison never issues invoices, allocates money or rewrites a native balance.
+
+```json
+{"receivables":{"file":{"name":"ledger.csv","csv":"Invoice ID,Order Number,Company Code,Currency,Balance\ninvoice-1,NU-1,store-1,USD,100.00\n"},"mappings":{"invoice-1":"retain-history"},"dispositions":{"invoice-1":"Retain source collection authority; create no native debt."}}}
+```
 
 Preview writes nothing. It names original columns, product and archived counts,
 image-slot targets, held filenames, retrieval failures by style, supplied current books, retained-only fields, missing entities, line and list counts,
@@ -238,5 +248,4 @@ recorded as `import.approved`. All order records are labeled retained source
 history, including open ones. Replay creates no second history record or list,
 and imports never reserve stock, issue an invoice, collect payment or send mail.
 NuORDER retailer-network orders stop arriving at cutover. Companies and buyers
-remain MOVE-009's. CAT-004 presentation rebuilding and a complete receivable
-rehearsal remain unfinished; the broader private media default awaits ct approval.
+remain MOVE-009's. Missing source exports and provider rights remain labeled boundaries; this adapter makes no provider-access, legal-adequacy or malware claim. Broader media delivery, catalog delegation, manifests, erasure and scanning remain with their named receiving clauses.

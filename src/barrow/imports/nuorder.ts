@@ -1,3 +1,4 @@
+import type { SourceReceivable } from './nuorder-receivables'
 import { csvText } from '../cart-csv'
 import { fail, text } from '../model'
 import { platformCsv, sourceMoney, sourceQuantity } from './platform-csv'
@@ -10,10 +11,11 @@ type Table = SourceFile | {name:string;base64:string;sheet:string;columns?:Recor
 export type NuorderInput = {
  tenant:string; products:Table; orders:Table; authority:SparkInput['authority']; scope:SparkInput['scope']
  lists?:SparkInput['lists']; images?:NuorderMediaInput[]; imageRule?:string; imageHosts?:string[]; retrieveImages?:boolean
+ receivables?:{file:Table;mappings:Record<string,string>;dispositions?:Record<string,string>}
  priceBooks?:Array<{customerId:string;file:Table}>
 }
 export type NuorderProduct = {id:string;sku:string;style:string;color:string;size:string;upc:string;season:string;archived:boolean;casePack?:number;increment?:number;original:Record<string,string>}
-export type NuorderCatalog = {products:NuorderProduct[];priceBooks:Array<{accountId:string;currency:'USD'|'CAD';prices:Array<{sku:string;unitCents:number;minQty:number}>}>;images:Array<HeldNuorderImage&{sku:string;slot:number}>;heldImages:HeldNuorderImage[];imageRule:string;missingImages:Array<{style:string;name:string;reason:string}>;columns:{products:string[];orders:string[]}}
+export type NuorderCatalog = {products:NuorderProduct[];receivables:SourceReceivable[];priceBooks:Array<{accountId:string;currency:'USD'|'CAD';prices:Array<{sku:string;unitCents:number;minQty:number}>}>;images:Array<HeldNuorderImage&{sku:string;slot:number}>;heldImages:HeldNuorderImage[];imageRule:string;missingImages:Array<{style:string;name:string;reason:string}>;columns:{products:string[];orders:string[]}}
 const productColumns = {id:'Product ID',style:'Style Number',color:'Color',size:'Size',upc:'UPC',season:'Season',archived:'Archived',casePack:'Case Pack',increment:'Increment'}
 const orderColumns = {type:'Type',id:'Order Number',customerId:'Company Code',currency:'Currency',total:'Order Total',shipping:'Shipping',status:'Status',date:'Order Date',productId:'Product ID',quantity:'Quantity',unitPrice:'Wholesale Price',openQuantity:'Open Quantity',po:'Customer PO',shipStart:'Ship Start',shipEnd:'Ship End'}
 async function table(file:Table) {
@@ -23,7 +25,7 @@ async function table(file:Table) {
  if (!sheet) fail('IMPORT_SHEET','Select an existing source sheet by its exact name.',400)
  const rows=sheet.data as unknown[][],headers=rows[0]
  if (!headers?.length || headers.some(value=>typeof value!=='string')) fail('IMPORT_COLUMNS','Workbook headers must be text.',400)
- if (rows.some(row=>row.some(value=>value!==null&&typeof value!=='string'))) fail('IMPORT_CELL','Unsupported source cell.',400)
+ if (rows.some(row=>row.length>headers.length||row.some(value=>value!==null&&typeof value!=='string'))) fail('IMPORT_CELL','Unsupported source cell.',400)
  return platformCsv({name:file.name.replace(/\.xlsx?$/i,'.csv'),csv:csvText([headers as string[],...rows.slice(1).map(row=>headers.map((_,i)=>String(row[i]??'')))])})
 }
 function mapping(defaults:Record<string,string>,file:Table,rows:Array<{fields:Record<string,string>}>) {
@@ -88,11 +90,29 @@ export async function parseNuorder(input:NuorderInput,held:HeldNuorderImage[]=[]
   doc.sourceFacts={po:rows[0].fields[oc.po]??'',shipStart:rows[0].fields[oc.shipStart]??'',shipEnd:rows[0].fields[oc.shipEnd]??''}
   for (const row of rows) for (const key of ['po','shipStart','shipEnd']) if ((row.fields[oc[key]]??'')!==doc.sourceFacts[key]) fail('IMPORT_JOIN',`Repeated header ${doc.id} disagrees on ${key}.`,400)
  }
+ const receivables:SourceReceivable[]=[]
+ if(input.receivables){
+  const ledger=input.receivables,rows=await table(ledger.file),defaults={id:'Invoice ID',orderId:'Order Number',customerId:'Company Code',currency:'Currency',balance:'Balance'},columns=mapping(defaults,ledger.file,rows)
+  if(!rows.length)fail('IMPORT_RECEIVABLES','Supply a populated source ledger or omit the absent export explicitly.',400)
+  if(!ledger.mappings||typeof ledger.mappings!=='object'||Array.isArray(ledger.mappings))fail('IMPORT_RECEIVABLES','Supply explicit invoice mappings or retained-history dispositions.',400)
+  for(const {fields,row} of rows){
+   const get=(key:string)=>text(fields[columns[key]],`Ledger row ${row} ${columns[key]}`,200),id=get('id'),orderId=get('orderId'),customerId=get('customerId'),currency=get('currency'),doc=source.documents.find(doc=>doc.id===orderId)
+   if(receivables.some(prior=>prior.id===id))fail('IMPORT_RECEIVABLES',`Repeated source invoice ${id}.`,400)
+   const accountId=Object.hasOwn(input.authority.customers,customerId)?text(input.authority.customers[customerId],'Mapped ledger account',100):fail('IMPORT_MAPPING',`Unmapped ledger customer ${customerId}.`,400)
+   if(!doc||doc.accountId!==accountId||doc.currency!==currency)fail('IMPORT_RECEIVABLES',`Ledger invoice ${id} names a missing source order or a different account or currency.`,400)
+   const target=Object.hasOwn(ledger.mappings,id)?text(ledger.mappings[id],'Invoice target',200):'',disposition=ledger.dispositions?.[id]===undefined?'':text(ledger.dispositions[id],'Balance disposition',1000)
+   if(target==='retain-history'&&!disposition)fail('IMPORT_RECEIVABLES',`Name the retained-history disposition for invoice ${id}.`,400)
+   receivables.push({id,orderId,accountId,currency,balanceCents:sourceMoney(fields[columns.balance],'Source receivable balance'),target,disposition,row,original:fields})
+  }
+  if(Object.keys(ledger.mappings).some(id=>!receivables.some(row=>row.id===id))||Object.keys(ledger.dispositions??{}).some(id=>!receivables.some(row=>row.id===id)))fail('IMPORT_RECEIVABLES','A mapping or disposition names an absent source invoice.',400)
+  for(const field of Object.keys(rows[0].fields))if(!Object.values(columns).includes(field))rejectedFields.push(`receivables: ${field} retained only`)
+  source.artifacts.push(ledger.file)
+ }
  const media=await nuorderMedia(input,products,held)
  const columns={products:Object.keys(productRows[0].fields),orders:Object.keys(orderRows[0].fields)}
  for (const [kind,actual,mapped] of [['products',columns.products,pc],['orders',columns.orders,oc]] as const) for (const field of actual) if (!Object.values(mapped).includes(field)) rejectedFields.push(`${kind}: ${field} retained only`)
- source.catalog={products,priceBooks,...media,columns}
+ source.catalog={products,priceBooks,receivables,...media,columns}
  source.rejectedFields=rejectedFields
- source.missing=['NuORDER retailer-network orders stop arriving at cutover; open orders remain labeled source history, never submitted to Pier','Companies, buyers and locations require MOVE-009; historical order prices never activate a current book',...(!priceBooks.length?['No separately supplied current price book; existing native books are unchanged']:[]),'Releases, invoices and balances not supplied; no financial authority is activated','Only sanitized JPEGs are accepted; no malware verdict or public image download door','CAT-003 line sheets can be rebuilt through the native publishing door; CAT-004 presentations remain unimplemented',...source.incomplete?['Filtered source scope remains incomplete']:[]]
+ source.missing=['NuORDER retailer-network orders stop arriving at cutover; open orders remain labeled source history, never submitted to Pier','Companies, buyers and locations require MOVE-009; historical order prices never activate a current book',...(!priceBooks.length?['No separately supplied current price book; existing native books are unchanged']:[]),...(receivables.length?['Supplied receivables are compared and retained only; source ledger remains authoritative; no native financial authority is activated']:['Releases, invoices and balances not supplied; no financial authority is activated']),'Only sanitized JPEGs are accepted; no malware verdict or public image download door','Rebuild recipient line sheets and presentations from imported SKUs through native publishing; private incumbent layouts do not transfer; richer CAT-004 video and editorial media remain separate',...source.incomplete?['Filtered source scope remains incomplete']:[]]
  return source
 }

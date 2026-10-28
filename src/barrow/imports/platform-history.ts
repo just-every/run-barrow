@@ -1,3 +1,4 @@
+import {planNuorderReceivables} from './nuorder-receivables'
 import {parseNuorder,type NuorderInput} from './nuorder'
 import {planNuorderCatalog,nuorderCatalogStatements} from './nuorder-catalog'
 import {planWizNative} from './wizcommerce-native'
@@ -28,6 +29,7 @@ async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|Nuorde
  const native=Object.fromEntries(await Promise.all(Object.entries(queries).map(async([kind,query])=>[kind,await snapshot(db,query)]))) as Record<keyof typeof queries,any[]>
  const errors:string[]=[],activation=source.activation?planWizNative(source.tenant,source.activation,{accounts:native.accounts,locations:native.locations,imports:native.imports},errors):undefined
  const accounts=activation?.accounts??new Map(native.accounts.map(row=>[row.id,row])),catalog=source.catalog?await planNuorderCatalog(env,source.catalog,errors):undefined,scope=[...new Set([...source.documents,...source.lists].map(row=>row.accountId).concat(source.relatedAccounts??[]))].sort()
+ const receivables=source.catalog?await planNuorderReceivables(db,source.catalog.receivables,errors):undefined
  const updates=new Map<string,any>()
  for(const id of scope){const row=accounts.get(id);if(!row)errors.push(`Missing mapped account ${id}`);else if(JSON.parse(row.value_json).lifecycle==='closed')errors.push(`Mapped account ${id} is closed; do not restore retired source custody`)}
  for(const book of source.catalog?.priceBooks??[]) {
@@ -67,7 +69,7 @@ async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|Nuorde
  })
  const plannedLists=source.lists.map(list=>{
   const id=docKey(source,list.id,'list'),contentHash=hash(list),prior=native.links.find(row=>row.system===source.system&&row.tenant===source.tenant&&row.source_id===list.id)
-  if(prior&&prior.content_hash!==contentHash&&!(source.system==='nuorder'&&hash(normalizedHistory(JSON.parse(prior.value_json)))===contentHash))errors.push(`Source list ${list.id} changed after import; preserve native edits and use a distinct source ID`)
+  if(prior&&prior.content_hash!==contentHash)errors.push(`Source list ${list.id} changed after import; preserve native edits and use a distinct source ID`)
   if(!prior&&native.lists.some(row=>row.account_id===list.accountId&&row.created_by===actor.id&&row.name.toLowerCase()===list.name.toLowerCase()))errors.push(`A private list named ${list.name} already exists; choose another source name`)
   const value={name:list.name,shared:false,createdBy:actor.id,createdAt:'',updatedBy:actor.id,updatedAt:'',lines:list.lines}
   return {id,sourceId:list.id,accountId:list.accountId,contentHash,value,exists:Boolean(prior)}
@@ -80,10 +82,10 @@ async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|Nuorde
  const entityCounts=source.entities?{customers:source.entities.customers.length,addresses:source.entities.addresses.length,...(source.entities.contacts?.length?{contacts:source.entities.contacts.length}:{}),websiteUsers:source.entities.users.length}:undefined
  const quantityRules=[...updates].flatMap(([accountId,value])=>value.prices.flatMap((price:any)=>{const before=JSON.parse(accounts.get(accountId)!.value_json).prices.find((p:any)=>p.sku===price.sku);const previous={casePack:before?.casePack??null,increment:before?.increment??null},planned={casePack:price.casePack??null,increment:price.increment??null};return JSON.stringify(previous)===JSON.stringify(planned)?[]:[{accountId,sku:price.sku,previous,planned}]}))
  const priceBooks=source.catalog?.priceBooks.map(book=>{const planned=updates.get(book.accountId);return {accountId:book.accountId,currency:book.currency,sourceRows:book.prices.length,plannedRows:planned?.prices.length??0,sourceUnitCents:book.prices.reduce((sum,price)=>sum+price.unitCents,0),plannedUnitCents:planned?.prices.reduce((sum:number,price:any)=>sum+price.unitCents,0)??0}})
- const report={...(catalog?{catalog:catalog.report,priceBooks}:{}),...(activation?{nativeEntities:activation.report}:{}),quantityRules,...(source.invitationCandidates?{invitationCandidates:source.invitationCandidates}:{}),...(entityCounts?{entities:entityCounts}:{}),byStatus,source:counts,planned:{...counts,newDocuments:documents.filter(doc=>!doc.exists).length,newLists:plannedLists.filter(list=>!list.exists).length},totals,plannedTotals:totals,matches:!errors.length,scope:source.scope,incomplete:source.incomplete,missing:source.missing,rejectedFields:source.rejectedFields??[] as string[],errors,label:system==='nuorder'?'Reviewed native catalog metadata, supplied current price books and quantity rules; orders remain retained source history; no stock reservation, invoice, payment, invitation or outreach':activation?'Reviewed native customers and locations; retained document history; no stock reservation, invoice, payment, invitation or outreach':'Retained source history only; no stock reservation, invoice, payment, invitation or outreach'}
+ const report={...(receivables?{receivables:receivables.report}:{}),...(catalog?{catalog:catalog.report,priceBooks}:{}),...(activation?{nativeEntities:activation.report}:{}),quantityRules,...(source.invitationCandidates?{invitationCandidates:source.invitationCandidates}:{}),...(entityCounts?{entities:entityCounts}:{}),byStatus,source:counts,planned:{...counts,newDocuments:documents.filter(doc=>!doc.exists).length,newLists:plannedLists.filter(list=>!list.exists).length},totals,plannedTotals:totals,matches:!errors.length,scope:source.scope,incomplete:source.incomplete,missing:source.missing,rejectedFields:source.rejectedFields??[] as string[],errors,label:system==='nuorder'?'Reviewed native catalog metadata, supplied current price books and quantity rules; orders remain retained source history; no stock reservation, invoice, payment, invitation or outreach':activation?'Reviewed native customers and locations; retained document history; no stock reservation, invoice, payment, invitation or outreach':'Retained source history only; no stock reservation, invoice, payment, invitation or outreach'}
  const {fingerprint:ignoredFingerprint,reason:ignoredReason,...reviewInput}=input as SparkInput&{fingerprint?:string;reason?:string}
- const fingerprint=hash({input:reviewInput,native,source,report})
- return {source,native,queries,scope,documents,plannedLists,updates,activation,catalog,report,fingerprint}
+ const fingerprint=hash({input:reviewInput,native,source,report,receivables:receivables?.fingerprint??null})
+ return {source,native,queries,scope,documents,plannedLists,updates,activation,catalog,receivables,report,fingerprint}
 }
 export async function previewPlatform(env:Bindings,actor:Actor,input:SparkInput|WizInput|NuorderInput,system:'sparklayer'|'wizcommerce'|'nuorder'='sparklayer') {const p=await prepare(env,actor,input,system);return {...p.report,fingerprint:p.fingerprint}}
 export async function readPlatform(env:Bindings,actor:Actor) {
@@ -96,7 +98,7 @@ export async function applyPlatform(env:Bindings,actor:Actor,input:(SparkInput|W
  if(!/^[a-f0-9]{64}$/.test(fingerprint))fail('IMPORT_APPROVAL','Supply the exact reviewed fingerprint.',400)
  const previous=await env.DB.prepare('SELECT id FROM bw_platform_imports WHERE fingerprint=?').bind(fingerprint).first()
  if(previous)return {replayed:true,fingerprint}
- const {fingerprint:actual,source,native,queries,scope,documents,plannedLists,updates,activation,catalog,report}=await prepare(env,actor,input,system)
+ const {fingerprint:actual,source,native,queries,scope,documents,plannedLists,updates,activation,catalog,receivables,report}=await prepare(env,actor,input,system)
  if(actual!==fingerprint)fail('IMPORT_CHANGED','Source, mappings or native records changed. Preview and approve the new fingerprint.')
  if(report.errors.length)fail('IMPORT_UNRESOLVED','Resolve every reported source and target error before apply.')
  const db=env.DB,id=crypto.randomUUID(),at=new Date().toISOString(),statements:D1PreparedStatement[]=[]
@@ -104,6 +106,7 @@ export async function applyPlatform(env:Bindings,actor:Actor,input:(SparkInput|W
   const rows=native[kind as keyof typeof native],columns=Object.keys(rows[0]??({settings:{key:0,value_json:0,revision:0},accounts:{id:0,value_json:0,revision:0},lists:{id:0,account_id:0,name:0,created_by:0,value_json:0,revision:0},history:{id:0,system:0,tenant:0,source_id:0,document_type:0,account_id:0,value_json:0,content_hash:0,import_id:0},links:{system:0,tenant:0,source_id:0,list_id:0,content_hash:0,account_id:0},locations:{id:0,account_id:0,kind:0,value_json:0,revision:0,is_default:0,archived:0},imports:{id:0,system:0,tenant:0,source_json:0}}[kind as keyof typeof native]))
   statements.push(db.prepare(`INSERT INTO bw_guard(value) SELECT CASE WHEN (SELECT json_group_array(json_array(${columns.join(',')})) FROM (${query}))=? THEN 1 ELSE 0 END`).bind(JSON.stringify(rows.map(row=>columns.map(c=>row[c])))))
  }
+ if(receivables)statements.push(...receivables.guards)
  if(catalog)statements.push(...nuorderCatalogStatements(db,catalog,actor.id,at,fingerprint))
  for(const customer of activation?.creates??[]) {
   const value=updates.get(customer.accountId)??customer.value

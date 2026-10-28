@@ -40,7 +40,6 @@ export async function nuorderMedia(input:NuorderInput,products:NuorderProduct[],
   const decoded=await decodedImage(content)
   files.set(name,{name,image:{sha256:decoded.sha256,width:decoded.width,height:decoded.height,size:decoded.bytes.length,components:decoded.components,base64:Buffer.from(decoded.bytes).toString('base64')}})
  }
- if(files.size>500)fail('IMPORT_IMAGES','Resolve held media before retaining more than five hundred filenames.',400)
  const images:Array<HeldNuorderImage&{sku:string;slot:number}>=[],heldImages:HeldNuorderImage[]=[],slots=new Set<string>()
  for(const file of [...files.values()].sort((a,b)=>a.name.localeCompare(b.name))) {
   let matched=false
@@ -54,5 +53,6 @@ export async function nuorderMedia(input:NuorderInput,products:NuorderProduct[],
   }
   if(!matched)heldImages.push(file)
  }
+ if(heldImages.length>500)fail('IMPORT_IMAGES','Resolve held media before retaining more than five hundred filenames.',400)
  return {images,heldImages,missingImages,imageRule}
 }
