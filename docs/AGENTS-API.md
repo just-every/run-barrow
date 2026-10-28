@@ -26,8 +26,8 @@ A versioned URL does not grant a new native permission. Responses are private
 and have `Cache-Control: no-store`.
 
 The signed-in owner can issue a separate integration credential, shown once and
-stored only as a digest. The grant names exactly one active account and one or
-both of `catalog:read` and `order:prepare`, plus explicit entity preparation scopes
+stored only as a digest. The grant names exactly one active account and explicit
+scopes from `catalog:read`, `order:prepare` and the entity preparation scopes
 described below. Expiry is an integer Unix timestamp
 in milliseconds, after now and at most seven days away. There is no automatic
 submission, approval, import, invoice read, fulfillment read, grant management,
@@ -185,8 +185,15 @@ current revision returned by the person's account read:
 {"entity":"locations","accountId":"cedar","accountRevision":"CURRENT_ACCOUNT_REVISION","currency":"USD","payload":{"accountId":"cedar","kind":"ship-to","value":{"name":"Warehouse counter","line1":"102 Main Street","city":"Columbia","state":"SC","zip":"29201"}}}
 ```
 
-Use a client that reads its Bearer credential from an owner-only private file;
-save the prepare response outside the checkout. The signed-in owner then posts
+Read the Bearer credential from an owner-only private file and save the response
+outside the checkout:
+
+```sh
+node scripts/barrow.mjs prepare-exchange-v1 --origin "$ORIGIN" \
+  --token-file /private/integration-token.txt --input /private/entity-change.json
+```
+
+The signed-in owner then posts
 that exact response to `/api/barrow/v1/exchange/review`, with the installation's
 Origin header, to recheck it without writes. After reviewing its complete input,
 the owner posts the same `proposal` and `fingerprint`, plus `confirm:true` and
