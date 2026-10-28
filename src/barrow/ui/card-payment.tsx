@@ -66,7 +66,8 @@ function PaymentPanel({ orderId, merchant, canAct=merchant, deposit=false }: { o
 
   function preparedSavedCard(result: CardPayment) {
     setSelectedId(result.id)
-    setData(current => ({ ...current, configured: current?.configured ?? true, payments: [result, ...(current?.payments.filter(row => row.id !== result.id) ?? [])] }))
+    setData(current => ({ ...current, configured: current?.configured ?? true, availableCents:Math.max(0,(current?.availableCents??0)-result.amountCents), payments: [result, ...(current?.payments.filter(row => row.id !== result.id) ?? [])] }))
+    setCollectionKey(crypto.randomUUID());setAmount('')
     setConsentKey(''); setReason(''); setError('')
     setMessage('Review the saved card, amount and surcharge before authorizing this payment.')
   }
@@ -164,7 +165,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant, deposit=false }: { o
           <label>Schedule reason<input required value={scheduleReason} onChange={event=>setScheduleReason(event.target.value)}/></label><div className="br-actions"><button disabled={busy}>Save dated payments</button></div>
         </form>
       </details>}
-      <SavedCardsPanel orderId={orderId} payment={payment} canPrepare={data.configured && canPrepare} canRevoke={merchant && canAct} disabled={busy} onBusyChange={setBusy} onPrepared={preparedSavedCard} onConsentInvalidated={clearConsent} />
+      <SavedCardsPanel orderId={orderId} collection={!deposit?{collectionKey,amountCents:amount?Number(amount):data.availableCents??0}:undefined} payment={payment} canPrepare={data.configured && canPrepare} canRevoke={merchant && canAct} disabled={busy} onBusyChange={setBusy} onPrepared={preparedSavedCard} onConsentInvalidated={clearConsent} />
     </>}
     <div className="br-actions"><button type="button" className="br-secondary" disabled={busy} onClick={() => void reload()}>Reload payment records</button></div>
   </section>

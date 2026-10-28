@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "142496aa7b790ff26630ab450dfe8dfbe29fbd819b6e2ee4a920354643b9e58e",
+      "sha256": "3f5a94c1907ae858c5625ef93577b65c9398d1c5300b42fe76dd71793b591813",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "cd8687efe3acd9ce8d887d62b91386ad8ce470ac3691103fc57e6b68fff33cb8",
+      "sha256": "19184cb2ec1758f75ed3dd050b37c2fbcd1a44b0a23b2d50462b8722a732d913",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "589c545f862e2d8966f8de6c457a3fb7f25d2ce288f5b18c0d56f026c9f1ec6c",
+      "sha256": "771af85a9cc69b26b1c5db084878e43ec4ecf9d4d273af8930e2cbdf1ff3501f",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -1136,7 +1136,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "c5811f4fbdd21a6add8fb1703097a4960cd2a509dca0e670e887d36d20940a15",
+      "sha256": "b52e01c34734094281b79944decc77d3e3cd4a462f090728f9e697516b061f69",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1448,7 +1448,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "e3c324ceeb4bcf543c80fd1bb878e2fc6c44e8c0eb5e4a710af6c7db5e79f0e2",
+      "sha256": "e847fd173b1ffba88e403d582e9e40614048ca17b33d0046d6d0ebdd04c65f69",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -2060,7 +2060,7 @@
       "executable": false
     },
     "src/barrow/ui/card-payment.tsx": {
-      "sha256": "b28434be6a986e7097d23abc27da002e040357a46d5e48817d9428012d5aa6ab",
+      "sha256": "ef73e44253067d65f953318a937b80297debe023f7aad0e1a7f868f64e23324a",
       "executable": false
     },
     "src/barrow/ui/card-settings.tsx": {
@@ -2304,7 +2304,7 @@
       "executable": false
     },
     "src/barrow/ui/saved-cards.tsx": {
-      "sha256": "46686cf4a5b08316147d0540edfdfa17c6f5de287c57eaa1865da65cc9db4ebb",
+      "sha256": "6c65b74a073be780e2ad759d64764c25e89fd0175a0c8c500a365e1085857416",
       "executable": false
     },
     "src/barrow/ui/saved-lists.tsx": {
@@ -4496,7 +4496,7 @@
       "executable": false
     },
     "tests/api/deposits.test.mjs": {
-      "sha256": "d3b9bb21f27ccd3bc4359c65ef974aec9e21fefe37208440e2028bbbbee237cc",
+      "sha256": "740569d90e7d21f0cfce64c3baaaa6bb8a0b04d2be12edb5635a12184bb3c12a",
       "executable": false
     },
     "tests/api/diagnostics.test.mjs": {
@@ -4656,7 +4656,7 @@
       "executable": false
     },
     "tests/api/retention.test.mjs": {
-      "sha256": "e82c8760f117294e23b145fabef91cbcc7d9a577768500b9ed6b92c386b18b65",
+      "sha256": "64697742e3096df0b55b3303c3e9c006908b59d283aedf0ad45ef104e8cc9854",
       "executable": false
     },
     "tests/api/sales-report.test.mjs": {
@@ -4832,7 +4832,7 @@
       "executable": false
     },
     "tests/journeys/deposits.test.mjs": {
-      "sha256": "94a447c47d44fbdda0acfe40baa2138eb4cb8f7c24ebb8d952636e0529aff70b",
+      "sha256": "b48226cecf821c08b31d2e099231d38d30e811a2f77b17c72c82b923d7cecc24",
       "executable": false
     },
     "tests/journeys/faire.test.mjs": {

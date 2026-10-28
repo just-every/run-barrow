@@ -19,6 +19,7 @@ type SavedCard = {
 type SavedCards = { methods: SavedCard[]; canConsent: boolean }
 type Props = {
   orderId: string
+  collection?: {collectionKey:string;amountCents:number}
   payment?: CardPayment
   canPrepare: boolean
   canRevoke: boolean
@@ -28,7 +29,7 @@ type Props = {
   onConsentInvalidated: () => void
 }
 
-export function SavedCardsPanel({ orderId, payment, canPrepare, canRevoke, disabled, onBusyChange, onPrepared, onConsentInvalidated }: Props) {
+export function SavedCardsPanel({ orderId, collection, payment, canPrepare, canRevoke, disabled, onBusyChange, onPrepared, onConsentInvalidated }: Props) {
   const [data, setData] = useState<SavedCards | null>(null)
   const [error, setError] = useState(''), [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -89,7 +90,7 @@ export function SavedCardsPanel({ orderId, payment, canPrepare, canRevoke, disab
         <p><strong>{method.brand} ending {method.last4}</strong> · {method.status === 'active' ? 'Active consent' : 'Consent withdrawn'}</p>
         <p className="br-quiet-text">Saved {when(method.consentedAt)}{method.revokedAt ? ` · withdrawn ${when(method.revokedAt)}` : ''}</p>
         {method.status === 'active' && <>
-          {data.canConsent && canPrepare && <div className="br-actions"><button type="button" disabled={blocked} onClick={() => void command('saved-card.prepare', { orderId, methodId: method.id, revision: method.revision })}>Review payment with {method.brand} ending {method.last4}</button></div>}
+          {data.canConsent && canPrepare && <div className="br-actions"><button type="button" disabled={blocked} onClick={() => void command('saved-card.prepare', { orderId, ...collection, methodId: method.id, revision: method.revision })}>Review payment with {method.brand} ending {method.last4}</button></div>}
           {(data.canConsent || canRevoke) && <>
             {withdrawal.id !== method.id
               ? <div className="br-actions"><button type="button" className="br-secondary" disabled={blocked} onClick={() => setWithdrawal({ id: method.id, reason: '' })}>Withdraw consent for {method.brand} ending {method.last4}</button></div>

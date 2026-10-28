@@ -65,6 +65,9 @@ test('finance allocates one verified seasonal deposit across two acknowledged re
 test('deposit review refuses foreign releases and stale finance authority without changing allocations or provider funds',async t=>{
  const {h,pier,buyer,payment,commitment,releases,allocation,edge,alternative,day}=await releasedDepositFixture(t,{surchargeBps:200,depositFixedCents:21000});
  assert.equal(alternative.totalCents,73000);assert.equal(alternative.prebook.depositCents,21000);assert.equal(commitment.prebook.season.depositFixedCents,21000);assert.equal(commitment.prebook.season.depositBps,0);
+ const configured=await h.api('/api/barrow/prebook-seasons'),fixed={...commitment.prebook.season,id:'synthetic-barrow-717',name:'Large fixed deposit',minimumCents:0,opensAt:'2027-03-10T00:00:00Z',closesAt:'2027-03-13T00:00:00Z',windows:commitment.prebook.season.windows.map((row,index)=>({...row,shipDate:index?'2027-03-15':'2027-03-14'})),revision:configured.revision,depositFixedCents:70000,reason:'Owner reviews fixed deposit terms without permitting principal beyond the commitment.'};
+ await h.command('prebook.publish',{...fixed,depositBps:3000},{status:400});await h.command('prebook.publish',{...fixed,depositFixedCents:0},{status:400});await h.command('prebook.publish',fixed,{...buyer,status:403});await h.command('prebook.publish',fixed);
+ assert.equal((await h.command('order.prepare',{accountId:'cedar',reference:'Insufficient principal for fixed deposit',prebook:{seasonId:fixed.id,windowIds:['first']},lines:[{sku:'OAT-1',quantity:4}]},{...buyer,status:409})).error.code,'PREBOOK_DEPOSIT');
  const policy={role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0,creditLimitCents:5000,refundLimitCents:0};
  const {who:finance,id}=await activateStaff(h,['synthetic-barrow-703','example.test'].join('@'),policy);
  await h.command('card.allocate',allocation(0,5001),{...finance,status:403});const allowed=await h.command('card.allocate',allocation(0,5000),finance);assert.equal(allowed.actorId,id);const financial=await h.api('/api/barrow/export.json',undefined,finance);assert.equal(financial.cardpayments.length,1);assert.equal(financial.cardpayments[0].id,payment.id);assert.equal(financial.cardallocations.length,1);assert.equal(financial.orders.some(row=>row.id===commitment.id),false);assert.equal((await h.request('/api/barrow/payments/'+payment.id,finance)).status,200);assert.equal((await h.request('/api/barrow/orders/'+commitment.id,finance)).status,404);
@@ -119,6 +122,11 @@ test('deposit review refuses foreign releases and stale finance authority withou
  };
  const first=await collect({orderId:release.id,collectionKey:'synthetic-barrow-712',amountCents:700});
  assert.equal((await h.api('/api/barrow/payments?orderId='+release.id,undefined,buyer)).availableCents,1300);
+ const consent=await h.command('saved-card.save',{paymentId:first.partial.id,consent:true,reason:'Company finance explicitly saves this card for separately authorized later principal.'},buyer);
+ const savedAttempt=await h.command('saved-card.prepare',{orderId:release.id,methodId:consent.id,revision:consent.revision,collectionKey:'synthetic-barrow-716',amountCents:300},buyer);assert.equal(savedAttempt.amountCents,300);assert.notEqual(savedAttempt.id,first.partial.id);
+ await h.command('saved-card.revoke',{methodId:consent.id,revision:consent.revision,reason:'Finance withdrew consent before authorizing this partial payment.'},buyer);
+ const requestsBeforeRevoked=edge.requests.length;await h.command('card.authorize',{paymentId:savedAttempt.id,amountCents:300,surchargeCents:savedAttempt.surchargeCents,consent:true},{...buyer,status:409});assert.equal(edge.requests.length,requestsBeforeRevoked);
+ await h.command('card.cancel',{paymentId:savedAttempt.id,reason:'Cancel the unused partial attempt after consent withdrawal.'});
  const schedule={orderId:release.id,orderRevision:release.revision,scheduleKey:'synthetic-barrow-713',entries:[{dueDate:'2027-03-15',amountCents:800},{dueDate:'2027-04-15',amountCents:500}],reason:'Owner reviewed the remaining exact principal and dated obligations.'};
  await h.command('card.schedule',schedule,{...buyer,status:403});await h.command('card.schedule',schedule,{...finance,status:403});
  await h.command('card.schedule',{...schedule,orderRevision:'synthetic-barrow-714'},{status:409});
@@ -144,7 +152,7 @@ test('deposit review refuses foreign releases and stale finance authority withou
  assert.equal(finalSales.rows.find(row=>row.orderId===release.id).paidCents,18000);assert.equal(finalFinance.rows.find(row=>row.orderId===release.id).outstandingCents,0);
  assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,13000);
  assert.equal((await h.api('/api/barrow/reports/commissions')).rows.filter(row=>row.orderId===release.id).reduce((sum,row)=>sum+row.netCents,0),1800);
- const completeExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(completeExport.cardpayments.filter(row=>row.scheduleId).length,2);
+ const completeExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(completeExport.cardpayments.filter(row=>row.scheduleId).length,2);assert.ok(completeExport.cardpayments.filter(row=>row.scheduleId).every(row=>row.revision&&row.orderRevision===release.revision&&row.scheduledBy&&row.currency==='USD')); 
  for(const receipt of [first,second,third]) {
   for(const suffix of ['.csv','.pdf'])assert.ok(Buffer.from(await(await h.request('/api/barrow/statements/cedar'+suffix+'?to=2100-12-31',buyer)).arrayBuffer()).toString().includes(receipt.partial.providerPaymentId));
   for(const path of ['/api/barrow/reports/sales.csv?from=2000-01-01&to=2100-12-31','/api/barrow/reports/finance.csv?asOf=2100-12-31','/api/barrow/reports/commissions.csv','/api/barrow/export/cardpayments.csv'])assert.ok((await(await h.request(path)).text()).includes(receipt.partial.providerPaymentId));
@@ -153,7 +161,7 @@ test('deposit review refuses foreign releases and stale finance authority withou
  const unsafeCount=edge.requests.length;await h.command('card.prepare',{orderId:release.id,paymentId:second.partial.id},{...other,status:404});assert.equal(edge.requests.length,unsafeCount);
  const oldArchive=await archive(h);await verifiedRequest(h,'cedar',true);let privacy=await erasurePreview(h);
  assert.equal(privacy.items.find(row=>row.id==='card-payment:'+second.partial.id).action,'keep financial history');
- assert.equal(privacy.items.find(row=>row.id==='order:'+release.id).floorUntil,'2034-03-12T15:00:00.000Z');
+ assert.equal(privacy.items.find(row=>row.id==='order:'+release.id).floorUntil,privacy.items.find(row=>row.id==='card-payment:'+second.partial.id).floorUntil);
  await h.command('retention.erase-account',erasurePayload(privacy),{status:409});
  await verifiedRequest(h);privacy=await erasurePreview(h);await h.command('retention.erase-account',erasurePayload(privacy));
  const erased=await h.api('/api/barrow/export.json');assert.equal(erased.cardpayments.find(row=>row.id===second.partial.id).scheduleReason,'');

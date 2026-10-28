@@ -47,12 +47,16 @@ test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floo
  await historicalCard(h,{id:'historical-recent-po',accountId:account.id,orderId:'fresh',at:'2016-02-29T12:34:56.789Z'});
  await historicalCard(h,{id:'historical-cancellation',accountId:account.id,orderId:'commercial',at:'2016-02-29T12:34:56.789Z',eventAt:'2024-02-29T12:34:56.789Z',state:'cancelled'});
  await historicalCreditEvents(h);
+ // An archived dated obligation has a known financial instant, independent of the host clock.
+ const scheduledAt='2024-02-29T12:43:56.789Z',scheduled={id:'synthetic-barrow-721',accountId:account.id,orderId:'fresh',orderRevision:'fresh',currency:'USD',amountCents:500,surchargeCents:0,state:'prepared',scheduleId:'synthetic-barrow-722',dueDate:'2024-03-15',scheduledBy:'historical-owner',scheduledAt,createdAt:scheduledAt,updatedAt:scheduledAt,latestFinancialAt:scheduledAt};
+ await h.db.prepare('INSERT INTO bw_card_payments VALUES(?,?,?,?,?)').bind(scheduled.id,account.id,'fresh',JSON.stringify(scheduled),scheduled.id).run();
  const before=await archive(h),original=await h.api('/api/barrow/orders/old');
  let review=await h.api('/api/barrow/retention');
  assert.deepEqual(review.documents.filter(row=>row.eligible).map(row=>row.orderId),['expired-commercial','old']);
  assert.equal(review.documents.find(row=>row.orderId==='commercial').reason,'Commercial evidence: seven-year minimum');
  assert.equal(review.documents.find(row=>row.orderId==='commercial').commercialMinimumUntil,'2031-02-28T12:42:56.789Z');
  assert.equal(review.documents.find(row=>row.orderId==='old').commercialMinimumUntil,'2023-02-28T12:34:56.789Z');
+ assert.equal(review.documents.find(row=>row.orderId==='fresh').commercialMinimumUntil,'2031-02-28T12:43:56.789Z');
  assert.equal(review.documents.find(row=>row.orderId==='fresh').expiresAt,new Date(Date.parse((await h.api('/api/barrow/orders/fresh')).document.uploadedAt)+30*86400000).toISOString());
  const payload=row=>({orderId:row.orderId,sha256:row.sha256,revision:row.revision,policyRevision:policy.revision,confirm:'ERASE',reason:'Owner reviewed expired attachment'});
  await h.command('retention.erase-document',payload(review.documents.find(row=>row.orderId==='commercial')),{status:409});
@@ -89,7 +93,7 @@ test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floo
  const audit=await h.api('/api/barrow/audit?search=retention');
  assert.ok(JSON.stringify(audit).includes('retention.document-erased'));
  const after=await archive(h),target=await installation();t.after(()=>target.close());
- const cardRows=bundle=>bundle.flatMap(part=>part.items??[]).filter(item=>['bw_card_payments','bw_card_events'].includes(item.table)).map(item=>item.table==='bw_card_payments'?{table:item.table,payment:financialCard(JSON.parse(item.row.value_json))}:item);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_payments').length,3);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_events').length,4);assert.deepEqual(cardRows(after),cardRows(before));
+ const cardRows=bundle=>bundle.flatMap(part=>part.items??[]).filter(item=>['bw_card_payments','bw_card_events'].includes(item.table)).map(item=>item.table==='bw_card_payments'?{table:item.table,payment:financialCard(JSON.parse(item.row.value_json))}:item);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_payments').length,4);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_events').length,4);assert.deepEqual(cardRows(after),cardRows(before));
  await restore(target,after);
  assert.equal((await target.request('/api/barrow/orders/old/document')).status,404);
  assert.deepEqual((await target.api('/api/barrow/retention')).receipts,review.receipts);
