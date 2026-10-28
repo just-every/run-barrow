@@ -1949,6 +1949,17 @@ Native iOS/Android offline rep applications are part of REP-002 and REP-003, inc
 | 29 | Orders out, money in. | ORD-006, SHIP-003, PAY-003 |
 | 30 | MIT licensed. | BASE-001, BAR-006 |
 
+| 31 | NetSuite: acknowledged sales orders, prebook releases and stock by warehouse. | INT-004, STK-002, STK-003 |
+| 32 | QuickBooks Online invoices sync; returned ACH reverses and a card payment posts. | INT-002, PAY-001, PAY-002 |
+| 33 | Faire orders retain their Faire IDs and are never charged again. | INT-011 |
+| 34 | Shopify variants and wholesale orders match while retail store prices stay untouched. | INT-005 |
+| 35 | A nightly stock file comes in and order files go out and are acknowledged. | INT-020, STK-002, STK-003 |
+| 36 | A photographed PO is region-cited, maps the buyer’s aliases, flags case packs and asks about an ambiguous color. | AGT-001, PRI-003 |
+| 37 | The checked draft uses its price book, stock source, net terms and resale-certificate tax treatment. | AGT-001, PRI-007, TAX-001, TAX-003 |
+| 38 | NuORDER images match by style, color and position; unmatched images wait for their styles. | MOVE-001, CAT-010 |
+| 39 | NuORDER companies, ship-tos, reviewed buyer invitations, price lists and reps move while logins stay behind. | MOVE-009, ACC-002, ACC-003, ACC-006 |
+| 40 | Also moves in from Pepperi, Brandboom, SparkLayer and WizCommerce. | MOVE-002, MOVE-003, MOVE-004, MOVE-005 |
+
 ## Status
 
 Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370dba` (28 October 2026).
