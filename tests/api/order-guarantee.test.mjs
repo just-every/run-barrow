@@ -14,7 +14,7 @@ const invoice = async (h, order) => {
  return cells(await response.text());
 };
 
-test('BAR-002: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities', async t => {
+test('ORD-010: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const source = await stock(pier, '120');
  const attempts = new Map();

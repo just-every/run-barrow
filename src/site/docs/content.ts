@@ -16,6 +16,7 @@ const published: [string, string][] = [
   ['README.md', 'Start'], ['GETTING-STARTED.md', 'Start'],
   ['ACCOUNTS.md', 'Everyday work'], ['ORDERS.md', 'Everyday work'], ['AGENTS-API.md', 'Everyday work'],
   ['IMPORT-ACCOUNTS.md', 'Your records'], ['MOVE-IN.md', 'Your records'], ['BACKUP-RESTORE.md', 'Your records'],
+  ['COMMERCIAL-REFERENCE.md', 'Contract'],
 ]
 
 export const guides: Guide[] = published.map(([source, section]) => {

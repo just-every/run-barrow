@@ -13,31 +13,31 @@
     {
       "id": "trade-accounts",
       "clauses": [
-        "BAR-001"
+        "ACC-005"
       ]
     },
     {
       "id": "wholesale-orders",
       "clauses": [
-        "BAR-002"
+        "ORD-010"
       ]
     },
     {
       "id": "agent-drafts",
       "clauses": [
-        "BAR-003"
+        "AGT-001"
       ]
     },
     {
       "id": "account-move-in",
       "clauses": [
-        "BAR-004"
+        "MOVE-007"
       ]
     },
     {
       "id": "data-portability",
       "clauses": [
-        "BAR-005"
+        "DATA-001"
       ]
     }
   ],

@@ -3,33 +3,33 @@
   "old": "b8c30605789ead56f02fdba13574b18a0285110e",
   "ids": {
     "BAR-001": {
-      "how": "kept",
+      "how": "merged",
       "to": [
-        "BAR-001"
+        "ACC-005"
       ]
     },
     "BAR-002": {
-      "how": "kept",
+      "how": "merged",
       "to": [
-        "BAR-002"
+        "ORD-010"
       ]
     },
     "BAR-003": {
-      "how": "kept",
+      "how": "merged",
       "to": [
-        "BAR-003"
+        "AGT-001"
       ]
     },
     "BAR-004": {
-      "how": "kept",
+      "how": "merged",
       "to": [
-        "BAR-004"
+        "MOVE-007"
       ]
     },
     "BAR-005": {
-      "how": "kept",
+      "how": "merged",
       "to": [
-        "BAR-005"
+        "DATA-001"
       ]
     },
     "BAR-006": {
@@ -69,9 +69,12 @@
       ]
     },
     "ACC-006": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "ACC-006"
+        "ACC-006",
+        "ACC-008",
+        "ACC-009",
+        "ACC-010"
       ]
     },
     "ACC-007": {
@@ -273,9 +276,11 @@
       ]
     },
     "ORD-014": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "ORD-014"
+        "ORD-014",
+        "ORD-017",
+        "ORD-018"
       ]
     },
     "ORD-015": {
@@ -645,9 +650,18 @@
       ]
     },
     "RPT-006": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "RPT-006"
+        "RPT-006",
+        "RPT-007",
+        "RPT-008",
+        "RPT-009",
+        "RPT-010",
+        "RPT-011",
+        "RPT-012",
+        "RPT-013",
+        "RPT-014",
+        "RPT-015"
       ]
     },
     "AUTO-001": {
@@ -663,9 +677,15 @@
       ]
     },
     "AUTO-003": {
-      "how": "kept",
+      "how": "split",
       "to": [
-        "AUTO-003"
+        "AUTO-003",
+        "AUTO-009",
+        "AUTO-010",
+        "AUTO-011",
+        "AUTO-012",
+        "AUTO-013",
+        "AUTO-014"
       ]
     },
     "AUTO-004": {
