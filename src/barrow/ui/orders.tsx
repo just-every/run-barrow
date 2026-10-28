@@ -1,4 +1,5 @@
 import { ShipmentTracking } from './shipment-tracking'
+import { ReturnClaims } from './return-claims'
 import { PrebookCommitment } from './prebooks'
 import { CardPaymentPanel } from './card-payment'
 import { CreditPanel } from './credit-panel'
@@ -109,6 +110,8 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
           {order.prebook&&<PrebookCommitment order={order} canOperate={canOperate} run={run} busy={busy}/>}
           {order.prebookRelease&&<p>Release of seasonal commitment {order.prebookRelease.orderId} · window {order.prebookRelease.windowId}</p>}
           {order.status==='approved'&&(!order.prebook||order.prebook.depositCents>0)&&finance&&<CardPaymentPanel orderId={order.id} deposit={Boolean(order.prebook)} merchant={supplier} canAct={canOperate}/>}
+          {!!order.invoice&&!supplier&&canPurchase&&<ReturnClaims order={order}/>}
+          {!!order.invoice&&supplier&&canQuote&&<ReturnClaims order={order}/>}
           {['approved','cancelled'].includes(order.status)&&!!order.invoice&&finance&&<CreditPanel order={order}/>}
           <OrderShipping order={order} supplier={canQuote} canSelect={canPurchase} busy={busy} run={run} />
           <p className="br-order-explain">{order.prebook?'Seasonal commitment recorded; stock allocation is confirmed on each linked release.':order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' :order.status==='approved'&&!finance?'Stock is reserved in full.':explanations[order.status]}</p>

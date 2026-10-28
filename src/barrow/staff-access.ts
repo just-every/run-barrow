@@ -15,6 +15,7 @@ export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role=
 export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;warehouses?:string[]}) {
  const grant=actor.staff
  if(!grant)return true
+ if(task.kind==='return')return false // Functional return admission remains owed by ACC-005.
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
  if(task.kind==='fulfillment'&&grant.warehouses!=='all')return false
