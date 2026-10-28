@@ -61,3 +61,31 @@ test('line-sheet buyer opens and visible-item views appear independently in the 
  await h.api('/api/barrow/reports/quotes',undefined,{...buyers.cedar,status:403});
  await h.command('sheet.view',{sheetId:sheet.id,revision:sheet.revision,kind:'view',skus:['synthetic-barrow-hidden']},{...buyers.cedar,status:400});
 });
+
+test('campaign sends resolve thirty accounts, preserve private prices and normal ordering, attribute only linked orders, and never resend a recipient',async t=>{
+ const {campaignFixture}=await import('./campaign-fixture.mjs'),f=await campaignFixture(t),{h}=f;
+ assert.equal(f.campaignMail().length,0);
+ const before=h.mail.deliveries.length,tested=await h.command('campaign.test',{id:f.draft.id,revision:f.draft.revision,accountId:'wren'});
+ assert.equal(tested.status,'accepted');assert.equal(h.mail.deliveries.length,before+1);assert.deepEqual(h.mail.deliveries.at(-1).message.to,[(await h.api('/api/barrow/state')).actor.email]);
+ const c=await f.send();assert.equal(f.campaignMail().length,28);assert.equal(c.counts.accepted,28);assert.equal(c.counts.delivered,0);assert.equal(c.counts.suppressed,1);assert.deepEqual(c.excluded.map(r=>[r.accountId,r.reason]),[['synthetic-barrow-29','pending or no approved purchaser'],['synthetic-barrow-30','closed']]);
+ for(const sent of f.campaignMail()){assert.equal(sent.message.attachments.length,1);assert.match(Buffer.from(sent.message.attachments[0].content,'base64').toString(),/^%PDF/)}
+ assert.equal((await f.webhook(c.deliveries.find(d=>d.status==='accepted'),'email.delivered',false,'synthetic-barrow-forged')).status,400);
+ let delivered=await f.receive(c);assert.equal(delivered.counts.delivered,28);
+ const recipients=[c.deliveries.find(d=>d.account_id==='cedar'&&d.status==='accepted'),c.deliveries.find(d=>d.account_id==='wren')],who=[f.second,f.buyers.wren],prices=[1201,1303];
+ for(let i=0;i<2;i++){
+  const d=recipients[i],sheet=await h.api('/api/barrow/campaign-deliveries/'+d.id,undefined,who[i]);assert.equal(sheet.items[0].unitCents,prices[i]);assert.deepEqual(sheet.suggestions,[{sku:f.skus[0],quantity:2}]);
+  const pdf=await(await h.request('/api/barrow/line-sheets/'+sheet.id+'.pdf',who[i])).text();assert.ok(pdf.includes('USD '+(prices[i]/100).toFixed(2)));assert.ok(!pdf.includes('USD '+(prices[1-i]/100).toFixed(2)));
+  await h.command('sheet.view',{sheetId:sheet.id,revision:sheet.revision,kind:'open',skus:[]},who[i]);await h.command('sheet.view',{sheetId:sheet.id,revision:sheet.revision,kind:'view',skus:[f.skus[0]]},who[i]);
+  const p=await h.command('sheet.preview',{sheetId:sheet.id,revision:sheet.revision,mode:'replace',lines:[{sku:f.skus[0],quantity:3}]},who[i]);assert.equal(p.totalCents,3*prices[i]);
+  const order=await h.command('order.prepare',{accountId:d.account_id,lineSheetId:sheet.id,lineSheetRevision:sheet.revision,campaignDeliveryId:d.id,reference:'synthetic-barrow-campaign-'+i,lines:p.cart},who[i]);
+  await h.command('order.submit',{orderId:order.id,revision:order.revision},who[i]);
+ }
+ await h.api('/api/barrow/campaign-deliveries/'+recipients[0].id,undefined,{...f.buyers.wren,status:404});
+ await h.api('/api/barrow/line-sheets/'+recipients[0].sheet_id,undefined,{...f.buyers.wren,status:404});
+ const ordinary=await h.command('order.prepare',{accountId:'wren',reference:'synthetic-barrow-ordinary',lines:[{sku:f.skus[0],quantity:1}]},f.buyers.wren);await h.command('order.submit',{orderId:ordinary.id,revision:ordinary.revision},f.buyers.wren);
+ delivered=await h.api('/api/barrow/campaigns/'+c.id);assert.deepEqual(delivered.counts,{delivered:28,accepted:0,bounced:0,suppressed:1,opened:2,viewed:2,ordered:2});assert.equal(delivered.orderValue.USD,7512);
+ const report=await h.api('/api/barrow/reports/quotes?from=2026-10-01&to=2026-10-31'),row=report.campaigns.find(r=>r.id===c.id);assert.deepEqual([row.delivered,row.opened,row.viewed,row.ordered,row.orderValueCents],[28,2,2,2,7512]);
+ const resend=await f.send();assert.equal(f.campaignMail().length,28);assert.equal(resend.counts.delivered,28);
+ await h.command('campaign.send',{id:c.id,revision:c.revision},{...f.buyers.wren,status:403});
+ const grant=await h.api('/api/barrow/agent-token',{});await h.command('campaign.send',{id:c.id,revision:c.revision},{headers:{authorization:'Bearer '+grant.token},status:403});
+});

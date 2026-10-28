@@ -114,7 +114,8 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const credits = financial.credits.filter(inScope), applications = financial.applications.filter(inScope), allocations = financial.allocations.filter(inScope), refunds = financial.refunds.filter(inScope)
  const refundById = new Map(refunds.map(refund => [refund.id, refund]))
  const refundEvents = (await env.DB.prepare('SELECT id,refund_id,created_at,value_json FROM bw_refund_events ORDER BY created_at,id').all<{id:string;refund_id:string;created_at:string;value_json:string}>()).results.filter(row => refundById.has(row.refund_id))
- const records = { ...stockRecords,
+ const campaignRecords=actor.role==='owner'&&!actor.staff?{campaigns:(await env.DB.prepare('SELECT * FROM bw_campaigns ORDER BY id').all<any>()).results,campaignsegments:(await env.DB.prepare('SELECT * FROM bw_campaign_segments ORDER BY id').all<any>()).results,campaignrecipients:(await env.DB.prepare('SELECT * FROM bw_campaign_deliveries ORDER BY id').all<any>()).results}:{}
+ const records = { ...stockRecords,...campaignRecords,
   creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit,freightBasis:json(credit.freightBasis), path: `/api/barrow/credits/${credit.id}` })),
   creditlines: credits.flatMap(credit => credit.lines.map((line, index) => ({ id: `${credit.id}:${index + 1}`, creditId: credit.id, revision: credit.revision, accountId: credit.accountId, orderId: credit.orderId, orderRevision: credit.orderRevision, returnId: credit.returnId, line: line.line, sku: line.sku, quantity: line.quantity, currency: credit.currency, amountCents: line.amountCents, basis: json(line.basis), original: json(line.original) }))),
   creditapplications: applications.map(application => financialFields('creditapplications', application)),
