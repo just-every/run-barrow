@@ -263,7 +263,9 @@ objects are refused. Original source tables and explicit mappings remain in
 private installation custody and the owner's source-import export and archive.
 
 Use the documented source headers below, or each table's `columns` object to
-map a named semantic key to an exact brand-specific header. Unknown columns
+map a named semantic key to an exact brand-specific header. For example, a
+NuORDER export headed Company Code uses `companies.columns: {code: "Company Code"}`.
+Unknown columns
 are listed as retained-only fields in preview. Authentication material must be
 removed from the export: password, credential, secret, token and session
 columns refuse intake. No source flag imports sign-in or company authority.
@@ -305,6 +307,9 @@ native identities, never inferred from a company name or email. `reps` maps an
 exact source label to an active native rep's user ID. `priceLists` maps a source
 price-list label to the native account whose current book supplies its prices
 and order minimum; its ISO currency must match the source company's currency.
+A referenced book with dated revisions is refused, and a first import cannot
+replace a target's dated pricing or configured selling rules; resolve those
+through Accounts before selecting the reviewed current book.
 `catalogs` maps source labels to the existing assortment labels used in Accounts;
 these labels grant no additional product or user authority. `effectiveOn` is the
 explicit reviewed YYYY-MM-DD start date of the primary rep assignment. Existing

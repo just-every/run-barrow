@@ -220,7 +220,7 @@
       "executable": false
     },
     "docs/MOVE-IN.md": {
-      "sha256": "7dcc2c9fc44cc3f99a76a5790aecc81f89c82d89b5a9a30c21c1f3c5bff5a3f0",
+      "sha256": "c4d436e6596b30f4b1be92d4d2f48671267073d2bf50d9a3fce3e936277238f6",
       "executable": false
     },
     "docs/ORDER-CONFIRMATIONS.md": {
@@ -1553,6 +1553,14 @@
     },
     "src/barrow/imports/nuorder-catalog.ts": {
       "sha256": "8a205b4af709347a3d3f7998407f701806c4748f55bdc9609c77e6511c9836eb",
+      "executable": false
+    },
+    "src/barrow/imports/nuorder-companies.ts": {
+      "sha256": "29bb93df06221cf9fa24638e61703f5f5dca279c3e906ec27d3755825254a0d5",
+      "executable": false
+    },
+    "src/barrow/imports/nuorder-company-targets.ts": {
+      "sha256": "1dbd478eb4dc84850281c0f88aac8ed8f0a60d9fb3f0b4ac2fa6584a82ada0a2",
       "executable": false
     },
     "src/barrow/imports/nuorder-https.ts": {
@@ -4451,6 +4459,10 @@
       "sha256": "5a254f5c34acc0ffa87512f72d474105d716b3e54536d62e12371520b894ca83",
       "executable": false
     },
+    "tests/api/move-nuorder-companies.test.mjs": {
+      "sha256": "1d8bfc27226e682d8d554b84c3cb97f8090c51226fbf08786593a66f9e33d1e8",
+      "executable": false
+    },
     "tests/api/move-nuorder.test.mjs": {
       "sha256": "82af43fc8c0632d23ae1c47a88094fc6fe36ac16679f72d30e8e316ee72060b3",
       "executable": false
@@ -4465,6 +4477,10 @@
     },
     "tests/api/move-wizcommerce.test.mjs": {
       "sha256": "7b8353e9b669fd911e10cdeceb331c18242eb84afbb8aaa0abaf473900e41181",
+      "executable": false
+    },
+    "tests/api/nuorder-company-fixture.mjs": {
+      "sha256": "53e097c10bb098f2ec144fac1924796dc6ccc9d62b7a0c22100a75d619429b35",
       "executable": false
     },
     "tests/api/nuorder-fixture.mjs": {
@@ -4713,6 +4729,10 @@
     },
     "tests/journeys/line-sheets.test.mjs": {
       "sha256": "2369d7727c0c1ab613778283202fce89d4c5f0b8f0b797b217a63a01dd3b39a9",
+      "executable": false
+    },
+    "tests/journeys/move-nuorder-companies.test.mjs": {
+      "sha256": "9a0ea7dc6be8422367e8e4acb2bb70b69092674f0c5349555c5e7082ce20ebdb",
       "executable": false
     },
     "tests/journeys/move-nuorder.test.mjs": {

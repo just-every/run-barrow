@@ -2,7 +2,7 @@ import {csv,wizWorkbook} from './wizcommerce-fixture.mjs';
 import {activateStaff,accountValue} from './harness.mjs';
 import {sparkFixture} from './sparklayer-fixture.mjs';
 export const address=name=>[name,'example.test'].join('@');
-export const companyRows=()=>[['Customer Code','Customer Name','Company Email','Currency','Payment Terms','Sales Rep','Price List','Catalogs','Credit Status'],['store-a','Alder Pantry',address('alder'),'USD','Net 30','Taylor','Domestic','Pantry','Review externally'],['store-b','Birch Pantry',address('birch'),'CAD','Net 45','Taylor','Canada','Pantry','Review externally']];
+export const companyRows=()=>[['Company Code','Customer Name','Company Email','Currency','Payment Terms','Sales Rep','Price List','Catalogs','Credit Status'],['store-a','Alder Pantry',address('alder'),'USD','Net 30','Taylor','Domestic','Pantry','Review externally'],['store-b','Birch Pantry',address('birch'),'CAD','Net 45','Taylor','Canada','Pantry','Review externally']];
 export const buyerRows=()=>[['Customer Code','Buyer Email','Buyer Name'],['store-a',address('alder'),'Alder buyer'],['store-b',address('birch'),'Birch buyer']];
 export const locationRows=()=>[['Customer Code','Location Code','Type','Location Name','Address 1','Address 2','City','State','Postal Code','Delivery Instructions'],...['store-a','store-b'].flatMap(code=>[['bill','bill-to','Billing','100 Court Street'],['north','ship-to','North store','200 Court Street'],['south','ship-to','South store','300 Court Street']].map(([id,kind,name,line1])=>[code,id,kind,name,line1,'','Brooklyn','NY','11201','Receiving desk']))];
 // A values-only BIFF8 export in a standard compound document, generated in
@@ -21,7 +21,7 @@ export function companyXls(sheet,rows) {
 }
 export function companyInput(customerId,repId,format='csv') {
  const file=(name,rows)=>format==='xls'?companyXls(name,rows):format==='xlsx'?{...wizWorkbook('split',{entityOnly:true,entities:{[name]:rows}}),name:name.toLowerCase()+'.xlsx',sheet:name}:{name:name.toLowerCase()+'.csv',csv:csv(rows)};
- return {tenant:'synthetic-barrow-91',companies:file('Companies',companyRows()),buyers:file('Buyers',buyerRows()),locations:file('Locations',locationRows()),accounts:{'store-a':{id:'alder',pierCustomerId:customerId},'store-b':{id:'birch',pierCustomerId:customerId}},reps:{Taylor:repId},priceLists:{Domestic:'cedar',Canada:'canada-book'},catalogs:{Pantry:'pantry'},effectiveOn:'2026-10-28'};
+ return {tenant:'synthetic-barrow-91',companies:{...file('Companies',companyRows()),columns:{code:'Company Code'}},buyers:file('Buyers',buyerRows()),locations:file('Locations',locationRows()),accounts:{'store-a':{id:'alder',pierCustomerId:customerId},'store-b':{id:'birch',pierCustomerId:customerId}},reps:{Taylor:repId},priceLists:{Domestic:'cedar',Canada:'canada-book'},catalogs:{Pantry:'pantry'},effectiveOn:'2026-10-28'};
 }
 export async function companyFixture(t,options={}) {
  const {h,pier,products}=await sparkFixture(t,{clock:'2026-10-28T12:00:00Z',...options});

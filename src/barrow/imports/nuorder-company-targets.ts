@@ -36,6 +36,8 @@ async function prepare(env:Bindings,actor:Actor,input:CompanyInput) {
   const book=native.accounts.find(row=>row.id===input.priceLists?.[company.priceList]),bookValue=book?JSON.parse(book.value_json):undefined
   const rep=native.people.find(row=>row.id===input.reps?.[company.rep]),grant=rep&&native.staff.find(row=>row.user_id===rep.id)
   if(!rep||rep.role!=='member'||rep.status!=='active'||!grant||grant.state!=='active'||grant.native_version!==rep.version||JSON.parse(grant.policy_json).role!=='rep')errors.push(`Rep ${company.rep} is not an active native rep`)
+  if(bookValue?.priceRevisions?.length)errors.push(`Price list ${company.priceList} has dated revisions; select an explicitly reviewed current book without a schedule`)
+  if(!previous&&current&&(current.priceRevisions?.length||current.prices.some((price:any)=>price.units?.length||price.pricing)))errors.push(`Customer ${company.code} has native dated pricing or configured selling rules; resolve the book through Accounts before replacing it`)
   if(!bookValue||bookValue.lifecycle==='closed'||(bookValue.currency??'USD')!==company.currency)errors.push(`Price list ${company.priceList} has no active native book in ${company.currency}`)
   if(current&&(current.email!==company.email||current.pierCustomerId!==company.pierCustomerId))errors.push(`Customer ${company.code} cannot reassign an existing email or Pier identity`)
   if(current?.lifecycle==='closed')errors.push(`Customer ${company.code} is closed; do not reactivate its source`)
