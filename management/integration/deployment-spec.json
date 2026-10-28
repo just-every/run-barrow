@@ -382,6 +382,12 @@
       "name": "0059_faire_reconciliation.sql",
       "sha256": "ef45deceb61b3396c7ed49febe21147c6a1b7a10479f64a4516f96d6c84a8fee",
       "sql": "ALTER TABLE bw_faire_sync ADD COLUMN completed_at TEXT;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0060_integration_grants.sql",
+      "sha256": "42cf578c6184156a4413a99aae546facfc5d9ee020e87942412ddae4e934cff0",
+      "sql": "-- Credentials are installation-local and excluded from owner archives.\nCREATE TABLE bw_integration_grants (\n id TEXT PRIMARY KEY,\n digest TEXT NOT NULL UNIQUE,\n account_id TEXT NOT NULL REFERENCES bw_accounts(id) ON DELETE CASCADE,\n issuer_id TEXT NOT NULL REFERENCES oa_operators(id) ON DELETE CASCADE,\n issuer_version INTEGER NOT NULL,\n scopes_json TEXT NOT NULL CHECK(json_valid(scopes_json)),\n expires_at INTEGER NOT NULL,\n revision TEXT NOT NULL,\n state TEXT NOT NULL CHECK(state IN ('active','revoked')),\n reason TEXT NOT NULL\n);\nCREATE INDEX bw_integration_grants_account ON bw_integration_grants(account_id);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
