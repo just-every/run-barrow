@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {returnClaimsFixture} from './return-claims-fixture.mjs';
-import {archive,installation,restore} from './harness.mjs';
+import {activateStaff,archive,installation,restore} from './harness.mjs';
 const stockFacts=state=>Object.fromEntries(['orders','movements','returns','shipments','commands','positions','stockPositions','warehouseStocks','companyStocks'].map(key=>[key,state[key]]));
 
 test('return requests bind partial authorization to current revisions, reconcile real receipts once and retain separately owned disputed quantities without moving stock or money',async t=>{
@@ -21,6 +21,9 @@ test('return requests bind partial authorization to current revisions, reconcile
  claim=await h.command('return.decide',{id:claim.id,revision:claim.revision,orderRevision:order.revision,quantity:2,instructions:'Bring two units to the supplier returns desk.',reason:'Two units authorized; one remains disputed.'});
  assert.equal(claim.decision.quantity,2);assert.equal(claim.disputedQuantity,1);assert.equal(claim.tasks.length,2);assert.equal(claim.creditProposal,null);
  assert.deepEqual(stockFacts(await pier.api('/api/pier/state')),inventory);assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),original);assert.deepEqual(await h.api('/api/barrow/credits?orderId='+order.id),financial);assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows,commissions);
+ const {who:operations}=await activateStaff(h,['synthetic-barrow-942','example.test'].join('@'),{role:'operations',accounts:['cedar'],warehouses:'all',reports:['fulfillment'],discountLimitCents:0,stockExceptionLimitCents:0});
+ await h.api(apiPath,undefined,{...operations,status:403});await h.command('return.decide',{id:claim.id,revision:claim.revision,orderRevision:order.revision,quantity:2,instructions:'No functional authority.',reason:'Not enabled.'},{...operations,status:403});
+ assert.ok(!(await h.api('/api/barrow/followups?view=all',undefined,operations)).tasks.some(row=>row.kind==='return'));
  const disputed=claim.tasks.find(row=>row.id.startsWith('return-dispute:')),owner=disputed.ownerId;
  await h.command('followup.update',{id:disputed.id,revision:disputed.revision,nextContactDate:'2035-01-17',contact:{outcome:'failed',note:'Supplier could not reach the buyer; remainder is still disputed.'}});
  // Two concurrent requests cannot both consume the same remaining original units.
@@ -42,7 +45,7 @@ test('return requests bind partial authorization to current revisions, reconcile
  // Current prices cannot rewrite the original credit proposal.
  const account=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:[{sku:'OAT-1',unitCents:9900,minQty:2}]}});
  assert.equal((await f.claims()).claims.find(row=>row.id===claim.id).creditProposal.amountCents,13000);
- await h.configure({PIER_SESSION:undefined});
+ await h.configure({PIER_SESSION:undefined});await h.command('followup.refresh',{});
  const unknown=(await f.claims()).claims.find(row=>row.id===claim.id);assert.equal(unknown.evidence.available,false);assert.equal(unknown.creditProposal,null);assert.equal(unknown.tasks.find(row=>row.id===disputed.id).status,'open');
  await h.command('return.reconcile',{id:second.id,revision:second.revision,receipts:[{returnId:received.id,quantity:1}]},{status:409});
  await h.configure({PIER_SESSION:pier.cookie});
@@ -54,6 +57,16 @@ test('return requests bind partial authorization to current revisions, reconcile
  const saved=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,saved);
  const restoredExport=await restored.api('/api/barrow/export.json');assert.equal(restoredExport.returnclaims.find(row=>row.id===claim.id).restored,true);
  await restored.command('return.decide',{id:second.id,revision:second.revision,orderRevision:order.revision,quantity:2,instructions:'No restored action.',reason:'No restored action.'},{status:409});
+ // Removing one company person erases their narrative while keeping the original commercial linkage.
+ const successor=['synthetic-barrow-943','example.test'].join('@');
+ await h.command('company.invite',{accountId:'cedar',email:successor,name:'Successor administrator',policy:{rights:['administrator'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Retain an administrator before erasing the requesting person.'});
+ const invitation=new URL(h.mail.requests.findLast(row=>row.message.subject==='Your company buyer invitation'&&row.message.to.includes(successor)).message.text.match(/https?:\/\/[^\s<>]+\/app\?[^\s<>]+/)[0]);
+ await h.command('company.accept',{invitationId:invitation.searchParams.get('companyInvitation'),token:invitation.searchParams.get('companyToken')},{as:await h.signIn(successor,'existing')});
+ const member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.userId===claim.createdBy);
+ await h.command('company.erase',{memberId:member.id,revision:member.revision,confirm:'ERASE',reason:'Erase the return requester’s personal narrative.'});
+ let personal=(await h.api('/api/barrow/export.json')).returnclaims.find(row=>row.id===claim.id);assert.equal(personal.reason,'[Erased return text]');assert.equal(personal.condition,'[Erased return text]');assert.ok(personal.receipts.includes(received.id));
+ const personalReplay=await installation();t.after(()=>personalReplay.close());await restore(personalReplay,saved,{journalSource:h});
+ personal=(await personalReplay.api('/api/barrow/export.json')).returnclaims.find(row=>row.id===claim.id);assert.equal(personal.reason,'[Erased return text]');assert.equal(personal.condition,'[Erased return text]');
  // The erasure review includes personal narratives; later journal replay keeps them redacted.
  await h.command('retention.request',{accountId:'cedar',requester:'Buyer',channel:'Verified request',verificationNote:'Supplier verified the current buyer request.',held:false,reason:'Review return narrative erasure.'});
  let preview=await h.command('retention.preview',{accountId:'cedar'});assert.ok(preview.items.some(row=>row.id==='return:'+claim.id));

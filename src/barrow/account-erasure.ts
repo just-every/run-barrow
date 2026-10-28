@@ -1,3 +1,4 @@
+import { eraseReturnNarrative } from './return-claim-custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
 import { deltaErasure } from './imports/delta-custody'
 /** ct scope-review-56 §E: account erasure keeps the commercial account and
@@ -138,7 +139,7 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   return [row.id,[current,reviewed].filter((floor):floor is string=>typeof floor==='string').sort().at(-1)??null]
  }))
  for(const row of r.bw_return_claims.filter(row=>row.account_id===accountId)) {
-  const value=JSON.parse(row.value_json),clean={...value,reason:'[Erased return text]',condition:'[Erased return text]',decision:value.decision?{...value.decision,reason:'[Erased return text]',instructions:'[Erased return text]'}:undefined,history:value.history.map((event:any)=>({...event,reason:'[Erased return text]'})),restored:true}
+  const clean=eraseReturnNarrative(JSON.parse(row.value_json))
   add('return claims','return:'+row.id,'remove personal narrative; preserve opaque commercial and receipt linkage','Return narrative is outside the financial floor; no restored authority',[sql('UPDATE bw_return_claims SET value_json=?,revision=? WHERE id=?',JSON.stringify(clean),op.id,row.id)])
  }
  for(const {table,row} of creditHistoryItems(r,accountId)) {
