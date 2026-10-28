@@ -13,7 +13,7 @@ import { calendarDate, reportZone } from './report-zone'
 import type { CardPayment } from './card-model'
 
 export type FollowupContact = { outcome: 'failed' | 'reached'; note: string; by: string; at: string }
-export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; resolution?: string; contacts: FollowupContact[]; plan?: FollowupPlan }
+export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; escalated?: { since: string; toId: string }; resolution?: string; contacts: FollowupContact[]; plan?: FollowupPlan }
 export type FollowupTask = FollowupValue & { revision: string }
 type Stored = { value_json: string; revision: string }
 const parse = (row: Stored): FollowupTask => ({ ...JSON.parse(row.value_json), revision: row.revision })

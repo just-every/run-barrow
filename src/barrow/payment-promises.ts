@@ -76,7 +76,7 @@ async function taskStatements(env: Bindings, p: PaymentPromise, at: string) {
  const prior = row ? JSON.parse(row.value_json) as FollowupValue : null
  const owner = await taskOwner(env, p.accountId, prior?.ownerId), closed = !active(p)
  const resolution = closed ? p.history.at(-1)?.reason : undefined
- const value: FollowupValue = { ...prior, id, kind: 'payment-promise', accountId: p.accountId, sourceId: p.id, sourcePath: `/api/barrow/payment-promises?accountId=${encodeURIComponent(p.accountId)}`, title: `${p.state === 'missed' ? 'Missed promise' : 'Buyer promise'} ${p.invoiceNumber}`, reason: `${p.currency} ${p.amountCents} minor units promised by ${p.dueDate} (${p.timeZone}).${p.pause ? ` Approved collection pause through ${p.pause.until}; this is not a provider dispute.` : ''}`, priority: p.state === 'missed' ? 1 : 2, createdAt: prior?.createdAt ?? at, ownerId: owner.id, nextContactDate: prior?.nextContactDate ?? p.dueDate, status: closed ? 'closed' : 'open', contacts: prior?.contacts ?? [], ...(resolution ? { resolution } : { resolution: undefined }) }
+ const value: FollowupValue = { ...prior, id, kind: 'payment-promise', accountId: p.accountId, sourceId: p.id, sourcePath: `/api/barrow/payment-promises?accountId=${encodeURIComponent(p.accountId)}`, title: `${p.state === 'missed' ? 'Missed promise' : 'Buyer promise'} ${p.invoiceNumber}`, reason: `${p.currency} ${p.amountCents} minor units promised by ${p.dueDate} (${p.timeZone}).${p.pause ? ` Approved collection pause through ${p.pause.until}; this is not a provider dispute.` : ''}`, priority: p.state === 'missed' ? 1 : 2, createdAt: prior?.createdAt ?? at, ownerId: owner.id, nextContactDate: p.history.at(-1)?.action === 'promise.revise' && prior?.nextContactDate === p.history.at(-2)?.dueDate ? p.dueDate : prior?.nextContactDate ?? p.dueDate, status: closed ? 'closed' : 'open', escalated: p.state === 'missed' ? { since: new Date(Date.parse(p.dueDate + 'T12:00:00Z') + 86400000).toISOString().slice(0, 10), toId: owner.id } : undefined, contacts: prior?.contacts ?? [], ...(resolution ? { resolution } : { resolution: undefined }) }
  const revision = crypto.randomUUID()
  return [owner.guard, row ? db.prepare('UPDATE bw_followups SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(value), revision, id, row.revision) : db.prepare('INSERT INTO bw_followups(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, p.accountId, JSON.stringify(value), revision), changed(db)]
 }
@@ -87,7 +87,7 @@ export async function readPaymentPromises(env: Bindings, actor: Actor, params: U
  const rows = (await env.DB.prepare("SELECT value_json,revision FROM bw_orders WHERE account_id=? AND json_extract(value_json,'$.invoice') IS NOT NULL ORDER BY id").bind(accountId).all<Stored>()).results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Order)
  const financial = await creditRecords(env.DB)
  const invoices = await Promise.all(rows.filter(order => order.status === 'approved').map(async order => ({ orderId: order.id, invoiceNumber: order.invoice!.number, sourceRevision: order.revision, currency: order.currency ?? 'AUD', outstandingCents: invoiceOutstanding(order.id, order.totalCents, financial), buyers: (await buyerPeople(env.DB, order)).map(({ id, name }) => ({ id, name })) })))
- return { accountId, account: selected.value.name, timeZone: await reportZone(env.DB), promises: (await paymentPromiseRows(env.DB)).filter(p => p.accountId === accountId), invoices }
+ return { accountId, account: selected.value.name, timeZone: await reportZone(env.DB), promises: (await paymentPromiseRows(env.DB)).filter(p => p.accountId === accountId).map(p => ({ ...p, sourceAvailable: rows.some(order => order.id === p.orderId && order.invoice?.number === p.invoiceNumber && order.currency === p.currency) })), invoices }
 }
 export async function paymentPromiseCommand(env: Bindings, actor: Actor, type: string, input: any) {
  authority(actor)
@@ -161,7 +161,7 @@ export async function reconcilePaymentPromises(env: Bindings, actor?: Actor, acc
    result.push({ id: value.id, outcome: state })
   } catch (error) {
    // Another request may win the guarded revision; only that batch owns the task and event.
-   if (!/bw_guard|UNIQUE constraint/.test(String(error))) throw error
+   if (!/bw_guard|CHECK constraint failed|UNIQUE constraint/.test(String(error))) throw error
   }
  }
  return result
