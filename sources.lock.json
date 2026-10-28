@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "fc871d12abc92cf4c1681cbdc8ac37300c631a3e5e2021034d98751576276a97",
+      "sha256": "6941f8ed4350960bc58e1dd968df8c313152fc5e116e9839a3762213a33f29f5",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "525c55e561d83bd7fdfa5537aa4524d639250200b114304a8bdb2551e62b29f3",
+      "sha256": "8ee5908ccf4e6f29bf7958337dcc1aaf219f66ebd17893c75fe0b587fd62b8a0",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "d0805bef3213b9e8a7c0fb0a32f61c8152d549422cef3e9906962c051cf8c6a5",
+      "sha256": "cfa58e58dad0c4db55cc0c5875c8911f216879ed3bd43ae6e43ef84f0296d81b",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -225,6 +225,10 @@
     },
     "docs/ORDER-CONFIRMATIONS.md": {
       "sha256": "c4c53a43b3f5f80b0cbd1a492dc58f2b100d9d2ed092842e012ed7edc05ef49e",
+      "executable": false
+    },
+    "docs/ORDER-FOLLOWTHROUGH.md": {
+      "sha256": "33ab70b84ab1b4caa8d177b09a78454a893a063f3de5abdf6379d125244d7c6e",
       "executable": false
     },
     "docs/ORDER-HISTORY.md": {
@@ -1647,6 +1651,10 @@
       "sha256": "06a482555f3c40fdebca9886304ea55c3baff05b0d4696cd33a95b37689b00bc",
       "executable": false
     },
+    "src/barrow/order-followthrough.ts": {
+      "sha256": "be2e0361819425b09f54c4e1f0a96b8d7c41286c4851a32d01699faf26b00143",
+      "executable": false
+    },
     "src/barrow/order-revisions.ts": {
       "sha256": "beb65c06a600e89aced3d3624136474bd01000a5bf1090870d14683a762e9a82",
       "executable": false
@@ -2129,6 +2137,10 @@
     },
     "src/barrow/ui/order-confirmations.tsx": {
       "sha256": "c1f527ef85e055fe7139f5d4359971779f68cc86e55bef3c6ed5bc0f881e1a16",
+      "executable": false
+    },
+    "src/barrow/ui/order-followthrough.tsx": {
+      "sha256": "256fa76a9f5b9844e347097c778e435376013a4bdd8433c469c6ea73713ad2d5",
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
@@ -4356,7 +4368,7 @@
       "executable": false
     },
     "tests/api/card-payments.test.mjs": {
-      "sha256": "c38b6d952295653818f13f6dd9bc22106c65bca27176329f7de7359760d61c84",
+      "sha256": "a686e37a16a11cb387253cad6a08ca5b8f79bc5f30f5200fad1c9b948bf6eeaf",
       "executable": false
     },
     "tests/api/cart-import.test.mjs": {
@@ -4487,6 +4499,14 @@
       "sha256": "de3850c207037129f2728ca43909f7ef98ed178d5a315a010c73285ca274d51e",
       "executable": false
     },
+    "tests/api/order-followthrough-fixture.mjs": {
+      "sha256": "68848e4d8bf262c7a404228c212f81d41a9c5cf4a9484859e7785f670bc32133",
+      "executable": false
+    },
+    "tests/api/order-followthrough.test.mjs": {
+      "sha256": "9c60212e9bedd5bfb20f4404101033458e8be08f4756ba09232899e950a294ab",
+      "executable": false
+    },
     "tests/api/order-guarantee.test.mjs": {
       "sha256": "698c0983cd53c99c18489775a0eee7a2d95dded63c788bfeee1482d954e24a36",
       "executable": false
@@ -4512,7 +4532,7 @@
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
-      "sha256": "ee1e087ec448eb7683b6dd8a7567c81909d818aec7773161149880e9187cee42",
+      "sha256": "7e9070b16af7ef0e150e605a44399cf606a8b4f02b29832cf0e93e36ebea22df",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {
@@ -4588,7 +4608,7 @@
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
-      "sha256": "8669940ea9b1873299a4f6329106d459ae2996edd3f5708686041bdc0f3d6bc1",
+      "sha256": "4d27d49ee453b478b063e4145d0c31208bd1cae485e5b080a1c74f7470f3754f",
       "executable": false
     },
     "tests/api/stock-sync-fixture.mjs": {
@@ -4692,7 +4712,7 @@
       "executable": false
     },
     "tests/journeys/confirmations.test.mjs": {
-      "sha256": "14506b1f18eab661f109986f4745703a7d172e3671ae78d0a1e2bfb225233b7b",
+      "sha256": "48b8d00f740760eedb761293220b5e0632ce54901fe3237267029ec1e8356964",
       "executable": false
     },
     "tests/journeys/connector-review.test.mjs": {
@@ -4745,6 +4765,10 @@
     },
     "tests/journeys/move-wizcommerce.test.mjs": {
       "sha256": "a87d628a8b24017cedb22752ceb590119be9a407e836b9d5ffdf80ebacd26417",
+      "executable": false
+    },
+    "tests/journeys/order-followthrough.test.mjs": {
+      "sha256": "c7e85b86b0888e6568ae97c159ac5586468086241875ce6e4841e0a69b95a7d4",
       "executable": false
     },
     "tests/journeys/pricing.test.mjs": {

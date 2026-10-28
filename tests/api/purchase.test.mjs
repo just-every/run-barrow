@@ -61,6 +61,7 @@ test('ORD-007: purchase dates, instructions and buyer SKU aliases reach the orde
  assert.deepEqual([release.poRelease.number, release.poRelease.of, release.poRelease.authorizedBy], [2, first.id, buyerId]);
  const third = await prepare({ reference: 'PO-7781' });
  assert.equal((await h.command('order.submit', { orderId: third.id, release: true }, { as: buyer })).poRelease.number, 3);
+ const rootTrace=await h.api('/api/barrow/orders/'+first.id+'/followthrough'),releaseTrace=await h.api('/api/barrow/orders/'+repeat.id+'/followthrough');assert.deepEqual(rootTrace.linked.map(row=>[row.id,row.releaseNumber]),[[repeat.id,2],[third.id,3]]);assert.ok(releaseTrace.linked.some(row=>row.id===first.id&&row.acknowledgment===approved.pierOrderId));
  const trail = (await h.api(`/api/barrow/audit?orderId=${repeat.id}`)).events.map(event => event.action);
  assert.ok(trail.includes('order.submitted-release'));
 

@@ -19,8 +19,8 @@ export async function orderStock(env: Bindings, order: Order, at: Date, state?: 
  const empty = { status: 'unknown' as const, lines: [] as ReturnType<typeof fulfillmentLines>, reason: 'The original inventory source is unavailable; no resolution is established.' }
  if (order.prebook) return { ...empty, reason: 'Seasonal commitment: inventory acknowledgment belongs to each linked release.' }
  if (!order.pierOrderId) return { ...empty, reason: 'Inventory acknowledgment is not recorded. Retry the original durable command; do not prepare a replacement order.' }
- if (order.pierOrigin !== await pierOrigin(env)) return empty
  try {
+  if (order.pierOrigin !== await pierOrigin(env)) return empty
   const source = state ?? await pierState(env), upstream = source.orders?.find((row: any) => row.id === order.pierOrderId)
   if (!upstream) return empty
   const zone = await reportZone(env.DB)
@@ -65,15 +65,15 @@ export async function orderFollowthrough(env: Bindings, actor: Actor, id: string
  }))
  const taskRows = await env.DB.prepare('SELECT value_json,revision FROM bw_followups WHERE account_id=?').bind(order.accountId).all<{ value_json: string; revision: string }>()
  const tasks = taskRows.results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as FollowupTask).filter(task => staffTaskAllowed(actor, task) && (task.kind === 'fulfillment' && task.sourceId === order.id || task.kind === 'card-payment' && payments.some(payment => payment.id === task.sourceId)))
- const linkedRows = await env.DB.prepare("SELECT value_json,revision FROM bw_orders WHERE account_id=? AND (id=? OR json_extract(value_json,'$.prebookRelease.orderId')=?) ORDER BY id").bind(order.accountId, order.prebookRelease?.orderId ?? '', order.prebook ? order.id : '').all<{ value_json: string; revision: string }>()
- const linked = linkedRows.results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Order).filter(item => !actor.staff || actor.staff.role !== 'finance' || item.invoice).map(item => ({ id: item.id, status: item.status, path: orderTaskPath(item.id), windowId: item.prebookRelease?.windowId ?? null, acknowledgment: item.pierOrderId ?? null, requestedDate: item.requestedDate ?? null, invoice: item.invoice ?? null }))
+ const linkedRows = await env.DB.prepare("SELECT value_json,revision FROM bw_orders WHERE account_id=? AND (id=? OR json_extract(value_json,'$.prebookRelease.orderId')=? OR id=? OR json_extract(value_json,'$.poRelease.of')=?) ORDER BY id").bind(order.accountId, order.prebookRelease?.orderId ?? '', order.prebook ? order.id : '', order.poRelease?.of ?? order.id, order.poRelease?.of ?? order.id).all<{ value_json: string; revision: string }>()
+ const linked = linkedRows.results.map(row => ({ ...JSON.parse(row.value_json), revision: row.revision }) as Order).filter(item => item.id !== order.id && (!actor.staff || actor.staff.role !== 'finance' || item.invoice)).map(item => ({ label: item.prebook ? 'Seasonal commitment' : item.prebookRelease ? `Ship window ${item.prebookRelease.windowId}` : item.poRelease ? `PO release ${item.poRelease.number}` : 'Original order', releaseNumber: item.poRelease?.number ?? null, id: item.id, status: item.status, path: orderTaskPath(item.id), windowId: item.prebookRelease?.windowId ?? null, acknowledgment: item.pierOrderId ?? null, requestedDate: item.requestedDate ?? null, invoice: item.invoice ?? null }))
  const personIds = [...new Set(tasks.flatMap(task => [task.ownerId, task.resolvedBy, task.nextActionDraft?.reviewedBy].filter((id): id is string => Boolean(id))))]
  const people = Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(personIds)).all<{ id: string; display_name: string }>()).results.map(row => [row.id, row.display_name]))
  return {
   people, orderId: order.id, accountId: order.accountId, revision: order.revision, checkedAt: checkedAt.toISOString(), status: order.status,
   sourcePath: `/api/barrow/orders/${order.id}`, requestedDate: order.requestedDate ?? null,
   acknowledgment: order.pierOrderId ?? null, reservationIdentity: `barrow-${order.id}`, releaseIdentity: `barrow-release-${order.id}`, releaseAcknowledgedAt: order.release?.confirmedAt ?? null,
-  stock, linked, invoice: order.invoice ? { ...order.invoice, currency: order.currency ?? 'AUD', amountCents: order.totalCents, path: `/api/barrow/invoices/${order.id}.csv` } : null,
+  stock, linked, windows: order.prebook?.windows.map(window => ({ id: window.id, name: order.prebook!.season.windows.find(item => item.id === window.id)?.name ?? window.id, promisedDate: window.estimatedDate ?? order.prebook!.season.windows.find(item => item.id === window.id)?.shipDate ?? null, releaseId: window.releaseId ?? null })) ?? [], invoice: order.invoice ? { ...order.invoice, currency: order.currency ?? 'AUD', amountCents: order.totalCents, path: `/api/barrow/invoices/${order.id}.csv` } : null,
   payments, tasks, delivery: 'unknown', settlement: 'unknown', job: 'unresolved',
   nextActions: order.status === 'reserving' && !order.pierOrderId ? [{ type: 'order.approve', label: 'Retry stock reservation' }] : order.status === 'releasing' ? [{ type: 'order.cancel', label: 'Retry stock release' }, { type: 'order.refresh', label: 'Refresh release status' }] : order.status === 'shortfall' ? [{ type: 'order.refresh', label: 'Refresh stock status' }] : [],
   canRecover: !actor.staff || ['sales-manager', 'operations'].includes(actor.staff.role) && stockAuthority(actor),

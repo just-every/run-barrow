@@ -146,9 +146,11 @@ test('seasonal prebooks bind published windows, live incoming capacity and exact
  await route(['New York','Newark']);assert.equal((await h.command('order.approve',{orderId:released.releaseId},{status:409})).error.code,'PREBOOK_WAREHOUSE');assert.equal((await pier.api('/api/pier/state')).orders.length,0);
  await route(['New York']);
  const child=await h.command('order.approve',{orderId:released.releaseId});assert.equal(child.status,'approved');assert.equal(child.totalCents,52000);assert.equal(child.prebookRelease.orderId,order.id);assert.equal(child.prebookRelease.windowId,'first');assert.deepEqual(child.lines.map(line=>[line.sku,line.quantity]),[['OAT-1',8]]);
+ const parentTrace=await h.api('/api/barrow/orders/'+order.id+'/followthrough'),releaseTrace=await h.api('/api/barrow/orders/'+child.id+'/followthrough');assert.deepEqual(parentTrace.linked.map(row=>[row.id,row.acknowledgment,row.invoice.number]),[[child.id,child.pierOrderId,child.invoice.number]]);assert.equal(parentTrace.payments[0].id,pay.id);assert.equal(releaseTrace.linked[0].id,order.id);assert.equal(releaseTrace.stock.lines[0].ordered,'8');assert.equal(parentTrace.job,'unresolved');
  assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,70000);
  assert.equal((await pier.api('/api/pier/state')).orders.length,1);assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows.map(row=>[row.orderId,row.rep,row.grossCents,row.netCents]),[[child.id,'Season rep',5200,5200]]);
  order=(await h.command('prebook.delay',{orderId:order.id,windowId:'second',revision:released.order.revision,estimatedDate:'2027-03-15',reason:'Source supplier delayed the rye style.'})).order;
+ assert.equal((await h.api('/api/barrow/orders/'+order.id+'/followthrough')).windows.find(row=>row.id==='second').promisedDate,'2027-03-15');
  const after=await h.api('/api/barrow/reports/fulfillment?accountId=cedar');assert.deepEqual(after.prebooks.map(row=>[row.sku,row.committed,row.released,row.outstanding,row.backordered]),[['OAT-1','8','8','0',false],['RYE-1','6','0','6',true]]);
  assert.deepEqual(after.prebooks[1].history.map(row=>[row.from,row.to,row.reason]),[['2027-03-10','2027-03-15','Source supplier delayed the rye style.']]);
  assert.deepEqual((await h.api(confirmationPath,undefined,buyer)).confirmations.at(-1),confirmation);

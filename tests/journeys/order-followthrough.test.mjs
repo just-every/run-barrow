@@ -41,7 +41,7 @@ test('supplier reviews order-linked inventory and card exceptions, retries one d
  const issued=await f.prepared({outcome:'requires_action'}),p=issued.payment;
  let payment=await h.command('card.authorize',{paymentId:p.id,consent:true,amountCents:p.amountCents,surchargeCents:p.surchargeCents},buyer);
  edge.intents.get(payment.providerPaymentId).status='requires_payment_method';payment=await h.command('card.refresh',{paymentId:p.id},buyer);
- await page.reload();trace=await open(issued.order);await expect(trace).toContainText('declined');await expect(trace).toContainText('card authorization failed');await expect(trace).toContainText('Job unresolved');
+ await page.reload();trace=await open(issued.order);await expect(trace).toContainText('Declined');await expect(trace).toContainText('card authorization failed');await expect(trace).toContainText('Job unresolved');
  const paymentTask=trace.getByRole('article',{name:'Card payment exception '+p.id,exact:true});await expect(paymentTask.getByText('Record human exception resolution',{exact:true})).toHaveCount(0);
  await captureRegionWidths(page,trace,'order-followthrough-card-exception');
  const ownerTrace=await f.trace(issued.order);assert.ok(ownerTrace.payments[0].events.length);assert.equal(ownerTrace.tasks.find(row=>row.sourceId===p.id).status,'open');

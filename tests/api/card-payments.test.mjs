@@ -23,6 +23,7 @@ test('hosted card review preserves the approved order, exact surcharge and autho
  const signed=await edge.event(h,captured);assert.equal(signed.response.status,200);
  const replay=await h.raw('/api/barrow/card-webhook',{method:'POST',headers:{'stripe-signature':signed.signature},body:signed.body});assert.equal((await replay.json()).duplicate,true);
  assert.equal((await edge.event(h,captured,{tamper:true})).response.status,400);
+ const trace=await h.api('/api/barrow/orders/'+order.id+'/followthrough');assert.equal(trace.payments.find(row=>row.id===captured.id).state,'captured');assert.ok(trace.payments.find(row=>row.id===captured.id).events.length);assert.equal(trace.job,'unresolved');assert.equal(trace.delivery,'unknown');
  assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),snapshot);assert.deepEqual((await pier.api('/api/pier/state')).orders,inventory);
  statement=await h.api('/api/barrow/statements/cedar'+query,undefined,buyer);const section=statement.sections[0];assert.equal(section.receivedCents,13260);assert.equal(section.surchargedCents,260);assert.equal(section.closingCents,0);assert.equal(section.entries.find(row=>row.kind==='card-surcharge').amountCents,260);
  const receipt=section.entries.find(row=>row.kind==='card-payment');assert.equal(receipt.amountCents,-13260);assert.equal((await h.request(receipt.paymentPath,buyer)).status,200);
