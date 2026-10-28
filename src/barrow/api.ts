@@ -379,7 +379,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(['refund.request','refund.refresh'].includes(body.type))return json({result:await refundCommand(env,actor,body.type,body.payload)})
    if(['saved-card.save','saved-card.revoke','saved-card.prepare'].includes(body.type)){const result=await savedCardCommand(env,actor,body.type,body.payload);return json({result:body.type==='saved-card.prepare'?publicCard(result as import('./card-model').CardPayment):result})}
    if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
-   if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})
+   if(['card.schedule','card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
    if(['webhook.subscribe','webhook.rotate','webhook.revoke','webhook.replay','webhook.dispatch'].includes(body.type))return json({result:await webhookCommand(env,actor,body.type,body.payload)})
    if(body.type==='catalog.refresh')return json({result:await refreshCatalogIndex(env,actor,body.payload)})

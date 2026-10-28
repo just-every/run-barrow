@@ -25,7 +25,7 @@ export function invoiceOutstanding(orderId:string,totalCents:number,records:Awai
 }
 /** Fence both existing rows and new financial decisions in a money-changing batch. */
 export async function financialGuard(db:D1Database) {
- const tables=['bw_credit_notes','bw_credit_applications','bw_card_allocations','bw_credit_refunds'] as const
+ const tables=['bw_credit_notes','bw_credit_applications','bw_card_allocations','bw_credit_refunds','bw_card_payments'] as const
  return Promise.all(tables.map(async table=>{
   const query=`SELECT json_group_array(json_array(id,value_json,revision)) AS value FROM (SELECT id,value_json,revision FROM ${table} ORDER BY id)`
   const value=await db.prepare(query).first<{value:string}>()

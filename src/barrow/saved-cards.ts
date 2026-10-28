@@ -1,3 +1,4 @@
+import { assertCollection, newCollection } from './card-collections'
 import type { Bindings } from '../auth.server'
 import { audit,changed,commit } from './access'
 import { account } from './accounts'
@@ -84,8 +85,12 @@ export async function savedCardCommand(env:Bindings,actor:Actor,type:string,p:an
  if(stripe.config.account_id!==value.providerAccountId||!!stripe.config.livemode!==value.livemode||installationId!==value.installationId)fail('STRIPE_MISMATCH','Saved-card consent belongs to another Stripe connection.',409)
  const paymentMethodId=await openWebhookSecret(env,`saved-card:${value.id}`,row.cipher),method=await stripe.call(`/payment_methods/${encodeURIComponent(paymentMethodId)}`)
  if(method.customer!==value.customerId||method.type!=='card'||method.livemode!==undefined&&method.livemode!==value.livemode)fail('STRIPE_MISMATCH','Stripe did not verify this saved card and customer.',409)
- const selected=await account(env.DB,actor,value.accountId),at=new Date().toISOString(),id=`card-${order.id}`
- const payment:CardPayment={id,installationId,accountId:order.accountId,orderId:order.id,orderRevision:order.revision,currency:order.currency??'AUD',amountCents:order.totalCents,...reviewedCard(stripe.config,order,selected.value.state??'',method,order.totalCents),state:'prepared',createdAt:at,updatedAt:at,providerAccountId:value.providerAccountId,providerCustomerId:value.customerId,livemode:value.livemode,paymentMethodId,savedCardId:value.id,savedCardRevision:value.revision}
- await commit(env.DB,actor,[...await assertSavedConsent(env,actor,payment),env.DB.prepare('INSERT OR IGNORE INTO bw_card_payments VALUES(?,?,?,?,?)').bind(id,order.accountId,order.id,JSON.stringify(payment),crypto.randomUUID()),audit(env.DB,actor,id,'saved-card.reviewed',{accountId:value.accountId,orderId:order.id,revision:order.revision,source:type,reason:'Buyer reviewed the exact issued order with saved-card consent; collection requires separate exact-amount authorization.'})])
- return (await storedCard(env,id)).value
+ const selected=await account(env.DB,actor,value.accountId)
+ const base=await newCollection(env,actor,order,p,stripe.config)
+ if(base.state!=='prepared'||base.paymentMethodId)return base
+ await assertCollection(env,order,base)
+ const stored=await storedCard(env,base.id)
+ const payment:CardPayment={...base,...reviewedCard(stripe.config,order,selected.value.state??'',method,base.amountCents),providerCustomerId:value.customerId,paymentMethodId,savedCardId:value.id,savedCardRevision:value.revision}
+ await commit(env.DB,actor,[...await assertSavedConsent(env,actor,payment),env.DB.prepare('UPDATE bw_card_payments SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(payment),crypto.randomUUID(),payment.id,stored.revision),changed(env.DB),audit(env.DB,actor,payment.id,'saved-card.reviewed',{accountId:value.accountId,orderId:order.id,revision:order.revision,source:type,reason:'Buyer reviewed the exact invoice principal with saved-card consent; collection requires separate exact-amount authorization.'})])
+ return (await storedCard(env,payment.id)).value
 }
