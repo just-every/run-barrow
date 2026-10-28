@@ -1600,11 +1600,11 @@
       "executable": false
     },
     "src/barrow/imports/nuorder-companies.ts": {
-      "sha256": "29bb93df06221cf9fa24638e61703f5f5dca279c3e906ec27d3755825254a0d5",
+      "sha256": "b344053fee7540b8eca30a265f0d5757384186b735c20b0c929b3293ee13896e",
       "executable": false
     },
     "src/barrow/imports/nuorder-company-targets.ts": {
-      "sha256": "1dbd478eb4dc84850281c0f88aac8ed8f0a60d9fb3f0b4ac2fa6584a82ada0a2",
+      "sha256": "8f5f0a86fe97aa2dcb22971e85243946cc16a25a343b4e3bb7bd237efc619cc1",
       "executable": false
     },
     "src/barrow/imports/nuorder-https.ts": {
@@ -2060,7 +2060,7 @@
       "executable": false
     },
     "src/barrow/ui/card-payment.tsx": {
-      "sha256": "f496f4accc2288fae6ef81778c65ffffe0c326baee6c1fae54bfc451ba38e9d1",
+      "sha256": "b28434be6a986e7097d23abc27da002e040357a46d5e48817d9428012d5aa6ab",
       "executable": false
     },
     "src/barrow/ui/card-settings.tsx": {
@@ -2240,7 +2240,7 @@
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {
-      "sha256": "5a7db56939a889186308305845cf652e181820cafd2c648da8f40dce1e1769ab",
+      "sha256": "e1fa36cbb7ca616f6394d80c208fc8dbeee8d1534a5d11cabb90c0f37724eaef",
       "executable": false
     },
     "src/barrow/ui/pricing-settings.tsx": {
@@ -4556,7 +4556,7 @@
       "executable": false
     },
     "tests/api/move-nuorder-companies.test.mjs": {
-      "sha256": "1d8bfc27226e682d8d554b84c3cb97f8090c51226fbf08786593a66f9e33d1e8",
+      "sha256": "13c8a16bdcbe359eb627c933b68269cf66e41ddf7da3a17c8db98d466d6a40fd",
       "executable": false
     },
     "tests/api/move-nuorder.test.mjs": {
@@ -4832,7 +4832,7 @@
       "executable": false
     },
     "tests/journeys/deposits.test.mjs": {
-      "sha256": "91709d22d30d1796a939d0741e5a7d0fa91d9850a88965b3ee8cf57004410c57",
+      "sha256": "94a447c47d44fbdda0acfe40baa2138eb4cb8f7c24ebb8d952636e0529aff70b",
       "executable": false
     },
     "tests/journeys/faire.test.mjs": {

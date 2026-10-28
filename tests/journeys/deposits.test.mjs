@@ -1,5 +1,4 @@
 import test from 'node:test';
-import {writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
 import {releasedDepositFixture} from '../api/prebook-fixture.mjs';
@@ -19,7 +18,7 @@ test('finance reviews a seasonal deposit on two release invoices and the buyer s
  const {h,buyer,payment,releases,edge,publication}=await releasedDepositFixture(t,{built:true});
  const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM_PATH?{executablePath:process.env.BARROW_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const context=await signedContext(browser,h),buyerContext=await signedContext(browser,h,buyer.as);t.after(()=>context.close());t.after(()=>buyerContext.close());
- const page=await context.newPage(),buy=await buyerContext.newPage();await app(page,h);await page.getByRole('button',{name:'Orders',exact:true}).click();
+ const page=await context.newPage(),buy=await buyerContext.newPage();try {await app(page,h);await page.getByRole('button',{name:'Orders',exact:true}).click();
  for(const [index,amount] of [[0,'150.00'],[1,'60.00']]) {
   const order=page.locator('article.br-order').filter({has:page.locator('.br-order-id').getByText(releases[index].id.replace(/^O-/,''),{exact:true})});
   // Each immutable invoice selects its own source card by its displayed order identity.
@@ -45,13 +44,11 @@ test('finance reviews a seasonal deposit on two release invoices and the buyer s
  await captureRegionWidths(page,ownerPayment,'deposit-balance-schedule');const noCharge=edge.captures;await ownerPayment.getByRole('button',{name:'Save dated payments',exact:true}).click();await expect(ownerPayment).toContainText('Dated payments saved');assert.equal(edge.captures,noCharge);
  const planned=(await h.api('/api/barrow/payments?orderId='+releases[0].id)).payments.filter(row=>row.scheduleId).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));assert.deepEqual(planned.map(row=>row.amountCents),[10000,5000,22000]);
  await buy.reload();await buy.getByRole('button',{name:'Orders',exact:true}).click();const buyerOrder=buy.locator('article.br-order').filter({has:buy.locator(`a[href="/api/barrow/invoices/${releases[0].id}.csv"]`)}),buyerPayment=buyerOrder.getByRole('region',{name:'Card payment',exact:true});
- await writeFile((process.env.BARROW_JOURNEY_EVIDENCE??'/tmp')+'/buyer-debug.html',await buy.content());
- console.log('Buyer payment panels',await buy.getByRole('region',{name:'Card payment',exact:true}).count(),'release articles',await buyerOrder.count());
  for(const [index,amount] of [[0,'100.00'],[1,'50.00']]) {
   await buyerPayment.getByLabel('Payment to review',{exact:true}).selectOption(planned[index].id);await expect(buyerPayment).toContainText(planned[index].dueDate);
   await buyerPayment.getByRole('button',{name:'Prepare scheduled card payment',exact:true}).click();await expect(buyerPayment.getByRole('link',{name:'Add card securely with Stripe',exact:true})).toBeVisible();
   edge.complete(planned[index]);await buyerPayment.getByRole('button',{name:'Refresh card and payment',exact:true}).click();await expect(buyerPayment).toContainText('ending 4242');
-  await expect(buyerPayment.getByRole('button',{name:'Authorize card payment',exact:true})).toBeDisabled();await buyerPayment.getByRole('checkbox').check();
+  await expect(buyerPayment.getByRole('button',{name:'Authorize card payment',exact:true})).toBeDisabled();await buyerPayment.getByRole('checkbox',{name:/^I authorize /}).check();
   await captureRegionWidths(buy,buyerPayment,'deposit-partial-review-'+(index+1));await buyerPayment.getByRole('button',{name:'Authorize card payment',exact:true}).click();await expect(buyerPayment).toContainText('Card authorized; capture pending');
   await ownerPayment.getByRole('button',{name:'Reload payment records',exact:true}).click();await ownerPayment.getByLabel('Payment to review',{exact:true}).selectOption(planned[index].id);await ownerPayment.getByLabel('Reason for capture or cancellation',{exact:true}).fill('Owner verified this separately authorized balance payment.');await ownerPayment.getByRole('button',{name:'Capture authorized payment',exact:true}).click();await expect(ownerPayment).toContainText('Payment captured');
   const partial=(await h.api('/api/barrow/payments?orderId='+releases[0].id)).payments.find(row=>row.id===planned[index].id);assert.equal(partial.state,'captured');
@@ -64,4 +61,5 @@ test('finance reviews a seasonal deposit on two release invoices and the buyer s
  for(const [index,ship,cancel] of [[0,'2027-03-10','2027-03-20'],[1,'2027-03-20','2027-03-30']]){await settings.getByLabel('Ship date',{exact:true}).nth(index).fill(ship);await settings.getByLabel('Cancel after',{exact:true}).nth(index).fill(cancel)}
  await settings.getByLabel('Season decision reason',{exact:true}).fill('Owner publishes an exact fixed principal requirement.');await captureRegionWidths(page,settings,'deposit-fixed-settings');await settings.getByRole('button',{name:'Publish season',exact:true}).click();await expect(settings.getByRole('heading',{name:'Fixed seasonal deposit',exact:true})).toBeVisible();await expect(settings).toContainText('deposit USD 210.00');
  for(const screen of [page,buy])assert.equal(await screen.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
+ }catch(error){await buy.screenshot({path:(process.env.BARROW_JOURNEY_EVIDENCE??'/tmp')+'/deposit-failure.png',fullPage:true});throw error}
 });

@@ -111,7 +111,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant, deposit=false }: { o
       {!data.configured && <p className="br-quiet-text">Stripe card payments are not connected. The owner can review the connection in Settings.</p>}
       {!deposit && <p>Unpaid invoice principal: {money(data.outstandingCents??0,data.currency)}. Available for a new collection: {money(data.availableCents??0,data.currency)}. Captured receipts and dated payments reserve their own principal.</p>}
       {!payment && <p>No card payment has been prepared for this order.</p>}
-      {payments.length > 1 && <label>Payment to review<select value={payment?.id ?? ''} disabled={busy} onChange={event => { setSelectedId(event.target.value); setConsentKey(''); setReason(''); setMessage('') }}>
+      {payments.length > 1 && <label>Payment to review<select aria-label="Payment to review" value={payment?.id ?? ''} disabled={busy} onChange={event => { setSelectedId(event.target.value); setConsentKey(''); setReason(''); setMessage('') }}>
         {payments.map(row => <option key={row.id} value={row.id}>{row.dueDate?`Due ${row.dueDate}`:when(row.createdAt)} · {money(row.amountCents,row.currency)} · {stateNames[row.state]} · {row.id}</option>)}
       </select></label>}
       {payment && <>
