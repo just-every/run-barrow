@@ -195,9 +195,13 @@ node scripts/barrow.mjs prepare-exchange-v1 --origin "$ORIGIN" \
 
 The signed-in owner then posts
 that exact response to `/api/barrow/v1/exchange/review`, with the installation's
-Origin header, to recheck it without writes. After reviewing its complete input,
+Origin header, to recheck it without writes. For products this owner-only response
+also contains the native `catalog` preview, including planned rows, reconciliation
+and the exact list of removed listings. After reviewing its complete input,
 the owner posts the same `proposal` and `fingerprint`, plus `confirm:true` and
-a specific `reason`, to `/api/barrow/v1/exchange/apply`:
+a specific `reason`, to `/api/barrow/v1/exchange/apply`. A catalog workbook that
+removes listings also requires the person's separate `approveRemoved:true`;
+the ordinary confirmation never supplies removal approval implicitly:
 
 ```sh
 curl --cookie /private/native-session.txt --header "Origin: $ORIGIN" \

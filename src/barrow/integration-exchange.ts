@@ -123,7 +123,11 @@ export async function applyIntegrationExchange(request:Request,env:Bindings,acto
  if(!credential)fail('AUTH','The preparing grant or its issuer is no longer authorized.',401)
  const prepared=await prepare(env,credential,{entity:supplied.entity,accountId:supplied.accountId,accountRevision:supplied.accountRevision,currency:supplied.currency,payload:supplied.payload})
  if(canonical(supplied)!==canonical(prepared.proposal)||p.fingerprint!==prepared.fingerprint)fail('CHANGED','The proposal, grant or source changed. Prepare and review it again.')
- if(!apply)return {version:1,...prepared,requiresPerson:true}
+ if(!apply) {
+  const catalog=supplied.entity==='products'?(await buildCatalogMaintenance(env,prepared.proposal.payload)).report:undefined
+  if(catalog&&catalog.fingerprint!==prepared.proposal.basis)fail('CHANGED','The catalog changed during review. Prepare it again.')
+  return {version:1,...prepared,requiresPerson:true,...(catalog?{catalog}:{})}
+ }
  if(p.confirm!==true)fail('CONSENT','Explicitly confirm the exact reviewed proposal.',400)
  const reason=text(p.reason,'Exchange approval reason',1000)
  if(await env.DB.prepare('SELECT 1 FROM bw_audit WHERE id=?').bind(prepared.fingerprint).first())fail('ALREADY_APPLIED','This exact proposal was already applied; no second change is made.')
@@ -132,7 +136,7 @@ export async function applyIntegrationExchange(request:Request,env:Bindings,acto
  await requireUsageTerms(env,person,prepared.proposal.accountId)
  let result:unknown
  if(entity==='accounts')result=await accountCommand(request,env,person,'account.save',{...payload,reason})
- else if(entity==='products')result=await applyCatalogMaintenance(env,person,{...payload,fingerprint:prepared.proposal.basis,reason,approveRemoved:true})
+ else if(entity==='products')result=await applyCatalogMaintenance(env,person,{...payload,fingerprint:prepared.proposal.basis,reason,approveRemoved:p.approveRemoved===true})
  else if(entity==='variants')result=await saveVariantAttributes(env.DB,person,payload)
  else if(entity==='locations')result=await locationCommand(env.DB,person,'location.save',payload)
  else if(entity==='price-books')result=await importPriceBook(env,person,payload)
