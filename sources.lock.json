@@ -203,6 +203,10 @@
       "sha256": "04499892eafc0b5439efa5b5a6b288d20abb23b3884bba4cff7a212c0ad216b6",
       "executable": false
     },
+    "docs/DEPOSITS.md": {
+      "sha256": "14106476a4ec889b8df77ad1fa8595c41e7d0744baba1839056c143fec9303de",
+      "executable": false
+    },
     "docs/FAIRE.md": {
       "sha256": "53401cbbc565878e30063e6d12c72789311b50b5ea20244c97ae281e2647b3c4",
       "executable": false
@@ -1380,7 +1384,7 @@
       "executable": false
     },
     "src/barrow/credit-retention.ts": {
-      "sha256": "b191de0d0997423c11bc1753df0dd653955d404dfa79ba714a419c2c496c18ed",
+      "sha256": "96a1c93445d0e303e492cf9bfeffc98472cb3d53669a30ffda06cfd2adddc938",
       "executable": false
     },
     "src/barrow/currency.ts": {
@@ -1412,7 +1416,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "42ba68f8578d40aee17541749989941ed21e587ad14b7e5560f50e655b223d74",
+      "sha256": "728668fdf884a39e3d525238a15737b5da15e00819a0bcb03835c3dd4c569966",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -1884,7 +1888,7 @@
       "executable": false
     },
     "src/barrow/statements.ts": {
-      "sha256": "a19f488f5a319b356259d7b16ee3fcaaaadd23b04ba07fa00d6d2d75f096fefe",
+      "sha256": "3834b579d1b1de5285a5be1e8da913b76877f5f15503ed2311637114d2ce2001",
       "executable": false
     },
     "src/barrow/stock-sync.ts": {
@@ -4420,7 +4424,7 @@
       "executable": false
     },
     "tests/api/deposits.test.mjs": {
-      "sha256": "8b7d7449ef5e056274bf075fa615b3acf1954b01a5c26772931bc1f0567ca3a2",
+      "sha256": "0a32c7216fa030d8548eb70bce4a192a4bcacccd22d50648cc09feec9524c18f",
       "executable": false
     },
     "tests/api/diagnostics.test.mjs": {
@@ -4560,11 +4564,11 @@
       "executable": false
     },
     "tests/api/retention-fixture.mjs": {
-      "sha256": "4eb24dc265b509d0cd2ad3198ee85a2ff34d3950405a9ae88d8e352bdf0bb664",
+      "sha256": "c92bdceccb3ccca23453c67a6463d425d18ad8337fe02f96f54ac7a898f83fbb",
       "executable": false
     },
     "tests/api/retention.test.mjs": {
-      "sha256": "f263cfa79dd6cbc83826ed6a692b81396166d862d129eada4055a5b772ea50c7",
+      "sha256": "e82c8760f117294e23b145fabef91cbcc7d9a577768500b9ed6b92c386b18b65",
       "executable": false
     },
     "tests/api/sales-report.test.mjs": {
@@ -4729,6 +4733,10 @@
     },
     "tests/journeys/delta-cutover.test.mjs": {
       "sha256": "82f18d71b916246f11a4b93ae5630f7b8ad81abf3a1674de7f7bc3740a12590d",
+      "executable": false
+    },
+    "tests/journeys/deposits.test.mjs": {
+      "sha256": "dd6e72c10f411faddd9c88fa0a1cb4db9074388a378b1ea1b0d70e3267f560f4",
       "executable": false
     },
     "tests/journeys/faire.test.mjs": {

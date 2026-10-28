@@ -51,7 +51,7 @@ test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floo
  let review=await h.api('/api/barrow/retention');
  assert.deepEqual(review.documents.filter(row=>row.eligible).map(row=>row.orderId),['expired-commercial','old']);
  assert.equal(review.documents.find(row=>row.orderId==='commercial').reason,'Commercial evidence: seven-year minimum');
- assert.equal(review.documents.find(row=>row.orderId==='commercial').commercialMinimumUntil,'2031-02-28T12:41:56.789Z');
+ assert.equal(review.documents.find(row=>row.orderId==='commercial').commercialMinimumUntil,'2031-02-28T12:42:56.789Z');
  assert.equal(review.documents.find(row=>row.orderId==='old').commercialMinimumUntil,'2023-02-28T12:34:56.789Z');
  assert.equal(review.documents.find(row=>row.orderId==='fresh').expiresAt,new Date(Date.parse((await h.api('/api/barrow/orders/fresh')).document.uploadedAt)+30*86400000).toISOString());
  const payload=row=>({orderId:row.orderId,sha256:row.sha256,revision:row.revision,policyRevision:policy.revision,confirm:'ERASE',reason:'Owner reviewed expired attachment'});
@@ -111,7 +111,7 @@ test('ordered-account owner erasure revokes access, redacts personal classes, pr
  await verifiedRequest(h,'cedar',true);let preview=await erasurePreview(h),payload=erasurePayload(preview);
  assert.equal(preview.held,true);assert.equal(preview.classes.find(row=>row.kind==='mail event payloads').count,2);assert.equal(preview.classes.find(row=>row.kind==='mail event payloads').action,'remove');assert.ok(preview.classes.every(row=>row.action));assert.ok(preview.items.every(row=>row.reason&&'floorUntil'in row));assert.equal(preview.items.find(row=>row.id==='order:cedar-recent').action,'keep unchanged');
  await h.command('retention.erase-account',payload,{status:409});
- assert.equal(preview.items.find(row=>row.id==='order:cedar-expired').floorUntil,'2031-02-28T12:41:56.789Z');assert.equal(preview.items.find(row=>row.id==='card-event:'+f.card.event.id).floorUntil,'2031-02-28T12:41:56.789Z');
+ assert.equal(preview.items.find(row=>row.id==='order:cedar-expired').floorUntil,'2031-02-28T12:42:56.789Z');assert.equal(preview.items.find(row=>row.id==='card-event:'+f.card.event.id).floorUntil,'2031-02-28T12:42:56.789Z');
  const original=await h.api('/api/barrow/orders/cedar-recent'),originalQuote=await h.db.prepare('SELECT value_json FROM bw_quotes WHERE id=?').bind(f.quotes[1].id).first(),originalCommission=await h.db.prepare('SELECT value_json FROM bw_order_commissions WHERE order_id=?').bind(original.id).first(),originalConfirmation=await h.db.prepare('SELECT value_json FROM bw_confirmations WHERE order_id=?').bind(original.id).first();
  const heldReceipt=await h.command('retention.revoke-access',payload);assert.equal(heldReceipt.mode,'revoke');
  assert.equal((await h.request('/api/barrow/state',f.buyer)).status,401);

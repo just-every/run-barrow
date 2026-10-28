@@ -79,14 +79,17 @@ export async function statement(db: D1Database, actor: Actor, accountId: string,
  return { accountId: selected.id, customer: selected.value.name, lifecycle: selected.value.lifecycle ?? 'active', from: from ?? null, to, dates: 'Inclusive invoice issue, card capture, credit issue and completed refund dates (America/New_York calendar days).', sections, note: cardStatementNote }
 }
 
-const statementRows = (value: Awaited<ReturnType<typeof statement>>) => [['currency', 'kind', 'date', 'due_date', 'invoice_number', 'order', 'customer_reference', 'amount_cents', 'balance_cents', 'payment_id', 'credit_id', 'refund_id', 'source_path','applied_cents','provider_payment_id','allocation_id','unapplied_cents'],
- ...value.sections.flatMap(section => {
-  let balance = section.openingCents
-  return [[section.currency, 'opening', value.from ?? '', '', '', '', '', section.openingCents, balance, '', '', '', '','','','',''],
-   ...section.entries.map(line => [section.currency, line.kind, line.date, line.kind === 'invoice' ? line.dueAt : '', line.kind === 'invoice' ? line.number : '', line.orderId, line.kind === 'invoice' ? line.reference : '', line.amountCents, balance += line.amountCents, line.kind === 'card-allocation'?line.paymentId??'':line.kind === 'card-payment' || line.kind === 'card-surcharge' ? line.id : '', line.kind === 'credit-note' ? line.id : '', line.kind === 'refund' ? line.id : '', line.kind === 'invoice' ? line.invoicePath : line.paymentPath,line.kind==='card-allocation'?line.appliedCents??0:0,line.kind==='invoice'?'':line.providerPaymentId??'',line.kind==='card-allocation'?line.id:'','']),
-   ...(section.unappliedCents||section.entries.some(row=>row.kind==='card-payment')?[[section.currency,'unapplied principal',value.to,'','','','','','','','','','','','',section.unappliedCents]]:[]),
-   [section.currency, 'closing', value.to, '', '', '', '', section.closingCents, section.closingCents, '', '', '', '','','','','']]
+const statementColumns=['currency','kind','date','due_date','invoice_number','order','customer_reference','amount_cents','balance_cents','payment_id','credit_id','refund_id','source_path','applied_cents','provider_payment_id','allocation_id','unapplied_cents']
+const statementRows = (value: Awaited<ReturnType<typeof statement>>) => {
+ const row=(fields:Record<string,string|number|undefined>)=>statementColumns.map(column=>fields[column]??'')
+ return [statementColumns,...value.sections.flatMap(section=>{
+  let balance=section.openingCents
+  return [row({currency:section.currency,kind:'opening',date:value.from??'',amount_cents:balance,balance_cents:balance}),
+   ...section.entries.map(line=>row({currency:section.currency,kind:line.kind,date:line.date,due_date:line.kind==='invoice'?line.dueAt:'',invoice_number:line.kind==='invoice'?line.number:'',order:line.orderId,customer_reference:line.kind==='invoice'?line.reference:'',amount_cents:line.amountCents,balance_cents:balance+=line.amountCents,payment_id:line.kind==='card-allocation'?line.paymentId:line.kind==='card-payment'||line.kind==='card-surcharge'?line.id:'',credit_id:line.kind==='credit-note'?line.id:'',refund_id:line.kind==='refund'?line.id:'',source_path:line.kind==='invoice'?line.invoicePath:line.paymentPath,applied_cents:line.kind==='card-allocation'?line.appliedCents:0,provider_payment_id:line.kind==='invoice'?'':line.providerPaymentId,allocation_id:line.kind==='card-allocation'?line.id:''})),
+   ...(section.unappliedCents||section.entries.some(entry=>entry.kind==='card-payment')?[row({currency:section.currency,kind:'unapplied principal',date:value.to,amount_cents:0,balance_cents:balance,unapplied_cents:section.unappliedCents})]:[]),
+   row({currency:section.currency,kind:'closing',date:value.to,amount_cents:section.closingCents,balance_cents:section.closingCents})]
  })]
+}
 
 export async function statementResponse(db: D1Database, actor: Actor, accountId: string, format: 'json' | 'csv' | 'pdf', query: URLSearchParams) {
  const value = await statement(db, actor, accountId, query)

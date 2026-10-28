@@ -86,5 +86,11 @@ export async function historicalCreditEvents(h,orderId='commercial',accountId='c
  await h.db.prepare('INSERT INTO bw_card_events VALUES(?,?,?,?)').bind('synthetic-barrow-615',allocation.paymentId,'2024-02-29T12:41:56.789Z',JSON.stringify({id:'synthetic-barrow-615',type:'payment_intent.succeeded',state:'captured',amountCents:100,currency:'usd',verifiedAt:'2024-02-29T12:41:56.789Z'})).run();
  const preview=await h.command('retention.preview',{accountId});
  for(const id of [orderId,releaseId])assert.equal(preview.items.find(row=>row.id==='order:'+id).floorUntil,'2031-02-28T12:41:56.789Z');
- return [...rows.map(([table,id])=>({table,id})),{table:'bw_card_allocations',id:allocation.id}];
+ const credit={id:'synthetic-barrow-617',accountId,orderId:releaseId,currency:'USD',amountCents:100,returnId:'synthetic-barrow-618',createdAt:'2024-02-29T12:41:57.789Z',actorId:'synthetic-barrow-607',reason:'Historical release credit',revision:'synthetic-barrow-617',lines:[]};
+ await h.db.prepare('INSERT INTO bw_credit_notes VALUES(?,?,?,?,?,?)').bind(credit.id,accountId,releaseId,credit.returnId,JSON.stringify(credit),credit.revision).run();
+ const refund={id:'synthetic-barrow-616',creditId:credit.id,accountId,orderId:releaseId,paymentId:receipt.id,currency:'USD',amountCents:100,status:'succeeded',createdAt:'2024-02-29T12:41:58.789Z',completedAt:'2024-02-29T12:41:59.789Z',latestFinancialAt:'2024-02-29T12:41:59.789Z',actorId:'synthetic-barrow-607',reason:'Historical deposit refund',revision:'synthetic-barrow-616'};
+ await h.db.prepare('INSERT INTO bw_credit_refunds VALUES(?,?,?,?,?,?)').bind(refund.id,accountId,releaseId,credit.id,JSON.stringify(refund),refund.revision).run();
+ await h.db.prepare('INSERT INTO bw_refund_events VALUES(?,?,?,?)').bind('synthetic-barrow-619',refund.id,'2024-02-29T12:42:56.789Z',JSON.stringify({id:'synthetic-barrow-619',status:'succeeded',verifiedAt:'2024-02-29T12:42:56.789Z'})).run();
+ const refunded=await h.command('retention.preview',{accountId});for(const id of [orderId,releaseId])assert.equal(refunded.items.find(row=>row.id==='order:'+id).floorUntil,'2031-02-28T12:42:56.789Z');
+ return [...rows.map(([table,id])=>({table,id})),{table:'bw_card_allocations',id:allocation.id},{table:'bw_credit_notes',id:credit.id},{table:'bw_credit_refunds',id:refund.id}];
 }
