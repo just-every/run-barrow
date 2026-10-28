@@ -1880,7 +1880,7 @@
       "executable": false
     },
     "src/barrow/return-claims.ts": {
-      "sha256": "c76ec872900dcbe7cb09eb5bbf961f45be12d644339b182f087a5d36e9dbdb1d",
+      "sha256": "421bb2fc9add8e1eb204d8d0c04adca7beb2ddd4841edb602a6ba7ab2cff2a70",
       "executable": false
     },
     "src/barrow/sales-report.ts": {
@@ -4632,7 +4632,7 @@
       "executable": false
     },
     "tests/api/return-claims.test.mjs": {
-      "sha256": "06324ff5d25351cbd8e9d21ffa45f02718084904f85e058fee9722c74c6013e0",
+      "sha256": "327c2b8a203c8bb8359f46891dba4ca802a397d856f38b6db2cd6e2b629085bd",
       "executable": false
     },
     "tests/api/sales-report.test.mjs": {

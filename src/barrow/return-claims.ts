@@ -53,6 +53,7 @@ async function proposal(env: Bindings, order: Order, claim: ReturnClaim, evidenc
  try {
   const previous=[...(await creditRecords(env.DB)).credits],lines=[]
   for(const receipt of claim.receipts) {
+   if(previous.some(note=>(note.kind??'return')==='return'&&note.returnId===receipt.returnId))return null
    const basis=await creditBasis(env,order,{returnId:receipt.returnId,lines:[{line:claim.line,quantity:receipt.quantity}]},previous)
    lines.push({returnId:receipt.returnId,quantity:receipt.quantity,amountCents:basis.amountCents})
    previous.push({orderId:order.id,kind:'return',lines:basis.lines} as any)

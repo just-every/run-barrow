@@ -60,7 +60,7 @@ test('return requests bind partial authorization to current revisions, reconcile
  // Removing one company person erases their narrative while keeping the original commercial linkage.
  const successor=['synthetic-barrow-943','example.test'].join('@');
  await h.command('company.invite',{accountId:'cedar',email:successor,name:'Successor administrator',policy:{rights:['administrator'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Retain an administrator before erasing the requesting person.'});
- const invitation=new URL(h.mail.requests.findLast(row=>row.message.to.includes(successor)).message.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?[^\s<>]+/)[0]);
+ const invitation=new URL(h.mail.requests.findLast(row=>row.message.subject==='Your company buyer invitation'&&row.message.to.includes(successor)).message.text.match(/https?:\/\/[^\s<>]+\/app\?[^\s<>]+/)[0]);
  await h.command('company.accept',{invitationId:invitation.searchParams.get('companyInvitation'),token:invitation.searchParams.get('companyToken')},{as:await h.signIn(successor,'existing')});
  const member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.userId===claim.createdBy);
  await h.command('company.erase',{memberId:member.id,revision:member.revision,confirm:'ERASE',reason:'Erase the return requester’s personal narrative.'});
