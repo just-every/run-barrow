@@ -1,3 +1,4 @@
+import { paymentPromiseRows } from './payment-promises'
 import { usdReporting } from './currency'
 import { readAccountCredit } from './credit-policy'
 import { requireStaffReport } from './staff-policy'
@@ -64,7 +65,8 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
   return order && order.accountId === refund.accountId && order.currency === refund.currency && recorded(refund.createdAt) && recorded(refund.updatedAt)
  }).map(refund => ({ id: refund.id, creditId: refund.creditId, accountId: refund.accountId, orderId: refund.orderId, paymentId: refund.paymentId, providerPaymentId: refund.providerPaymentId, providerRefundId: refund.providerRefundId ?? '', currency: refund.currency, amountCents: refund.amountCents, status: refund.status, createdAt: refund.createdAt, updatedAt: refund.updatedAt, completedAt: refund.completedAt ?? '', latestFinancialAt: refund.latestFinancialAt, path: `/api/barrow/refunds/${refund.id}`, creditPath: `/api/barrow/credits/${refund.creditId}` }))
  const creditAccounts=await Promise.all(accountRows.filter(row=>(!filter.accountId||row.id===filter.accountId)&&(!filter.territory||row.value.territory===filter.territory)&&(!filter.assignedRep||row.value.assignedRep===filter.assignedRep)).map(row=>readAccountCredit(env,actor,row.id)))
- return { creditAccounts, asOf, timeZone, checkedAt: at.toISOString(), filter, rows, totals,
+ const promises = (!actor.staff || actor.staff.role === 'finance') ? (await paymentPromiseRows(env.DB)).filter(p => entitledOrders.has(p.orderId)) : []
+ return { promises, creditAccounts, asOf, timeZone, checkedAt: at.toISOString(), filter, rows, totals,
   deposits: null, failedPayments: null, disputedBalances: null, refundStatus, ledgerReconciliation: null,
   notes: {
    conversion: 'USD conversion uses the frozen, supplier-recorded dated ratio of USD cents to original currency cents, rounded half up once per displayed amount. It is not a live exchange quote; missing historical basis is not recorded. Original amounts remain unchanged.',
@@ -79,7 +81,7 @@ export async function financeReport(env: Bindings, actor: Actor, params: URLSear
 export async function financeCsv(env: Bindings, actor: Actor, params: URLSearchParams) {
  const report = await financeReport(env, actor, params)
  const refundColumns = ['id', 'creditId', 'accountId', 'orderId', 'paymentId', 'providerPaymentId', 'providerRefundId', 'currency', 'amountCents', 'status', 'createdAt', 'updatedAt', 'completedAt', 'latestFinancialAt', 'path', 'creditPath'] as const
- return new Response(csvText([[...financeColumns], ...report.rows.map(row => financeColumns.map(column => row[column])), [], ['current credit exposure'], ['accountId','currency','limitCents','exposureCents','availableCents','openOrdersCents','unpaidInvoicesCents','depositsCents','checkedAt','sources'], ...report.creditAccounts.map(row=>[row.accountId,row.currency,row.limitCents,row.exposureCents,row.availableCents,row.openOrdersCents,row.unpaidInvoicesCents,row.depositsCents,report.checkedAt,JSON.stringify(row.sources)]), [], ['refunds'], [...refundColumns], ...report.refundStatus.map(row => refundColumns.map(column => row[column])), [], ['asOf', report.asOf, 'timeZone', report.timeZone], ...Object.entries(report.notes).map(([name, note]) => [name, note])]), {
+ return new Response(csvText([[...financeColumns], ...report.rows.map(row => financeColumns.map(column => row[column])), [], ['current credit exposure'], ['accountId','currency','limitCents','exposureCents','availableCents','openOrdersCents','unpaidInvoicesCents','depositsCents','checkedAt','sources'], ...report.creditAccounts.map(row=>[row.accountId,row.currency,row.limitCents,row.exposureCents,row.availableCents,row.openOrdersCents,row.unpaidInvoicesCents,row.depositsCents,report.checkedAt,JSON.stringify(row.sources)]), [], ['buyer promises'], ['id','accountId','orderId','invoiceNumber','currency','amountCents','dueDate','timeZone','state','sourceRevision','pause'], ...report.promises.map(p=>[p.id,p.accountId,p.orderId,p.invoiceNumber,p.currency,p.amountCents,p.dueDate,p.timeZone,p.state,p.sourceRevision,JSON.stringify(p.pause??null)]), [], ['refunds'], [...refundColumns], ...report.refundStatus.map(row => refundColumns.map(column => row[column])), [], ['asOf', report.asOf, 'timeZone', report.timeZone], ...Object.entries(report.notes).map(([name, note]) => [name, note])]), {
   headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="barrow-finance-${report.asOf}.csv"`, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' },
  })
 }

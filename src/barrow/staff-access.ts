@@ -17,6 +17,7 @@ export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}
  if(!grant)return true
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
+ if(task.kind==='payment-promise')return grant.role==='finance'
  return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
 }
 async function denied(env:Bindings,actor:Actor,source:string):Promise<never> {
@@ -43,6 +44,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
+ if(method==='GET'&&relative==='payment-promises'&&role==='finance')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
  if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
@@ -62,6 +64,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 }
 
 const commandRoles:Record<string,string[]>={
+ 'promise.record':['finance'],'promise.revise':['finance'],'promise.withdraw':['finance'],'promise.resolve':['finance'],'promise.pause':['finance'],'promise.refresh':['finance'],
  'credit-policy.request':selling,'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
  'credit.issue':['finance'],'credit.apply':['finance'],'card.allocate':['finance'],'refund.request':['finance'],'refund.refresh':['finance'],
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
