@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "d27a41f5dab5ae41d018d3c52ff6e2259e0f1e7150e7993a80308194bc78ecb3",
+      "sha256": "cb54533b3dd80e6a4060f63a9a70b1352a06b895c194fd660dc44f07e159ca89",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ad6eb6310c68bb89dbffe073567d627d5fef66df182fbf94b4d23ef2e6a05784",
+      "sha256": "8c4c64fe901ae0f771dea368de229fd8bf7e24bd2706faec45cd9aa0df34b960",
       "executable": false
     },
     "DEMO.md": {
@@ -172,7 +172,7 @@
       "executable": false
     },
     "docs/AGENTS-API.md": {
-      "sha256": "27fa1c41d805bf2dfda23e3852c2f0b43e3d35be6c36a8d5ab2b227eb3c61d9e",
+      "sha256": "0393352626a8a89d46c97092c09ecae7d4871624dae8393ba2b5775ce96db20c",
       "executable": false
     },
     "docs/BACKUP-RESTORE.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "113e1e2ff7897bb938284c5048e6c0aa0639c8d2817bcbb8ee81ac358694d5c7",
+      "sha256": "1f486c859c627bf08145cd3ff4ea250c868ca2b1583c6665617304163463b9ef",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -1620,7 +1620,7 @@
       "executable": false
     },
     "src/barrow/integration-api.ts": {
-      "sha256": "dc4c19e27f59e85dad41bd4648084c011cd7af78ce7b41b3c9a3c412be2ea508",
+      "sha256": "df21ff54983b998f50320d061b0d8f8766174a02d9dc1402451c4bef19ded971",
       "executable": false
     },
     "src/barrow/integration-grants.ts": {
@@ -1660,7 +1660,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "88194628114ad037e89d0dc82d448c96e82abbab57d34a659102efa67a86d54b",
+      "sha256": "1653adc03d42a4d90527a3c265860661ca2574dea150eef9317f61b74d796071",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -4420,7 +4420,7 @@
       "executable": false
     },
     "tests/api/faire.test.mjs": {
-      "sha256": "e0831aa2ce4432b0904856e023fbe92314baf5e5e48b4649b8302b99681051f4",
+      "sha256": "95c913b61c4c03f1989da8291b4efcc1fef653bfb8ab23c14f9013de7a9d7155",
       "executable": false
     },
     "tests/api/finance-report.test.mjs": {
@@ -4452,7 +4452,7 @@
       "executable": false
     },
     "tests/api/integration-api.test.mjs": {
-      "sha256": "c9cd2df70e725af6d578c030e03625a7f68cb111f4afeb6542b4f7d6bb8763d7",
+      "sha256": "04abdff71cbf3a9782401ad273e57f79fbf831e1e3a063d13b9cd76f52bb254e",
       "executable": false
     },
     "tests/api/line-sheet-fixture.mjs": {
@@ -4588,7 +4588,7 @@
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
-      "sha256": "8669940ea9b1873299a4f6329106d459ae2996edd3f5708686041bdc0f3d6bc1",
+      "sha256": "ada4e9da839e73fa74b5e2cc185ecd7c5499b4fae484f59571971cfde2e616c6",
       "executable": false
     },
     "tests/api/stock-sync-fixture.mjs": {

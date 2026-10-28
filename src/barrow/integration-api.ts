@@ -64,7 +64,7 @@ async function prepare(request:Request,env:Bindings,actor:Actor) {
  for(const key of ['profileId','billToId','shipToId','replaces'])if(p[key]!==undefined)integrationId(p[key],key)
  await requireUsageTerms(env,actor,accountId)
  await staffCommandGate(env,actor,'order.prepare',p)
- return json({version:1,result:await orderCommand(env,actor,'order.prepare',p)})
+ return json({version:1,result:await orderCommand(env,actor,'order.prepare',p,{accountRevision:p.accountRevision,currency:p.currency})})
 }
 /** Native exchange keeps the canonical door's current rights and validation. */
 export async function integrationResponse(request:Request,env:Bindings,actor:Actor,forward:(request:Request)=>Promise<Response|null>) {
@@ -125,7 +125,11 @@ export async function integrationResponse(request:Request,env:Bindings,actor:Act
  } else if(resource==='fulfillment') {
   const report=await fulfillmentReport(env,actor,new URLSearchParams({accountId}))
   if(report.status!=='read'||report.exceptions.length)fail('SOURCE_UNAVAILABLE','Current source-confirmed fulfillment is unavailable; no quantities are inferred.',503)
-  rows=report.lines.map(line=>({...line,id:line.orderId+':'+line.sku,source:report.source}))
+  rows=[
+   ...report.lines.map(line=>({...line,id:line.orderId+':'+line.sku,kind:'source-line',source:report.source})),
+   ...report.channelLines.map(line=>({...line,id:JSON.stringify(['channel',line.source,line.brand,line.orderId,line.lineId]),kind:'channel-line'})),
+   ...report.prebooks.map(line=>({...line,id:JSON.stringify(['commitment',line.orderId,line.windowId,line.sku]),kind:'commitment',source:'Barrow commitment',shipped:'unknown',warehouse:'unknown',delivery:'unknown'})),
+  ]
  }
  // A credential can expire or be revoked while a source read is in flight.
  if(actor.integration) {
