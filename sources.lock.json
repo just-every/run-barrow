@@ -312,7 +312,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "bd62c65f2af075652c650e20712ed3ea0c091b1e670dc19f336ce4beb8642b7d",
+      "sha256": "58d270f2b6bde93e6eeee1648ec96b484792c88295d1d51c1d9469fb0b0c57e8",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -1468,7 +1468,7 @@
       "executable": false
     },
     "src/barrow/followups.ts": {
-      "sha256": "581adb5d44d353d7fd6402d8652bf8a97b2eec7c7b19a828d65aba59fc046080",
+      "sha256": "e2407d323b135ede2e7053c50b9dd9b0976826d419e881a8aa093fc4e6e78992",
       "executable": false
     },
     "src/barrow/freshness.ts": {
@@ -1668,7 +1668,7 @@
       "executable": false
     },
     "src/barrow/payment-promises.ts": {
-      "sha256": "f7061c4340ae97740bf68dbd2148f8e5de683276bb660e564897a3433a0867b7",
+      "sha256": "a2b95bc394ad96257ebae99bfae1f3577e3102ecfa3b31470fff77734cf4073b",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -2112,7 +2112,7 @@
       "executable": false
     },
     "src/barrow/ui/followups.tsx": {
-      "sha256": "f680d0dfeb6e74a76388660398b06c205db1598fb19cd317cbfa0f8732d98d0f",
+      "sha256": "be3d1c60776a9eecbb53b0301a454de5cd00e745078e0ad540bd8d85f85a1e9a",
       "executable": false
     },
     "src/barrow/ui/freshness.tsx": {
@@ -2168,7 +2168,7 @@
       "executable": false
     },
     "src/barrow/ui/payment-promises.tsx": {
-      "sha256": "2e0ca8bcee459e9063dfd724e9d9dadf5ae54e0d7b308a2fdd60eeef04567f5b",
+      "sha256": "72862c975143fd7ab7ababe473481fea43235e719eb127b6733132b91c59ccc6",
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {
@@ -4512,7 +4512,7 @@
       "executable": false
     },
     "tests/api/payment-promises.test.mjs": {
-      "sha256": "79b7425e28cd70deea6df5e33528b30ecb312913a6dfe9953cdd0f2492ed0762",
+      "sha256": "012d20d97c77f4b1b9263a3a06f82f2718c6b3420e8b82666c4cc328cb6f5114",
       "executable": false
     },
     "tests/api/prebook-fixture.mjs": {
@@ -4768,7 +4768,7 @@
       "executable": false
     },
     "tests/journeys/payment-promises.test.mjs": {
-      "sha256": "d15599b803eb293520047434003faca7bdc4e8275f1a6172eb27043e54ae6623",
+      "sha256": "aefa944dd3136d015cfe6fd85d2c9fc58a6723bcb413f61962937eea0a13f62a",
       "executable": false
     },
     "tests/journeys/pricing.test.mjs": {

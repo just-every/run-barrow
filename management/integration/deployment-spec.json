@@ -382,6 +382,12 @@
       "name": "0059_faire_reconciliation.sql",
       "sha256": "ef45deceb61b3396c7ed49febe21147c6a1b7a10479f64a4516f96d6c84a8fee",
       "sql": "ALTER TABLE bw_faire_sync ADD COLUMN completed_at TEXT;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0060_payment_promises.sql",
+      "sha256": "0af5a8913788a329706bc4a6f872013823065fb2f59ee89e48a91f3a83e20b17",
+      "sql": "CREATE TABLE bw_payment_promises (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL UNIQUE,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_payment_promises_account ON bw_payment_promises(account_id);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
