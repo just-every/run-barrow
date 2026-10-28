@@ -158,3 +158,6 @@
  .br-pad-foot .br-hand{font-size:17px;padding-bottom:3px}
  .br-pad-terms{border-left:0;padding-left:0}
 }
+
+/* Validation remains unobscured by the running total while the buyer corrects the cart. */
+.br-pad-has-errors .br-pad-foot,.br-pad-has-errors .br-pad-ref{position:static}
