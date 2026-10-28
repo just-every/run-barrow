@@ -85,6 +85,23 @@ test('campaign sends resolve thirty accounts, preserve private prices and normal
  const ordinary=await h.command('order.prepare',{accountId:'wren',reference:'synthetic-barrow-ordinary',lines:[{sku:f.skus[0],quantity:1}]},f.buyers.wren);await h.command('order.submit',{orderId:ordinary.id,revision:ordinary.revision},f.buyers.wren);
  delivered=await h.api('/api/barrow/campaigns/'+c.id);assert.deepEqual(delivered.counts,{delivered:28,accepted:0,bounced:0,suppressed:1,opened:2,viewed:2,ordered:2});assert.equal(delivered.orderValue.USD,7512);
  const report=await h.api('/api/barrow/reports/quotes?from=2026-10-01&to=2026-10-31'),row=report.campaigns.find(r=>r.id===c.id);assert.deepEqual([row.delivered,row.opened,row.viewed,row.ordered,row.orderValueCents],[28,2,2,2,7512]);
+ // Temporal fixture: the completed campaign and its orders belong to an earlier reporting day.
+ const earlier='2026-10-01T12:00:00.000Z';
+ await h.db.prepare('UPDATE bw_campaign_deliveries SET first_attempt_at=CASE WHEN first_attempt_at IS NULL THEN NULL ELSE ? END,updated_at=? WHERE campaign_id=?').bind(earlier,earlier,c.id).run();
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.preparedAt',?) WHERE json_extract(value_json,'$.campaign.id')=?").bind(earlier,c.id).run();
+ const historical=async()=>(await h.api('/api/barrow/reports/quotes?from=2026-10-01&to=2026-10-01')).campaigns.find(r=>r.id===c.id);
+ const original=await historical();assert.deepEqual([original.delivered,original.opened,original.viewed,original.ordered,original.orderValueCents],[28,2,2,2,7512]);
+ const later=await h.command('campaign.save',{name:'Later campaign',subject:'Synthetic later receipt',message:'Review your current suggestions.',source:{kind:'sheet',id:f.sheet.id},filters:{accountIds:['wren']}}),laterSend=await f.send(later),laterRecipient=laterSend.deliveries[0];
+ // A late receipt belongs to this send's day, not the later provider event day.
+ await h.db.prepare('UPDATE bw_campaign_deliveries SET first_attempt_at=?,updated_at=? WHERE id=?').bind(earlier,earlier,laterRecipient.id).run();
+ const receiptTime=Date.now();assert.equal((await f.webhook(laterRecipient,'email.delivered',true,'synthetic-barrow-later',receiptTime)).status,200);
+ assert.deepEqual(await historical(),original);
+ const lateRow=(await h.api('/api/barrow/reports/quotes?from=2026-10-01&to=2026-10-01')).campaigns.find(r=>r.id===later.id);assert.equal(lateRow.delivered,1);
+ assert.ok(!(await h.api('/api/barrow/reports/quotes?from=2026-10-28&to=2026-10-31')).campaigns.some(r=>r.id===later.id));
+ const stamps=async()=>(await h.db.prepare('SELECT id,updated_at FROM bw_campaign_deliveries ORDER BY id').all()).results,beforeReplay=await stamps();
+ assert.equal((await f.webhook(laterRecipient,'email.delivered',true,'synthetic-barrow-later',receiptTime)).status,200);
+ assert.equal((await f.webhook(recipients[0],'email.delivered',true,'synthetic-barrow-newer-delivered',receiptTime+1)).status,200);
+ assert.deepEqual(await stamps(),beforeReplay);assert.deepEqual(await historical(),original);
  const resend=await f.send();assert.equal(f.campaignMail().length,28);assert.equal(resend.counts.delivered,28);
  await h.command('campaign.send',{id:c.id,revision:c.revision},{...f.buyers.wren,status:403});
  const grant=await h.api('/api/barrow/agent-token',{});await h.command('campaign.send',{id:c.id,revision:c.revision},{headers:{authorization:'Bearer '+grant.token},status:403});

@@ -1220,7 +1220,7 @@
       "executable": false
     },
     "src/barrow/campaign-mail-events.ts": {
-      "sha256": "a3bcdcac9b4fcb62f48d9dd02244be26e47cccc09f0a799918413767541259ca",
+      "sha256": "dfe53e4932e29c1035ce575e032dc64e48e7167f34da41f31fe28307d182717a",
       "executable": false
     },
     "src/barrow/campaigns.ts": {
@@ -1780,7 +1780,7 @@
       "executable": false
     },
     "src/barrow/quote-report.ts": {
-      "sha256": "f20d21d46c3b6c54fc9a31ff9747300ec152d40e3d56b918d808f716ce6c2cb1",
+      "sha256": "5d1fdc3accd013996fb2e75eb276d5dc217151d44897398ae9ac842f1e64d0ef",
       "executable": false
     },
     "src/barrow/quote-routing.ts": {
@@ -4372,7 +4372,7 @@
       "executable": false
     },
     "tests/api/campaign-fixture.mjs": {
-      "sha256": "c2cc2c3c97445fa5617f8c3acc2822b08448378a1d1eb6d0e6063a8a222af27a",
+      "sha256": "027a3be16960696d096ed3ed443f33c132e3f416ad94bfbcb0241c24b66de3d4",
       "executable": false
     },
     "tests/api/card-fixture.mjs": {
@@ -4476,7 +4476,7 @@
       "executable": false
     },
     "tests/api/line-sheets.test.mjs": {
-      "sha256": "19e418c8a72434324b12d51328f343f890959560cdbd92e31e998a328ba69f79",
+      "sha256": "56bd93a8c2496b25600f2aebe0d4e315afa72dce8cc7c0542249336b244167fa",
       "executable": false
     },
     "tests/api/locations.test.mjs": {

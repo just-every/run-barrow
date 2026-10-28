@@ -28,9 +28,8 @@ export async function campaignFixture(t,options={}){
  // Seed a real signed suppression at the same network boundary used by campaigns below.
  const segment=await h.command('segment.save',{name:'Spring wholesale accounts',filters:{channel:'Spring',tag:'spring'}});
  const draft=await h.command('campaign.save',{name:'Spring campaign',subject:'Your spring assortment',message:'Review your account prices and adjust the suggested quantities.',source:{kind:'sheet',id:f.sheet.id},segmentId:segment.id,lines:[{sku:f.skus[0],quantity:2}],attachPdf:true});
- async function webhook(d,type='email.delivered',valid=true,eventId='synthetic-barrow-event-'+d.id){
+ async function webhook(d,type='email.delivered',valid=true,eventId='synthetic-barrow-event-'+d.id,eventTime=options.built?Date.parse(campaignClock):Date.now()){
   const person=await h.db.prepare('SELECT email FROM oa_operators WHERE id=?').bind(d.recipient_id).first();
-  const eventTime=options.built?Date.parse(campaignClock):Date.now();
   const stamp=String(Math.floor(eventTime/1000)),body=JSON.stringify({type,created_at:new Date(eventTime-1000).toISOString(),data:{email_id:d.provider_message_id,to:[person.email]}}),signature=createHmac('sha256',key).update(`${eventId}.${stamp}.${body}`).digest('base64');
   return h.raw('/api/barrow/campaign-mail/webhook',{method:'POST',headers:{'svix-id':eventId,'svix-timestamp':stamp,'svix-signature':'v1,'+(valid?signature:'invalid')},body});
  }

@@ -18,8 +18,10 @@ export async function campaignMailWebhook(request:Request,env:Bindings){
   }})
   const outcomes=await intake.ingestWebhook({rawBody,headers:request.headers})
   await recordWebhookIntake(env,'campaigns',Date.parse(JSON.parse(new TextDecoder().decode(rawBody)).created_at),outcomes)
-  const rows=(await env.DB.prepare(`SELECT d.id,e.status,e.event_id FROM bw_campaign_deliveries d JOIN oa_operators p ON p.id=d.recipient_id JOIN rer_mail_event_states e ON e.provider='resend' AND e.tenant_id=? AND e.event_namespace='campaigns' AND e.provider_message_id=d.provider_message_id AND e.recipient=p.email`).bind(env.MAIL_EVENT_TENANT).all<any>()).results
-  for(const row of rows)if(['delivered','bounced','complained','rejected','failed'].includes(row.status))await env.DB.prepare('UPDATE bw_campaign_deliveries SET status=?,reason=?,updated_at=? WHERE id=?').bind(row.status,'Verified provider event '+row.event_id,new Date().toISOString(),row.id).run()
+  // Reconcile only this verified receipt, including a replay after an interrupted projection.
+  const eventIds=outcomes.map((outcome:any)=>outcome.eventId)
+  const rows=(await env.DB.prepare(`SELECT d.id,e.status,e.event_id,e.occurred_at FROM bw_campaign_deliveries d JOIN oa_operators p ON p.id=d.recipient_id JOIN rer_mail_event_states e ON e.provider='resend' AND e.tenant_id=? AND e.event_namespace='campaigns' AND e.provider_message_id=d.provider_message_id AND e.recipient=p.email WHERE e.event_id IN (SELECT value FROM json_each(?))`).bind(env.MAIL_EVENT_TENANT,JSON.stringify(eventIds)).all<any>()).results
+  for(const row of rows)if(['delivered','bounced','complained','rejected','failed'].includes(row.status))await env.DB.prepare('UPDATE bw_campaign_deliveries SET status=?,reason=?,updated_at=? WHERE id=? AND status<>?').bind(row.status,'Verified provider event '+row.event_id,new Date(row.occurred_at).toISOString(),row.id,row.status).run()
   return Response.json({recorded:true})
  }catch{return Response.json({error:'Campaign delivery event refused.'},{status:400})}
 }
