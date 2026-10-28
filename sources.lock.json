@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "62abf341ca861956f0e862d484991a3bf2569a590982a4f38c1ea0bc918ff90c",
+      "sha256": "6c8f175d264911b90bf720f049ff14ce87af2eb5a794732d07bd5a38c181b0e2",
       "executable": false
     },
     ".gitignore": {
@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "7c1cb0ab2719fa74c600e7e75ebdbdd276f05e7109638a482aa8bee1eaa58cff",
+      "sha256": "52e1c252af2ff79341e91cb89487eb09457e593f3c42efb41c602f83b7216893",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "6910187e8a903b8201bcb047e43241e3416db0494a8a347f2699455e8e371092",
+      "sha256": "ab8983ba8dba9b00dd66ab26828477843c915dad9578d9a9faa34c783f4cfd24",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "1ab47a013d4a04028ab4fe6e9dee2fb94c16cc04a0aff851fbdad87cba7536df",
+      "sha256": "7a3d7a113f8558ef36eaac1afb7c09335079ed521fa492f277b412b476268771",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -1252,7 +1252,7 @@
       "executable": false
     },
     "src/barrow/campaigns.ts": {
-      "sha256": "fa8c65ad3a2e0790cfb884e9bdbf259422bbf4dd9663d147993521ff532cb2db",
+      "sha256": "4542d198d955da8abe7068b74bed95faa3d9e0f1fc1271b7e9ce59aaa08200f7",
       "executable": false
     },
     "src/barrow/card-customer.ts": {
@@ -1696,7 +1696,7 @@
       "executable": false
     },
     "src/barrow/line-sheets.ts": {
-      "sha256": "31f850b93953aaaf3472e7c072daf7d76390cc29722429d686c4d24b1f186462",
+      "sha256": "6b7a6b8ee40f8c8155c220b474f6f952fff7741b6f9adc1c2b41e049d6a9d82e",
       "executable": false
     },
     "src/barrow/lists.ts": {
@@ -2016,7 +2016,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "1256660a97a94edea140e9295cc78e50dacc3bc64f0e9c9e6089c436ce02949a",
+      "sha256": "69a7ea4c30c5879c6b49ba88ada1e0d268c1955f300e3dd2d5e8320823d28322",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -2056,7 +2056,7 @@
       "executable": false
     },
     "src/barrow/ui/campaigns.tsx": {
-      "sha256": "39e7da5b83ce6c14040dbb011adad86fa480629cc8eceaec58ab14bdde414e51",
+      "sha256": "ad303d225e199216175640f5366000a60cc07eb8ff65131401ca10f9449eb343",
       "executable": false
     },
     "src/barrow/ui/cancel-order.tsx": {
@@ -2200,7 +2200,7 @@
       "executable": false
     },
     "src/barrow/ui/line-sheets.tsx": {
-      "sha256": "1430a5c363eb8140bbc3e1fc717786e4524d862d0f5b8af9a18d3525489ae13c",
+      "sha256": "bfed96d95e904f8efdbd793b3e87675de35066d39778e0be7bb29daf1639678c",
       "executable": false
     },
     "src/barrow/ui/locations.tsx": {
@@ -4448,7 +4448,7 @@
       "executable": false
     },
     "tests/api/campaign-fixture.mjs": {
-      "sha256": "90f70885ee2fcaf569dc9d20267c7b627b262efe829376b4abaaf0cd28f2ef1d",
+      "sha256": "c2cc2c3c97445fa5617f8c3acc2822b08448378a1d1eb6d0e6063a8a222af27a",
       "executable": false
     },
     "tests/api/card-fixture.mjs": {
@@ -4560,7 +4560,7 @@
       "executable": false
     },
     "tests/api/line-sheets.test.mjs": {
-      "sha256": "e944b4f83af04f380f5e730d012455fe2c0edb91700538665c19415069a6ac8b",
+      "sha256": "a80473a3395ce2e3571a3bd9fb511cd94192eaf97228c845222beecdbc841eae",
       "executable": false
     },
     "tests/api/locations.test.mjs": {
@@ -4756,7 +4756,7 @@
       "executable": false
     },
     "tests/api/worker.ts": {
-      "sha256": "132865b60690db1c307946374542bd5287bf976e305055e6faecdd057c3c28e2",
+      "sha256": "8096181c6b1be4059b0e509b538d9e803e94dc82768ee5068d4e98c12937c437",
       "executable": false
     },
     "tests/fixtures/catalog-search.mjs": {
@@ -4860,7 +4860,7 @@
       "executable": false
     },
     "tests/journeys/line-sheets.test.mjs": {
-      "sha256": "2369d7727c0c1ab613778283202fce89d4c5f0b8f0b797b217a63a01dd3b39a9",
+      "sha256": "ea015856a664e23e28bf420996e02bac75cbd9b14ba854f5cbd41cc4bd88ed26",
       "executable": false
     },
     "tests/journeys/move-nuorder-companies.test.mjs": {
