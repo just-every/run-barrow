@@ -2020,7 +2020,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "3fba6b7fe2ed253ca1f5f2ca92716ef60d7564c5c058027bece1f54916d433a9",
+      "sha256": "3b824f419a11fbf011908b515a5de06af21ffe38977129915c9998b3178196ea",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
