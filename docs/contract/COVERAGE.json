@@ -227,6 +227,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-1"
+          ]
         }
       ]
     },
@@ -242,6 +248,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-2"
+          ]
         }
       ]
     },
@@ -266,6 +278,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-2"
+          ]
         }
       ]
     },
@@ -311,6 +329,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-3"
+          ]
         }
       ]
     },
@@ -335,6 +359,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-3"
+          ]
         }
       ]
     },
@@ -635,6 +665,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-4"
+          ]
         }
       ]
     },
@@ -665,6 +701,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-5"
+          ]
         }
       ]
     },
@@ -862,6 +904,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-10"
+          ]
         }
       ]
     },
@@ -1216,6 +1264,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-6"
+          ]
         }
       ]
     },
@@ -1887,6 +1941,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-9"
+          ]
         }
       ]
     },
@@ -2091,6 +2151,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-7"
+          ]
         }
       ]
     },
@@ -2166,6 +2232,12 @@
         {
           "to": "docs",
           "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-8"
+          ]
         }
       ]
     },
