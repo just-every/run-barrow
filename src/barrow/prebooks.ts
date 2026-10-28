@@ -4,11 +4,11 @@ import { account } from './accounts'
 import { requireActiveAccount, activeAccountGuard } from './account-profile'
 import { now } from './clock'
 import { fail, integer, requirePerson, supplierDate, text, type Account, type Actor, type Line, type Order } from './model'
-import { catalogue, decimal, pierOrigin } from './pier'
+import { catalogue, decimal, pierOrigin, pierState } from './pier'
 
-export type Season = { id:string; name:string; opensAt:string; closesAt:string; minimumCents:number; depositBps:number; state:'published'|'closed'; windows:{id:string;name:string;shipDate:string;cancelAfter:string}[]; revision:string }
+export type Season = { id:string; name:string; opensAt:string; closesAt:string; minimumCents:number; currency:'USD'|'CAD'|'EUR'|'GBP'; depositBps:number; state:'published'|'closed'; windows:{id:string;name:string;shipDate:string;cancelAfter:string}[]; revision:string }
 export type Prebook = { season:Season; depositCents:number; currency:string; observedAt:string; supply:{sku:string;date:string|null;quantity:string;warehouse:string|null;sourceId:string}[]; windows:{id:string;lineIndexes:number[];releaseId?:string;estimatedDate?:string;reason?:string;history:{at:string;by:string;from:string;to:string;reason:string}[]}[]; restored?:boolean }
-export type PrebookRelease = { orderId:string; windowId:string; seasonId:string }
+export type PrebookRelease = { orderId:string; windowId:string; seasonId:string; restored?:boolean }
 const key='prebook-seasons'
 export async function seasons(db:D1Database) {
  const row=await db.prepare('SELECT value_json,revision FROM bw_settings WHERE key=?').bind(key).first<{value_json:string;revision:string}>()
@@ -28,12 +28,13 @@ export async function seasonCommand(env:Bindings,actor:Actor,type:string,p:any) 
  } else {
   if(previous)fail('SEASON_IMMUTABLE','Published seasons keep their terms and dates. Publish a new season instead.')
   const instant=(v:unknown)=>{if(typeof v!=='string'||!/(Z|[+-]\d{2}:\d{2})$/.test(v)||!Number.isFinite(Date.parse(v)))fail('INPUT','Use opening and closing instants with a timezone.',400);return new Date(v).toISOString()}
+  if(p.currency!==undefined&&!['USD','CAD','EUR','GBP'].includes(p.currency))fail('INPUT','Choose a supported ISO currency.',400)
   const opensAt=instant(p.opensAt),closesAt=instant(p.closesAt)
   if(opensAt>=closesAt)fail('INPUT','Season closing must follow opening.',400)
   if(!Array.isArray(p.windows)||p.windows.length<1||p.windows.length>8)fail('INPUT','Publish one to eight ship windows.',400)
   const windows:Season['windows']=p.windows.map((w:any)=>({id:text(w.id,'Window ID',80),name:text(w.name,'Window name',100),shipDate:date(w.shipDate),cancelAfter:date(w.cancelAfter)}))
   if(new Set(windows.map(w=>w.id)).size!==windows.length||windows.some(w=>w.cancelAfter<w.shipDate||w.shipDate<supplierDate(new Date(closesAt))))fail('INPUT','Use distinct windows after season closing with cancel dates on or after shipping.',400)
-  value={id,name:text(p.name,'Season name',100),opensAt,closesAt,minimumCents:integer(p.minimumCents,'Season minimum cents'),depositBps:integer(p.depositBps,'Deposit basis points',0,10000),windows,state:'published',revision:crypto.randomUUID()}
+  value={id,currency:p.currency??'USD',name:text(p.name,'Season name',100),opensAt,closesAt,minimumCents:integer(p.minimumCents,'Season minimum cents'),depositBps:integer(p.depositBps,'Deposit basis points',0,10000),windows,state:'published',revision:crypto.randomUUID()}
  }
  const revision=crypto.randomUUID(),next=[...current.seasons.filter(row=>row.id!==id),value]
  await commit(env.DB,actor,[env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key=?),'')=? THEN 1 ELSE 0 END").bind(key,current.revision??''),env.DB.prepare('INSERT INTO bw_settings VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision').bind(key,JSON.stringify(next),revision),audit(env.DB,actor,id,type,{revision,source:type,reason})])
@@ -77,6 +78,7 @@ export async function prebookCapacity(env:Bindings,selected:Account,lines:Line[]
 export async function preparePrebook(env:Bindings,selected:Account,input:any,lines:Line[],totalCents:number):Promise<Prebook|undefined> {
  if(!input)return
  const season=await publishedSeason(env.DB,text(input.seasonId,'Season'))
+ if((selected.buyingProfile?.currency??selected.value.currency??'USD')!==season.currency)fail('PREBOOK_CURRENCY','Choose a season in this buying profile currency; amounts are never relabeled.')
  if(totalCents<season.minimumCents)fail('MINIMUM','The prebook does not meet the published season minimum.')
  const windows:Prebook['windows']=[]
  for(let index=0;index<lines.length;index++) {
@@ -118,6 +120,8 @@ export async function prebookWindowCommand(env:Bindings,actor:Actor,type:string,
   if(estimatedDate===prior)fail('UNCHANGED','Choose a changed promise estimate.')
   window.estimatedDate=estimatedDate;window.reason=reason;window.history.push({at:at.toISOString(),by:actor.id,from:prior,to:estimatedDate,reason})
  } else {
+  const season=(await seasons(env.DB)).seasons.find(row=>row.id===order.prebook!.season.id)
+  if(season?.state!=='closed'&&at.toISOString()<(season?.closesAt??order.prebook.season.closesAt))fail('SEASON_OPEN','Close season intake before releasing its commitments.')
   if(supplierDate(at)<(window.estimatedDate??terms.shipDate)||supplierDate(at)>terms.cancelAfter)fail('PREBOOK_DATE','Release this window on its promised date through the agreed cancel date.')
   if(order.prebook.depositCents>0) {
    const payment=await env.DB.prepare("SELECT value_json FROM bw_card_payments WHERE order_id=?").bind(order.id).first<{value_json:string}>(),value=payment?JSON.parse(payment.value_json):null
@@ -132,9 +136,19 @@ export async function prebookWindowCommand(env:Bindings,actor:Actor,type:string,
  await commit(env.DB,actor,[...epoch,activeAccountGuard(env.DB,selected),env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(order),order.revision,order.id,previous),changed(env.DB),audit(env.DB,actor,order.id,type,{accountId:order.accountId,orderId:order.id,revision:order.revision,source:type,reason})])
  return {order,releaseId:window.releaseId}
 }
-export function prebookRows(order:Order) {
- return order.prebook?.windows.flatMap(window=>window.lineIndexes.map(index=>{
-  const line=order.lines[index],terms=order.prebook!.season.windows.find(row=>row.id===window.id)!,committed=line.baseQuantity??String(line.quantity)
-  return {orderId:order.id,accountId:order.accountId,season:order.prebook!.season.name,windowId:window.id,window:terms.name,sku:line.sku,unit:line.baseUnit??line.unit,committed,released:window.releaseId?committed:'0',outstanding:window.releaseId?'0':committed,releaseId:window.releaseId??null,shipDate:terms.shipDate,cancelAfter:terms.cancelAfter,estimatedDate:window.estimatedDate??terms.shipDate,backordered:Boolean(window.estimatedDate),history:window.history}
- }))??[]
+export async function prebookCommission(db:D1Database,order:Order) {
+ const row=await db.prepare('SELECT c.value_json AS commission,o.value_json AS original FROM bw_order_commissions c JOIN bw_orders o ON o.id=c.order_id WHERE c.order_id=?').bind(order.prebookRelease!.orderId).first<{commission:string;original:string}>()
+ if(!row)fail('PREBOOK_ATTRIBUTION','The original commitment attribution is unavailable.')
+ const snapshot=JSON.parse(row.commission) as import('./commission-rules').CommissionSnapshot,original=JSON.parse(row.original) as Order
+ const window=original.prebook?.windows.find(window=>window.id===order.prebookRelease!.windowId&&window.releaseId===order.id)
+ if(!window)fail('PREBOOK_ATTRIBUTION','The original release link is unavailable.')
+ return {snapshot:{...snapshot,lines:window.lineIndexes.map((index,line)=>({...snapshot.lines[index],line:line+1}))},guard:db.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN value_json=? THEN 1 ELSE 0 END FROM bw_order_commissions WHERE order_id=?').bind(row.commission,original.id)}
+}
+/** The existing native handoff uses Pier manual routing. Refuse a broader route than this account permits. */
+export async function prebookWarehouseAdmission(env:Bindings,selected:Account) {
+ const allowed=selected.value.warehouses
+ if(!allowed?.length)return
+ const state=await pierState(env),rule=(state.routingRules??[]).filter((row:any)=>row.source==='manual'&&row.activeAt).sort((a:any,b:any)=>b.revision-a.revision)[0]
+ const possible:string[]=rule?[...(rule.eligible??[]),...(rule.defaultEligible??[]),...(rule.zones??[]).flatMap((zone:any)=>zone.eligible??[]),...Object.values(rule.locations??{}).flatMap(value=>value as string[])]:[]
+ if(!possible.length||possible.some(warehouse=>!allowed.includes(warehouse)))fail('PREBOOK_WAREHOUSE','Pier manual routing must stay inside this account’s permitted warehouses before releasing stock. Review its native routing rule.')
 }

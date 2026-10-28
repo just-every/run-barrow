@@ -344,3 +344,27 @@ test('explicit foreign currency books preserve exact cents in every commercial d
  const plain=await h.command('order.prepare',{accountId:a.id,reference:'No inferred conversion',lines:[{sku:'OAT-1',quantity:1}]},buyer);await h.command('order.submit',{orderId:plain.id},buyer);await h.command('order.approve',{orderId:plain.id});assert.equal((await h.api('/api/barrow/reports/finance?asOf=2030-01-31')).rows.find(r=>r.orderId===plain.id).usdCents,null);
  await h.command('account.save',{id:a.id,revision:noBasis.revision,value:{...noBasis.value,usdConversion:{...basis,denominator:0}}},{status:409});
 });
+
+test('seasonal brand profile requires current approval and keeps the exact CAD seller, deposit and linked invoice without mixing currencies',async t=>{
+ const {prebookFixture}=await import('./prebook-fixture.mjs');
+ const f=await prebookFixture(t),{h,pier,product,po,buyer,account,publication,input}=f;
+ const brand=await h.command('brand.save',{id:'synthetic-barrow-710',revision:null,value:{name:'Canadian seasonal seller',seller:{legalName:'Synthetic Barrow Canada Inc.',address:'20 Bay Street, Toronto, ON'},currency:'CAD'}});
+ const profile=await h.command('profile.save',{id:'synthetic-barrow-711',revision:null,accountId:account.id,value:{brandId:brand.id,name:'Canadian seasonal buying',minimumCents:0,termsDays:14,prices:[{sku:'OAT-1',unitCents:8303,minQty:1},{sku:'RYE-1',unitCents:3400,minQty:1}]}});
+ await h.command('prebook.publish',{...publication,id:'spring-cad',name:'Spring Canada',currency:'CAD',revision:null});
+ const request={...input,profileId:profile.id,currency:'USD',totalCents:1,prebook:{seasonId:'spring-cad',windowIds:['first','second']}};
+ await h.command('order.prepare',request,{...buyer,status:404});
+ const buyerId=(await h.api('/api/barrow/state',undefined,buyer)).actor.id;
+ await h.command('profile.grant',{profileId:profile.id,userId:buyerId,approved:true,reason:'Supplier approved this exact company purchaser for the Canadian seller.'});
+ const draft=await h.command('order.prepare',request,buyer);assert.equal(draft.currency,'CAD');assert.equal(draft.totalCents,86824);assert.equal(draft.prebook.depositCents,26048);assert.equal(draft.buyingProfile.brandId,brand.id);assert.equal(draft.buyingProfile.seller.legalName,'Synthetic Barrow Canada Inc.');
+ await h.command('order.prepare',{...request,lines:[{sku:'OAT-1',quantity:8,brandId:'synthetic-barrow-foreign'},{sku:'RYE-1',quantity:6}]},{...buyer,status:409});
+ await h.command('order.submit',{orderId:draft.id},buyer);const order=await h.command('order.approve',{orderId:draft.id});
+ const payment=await f.deposit(order);assert.equal(payment.currency,'CAD');assert.equal(payment.amountCents,26048);assert.equal(payment.surchargeCents,0);
+ await h.command('prebook.close',{id:'spring-cad',revision:(await h.api('/api/barrow/prebook-seasons')).revision,reason:'Canadian intake finished.'});
+ await pier.command('receipt.create',{poId:po.id,supplierReference:'Canadian release source stock',lines:[{poLineId:po.lines[0].id,locationId:product.location.id,quantity:'12',cost:'20.00'}]});
+ const release=await h.command('prebook.release',{orderId:order.id,windowId:'first',revision:order.revision,reason:'Release first Canadian commitment.'});
+ const child=await h.command('order.approve',{orderId:release.releaseId});assert.equal(child.currency,'CAD');assert.equal(child.totalCents,66424);assert.deepEqual(child.buyingProfile,order.buyingProfile);
+ const csv=await (await h.request('/api/barrow/invoices/'+child.id+'.csv',buyer)).text();assert.ok(csv.includes('CAD'));assert.ok(csv.includes('66424'));assert.ok(csv.includes('Synthetic Barrow Canada Inc.'));
+ const report=await h.api('/api/barrow/reports/sales?from=2027-01-01&to=2027-12-31');assert.equal(report.totals.length,1);assert.equal(report.totals[0].currency,'CAD');assert.equal(report.totals[0].bookedCents,86824);assert.equal(report.totals[0].invoicedCents,66424);
+ await h.command('profile.grant',{profileId:profile.id,userId:buyerId,approved:false,reason:'Supplier revoked Canadian purchasing.'});
+ await h.command('order.prepare',request,{...buyer,status:404});
+});

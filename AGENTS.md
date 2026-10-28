@@ -11,3 +11,7 @@ Read README.md and ACCEPTANCE.md. The package pins the published RER CLI; do not
 For real owner setup use `rer install`, `rer setup --owner-email you@example.com`, then `rer dev`. Local email links appear only in the private development outbox. Stop dev/preview before build, verify, export or import. `rer verify` is CI's full check; local iteration runs touched tests. No tests in build/deploy. Test cap: 200. See SEED-COMMAND-CONTRACT.md for reset, transfer and deploy effects.
 
 Never print secret values, read ~/.env, or dump environments. Heavy work requires 1-minute load at most 36, nice 15 and one job at a time. Stop only your own process IDs. Never edit sibling repositories or force push. Before public pushes, run Base's publication scan on the exact commit/tree without exclusions. Keep research and local screenshots outside this public repository.
+
+## Lander-Regenerate
+
+CONTRACT.md owns acceptance text and status. After a contract edit, run `node scripts/contract-docs.mjs write`, then `node scripts/contract-docs.mjs check`. This seed command retains each complete clause in ACCEPTANCE.md, derives docs/CLAIMS.md and recomputes summary counts with the pinned Base parser. Regenerate the edition source lock last with `node scripts/edition-authoring/cli.mjs lock`; check it with `node scripts/edition-authoring/cli.mjs check`.

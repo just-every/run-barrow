@@ -1,4 +1,4 @@
-import { preparePrebook, prebookAdmission, prebookWindowCommand } from './prebooks'
+import { preparePrebook, prebookAdmission, prebookWindowCommand, prebookCommission, prebookWarehouseAdmission } from './prebooks'
 import { digest } from './access'
 import { sellThroughReview, sellThroughDate, sellThroughBuyer, sellThroughOutcomes, type SellThroughAcceptance } from './sell-through'
 import { applyPromotions, promotionSettings } from './promotions'
@@ -247,6 +247,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const reason=text(p.reason,'Exception reason',240)
   return save(env,actor,{...order,stockException:{by:actor.id,at:(await now()).toISOString(),reason}},'order.stock-exception',[],`Supplier accepted stock observed ${order.preparedAt} past the freshness limit: ${reason}`)
  }
+ if(order.prebookRelease?.restored&&type==='order.approve')fail('RESTORED','Restored seasonal releases cannot initiate stock effects.')
  if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
  if(type==='order.approve') {
   await linkedReplacementGuard(env,actor,order)
@@ -255,13 +256,14 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    if(original.status!=='cancelled'||!original.release?.confirmedAt||offer?.status!=='accepted'||offer.replacementId!==order.id)fail('SUBSTITUTION_RELEASE','Confirm the original stock release before reserving the accepted replacement.')
   }
   if(order.status==='approved'||order.status==='shortfall') return order
+  if(order.prebookRelease)await prebookWarehouseAdmission(env,await account(env.DB,actor,order.accountId))
   if(order.status==='submitted') {
    const selected=(await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,order.accountId),order)).selected
    requireActiveAccount(selected)
-   if(selected.revision!==order.accountRevision) fail('PRICE_CHANGED','The account changed. Prepare and submit a new draft before approval.')
+   if(selected.revision!==order.accountRevision&&!order.prebookRelease) fail('PRICE_CHANGED','The account changed. Prepare and submit a new draft before approval.')
    if(!order.prebookRelease)await assertCurrentPricing(env,actor,selected,order)
    const prebookGuards=await prebookAdmission(env,selected,order,false)
-   const approvedAt=(await now()).toISOString(), commissions=await commissionSnapshot(env.DB,selected,order,approvedAt)
+   const approvedAt=(await now()).toISOString(), commissions=order.prebookRelease?await prebookCommission(env.DB,order):await commissionSnapshot(env.DB,selected,order,approvedAt)
    order=await save(env,actor,{...order,status:order.prebook?'approved':'reserving',approvedBy:actor.id,approvedAt},'order.approved',[...prebookGuards,activeAccountGuard(env.DB,selected),commissions.guard,env.DB.prepare('INSERT INTO bw_order_commissions(order_id,value_json) VALUES(?,?)').bind(order.id,JSON.stringify(commissions.snapshot))])
   }
   if(order.prebook&&order.status==='approved')return order

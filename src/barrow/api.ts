@@ -1,3 +1,4 @@
+import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
 import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
 import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
@@ -139,7 +140,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
-  if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);return json(await seasons(env.DB))}
+  if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/credits'&&request.method==='GET')return json(await readCredits(env,actor,url.searchParams.get('orderId')??''))

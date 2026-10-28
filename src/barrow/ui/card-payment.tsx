@@ -31,11 +31,11 @@ const stateNames: Record<CardPayment['state'], string> = {
   cancelled: 'Card payment cancelled',
 }
 
-export function CardPaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string; merchant: boolean; canAct?:boolean }) {
-  return <PaymentPanel key={orderId} orderId={orderId} merchant={merchant} canAct={canAct} />
+export function CardPaymentPanel({ orderId, merchant, canAct=merchant, deposit=false }: { orderId: string; merchant: boolean; canAct?:boolean; deposit?:boolean }) {
+  return <PaymentPanel key={orderId} orderId={orderId} merchant={merchant} canAct={canAct} deposit={deposit} />
 }
 
-function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string; merchant: boolean; canAct?:boolean }) {
+function PaymentPanel({ orderId, merchant, canAct=merchant, deposit=false }: { orderId: string; merchant: boolean; canAct?:boolean; deposit?:boolean }) {
   const [data, setData] = useState<PaymentList | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [error, setError] = useState(''), [message, setMessage] = useState('')
@@ -89,7 +89,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string;
   }
 
   return <section className="br-card br-stack" aria-label="Card payment" aria-busy={busy}>
-    <h4>Card payment</h4>
+    <h4>{deposit?'Prebook deposit by card':'Card payment'}</h4>
     {error && <Notice error>{error}</Notice>}
     {message && <Notice>{message}</Notice>}
     {!data && !error && <p role="status">Loading card payment…</p>}
@@ -105,7 +105,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string;
         {payment.exception?.reason && <Notice error>{payment.exception.reason}</Notice>}
         {payment.card && <p>{payment.card.brand} ending {payment.card.last4} · {payment.card.funding} · billing state {payment.card.state}</p>}
         <dl>
-          <dt>Order amount</dt><dd>{money(payment.amountCents, payment.currency)}</dd>
+          <dt>{deposit?'Deposit requirement':'Order amount'}</dt><dd>{money(payment.amountCents, payment.currency)}</dd>
           <dt>Card surcharge</dt><dd>{money(payment.surchargeCents, payment.currency)}</dd>
           <dt>Total card payment</dt><dd><strong>{money(payment.amountCents + payment.surchargeCents, payment.currency)}</strong></dd>
         </dl>

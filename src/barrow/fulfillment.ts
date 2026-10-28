@@ -1,4 +1,4 @@
-import { prebookRows } from './prebooks'
+import { prebookRows } from './prebook-view'
 import { faireFulfillment } from './faire'
 import { requireStaffReport } from './staff-policy'
 import type { Bindings } from '../auth.server'
@@ -16,7 +16,8 @@ export async function fulfillmentReport(env: Bindings, actor: Actor, params: URL
  const channelLines = actor.staff || warehouse && warehouse !== 'Unknown warehouse' ? [] : await faireFulfillment(env,accountId)
  const records = (await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid DESC").bind(accountId,accountId).all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
  const orders = records.filter(order => order.approvedAt && (!accountId || order.accountId === accountId))
- const prebooks=orders.flatMap(prebookRows)
+ const prebooks=warehouse&&warehouse!=='Unassigned backorder'?[]:orders.flatMap(prebookRows)
+ if(actor.staff?.warehouses!=='all'&&actor.staff&&prebooks.length)fail('FORBIDDEN','Seasonal commitments require whole-warehouse fulfillment authority.',403)
  const lines: ReturnType<typeof fulfillmentLines> = [], exceptions: { orderId: string; reason: string; owner: string }[] = []
  let state: any
  try { state = await pierState(env) } catch { return { checkedAt, today, timeZone, source: 'Pier', status: 'unavailable' as const, channelLines, prebooks, lines, lateLines: lines, exceptions, note: 'Pier did not answer. Fulfillment quantities and delivery are unknown.' } }
@@ -26,7 +27,6 @@ export async function fulfillmentReport(env: Bindings, actor: Actor, params: URL
   try { lines.push(...fulfillmentLines(order, upstream, state, today, timeZone)) }
   catch { exceptions.push({ orderId: order.id, reason: 'Source line quantities do not reconcile. Inspect the source order.', owner: 'Supplier' }) }
  }
- if(actor.staff?.warehouses!=='all'&&actor.staff&&prebooks.length)fail('FORBIDDEN','Seasonal commitments require whole-warehouse fulfillment authority.',403)
  const selected = lines.filter(line => !warehouse || line.warehouses.some(row => row.warehouse === warehouse) || (warehouse === 'Unassigned backorder' && line.unassignedBackorder !== '0'))
  const warehouses = actor.staff?.warehouses
  if (warehouses && warehouses !== 'all' && (exceptions.length || selected.some(line => line.warehouses.some(row => !warehouses.includes(row.warehouse)) || (line.unassignedBackorder !== '0' && !warehouses.includes('Unassigned backorder'))))) fail('FORBIDDEN','The whole fulfillment report cannot be confirmed within your warehouse scope.',403)
