@@ -1220,7 +1220,7 @@
       "executable": false
     },
     "src/barrow/campaign-mail-events.ts": {
-      "sha256": "dfe53e4932e29c1035ce575e032dc64e48e7167f34da41f31fe28307d182717a",
+      "sha256": "899654895d95bc4284b2bb3bdbdebb0484e18b03f28c28e77c30b616251277f0",
       "executable": false
     },
     "src/barrow/campaigns.ts": {
