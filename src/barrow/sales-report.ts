@@ -1,3 +1,4 @@
+import { distribute } from './invoice-allocation'
 import { usdReporting } from './currency'
 import { requireStaffReport } from './staff-policy'
 import { creditRecords } from './credit-ledger'
@@ -20,18 +21,6 @@ const day = (value: string | null, name: string) => value === null || /^\d{4}-\d
 const shift = (date: string, days: number) => new Date(Date.parse(date + 'T00:00:00Z') + days * 86400000).toISOString().slice(0, 10)
 export const salesColumns = ['orderId', 'prebookOrderId', 'bookingType', 'season', 'windowId', 'line', 'accountId', 'account', 'channel', 'territory', 'rep', 'sku', 'name', 'currency', 'bookedDate', 'status', 'quantity', 'unit', 'bookedCents', 'shippedBaseQuantity', 'shippedCents', 'invoiceNumber', 'invoicedCents', 'paidCents', 'creditedCents', 'appliedCreditCents', 'outstandingCents', 'freightCents', 'invoicedFreightCents','creditedFreightCents', 'paidFreightCents', 'appliedFreightCreditCents', 'outstandingFreightCents', 'paymentSources', 'creditSources', 'creditedSources', 'orderPath', 'invoicePath', 'usdCents', 'usdConversionDate', 'usdConversionSource', 'usdRateNumerator', 'usdRateDenominator'] as const
 type Row = Record<(typeof salesColumns)[number], string | number | null>
-/** Exact invoice allocation; original line order breaks equal-remainder ties, with freight last. */
-function distribute(amountCents: number, weights: number[]): number[] {
- if (!Number.isSafeInteger(amountCents) || amountCents < 0 || weights.some(weight => !Number.isSafeInteger(weight) || weight < 0)) fail('REPORT_ALLOCATION', 'Invoice allocations require nonnegative integer cents.', 409)
- const total = weights.reduce((sum, weight) => sum + BigInt(weight), 0n)
- if (BigInt(amountCents) > total) fail('REPORT_ALLOCATION', 'Recorded allocations exceed the original invoice basis.', 409)
- if (!amountCents) return weights.map(() => 0)
- const shares = weights.map((weight, index) => ({ index, cents: Number(BigInt(amountCents) * BigInt(weight) / total), remainder: BigInt(amountCents) * BigInt(weight) % total }))
- const ranked = [...shares].sort((a, b) => a.remainder === b.remainder ? a.index - b.index : a.remainder > b.remainder ? -1 : 1)
- const extra = amountCents - shares.reduce((sum, share) => sum + share.cents, 0)
- for (let index = 0; index < extra; index++) ranked[index].cents++
- return shares.map(share => share.cents)
-}
 
 export async function salesReport(env: Bindings, actor: Actor, params: URLSearchParams) {
  requirePerson(actor); requireStaffReport(actor, 'sales', params); requireSupplier(actor)
@@ -61,7 +50,7 @@ export async function salesReport(env: Bindings, actor: Actor, params: URLSearch
   const weights = [...order.lines.map(line => order.invoice ? line.lineCents ?? 0 : 0), order.invoice ? order.delivery?.totalCents ?? 0 : 0]
   const paid = distribute(allocations.reduce((sum, row) => sum + row.amountCents, 0), weights)
   const applied = distribute(applications.reduce((sum, row) => sum + row.amountCents, 0), weights.map((weight, index) => weight - paid[index]))
-  const paymentSources = JSON.stringify(allocations.map(row => ({ allocationId: row.id, paymentId: row.paymentId, amountCents: row.amountCents, path: `/api/barrow/payments/${row.paymentId}` })))
+  const paymentSources = JSON.stringify(allocations.map(row => ({ allocationId: row.id, paymentId: row.paymentId, providerPaymentId:row.providerPaymentId??null, sourceOrderId:row.sourceOrderId??null, amountCents: row.amountCents, path: `/api/barrow/payments/${row.paymentId}` })))
   const creditSources = JSON.stringify(applications.map(row => ({ applicationId: row.id, creditId: row.creditId, amountCents: row.amountCents, path: `/api/barrow/credits/${row.creditId}` })))
   order.lines.forEach((line: Line, index) => {
    if (filter.sku && line.sku.toUpperCase() !== filter.sku) return
@@ -86,7 +75,7 @@ export async function salesReport(env: Bindings, actor: Actor, params: URLSearch
    conversion: 'USD conversion uses the frozen, supplier-recorded dated ratio of USD cents to original currency cents, rounded half up once per displayed amount. It is not a live exchange quote; missing historical basis is not recorded. Original amounts remain unchanged.',
    amounts: 'Integer cents in each order’s recorded currency, never added across currencies. Merchandise amounts exclude delivery and tax. Freight includes delivery and handling once per order, shown on its first product line. A product filter includes freight only when it includes that line. Add invoiced freight to merchandise invoiced, and outstanding freight to merchandise outstanding, to reconcile the full invoice. Paid principal uses largest remainders over original merchandise and delivery cents; applied credits use the remaining basis with the same rule, so every cent is conserved. Original line order breaks ties; freight is last. Tax is not calculated.',
    shipped: shipments === 'read' ? 'Pier’s dispatched base units, valued at the line’s average base-unit price, rounded half up once per line.' : 'Pier did not answer: shipped amounts are unknown.',
-   payments: `${statementNote} Paid is explicit verified card allocation, not captured unapplied cash. Credited is the source line credit; only explicit credit applications reduce target invoice outstanding. A credit and a refund of that credit do not reverse the invoice twice. Events count through the report end day. PAY-003 and PAY-010 supply their recorded allocation and credit effects; deposits and other payment types remain unrecorded.`,
+   payments: `${statementNote} Paid is explicit verified card allocation, not captured unapplied cash. Credited is the source line credit; only explicit credit applications reduce target invoice outstanding. A credit and a refund of that credit do not reverse the invoice twice. Events count through the report end day. PAY-003 and PAY-010 supply their recorded allocation and credit effects; seasonal deposits are applied only to their reviewed release invoices; other payment types remain unrecorded.`,
    season: 'Prebook rows book the original commitment once. Linked release rows report fulfillment and invoicing with zero new booked cents. Season and ship window retain their original identities; CAT-008 owns broader catalog publication.',
    access: 'Owner, admins and all-account managers read every account. ACC-006: a rep reads only one account they hold today (assignment or temporary coverage) or a territory they hold completely; any other account or territory is refused, never trimmed.',
   },

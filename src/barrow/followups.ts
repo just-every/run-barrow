@@ -1,4 +1,5 @@
 import { reconcilePaymentPromises } from './payment-promises'
+import { financialGuard } from './credit-ledger'
 import { orderExceptionSources } from './order-followthrough'
 import { planResponseResolution, type FollowupPlan } from './account-followup'
 import { applicationReviewers } from './application-reviewers'
@@ -59,12 +60,13 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  const at = (await now()).toISOString()
  if (type === 'followup.refresh') {
   if(!actor.staff||actor.staff.role==='finance')await reconcilePaymentPromises(env,actor)
+  const financial=await financialGuard(env.DB)
   const [sources, existing] = await Promise.all([followupSources(env.DB, new Date(at)), allTasks(env.DB)])
   const orderSources = await orderExceptionSources(env, new Date(at))
   sources.candidates.push(...orderSources.candidates)
   for (const [id, resolution] of orderSources.resolved) sources.resolved.set(id, resolution)
   const today = calendarDate(new Date(at), await reportZone(env.DB)), known = new Map(existing.map(task => [task.id, task]))
-  const statements: D1PreparedStatement[] = [], created: string[] = [], closed: string[] = [], updated: string[] = []
+  const statements: D1PreparedStatement[] = [...financial], created: string[] = [], closed: string[] = [], updated: string[] = []
   for (const source of sources.candidates) {
    if(!staffTaskAllowed(actor,source))continue
    const existingTask = known.get(source.id)
@@ -128,7 +130,12 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  }
  if (p.close === true) {
   if(before.kind==='payment-promise')fail('PROMISE_RESOLUTION','Resolve or withdraw the promise through its finance decision door; contact records cannot close it.',409)
-  if (before.kind === 'card-payment') {
+  if(before.kind==='credit'&&before.id.startsWith('deposit-allocation:')) {
+   const financial=await financialGuard(env.DB),sources=await followupSources(env.DB,await now()),resolution=sources.resolved.get(before.id)
+   if(!resolution)fail('DEPOSIT_UNRESOLVED','This deposit requires recorded principal allocations or refund evidence before it can close.',409)
+   value.resolution=resolution
+   statements.push(...financial)
+  } else if (before.kind === 'card-payment') {
    const payment = await env.DB.prepare('SELECT value_json,revision FROM bw_card_payments WHERE id=? AND account_id=?').bind(before.sourceId, before.accountId).first<Stored>()
    const exception = payment ? (JSON.parse(payment.value_json) as CardPayment).exception : undefined
    if (!exception?.verifiedAt || !exception.resolvedAt || !exception.resolution) fail('PAYMENT_UNRESOLVED', 'This card payment exception needs a verified provider resolution before it can close.', 409)

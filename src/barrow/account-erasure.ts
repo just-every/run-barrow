@@ -129,7 +129,8 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
  for(const [table,kind] of [['bw_line_sheets','line-sheet shares'],['bw_sheet_events','line-sheet engagement'],['bw_locations','contacts and addresses'],['bw_lists','saved lists'],['bw_followups','follow-up tasks'],['bw_visits','contact visit records']] as const)
   for(const row of r[table].filter(row=>row.account_id===accountId))add(kind,({bw_line_sheets:'sheet',bw_sheet_events:'sheet-event',bw_locations:'location',bw_lists:'list',bw_followups:'followup',bw_visits:'visit'} as Record<string,string>)[table]+':'+row.id,'remove','Live and archived account contact data are outside the financial floor',[sql(`DELETE FROM ${table} WHERE id=?`,row.id)])
  const orders=r.bw_orders.filter(row=>row.account_id===accountId).map(row=>({...row,value:JSON.parse(row.value_json)})),orderFloors=new Map(orders.map(row=>{
-  const current=financialFloor(row.value,r.bw_card_payments.filter(payment=>payment.order_id===row.id),r.bw_card_events,creditFinancialDates(row.id,creditHistoryItems(r,accountId).map(item=>item.row),r.bw_refund_events))
+  const linked=new Set(creditHistoryItems(r,accountId).filter(item=>item.row.order_id===row.id).map(item=>JSON.parse(item.row.value_json).paymentId).filter(Boolean))
+  const current=financialFloor(row.value,r.bw_card_payments.filter(payment=>payment.order_id===row.id||linked.has(payment.id)),r.bw_card_events,creditFinancialDates(row.id,creditHistoryItems(r,accountId).map(item=>item.row),r.bw_refund_events))
   // An older archive may predate the latest financial event. Its replay cannot
   // shorten the financial floor already reviewed in the independent receipt.
   const reviewed=restoring?op.receipt?.items?.find((item:Item)=>item.id==='order:'+row.id)?.floorUntil:null

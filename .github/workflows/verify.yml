@@ -37,7 +37,7 @@ jobs:
         if: matrix.shard == 1
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-credit-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs tests/journeys/credit-policy.test.mjs
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs tests/journeys/credit-policy.test.mjs tests/journeys/deposits.test.mjs
       - name: Seasonal commitment and release screens
         if: matrix.shard == 1
         env:

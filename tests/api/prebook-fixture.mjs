@@ -1,6 +1,6 @@
 import {installation,stock,accountValue} from './harness.mjs';
 import {cardEdge} from './card-fixture.mjs';
-export async function prebookFixture(t,{built=false}={}) {
+export async function prebookFixture(t,{built=false,surchargeBps=0}={}) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const product=await stock(pier,'4');
  const rye=await pier.command('item.save',{sku:'RYE-1',name:'Delayed rye crisps',unit:'case',packSize:'1'});
  const po=await pier.command('po.draft',{supplierId:product.supplier.id,promiseDate:'2027-03-01',destinationWarehouse:'New York',reason:'Spring incoming supply',lines:[{itemId:product.item.id,quantity:'30',price:'20.00'},{itemId:rye.id,quantity:'20',price:'15.00'}]});
@@ -15,7 +15,7 @@ export async function prebookFixture(t,{built=false}={}) {
  const submit=order=>h.command('order.submit',{orderId:order.id},buyer);
  const accept=order=>h.command('order.approve',{orderId:order.id});
  const deposit=async order=>{
-  await h.command('card.connect',{secretKey:'synthetic-barrow-1',consent:true,reason:'Owner reviewed the card merchant.',surchargeBps:0,allowedStates:[]});
+  await h.command('card.connect',{secretKey:'synthetic-barrow-1',consent:true,reason:'Owner reviewed the card merchant.',surchargeBps,allowedStates:surchargeBps?['NY']:[]});
   let payment=await h.command('card.prepare',{orderId:order.id},buyer);edge.complete(payment);
   payment=await h.command('card.refresh',{paymentId:payment.id},buyer);
   payment=await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},buyer);
@@ -23,4 +23,22 @@ export async function prebookFixture(t,{built=false}={}) {
  };
  const day=async value=>h.configure({BARROW_TEST_CLOCK:value});
  return {pier,product,rye,po,h,edge,account,buyer,publication,publish,input,prepare,submit,accept,deposit,day};
+}
+
+export async function releasedDepositFixture(t,options={}) {
+ const f=await prebookFixture(t,options),{h,pier,product,po,account,publication}=f;
+ if(options.built)publication.windows[1].shipDate='2027-03-05';
+ await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,assignedRep:'Season rep'}});
+ await h.command('commission.settings',{revision:null,rules:[{id:'season-paid',rep:'Season rep',from:'2020-01-01',rateBps:1000,basis:'payment',splits:[{rep:'Season rep',shareBps:6000},{rep:'Partner rep',shareBps:4000}]}],reason:'Finance approved the original payment earning split.'});
+ await f.publish();let commitment=await f.accept(await f.submit(await f.prepare()));const payment=await f.deposit(commitment);
+ await h.command('prebook.close',{id:publication.id,revision:(await h.api('/api/barrow/prebook-seasons')).revision,reason:'Season intake completed before release.'});
+ await f.day('2027-03-12T15:00:00Z');
+ await pier.command('receipt.create',{poId:po.id,supplierReference:'Both promised spring windows arrived',lines:po.lines.map(line=>({poLineId:line.id,locationId:product.location.id,quantity:'12',cost:line.itemId===product.item.id?'20.00':'15.00'}))});
+ const releases=[];
+ for(const windowId of ['first','second']) {
+  const next=await h.command('prebook.release',{orderId:commitment.id,windowId,revision:commitment.revision,reason:'Finance and operations reviewed the received seasonal window.'});commitment=next.order;
+  releases.push(await h.command('order.approve',{orderId:next.releaseId}));
+ }
+ const allocation=(index,amountCents)=>({paymentId:payment.id,orderId:releases[index].id,orderRevision:releases[index].revision,sourceRevision:commitment.revision,amountCents,reason:'Finance reviewed this exact deposit principal for the linked release invoice.'});
+ return {...f,commitment,payment,releases,allocation};
 }

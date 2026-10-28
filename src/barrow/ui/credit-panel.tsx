@@ -15,7 +15,7 @@ type Refund = {
   status: 'requested' | 'pending' | 'succeeded' | 'failed' | 'cancelled'; updatedAt: string
 }
 type CreditReport = {
-  canAct: boolean; creditLimitCents:number|null;refundLimitCents:number|null;credits: Credit[]; refunds: Refund[]; outstandingCents: number
+  depositReceipts:(CardPayment&{availableCents:number;sourceRevision:string})[];canAct: boolean; creditLimitCents:number|null;refundLimitCents:number|null;credits: Credit[]; refunds: Refund[]; outstandingCents: number
   applications: { id: string; creditId: string; orderId: string; amountCents: number }[]
   allocations: { id: string; paymentId: string; orderId: string; amountCents: number }[]
 }
@@ -125,7 +125,7 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
   const [quantities, setQuantities] = useState<Record<number, string>>({})
   const [consentKey, setConsentKey] = useState('')
   const currency = order.currency ?? 'AUD', data = report.credits
-  const receipts = report.payments.filter(payment => payment.orderId === order.id && payment.currency === currency && payment.state === 'captured'
+  const receipts = [...report.payments,...data.depositReceipts].filter(payment => (payment.orderId === order.id || data.depositReceipts.some(row=>row.id===payment.id)&&(action==='allocate'||data.allocations.some(row=>row.paymentId===payment.id))) && payment.currency === currency && payment.state === 'captured'
     && (action !== 'allocate' || !data.allocations.some(row => row.paymentId === payment.id)))
   const credits = data.credits.filter(credit => credit.currency === currency && credit.availableCents > 0 && (action === 'refund'
     ? credit.orderId === order.id && !data.refunds.some(row => row.creditId === credit.id)
@@ -133,7 +133,7 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
   const payment = receipts.find(row => row.id === paymentId), credit = credits.find(row => row.id === creditId)
   const amountCents = cents(amount)
   const allowance=action==='refund'?data.refundLimitCents:data.creditLimitCents
-  const maximum = Math.min(allowance??Number.MAX_SAFE_INTEGER,action === 'allocate' ? Math.min(payment?.amountCents ?? 0, data.outstandingCents)
+  const maximum = Math.min(allowance??Number.MAX_SAFE_INTEGER,action === 'allocate' ? Math.min(data.depositReceipts.find(row=>row.id===payment?.id)?.availableCents??payment?.amountCents??0, data.outstandingCents)
     : action === 'apply' ? Math.min(credit?.availableCents ?? 0, data.outstandingCents)
     : Math.min(credit?.availableCents ?? 0, payment?.amountCents ?? 0))
   const refundKey = JSON.stringify([credit?.id, credit?.revision, payment?.id, payment?.updatedAt, amountCents])
@@ -149,9 +149,9 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
     if (invalid) return
     const explanation = reason.trim()
     setConsentKey('')
-    if (action === 'allocate') await command('card.allocate', { paymentId: payment!.id, orderId: order.id, amountCents, reason: explanation })
+    if (action === 'allocate') await command('card.allocate', { paymentId: payment!.id, orderId: order.id,orderRevision:order.revision,sourceRevision:data.depositReceipts.find(row=>row.id===payment!.id)?.sourceRevision, amountCents, reason: explanation })
     if (action === 'issue') await command('credit.issue', { orderId: order.id,kind,sourceReference:sourceReference.trim(), returnId: returnId.trim(),freightCents:cents(freight||'0'), lines, reason: explanation })
-    if (action === 'apply') await command('credit.apply', { creditId: credit!.id, revision: credit!.revision, orderId: order.id, amountCents, reason: explanation })
+    if (action === 'apply') await command('credit.apply', { creditId: credit!.id, revision: credit!.revision, orderId: order.id,orderRevision:order.revision,sourceRevision:data.depositReceipts.find(row=>row.id===payment!.id)?.sourceRevision, amountCents, reason: explanation })
     if (action === 'refund') await command('refund.request', { creditId: credit!.id, revision: credit!.revision, paymentId: payment!.id, amountCents, consent: true, reason: explanation })
   }
 
@@ -176,6 +176,7 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
       <label>Freight credit ({currency})<input inputMode="decimal" value={freight} disabled={disabled} onChange={event=>setFreight(event.target.value)}/></label><p className="br-quiet-text">Original delivery and handling: {money(order.delivery?.totalCents??0,currency)}. Tax is not recorded; no tax credit is assumed.</p>
     </> : <>
       <label>{currency} amount<input inputMode="decimal" value={amount} disabled={disabled} onChange={event => { setAmount(event.target.value); setConsentKey('') }} /></label>
+      {action==='allocate'&&data.depositReceipts.some(row=>row.id===paymentId)&&<p>Seasonal deposit · unapplied principal {money(data.depositReceipts.find(row=>row.id===paymentId)!.availableCents,currency)}. Review this release’s exact allocation.</p>}
       <p className="br-quiet-text">Maximum {money(maximum, currency)}{action === 'allocate' ? ' in captured principal; card surcharge is excluded.' : '.'}</p>
     </>}
     <label>Reason<input value={reason} maxLength={1000} disabled={disabled} onChange={event => setReason(event.target.value)} /></label>

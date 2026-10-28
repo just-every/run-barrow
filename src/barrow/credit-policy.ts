@@ -1,3 +1,5 @@
+import { unappliedPrincipal } from './deposits'
+import type { CardPayment } from './card-model'
 import type { Bindings } from '../auth.server'
 import { account } from './accounts'
 import { audit, commit, digest } from './access'
@@ -34,9 +36,11 @@ export async function creditExposure(db:D1Database,accountId:string,currency:str
  })
  const exposureCents=sources.reduce((sum,row)=>sum+row.amountCents,0)
  if(!Number.isSafeInteger(exposureCents))fail('MONEY','Credit exposure exceeds the exact-cent range.')
- // Deposits are not admitted by PAY-003 yet. No unallocated receipt reduces exposure.
+ // Unapplied cash is disclosed separately; only explicit allocations reduce invoice exposure.
+ const deposits=(await db.prepare("SELECT p.value_json FROM bw_card_payments p JOIN bw_orders o ON o.id=p.order_id WHERE p.account_id=? AND json_extract(p.value_json,'$.state')='captured' AND json_extract(o.value_json,'$.prebook') IS NOT NULL").bind(accountId).all<{value_json:string}>()).results.map(row=>JSON.parse(row.value_json) as CardPayment).filter(row=>row.currency===currency)
+ const depositsCents=deposits.reduce((sum,row)=>sum+unappliedPrincipal(row,financial),0)
  const fingerprint=await digest(JSON.stringify([currency,sources,financial.allocations.filter(row=>row.accountId===accountId),financial.applications.filter(row=>row.accountId===accountId)]))
- return {accountId,currency,exposureCents,openOrdersCents:sources.filter(row=>row.kind==='open-order').reduce((sum,row)=>sum+row.amountCents,0),unpaidInvoicesCents:sources.filter(row=>row.kind==='invoice').reduce((sum,row)=>sum+row.amountCents,0),depositsCents:0,sources,fingerprint}
+ return {accountId,currency,exposureCents,openOrdersCents:sources.filter(row=>row.kind==='open-order').reduce((sum,row)=>sum+row.amountCents,0),unpaidInvoicesCents:sources.filter(row=>row.kind==='invoice').reduce((sum,row)=>sum+row.amountCents,0),depositsCents,sources,fingerprint}
 }
 async function creditGuards(db:D1Database,id:string,policy:CreditPolicy|null) {
  const rows=await db.prepare('SELECT id,revision FROM bw_orders WHERE account_id=? ORDER BY id').bind(id).all<{id:string;revision:string}>()

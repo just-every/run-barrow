@@ -1,3 +1,5 @@
+import { creditRecords } from './credit-ledger'
+import { unappliedPrincipal } from './deposits'
 import type { AccountValue, Order } from './model'
 import type { Quote } from './quotes'
 import type { CardPayment } from './card-model'
@@ -31,8 +33,15 @@ export async function followupSources(db: D1Database, at: Date) {
  }
  const candidates: FollowupSource[] = [], resolved = new Map<string, string>(), unknownAge: string[] = []
  const age = (value: string) => at.getTime() - Date.parse(value)
+ const financial=await creditRecords(db)
  for (const row of paymentRows.results) {
   const payment = JSON.parse(row.value_json) as CardPayment, id = `card-payment:${row.id}`
+  const depositId=`deposit-allocation:${row.id}`
+  if(payment.state==='captured'&&orders.some(order=>order.id===payment.orderId&&order.prebook)) {
+   const unused=unappliedPrincipal(payment,financial),allocations=financial.allocations.filter(row=>row.paymentId===payment.id)
+   if(unused===0&&allocations.length)resolved.set(depositId,`Verified deposit principal accounted for by immutable allocations ${allocations.map(row=>row.id).join(', ')} and recorded refund reservations.`)
+   else candidates.push({id:depositId,kind:'credit',accountId:payment.accountId,sourceId:payment.id,sourcePath:`/api/barrow/payments/${payment.id}`,title:`Review seasonal deposit ${payment.id}`,reason:`Captured ${payment.amountCents} ${payment.currency} principal; ${unused} remains unapplied. Finance must review linked release invoices; capture alone is not settlement.`,priority:1})
+  }
   const exception = payment.exception
   // Only an explicitly verified exception is actionable; payment state or absence never proves resolution.
   if (!exception?.verifiedAt) continue

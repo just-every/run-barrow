@@ -1,3 +1,4 @@
+import { allocateDeposit,depositReceipts } from './deposits'
 import { creditBasis } from './credit-basis'
 import { companyOrderScope } from './company-access'
 import type { Bindings } from '../auth.server'
@@ -24,7 +25,7 @@ export async function readCredit(env:Bindings,actor:Actor,id:string) {
 export async function readCredits(env:Bindings,actor:Actor,orderId:string) {
  const order=await readOrder(env.DB,actor,orderId);await creditAccess(env,actor,order.accountId,order.id)
  const records=await creditRecords(env.DB),scope=companyOrderScope(actor),visible=new Set((await env.DB.prepare('SELECT id FROM bw_orders WHERE account_id=?'+scope.sql).bind(order.accountId,...scope.values).all<{id:string}>()).results.map(row=>row.id))
- return {creditLimitCents:actor.staff?actor.staff.creditLimitCents??0:null,refundLimitCents:actor.staff?actor.staff.refundLimitCents??0:null,canAct:!actor.agent&&(!actor.staff&&['owner','admin'].includes(actor.role)||actor.staff?.role==='finance'&&!!((actor.staff.creditLimitCents??0)+(actor.staff.refundLimitCents??0))),credits:records.credits.filter(row=>row.accountId===order.accountId&&visible.has(row.orderId)).map(row=>({...publicCredit(row),availableCents:creditAvailable(row,records)})),applications:records.applications.filter(row=>row.orderId===orderId),allocations:records.allocations.filter(row=>row.orderId===orderId),refunds:records.refunds.filter(row=>row.accountId===order.accountId&&visible.has(row.orderId)),outstandingCents:invoiceOutstanding(orderId,order.totalCents,records)}
+ return {depositReceipts:await depositReceipts(env,actor,order,records),creditLimitCents:actor.staff?actor.staff.creditLimitCents??0:null,refundLimitCents:actor.staff?actor.staff.refundLimitCents??0:null,canAct:!actor.agent&&(!actor.staff&&['owner','admin'].includes(actor.role)||actor.staff?.role==='finance'&&!!((actor.staff.creditLimitCents??0)+(actor.staff.refundLimitCents??0))),credits:records.credits.filter(row=>row.accountId===order.accountId&&visible.has(row.orderId)).map(row=>({...publicCredit(row),availableCents:creditAvailable(row,records)})),applications:records.applications.filter(row=>row.orderId===orderId),allocations:records.allocations.filter(row=>row.orderId===orderId),refunds:records.refunds.filter(row=>row.accountId===order.accountId&&visible.has(row.orderId)),outstandingCents:invoiceOutstanding(orderId,order.totalCents,records)}
 }
 function issued(order:Order,allowCancelled=false) {
  if((order.status!=='approved'&&!(allowCancelled&&order.status==='cancelled'&&order.release?.confirmedAt))||!order.invoice||!order.pierOrderId)fail('CREDIT_ORDER','Use a fully reserved approved order with an issued invoice.',409)
@@ -32,6 +33,7 @@ function issued(order:Order,allowCancelled=false) {
 export async function allocateCard(env:Bindings,actor:Actor,p:any) {
  requirePerson(actor)
  const payment=(await storedCard(env,text(p.paymentId,'Payment'))).value,order=await readOrder(env.DB,actor,text(p.orderId,'Invoice order'));issued(order,true)
+ if(payment.orderId!==order.id)return allocateDeposit(env,actor,p,order,payment)
  if(payment.restored)fail('RESTORED','Restored receipts cannot create new allocations.',409)
  if(payment.accountId!==order.accountId||payment.orderId!==order.id||payment.currency!==order.currency)fail('ALLOCATION_SCOPE','Allocate a captured receipt only to its original invoice and currency.',409)
  const amountCents=integer(p.amountCents,'Allocation cents',1);creditAuthority(actor,order.accountId,amountCents,order.currency??'AUD')
@@ -41,7 +43,7 @@ export async function allocateCard(env:Bindings,actor:Actor,p:any) {
  if(stripe.config.account_id!==payment.providerAccountId||!payment.providerPaymentId)fail('STRIPE_MISMATCH','The receipt has no authorization at the connected merchant.',409)
  const verified=await reconcileCard(env,payment.id,await stripe.call(`/payment_intents/${encodeURIComponent(payment.providerPaymentId)}?expand[]=latest_charge`),undefined,actor.id)
  if(verified.state!=='captured'||amountCents>verified.amountCents||amountCents>invoiceOutstanding(order.id,order.totalCents,records))fail('ALLOCATION_AMOUNT','Only verified captured principal up to the unpaid invoice can be allocated.',409)
- const id=`allocation-${payment.id}`,revision=crypto.randomUUID(),value:PaymentAllocation={id,paymentId:payment.id,accountId:order.accountId,orderId:order.id,currency:payment.currency,amountCents,createdAt:new Date().toISOString(),actorId:actor.id,reason,revision}
+ const id=`allocation-${payment.id}`,revision=crypto.randomUUID(),value:PaymentAllocation={id,paymentId:payment.id,accountId:order.accountId,orderId:order.id,currency:payment.currency,amountCents,createdAt:new Date().toISOString(),actorId:actor.id,reason,revision,providerPaymentId:payment.providerPaymentId,providerAccountId:payment.providerAccountId,installationId:payment.installationId}
  await commit(env.DB,actor,[...guards,env.DB.prepare('INSERT INTO bw_card_allocations VALUES(?,?,?,?,?,?)').bind(id,order.accountId,order.id,payment.id,JSON.stringify(value),revision),audit(env.DB,actor,id,'card.allocated',{accountId:order.accountId,orderId:order.id,revision,source:'card.allocate',reason})])
  return value
 }

@@ -1,3 +1,4 @@
+import { unappliedPrincipal } from './deposits'
 import { requireCompanyRight } from './company-policy'
 import { creditRecords } from './credit-ledger'
 // PAY-007 / PAY-001: invoice issue dates retain their recorded America/New_York calendar day; captured card receipts
@@ -11,9 +12,9 @@ import { textPdf } from './pdf'
 import { fail, requirePerson, supplierDate, type Actor, type Order } from './model'
 
 type InvoiceLine = { number: string; issuedAt: string; dueAt: string; orderId: string; reference: string; amountCents: number; invoicePath: string; orderPath: string }
-type StatementEntry = ({ kind: 'invoice'; date: string } & InvoiceLine) | { kind: 'card-payment' | 'card-surcharge' | 'credit-note' | 'refund'; date: string; id: string; orderId: string; amountCents: number; paymentPath: string; orderPath: string }
+type StatementEntry = ({ kind: 'invoice'; date: string } & InvoiceLine) | { kind: 'card-payment' | 'card-surcharge' | 'credit-note' | 'refund' | 'card-allocation'; appliedCents?:number;providerPaymentId?:string;paymentId?:string; date: string; id: string; orderId: string; amountCents: number; paymentPath: string; orderPath: string }
 export const statementNote = 'Recorded card allocations and applied credits explain invoice outstanding. Other payment sources are not recorded, so these figures are not amounts confirmed unpaid.'
-const cardStatementNote = 'Balances are invoices plus captured card surcharges, less captured card receipts and issued credit notes, plus succeeded provider refunds. Applying existing cash or credit to an invoice does not change this account balance. Pending and failed refunds do not count as returned funds. Other payment types and deposits are not recorded.'
+const cardStatementNote = 'Balances are invoices plus captured card surcharges, less captured card receipts and issued credit notes, plus succeeded provider refunds. Applying existing cash or credit to an invoice does not change this account balance. Pending and failed refunds do not count as returned funds. Unapplied principal is shown separately. Deposit allocations explain release settlement without recording another sale or cash receipt. Other payment types are not recorded.'
 const day = (value: string | null, name: string) => {
  if (!value) return undefined
  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value + 'T12:00:00Z')) || new Date(value + 'T12:00:00Z').toISOString().slice(0, 10) !== value) fail('DATE', `Use a valid YYYY-MM-DD ${name} date.`, 400)
@@ -27,8 +28,8 @@ const pdfParagraph = (value: string) => value.split(' ').reduce<string[]>((lines
  return lines
 }, [''])
 const entryId = (entry: StatementEntry) => entry.kind === 'invoice' ? entry.number : entry.id
-const entryOrder = { invoice: 0, 'card-surcharge': 1, 'card-payment': 2, 'credit-note': 3, refund: 4 }
-const entryLabel = { 'card-surcharge': 'Card surcharge', 'card-payment': 'Card receipt', 'credit-note': 'Credit note', refund: 'Refund' }
+const entryOrder = { invoice: 0, 'card-surcharge': 1, 'card-payment': 2, 'credit-note': 3, refund: 4, 'card-allocation':5 }
+const entryLabel = { 'card-surcharge': 'Card surcharge', 'card-payment': 'Card receipt', 'credit-note': 'Credit note', refund: 'Refund', 'card-allocation':'Principal allocation' }
 const invoiceLine = (order: Order): InvoiceLine => ({ number: order.invoice!.number, issuedAt: order.invoice!.issuedAt, dueAt: order.invoice!.dueAt, orderId: order.id, reference: order.reference, amountCents: order.totalCents, invoicePath: `/api/barrow/invoices/${order.id}.csv`, orderPath: `/api/barrow/orders/${order.id}/timeline` })
 
 export async function statement(db: D1Database, actor: Actor, accountId: string, query: URLSearchParams) {
@@ -52,7 +53,7 @@ export async function statement(db: D1Database, actor: Actor, accountId: string,
   const mine = invoices.filter(order => (order.currency ?? 'AUD') === currency)
   const invoiceEntries: StatementEntry[] = mine.map(order => ({ kind: 'invoice', date: order.invoice!.issuedAt, ...invoiceLine(order) }))
   const cardEntries = receipts.filter(({ payment }) => payment.currency === currency).flatMap(({ payment, date }): StatementEntry[] => {
-   const source = { date, id: payment.id, orderId: payment.orderId, paymentPath: `/api/barrow/payments/${payment.id}`, orderPath: `/api/barrow/orders/${payment.orderId}/timeline` }
+   const source = { date, id: payment.id,providerPaymentId:payment.providerPaymentId, orderId: payment.orderId, paymentPath: `/api/barrow/payments/${payment.id}`, orderPath: `/api/barrow/orders/${payment.orderId}/timeline` }
    return [
     ...(payment.surchargeCents > 0 ? [{ ...source, kind: 'card-surcharge' as const, amountCents: payment.surchargeCents }] : []),
     { ...source, kind: 'card-payment', amountCents: -(payment.amountCents + payment.surchargeCents) },
@@ -60,7 +61,10 @@ export async function statement(db: D1Database, actor: Actor, accountId: string,
   })
   const creditEntries: StatementEntry[] = credits.filter(({ credit }) => credit.currency === currency).map(({ credit, date }) => ({ kind: 'credit-note', date, id: credit.id, orderId: credit.orderId, amountCents: -credit.amountCents, paymentPath: `/api/barrow/credits/${credit.id}`, orderPath: `/api/barrow/orders/${credit.orderId}/timeline` }))
   const refundEntries: StatementEntry[] = refunds.filter(({ refund }) => refund.currency === currency).map(({ refund, date }) => ({ kind: 'refund', date, id: refund.id, orderId: refund.orderId, amountCents: refund.amountCents, paymentPath: `/api/barrow/refunds/${refund.id}`, orderPath: `/api/barrow/orders/${refund.orderId}/timeline` }))
-  const allEntries = [...invoiceEntries, ...cardEntries, ...creditEntries, ...refundEntries].sort((a, b) => a.date.localeCompare(b.date) || entryOrder[a.kind] - entryOrder[b.kind] || entryId(a).localeCompare(entryId(b)))
+  const allocations=financial.allocations.filter(row=>row.accountId===selected.id&&row.currency===currency&&supplierDate(new Date(row.createdAt))<=to)
+  const allocationEntries:StatementEntry[]=allocations.map(row=>({kind:'card-allocation',date:supplierDate(new Date(row.createdAt)),id:row.id,orderId:row.orderId,amountCents:0,appliedCents:row.amountCents,paymentId:row.paymentId,providerPaymentId:row.providerPaymentId,paymentPath:`/api/barrow/payments/${row.paymentId}`,orderPath:`/api/barrow/orders/${row.orderId}/timeline`}))
+  const unappliedCents=receipts.filter(row=>row.payment.currency===currency).reduce((sum,row)=>sum+unappliedPrincipal(row.payment,{...financial,allocations,refunds:refunds.map(row=>row.refund)}),0)
+  const allEntries = [...invoiceEntries, ...cardEntries, ...creditEntries, ...refundEntries,...allocationEntries].sort((a, b) => a.date.localeCompare(b.date) || entryOrder[a.kind] - entryOrder[b.kind] || entryId(a).localeCompare(entryId(b)))
   const openingCents = allEntries.filter(entry => from !== undefined && entry.date < from).reduce((sum, entry) => sum + entry.amountCents, 0)
   const entries = allEntries.filter(entry => from === undefined || entry.date >= from)
   // Keep the original invoice-only API field and its object shape for existing consumers.
@@ -70,18 +74,22 @@ export async function statement(db: D1Database, actor: Actor, accountId: string,
   const receivedCents = -entries.filter(entry => entry.kind === 'card-payment').reduce((sum, entry) => sum + entry.amountCents, 0)
   const creditedCents = -entries.filter(entry => entry.kind === 'credit-note').reduce((sum, entry) => sum + entry.amountCents, 0)
   const refundedCents = entries.filter(entry => entry.kind === 'refund').reduce((sum, entry) => sum + entry.amountCents, 0)
-  return { currency, openingCents, invoices: period, entries, invoicedCents, surchargedCents, receivedCents, creditedCents, refundedCents, closingCents: openingCents + invoicedCents + surchargedCents - receivedCents - creditedCents + refundedCents }
+  return { currency,unappliedCents, openingCents, invoices: period, entries, invoicedCents, surchargedCents, receivedCents, creditedCents, refundedCents, closingCents: openingCents + invoicedCents + surchargedCents - receivedCents - creditedCents + refundedCents }
  })
  return { accountId: selected.id, customer: selected.value.name, lifecycle: selected.value.lifecycle ?? 'active', from: from ?? null, to, dates: 'Inclusive invoice issue, card capture, credit issue and completed refund dates (America/New_York calendar days).', sections, note: cardStatementNote }
 }
 
-const statementRows = (value: Awaited<ReturnType<typeof statement>>) => [['currency', 'kind', 'date', 'due_date', 'invoice_number', 'order', 'customer_reference', 'amount_cents', 'balance_cents', 'payment_id', 'credit_id', 'refund_id', 'source_path'],
- ...value.sections.flatMap(section => {
-  let balance = section.openingCents
-  return [[section.currency, 'opening', value.from ?? '', '', '', '', '', section.openingCents, balance, '', '', '', ''],
-   ...section.entries.map(line => [section.currency, line.kind, line.date, line.kind === 'invoice' ? line.dueAt : '', line.kind === 'invoice' ? line.number : '', line.orderId, line.kind === 'invoice' ? line.reference : '', line.amountCents, balance += line.amountCents, line.kind === 'card-payment' || line.kind === 'card-surcharge' ? line.id : '', line.kind === 'credit-note' ? line.id : '', line.kind === 'refund' ? line.id : '', line.kind === 'invoice' ? line.invoicePath : line.paymentPath]),
-   [section.currency, 'closing', value.to, '', '', '', '', section.closingCents, section.closingCents, '', '', '', '']]
+const statementColumns=['currency','kind','date','due_date','invoice_number','order','customer_reference','amount_cents','balance_cents','payment_id','credit_id','refund_id','source_path','applied_cents','provider_payment_id','allocation_id','unapplied_cents']
+const statementRows = (value: Awaited<ReturnType<typeof statement>>) => {
+ const row=(fields:Record<string,string|number|undefined>)=>statementColumns.map(column=>fields[column]??'')
+ return [statementColumns,...value.sections.flatMap(section=>{
+  let balance=section.openingCents
+  return [row({currency:section.currency,kind:'opening',date:value.from??'',amount_cents:balance,balance_cents:balance}),
+   ...section.entries.map(line=>row({currency:section.currency,kind:line.kind,date:line.date,due_date:line.kind==='invoice'?line.dueAt:'',invoice_number:line.kind==='invoice'?line.number:'',order:line.orderId,customer_reference:line.kind==='invoice'?line.reference:'',amount_cents:line.amountCents,balance_cents:balance+=line.amountCents,payment_id:line.kind==='card-allocation'?line.paymentId:line.kind==='card-payment'||line.kind==='card-surcharge'?line.id:'',credit_id:line.kind==='credit-note'?line.id:'',refund_id:line.kind==='refund'?line.id:'',source_path:line.kind==='invoice'?line.invoicePath:line.paymentPath,applied_cents:line.kind==='card-allocation'?line.appliedCents:0,provider_payment_id:line.kind==='invoice'?'':line.providerPaymentId,allocation_id:line.kind==='card-allocation'?line.id:''})),
+   ...(section.unappliedCents||section.entries.some(entry=>entry.kind==='card-payment')?[row({currency:section.currency,kind:'unapplied principal',date:value.to,amount_cents:0,balance_cents:balance,unapplied_cents:section.unappliedCents})]:[]),
+   row({currency:section.currency,kind:'closing',date:value.to,amount_cents:section.closingCents,balance_cents:section.closingCents})]
  })]
+}
 
 export async function statementResponse(db: D1Database, actor: Actor, accountId: string, format: 'json' | 'csv' | 'pdf', query: URLSearchParams) {
  const value = await statement(db, actor, accountId, query)
@@ -94,8 +102,9 @@ export async function statementResponse(db: D1Database, actor: Actor, accountId:
   lines.push(`${section.currency} opening balance: ${amount(section.openingCents, section.currency)}`)
   for (const line of section.entries) {
    if (line.kind === 'invoice') lines.push(`  Invoice ${line.number} issued ${line.issuedAt}, due ${line.dueAt}${line.reference ? `, PO ${line.reference}` : ''}: ${amount(line.amountCents, section.currency)}`)
-   else lines.push(`  ${entryLabel[line.kind]} ${line.id}: ${amount(line.amountCents, section.currency)}`, `    Recorded ${line.date}; order ${line.orderId}`, `    Source ${line.paymentPath}`)
+   else lines.push(`  ${entryLabel[line.kind]} ${line.id}: ${amount(line.amountCents, section.currency)}`, `    Recorded ${line.date}; order ${line.orderId}`, `    Source ${line.paymentPath}${line.providerPaymentId?' · '+line.providerPaymentId:''}${line.kind==='card-allocation'?' · applied '+amount(line.appliedCents??0,section.currency):''}`)
   }
+  lines.push(`${section.currency} unapplied principal: ${amount(section.unappliedCents,section.currency)}`)
   lines.push(`${section.currency} closing balance: ${amount(section.closingCents, section.currency)}`, '')
  }
  if (!value.sections.length) lines.push('No recorded activity in this period.', '')

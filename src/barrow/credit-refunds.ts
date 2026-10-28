@@ -39,13 +39,15 @@ export async function refundCommand(env:Bindings,actor:Actor,type:string,p:any) 
   return reconcileRefund(env,value.id,await stripe.call(`/refunds/${encodeURIComponent(value.providerRefundId)}`),undefined,actor.id)
  }
  const credit=await storedCredit(env.DB,text(p.creditId,'Credit note')),payment=(await storedCard(env,text(p.paymentId,'Captured payment'))).value
+ const guards=await financialGuard(env.DB),records=await creditRecords(env.DB)
+ const linkedDeposit=records.allocations.some(row=>row.paymentId===payment.id&&row.orderId===credit.orderId&&row.sourceOrderId===payment.orderId&&row.accountId===credit.accountId&&row.currency===credit.currency)
  const amountCents=integer(p.amountCents,'Refund cents',1);creditAuthority(actor,credit.accountId,amountCents,credit.currency,'refund')
  const reason=text(p.reason,'Refund reason',1000)
  if(p.consent!==true)fail('CONSENT','Explicitly approve the exact credit amount returning to the original card.',400)
- if(payment.restored||payment.state!=='captured'||!payment.providerPaymentId||payment.orderId!==credit.orderId||payment.accountId!==credit.accountId||payment.currency!==credit.currency)fail('REFUND_SOURCE','Refund only a captured receipt for the credit’s original order and currency.',409)
+ if(payment.restored||payment.state!=='captured'||!payment.providerPaymentId||payment.orderId!==credit.orderId&&!linkedDeposit||payment.accountId!==credit.accountId||payment.currency!==credit.currency)fail('REFUND_SOURCE','Refund only a captured receipt for the credit’s original order and currency.',409)
  const stripe=await provider(env),installationId=await cardInstallation(env.DB)
  if(stripe.config.account_id!==payment.providerAccountId||!!stripe.config.livemode!==payment.livemode||payment.installationId!==installationId)fail('STRIPE_MISMATCH','The captured payment belongs to another Stripe connection.',409)
- const guards=await financialGuard(env.DB),records=await creditRecords(env.DB),id=`refund-${credit.id}`,existing=records.refunds.find(row=>row.id===id)
+ const id=`refund-${credit.id}`,existing=records.refunds.find(row=>row.id===id)
  let value:CreditRefund
  if(existing) {
   if(existing.amountCents!==amountCents||existing.paymentId!==payment.id)fail('REFUND_EXISTS','This credit already has an immutable approved refund request.',409)
@@ -54,8 +56,8 @@ export async function refundCommand(env:Bindings,actor:Actor,type:string,p:any) 
   value=existing
  } else {
   if(p.revision!==credit.revision)fail('REVISION','Reload the current credit note.',409)
-  const paid=records.allocations.filter(row=>row.paymentId===payment.id).reduce((sum,row)=>sum+row.amountCents,0),refunded=records.refunds.filter(row=>row.paymentId===payment.id&&!['failed','cancelled'].includes(row.status)).reduce((sum,row)=>sum+row.amountCents,0)
-  if(amountCents>creditAvailable(credit,records)||amountCents>paid-refunded)fail('REFUND_AMOUNT','Refund cannot exceed unused credit and verified allocated paid principal.',409)
+  const paid=records.allocations.filter(row=>row.paymentId===payment.id&&row.orderId===credit.orderId).reduce((sum,row)=>sum+row.amountCents,0),refunded=records.refunds.filter(row=>row.paymentId===payment.id&&!['failed','cancelled'].includes(row.status)).reduce((sum,row)=>sum+row.amountCents,0)
+  if(amountCents>creditAvailable(credit,records)||amountCents>paid-records.refunds.filter(row=>row.paymentId===payment.id&&row.orderId===credit.orderId&&!['failed','cancelled'].includes(row.status)).reduce((sum,row)=>sum+row.amountCents,0)||amountCents>payment.amountCents-refunded)fail('REFUND_AMOUNT','Refund cannot exceed unused credit and verified allocated paid principal.',409)
   const at=new Date().toISOString(),revision=crypto.randomUUID()
   value={id,creditId:credit.id,accountId:credit.accountId,orderId:credit.orderId,paymentId:payment.id,providerPaymentId:payment.providerPaymentId,providerAccountId:payment.providerAccountId,installationId,livemode:!!payment.livemode,currency:credit.currency,amountCents,status:'requested',createdAt:at,updatedAt:at,latestFinancialAt:at,actorId:actor.id,reason,revision}
   await commit(env.DB,actor,[...guards,env.DB.prepare('UPDATE bw_credit_notes SET revision=? WHERE id=? AND revision=?').bind(crypto.randomUUID(),credit.id,credit.revision),changed(env.DB),env.DB.prepare('INSERT INTO bw_credit_refunds VALUES(?,?,?,?,?,?)').bind(id,credit.accountId,credit.orderId,credit.id,JSON.stringify(value),revision),audit(env.DB,actor,id,'refund.requested',{accountId:credit.accountId,orderId:credit.orderId,revision,source:credit.id,reason})])
