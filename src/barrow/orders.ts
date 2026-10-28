@@ -312,6 +312,8 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   const base=context?.selected ?? await account(env.DB,actor,text(p.accountId,'Account'))
   const profile=await resolveBuyingProfile(env.DB,actor,base,p.profileId??base.buyingProfile?.id),selected=profile.selected
   requireActiveAccount(selected)
+  if(p.accountRevision!==undefined&&p.accountRevision!==base.revision)fail('CHANGED','The account revision changed. Refresh before preparing a draft.')
+  if(p.currency!==undefined&&p.currency!==(selected.value.currency??'USD'))fail('CURRENCY','The requested currency differs from the current price book.',400)
   if(plan&&(selected.revision!==plan.review.accountRevision||JSON.stringify(selected.buyingProfile)!==JSON.stringify(plan.review.buyingProfile)))fail('SELLTHROUGH_CHANGED','The account changed; review the plan again.')
   const sheet=p.lineSheetId===undefined?undefined:await (await import('./line-sheets')).sheetForOrder(env,actor,p,selected)
   const entryGuard=await deltaEntryGuard(env.DB,selected.id)
