@@ -65,6 +65,31 @@
       "binding": "FAIRE_CONNECTIONS",
       "environment": "FAIRE_CONNECTIONS",
       "optional": true
+    },
+    {
+      "binding": "INVENTORY_PROVIDER",
+      "environment": "INVENTORY_PROVIDER",
+      "optional": true
+    },
+    {
+      "binding": "WOO_ORIGIN",
+      "environment": "WOO_ORIGIN",
+      "optional": true
+    },
+    {
+      "binding": "WOO_KEY",
+      "environment": "WOO_KEY",
+      "optional": true
+    },
+    {
+      "binding": "WOO_SECRET",
+      "environment": "WOO_SECRET",
+      "optional": true
+    },
+    {
+      "binding": "WOO_WEBHOOK_SECRET",
+      "environment": "WOO_WEBHOOK_SECRET",
+      "optional": true
     }
   ],
   "platforms": [

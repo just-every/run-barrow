@@ -29,5 +29,5 @@ export function staleStock(order: Order, limit: number | undefined, at: Date) {
  if (limit === undefined || order.stockException) return undefined
  const age = at.getTime() - Date.parse(order.preparedAt)
  if (age <= limit * 60000) return undefined
- return `Pier stock for this draft was observed ${when(order.preparedAt)}, more than the ${limit}-minute freshness limit ago. Prepare it again at live stock, or ask the supplier to record an exception.`
+ return `${order.pierOrigin.includes('#woocommerce:')?'WooCommerce':'Pier'} stock for this draft was observed ${when(order.preparedAt)}, more than the ${limit}-minute freshness limit ago. Prepare it again at live stock, or ask the supplier to record an exception.`
 }

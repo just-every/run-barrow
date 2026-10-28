@@ -109,7 +109,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "004cb597f810b71b59fe58a88fb9da9ddbce229b233025898a0b4729aed5aa8e",
+      "sha256": "7033a713c03c62cfd9e2e01abeeb571d4cd9f3da687461d0a835bb17a7fa1fba",
       "executable": false
     },
     ".gitignore": {
@@ -121,7 +121,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "234e7de47edd8b236d778545423154ed72bfbd3df847b09c77d35d54c16eed0f",
+      "sha256": "b3ea810646e0d4ffb5a6fead99b1c1ead7211d454ded5d909c05d723641c54fa",
       "executable": false
     },
     "AGENTS.md": {
@@ -145,7 +145,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b96b88ca9bea13006c690854987b289ee4d32fe34e3b0930dd4472edd5a0d16f",
+      "sha256": "0e7ebadf70eeef6af50ffb157865056291798302250b49bd117c00c987a824cc",
       "executable": false
     },
     "DEMO.md": {
@@ -161,7 +161,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "94814fd73793060b29681075e1a2d8e029e52b34059ebd8f30d5ae347b95bc8e",
+      "sha256": "8508793bc4294e275f10f728496e68cd230e204a520046249aba9a4b608370ad",
       "executable": false
     },
     "docs/ACCOUNTS.md": {
@@ -185,7 +185,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "8ed9599772d93818ea353f55b24a4421664b482eafbe46bd0073002c9b8a355b",
+      "sha256": "d8d859434c2671f640ffae4d71587163ba2920d037c4db5e23a92c3a2f5f124b",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -249,7 +249,7 @@
       "executable": false
     },
     "docs/README.md": {
-      "sha256": "febc1fe5ee015b4bf701f71b892329f093a26da27369f4dd544cea033e9ba86f",
+      "sha256": "d12ad526a786e7de02ae4b7b82b1713d79bdc20bfcea6bf94c97cb2a8592806c",
       "executable": false
     },
     "docs/RETENTION.md": {
@@ -292,6 +292,10 @@
       "sha256": "23e2b10ebdd8ed76d14c083d5b372b50f640490ef35c21be09c9a5f7eb7e9b22",
       "executable": false
     },
+    "docs/WOOCOMMERCE.md": {
+      "sha256": "b68b5856eeed1329c59f745249edb921aaeca82a2d40b869a50fac905d31b5a4",
+      "executable": false
+    },
     "edition.json": {
       "sha256": "915550448ad6a564e2dfa57fc13113c6712e3e0c74cae0e4dcf7373fdba4b266",
       "executable": false
@@ -305,7 +309,7 @@
       "executable": false
     },
     "integrations/woocommerce/barrow-bridge.php": {
-      "sha256": "7eece28c7fe12dc121a0099dda834723016450caaabe1fe1fb4b245ec44a5b38",
+      "sha256": "05fc4c87cdbba0a7227cf191380c268fca05d5eb2e6bc082f2a53d74f0a01d21",
       "executable": false
     },
     "LICENSE": {
@@ -313,7 +317,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "bd62c65f2af075652c650e20712ed3ea0c091b1e670dc19f336ce4beb8642b7d",
+      "sha256": "383a23d29d8c3dd80bdd3c0f08936a99a27d1b4aa33691f50d13eb1a1a951994",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -581,7 +585,7 @@
       "executable": false
     },
     "packaging.json": {
-      "sha256": "42728eb820b950b3c003911e9d63a773cfcf9ebbf9031ddfcff27086baaa97ab",
+      "sha256": "8c64711e5c49664c806adf4bde744180e171c15ab853744d2051b86d49887f79",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -1105,7 +1109,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "8a84657e9ab3d4e1f78d0c92c25b3b5fe52bc5009a76b1ea0f6b76d9d1108941",
+      "sha256": "8efcb3152652b38b0f30dda9a2aa89d8f2a7d4a34a2756c15ddb3a4a3e6716d2",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1469,7 +1473,7 @@
       "executable": false
     },
     "src/barrow/freshness.ts": {
-      "sha256": "e34aaae2ad17b7b34dc7ff40a736dc3f1a79ee0ee6378820fd97584dfa4e0746",
+      "sha256": "e359727599fa1be189503cf4629aec379b9dea80bc74d5e67dc283d14b17fd13",
       "executable": false
     },
     "src/barrow/fulfillment-lines.ts": {
@@ -1661,7 +1665,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "f72459c8d890165eeeb1fb26f2a9d0eed1f4bbc1ff0ac045f094fa87bdd655d7",
+      "sha256": "6f5d286783d075cd0e5bbaf25eee8ebae0b187acb261a6775cf92d5352c6712f",
       "executable": false
     },
     "src/barrow/pdf.ts": {
@@ -1673,7 +1677,7 @@
       "executable": false
     },
     "src/barrow/pier.ts": {
-      "sha256": "43de38bd33b559f76694a17c63bfa149768e01734f4fa79df558de208009f781",
+      "sha256": "7f697eb11be62310a51c6ef20bf54f87ec12fbcf7f14022dd1dccb250e8f141a",
       "executable": false
     },
     "src/barrow/portability-policy.d.mts": {
@@ -1781,7 +1785,7 @@
       "executable": false
     },
     "src/barrow/quotes.ts": {
-      "sha256": "bb4b0063c7a24df83f3c93673cce7d5749e0338a6553e3c527b1b820b05e23a8",
+      "sha256": "011091cadc33a5851e1e5f3b569d5c16047aaffc31ee421724c74f508d7d15ac",
       "executable": false
     },
     "src/barrow/reorders.ts": {
@@ -1833,7 +1837,7 @@
       "executable": false
     },
     "src/barrow/retention.ts": {
-      "sha256": "3c8367cf7014e559f13e6cd47061daa48e098d65f7d27f8870fcf4e789f60369",
+      "sha256": "8eecf8ac9e01670cf939eecedb827038a10ebc52c31f727990fc020953aba453",
       "executable": false
     },
     "src/barrow/sales-report.ts": {
@@ -2157,7 +2161,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "31aa9a8313cc9dda9f9ae53240fe9de5f1ff3262d51748c494df12e44ed7ef9e",
+      "sha256": "a20aef5536b1bf89a5baaec5d6ab6a13fcbe81ad4d1a4a27e9ba6754d9058083",
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {
@@ -2353,7 +2357,7 @@
       "executable": false
     },
     "src/barrow/woocommerce.ts": {
-      "sha256": "e10e962e0ec52e22b246ea1670cc67195c6e27a01c0e62815a1a8a189646d943",
+      "sha256": "9fdc905686172996c25354240dc24ee2ff39d1801984aa1eb13a27679d8d5a60",
       "executable": false
     },
     "src/barrow/workspace-orders.ts": {
@@ -4641,7 +4645,7 @@
       "executable": false
     },
     "tests/api/woocommerce.test.mjs": {
-      "sha256": "34f9d8a5b45a9ad99f6880c6574009f122d727722f1f586c0027ca2df7331d8e",
+      "sha256": "c1ca106b93f52613f28424c4b5a985a46c3301a6a1af8b4eda5a6c7d6a1b79e4",
       "executable": false
     },
     "tests/api/worker.ts": {
@@ -4804,6 +4808,10 @@
       "sha256": "115569dc09ca8aac92dd6870761bbd3fed8aefb49abf3cd3c16a847e88c156b7",
       "executable": false
     },
+    "tests/journeys/woocommerce.test.mjs": {
+      "sha256": "4d252d735eaf61d3b750a40636ff89815bbebec7c995ad2965656f961d547fb0",
+      "executable": false
+    },
     "tests/pier-source.mjs": {
       "sha256": "4e6351f374fd239620b0c38a7fd3b249fdf5de8835dc9218e7473ee43778a85f",
       "executable": false
@@ -4813,7 +4821,7 @@
       "executable": false
     },
     "tests/woocommerce-store.mjs": {
-      "sha256": "617aa9473e48aeff8978674eb6748d38d439dabae51bcd817ca18b3310f4194a",
+      "sha256": "58b9acfc23e6cad22251f9dbea08d8afaf2ce65d1a71ec7da8b4a820a49f2151",
       "executable": false
     },
     "tsconfig.json": {

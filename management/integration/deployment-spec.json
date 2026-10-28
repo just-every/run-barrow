@@ -407,7 +407,10 @@
     "MAIL_WEBHOOK_SECRET",
     "PIER_SESSION",
     "BARROW_SFTP_SECRETS",
-    "FAIRE_CONNECTIONS"
+    "FAIRE_CONNECTIONS",
+    "WOO_KEY",
+    "WOO_SECRET",
+    "WOO_WEBHOOK_SECRET"
   ],
   "schedules": [
     "0 * * * *"

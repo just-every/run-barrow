@@ -24,6 +24,7 @@ function origin(env: Bindings) {
  return url.origin
 }
 async function call(env: Bindings,path: string,body?: unknown,observe=true) {
+ if(wooSelected(env))fail('PIER_UNAVAILABLE','Pier is not the selected inventory authority. This door needs a capability of the selected source.',503)
  if(observe)await observePierConfiguration(env)
  const base=origin(env)
  let response: Response

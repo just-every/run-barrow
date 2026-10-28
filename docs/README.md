@@ -14,6 +14,8 @@ Take a stockist's order from its agreed price list to an invoice CSV. Barrow kee
 - [Back up, restore and erase unused accounts](BACKUP-RESTORE.md): keep commercial records portable and respect later erasures.
 - [Let an agent prepare drafts](AGENTS-API.md): use a revocable credential while people retain submission and approval.
 
+- [Connect a controlled WooCommerce store](WOOCOMMERCE.md): map source variations and customers while protecting negotiated prices and durable approvals.
+
 ## Keep the boundaries clear
 
 Barrow stores money as integer cents and quantities as whole sell units, and labels amounts with their ISO currency code. Account price books and new orders use the selected USD, CAD, EUR or GBP currency; legacy accounts default to USD. Whole-unit quantities multiplied by integer cents need no rounding; transaction amounts are never converted; dated USD reporting references remain separate. The invoice CSV's currency column reads the currency the order recorded: `USD`, `CAD`, `EUR` or `GBP` for orders prepared now, `AUD` for records written before orders carried a currency. Restoring those older records preserves their original cents and AUD labels in both Orders and the CSV. Stock shown in a catalog is an observation; Pier reserves it after supplier approval. An invoice CSV is available only when every ordered unit is reserved.
