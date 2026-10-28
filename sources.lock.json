@@ -583,6 +583,10 @@
       "sha256": "0af5a8913788a329706bc4a6f872013823065fb2f59ee89e48a91f3a83e20b17",
       "executable": false
     },
+    "migrations/core/0062_shipment_tracking.sql": {
+      "sha256": "0016f3a41bf424813a816e0fe635c885ef1afbcdc4b42543c507a311e3628beb",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "afbad85325b7a2d3c051346fc2b41a3c42dfa758ced0d3ea8ca35ad3d638ea42",
       "executable": false
@@ -1108,7 +1112,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "f4db9f898145b0bf17654c47fdcfa7eaae1bd5ba9fbbc688ae3c2fc0b5e1ef66",
+      "sha256": "ccef2c3c9ea4786e547c32edf59f1662f4c76823c2d23361ddbf78e48c4e747a",
       "executable": false
     },
     "src/barrow/access.ts": {
@@ -1152,7 +1156,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "2877afcf6fa4003a258a8e5ad7edbbb3b54d4a5deb7cf720f39b7c83e3ea992a",
+      "sha256": "c55c225b0adbc760ff17c20f3a6e156bd455f80ec064858ecbe1d66c2eb666b0",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1484,11 +1488,11 @@
       "executable": false
     },
     "src/barrow/followup-sources.ts": {
-      "sha256": "ae164078c28222acd4bd7208d84faaaeaacb11ae045b91bcad553b02cf658e50",
+      "sha256": "91993bca70246326d03cbe4e4792a65a10a12d19e2e9649ef7c64fd1aa809787",
       "executable": false
     },
     "src/barrow/followups.ts": {
-      "sha256": "a9955bb1f89b353b693886e61fa34a7875c9a89ed367ec0121fc1365902532d9",
+      "sha256": "6380420b5533be802df5706ce316123178694669dea4a620ac058328b85d0ad8",
       "executable": false
     },
     "src/barrow/freshness.ts": {
@@ -1728,7 +1732,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "3c813752d1de345edfe2d2ac483ec1475725cec27726606508519c26abd03cf7",
+      "sha256": "adb0ccbfc1745b1ba753a70fd2b5d22949e3527ec174d6fa4cdee7a8f0f90d71",
       "executable": false
     },
     "src/barrow/prebook-view.ts": {
@@ -1903,6 +1907,10 @@
       "sha256": "5a78ca96a6ce5657cff7f147e419115f3ceeb5c01c6d9d3235b4930898db9b29",
       "executable": false
     },
+    "src/barrow/shipment-tracking.ts": {
+      "sha256": "4967db2f470f647623b2ab5e1d6b61dc0d46a38ebbc4adf641de134bed696c25",
+      "executable": false
+    },
     "src/barrow/shipping-rules.ts": {
       "sha256": "fcaf7f1cbe240064d19bef6b9ad3aebef9002503d005f34bddef1b17952fa0b1",
       "executable": false
@@ -1912,7 +1920,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "583f536a158481abc718dd1982b6fc97336e675882a222b0a30adbab3bc8677c",
+      "sha256": "bcba835eb8d9825b6e665367f3617dfa3a665e61f9c9ec6885e0677cc033b9c3",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -1949,6 +1957,10 @@
     },
     "src/barrow/timeline.ts": {
       "sha256": "a26c1c2438cc634dd4c824aa01f207c61c5e5de4a4ade9b2b0654ae905e59539",
+      "executable": false
+    },
+    "src/barrow/tracker-edge.ts": {
+      "sha256": "68b4b6f84711d3820a738382953992cd2eb8749cd5d1395c36b2b2864f486fea",
       "executable": false
     },
     "src/barrow/ui/account-credit.tsx": {

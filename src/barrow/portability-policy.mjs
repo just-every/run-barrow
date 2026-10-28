@@ -10,6 +10,7 @@ export const portabilityPolicy = {
   if(table==='bw_stock_watches')return {...row,active:0};
   if(table==='bw_payment_promises')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
   if(table==='bw_credit_refunds')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
+  if(table==='bw_tracking_packages')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
   if(table==='bw_card_payments')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true,paymentMethodId:undefined,providerCustomerId:undefined,setupSessionId:undefined,checkoutUrl:undefined,actionUrl:undefined})};
   if(table==='bw_delta_cutovers')return {...row,...(['rehearsal','signedoff'].includes(row.state)?{state:'inactive'}:{}),io_token:null,io_until:0};
   if(table==='bw_cutover_imports'&&row.state==='active')return {...row,state:'undone'}; // Restored cutover evidence is retained history, never an activation.
