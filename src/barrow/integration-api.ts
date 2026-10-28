@@ -20,6 +20,7 @@ import { now } from './clock'
 import { effectiveBook } from './currency'
 import { fail, Problem, type Actor } from './model'
 import { createIntegrationGrant, integrationGrants, integrationId, revokeIntegrationGrant } from './integration-grants'
+import { prepareIntegrationExchange, applyIntegrationExchange } from './integration-exchange'
 
 const prefix='/api/barrow/v1'
 const json=(value:unknown)=>Response.json(value,{headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}})
@@ -75,6 +76,8 @@ export async function integrationResponse(request:Request,env:Bindings,actor:Act
   if(request.method==='POST')return json(await createIntegrationGrant(env,actor,await boundedJson(request,10000)))
  }
  if(relative==='/grants/revoke'&&request.method==='POST')return json(await revokeIntegrationGrant(env,actor,await boundedJson(request,10000)))
+ if(relative==='/exchange/prepare'&&request.method==='POST')return json(await prepareIntegrationExchange(env,actor,await boundedJson(request,1500000)))
+ if(['/exchange/review','/exchange/apply'].includes(relative)&&request.method==='POST')return json(await applyIntegrationExchange(request,env,actor,await boundedJson(request,1500000),relative==='/exchange/apply'))
  if(relative==='/orders/prepare'&&request.method==='POST')return prepare(request,env,actor)
  if(!actor.agent) {
   const aliases:Record<string,string>={

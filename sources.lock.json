@@ -172,7 +172,7 @@
       "executable": false
     },
     "docs/AGENTS-API.md": {
-      "sha256": "0393352626a8a89d46c97092c09ecae7d4871624dae8393ba2b5775ce96db20c",
+      "sha256": "52598698c57152f325fe9129802a7d0b9b14b7722223f041c88db14fcff69e74",
       "executable": false
     },
     "docs/BACKUP-RESTORE.md": {
@@ -1092,7 +1092,7 @@
       "executable": false
     },
     "src/barrow/access.ts": {
-      "sha256": "39fa207f6b4af5a5111f8bb9e3b4974270075c54c441cd348ee5da1805941356",
+      "sha256": "f28d26c74fa7ea447de505780a1688ebbc4fa378dbf3d9dc51471ed591919988",
       "executable": false
     },
     "src/barrow/account-directory.ts": {
@@ -1268,7 +1268,7 @@
       "executable": false
     },
     "src/barrow/catalog-maintenance-preview.ts": {
-      "sha256": "f536c5579b6a11aeae970dd85042408ec3f57552dd466bf90439dd053ba7200b",
+      "sha256": "9c5b0842eff2063b7fc987c4dddd3924c6842c9ad00d14c1020c6581076039bf",
       "executable": false
     },
     "src/barrow/catalog-maintenance-workbook.ts": {
@@ -1620,11 +1620,11 @@
       "executable": false
     },
     "src/barrow/integration-api.ts": {
-      "sha256": "df21ff54983b998f50320d061b0d8f8766174a02d9dc1402451c4bef19ded971",
+      "sha256": "523f4f67565c9fd58350a7a04cb5a140775fba69d8509bd7519944fdb174f682",
       "executable": false
     },
     "src/barrow/integration-grants.ts": {
-      "sha256": "7cff3f73c303c3f8b1308f6706b6f8b6451184e25b910f22d71ec3a8dbc66ea9",
+      "sha256": "87eb458b9a5932d495df9dae3fbd6dbf764d677e274010ccc59b7d89b2c29407",
       "executable": false
     },
     "src/barrow/invoice.ts": {
@@ -1648,7 +1648,7 @@
       "executable": false
     },
     "src/barrow/model.ts": {
-      "sha256": "24bb3587da953e2d6827052dbab153735cde5ea2bddb41b05c89cb235f2d14d1",
+      "sha256": "ea3941a2d6cc264753d5954066df63828effc8fb63df215b6116955d2ed539f6",
       "executable": false
     },
     "src/barrow/order-revisions.ts": {
@@ -1696,7 +1696,7 @@
       "executable": false
     },
     "src/barrow/price-books.ts": {
-      "sha256": "63acfa1686f565930dbfabc30e2c8fd6b1f7c24073bfefeb1fd820c43877ff96",
+      "sha256": "c0cd0c512be1b8865ab4bbdabd7ee660e340b25e18e9734a68d60bde7128ed64",
       "executable": false
     },
     "src/barrow/price-display.ts": {
@@ -4452,7 +4452,7 @@
       "executable": false
     },
     "tests/api/integration-api.test.mjs": {
-      "sha256": "04abdff71cbf3a9782401ad273e57f79fbf831e1e3a063d13b9cd76f52bb254e",
+      "sha256": "f02ed753e10c7df616ac58b7688d3316ad6c8aec6736056e82f112776b06874c",
       "executable": false
     },
     "tests/api/line-sheet-fixture.mjs": {
