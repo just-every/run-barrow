@@ -4,7 +4,7 @@ import type { CardPayment } from './card-model'
 import { applicationTaskId, escalatedView } from './application-followup'
 import { supplierDate } from './model'
 
-export type FollowupKind = 'credit' | 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail' | 'application' | 'visit' | 'account-plan' | 'card-payment'
+export type FollowupKind = 'credit' | 'approval' | 'quote' | 'cart' | 'dormant' | 'quote-mail' | 'application' | 'visit' | 'account-plan' | 'card-payment' | 'fulfillment'
 export type FollowupSource = { id: string; kind: FollowupKind; accountId: string; sourceId: string; sourcePath: string; title: string; reason: string; priority: number }
 const day = 86400000
 /** AUTO-002: the exact reason a submitted order still waits for supplier approval, checked the way approval checks it. */

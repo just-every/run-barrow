@@ -14,6 +14,7 @@ import { OrderShipping } from './order-shipping'
 import { Reorder } from './reorder'
 import { SellThroughPlanner, SellThroughContact } from './sell-through'
 import { CancelOrder } from './cancel-order'
+import { OrderFollowthrough } from './order-followthrough'
 import { OrderTimeline } from './order-timeline'
 import { OrderSearch } from './order-search'
 import { request, errorMessage } from './api'
@@ -142,6 +143,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
           <details className="br-details"><summary>Order history & Pier details</summary><dl className="br-facts br-facts-wrap"><div><dt>Prepared by</dt><dd>{person(order.preparedBy)}{order.preparedAs&&` · ${order.preparedAs==='rep'?'rep':order.preparedAs==='sales-manager'?'sales manager':'supplier'} acting for the buyer`}</dd></div>{order.submittedBy && <div><dt>Submitted by</dt><dd>{person(order.submittedBy)}</dd></div>}{order.approvedBy && <div><dt>Approved by</dt><dd>{person(order.approvedBy)}</dd></div>}{order.termsAcceptance && <div><dt>Sales terms</dt><dd>{order.termsAcceptance.title} version {order.termsAcceptance.version} · {order.termsAcceptance.how === 'buyer' ? 'accepted in the portal' : <>signature captured · <a href={`/api/barrow/orders/${encodeURIComponent(order.id)}/terms-signature`} download>signature image</a></>}{order.termsAcceptance.printedName && ` · ${order.termsAcceptance.printedName}`} · {when(order.termsAcceptance.acceptedAt)}</dd></div>}{order.approvedAt && <div><dt>Approved at</dt><dd>{when(order.approvedAt)}</dd></div>}{order.pierReference && <div><dt>Pier order</dt><dd>{order.pierReference}</dd></div>}{order.reservation && <div><dt>Reserved</dt><dd>{order.reservation.reduce((sum, line) => sum + Number(line.reserved), 0)} of {units} units</dd></div>}{order.release && <><div><dt>Cancelled by</dt><dd>{person(order.release.requestedBy)}</dd></div><div><dt>Cancelled at</dt><dd>{when(order.release.requestedAt)}</dd></div><div><dt>Reason</dt><dd>{order.release.reason}</dd></div><div><dt>Stock release</dt><dd>{order.release.confirmedAt ? `Confirmed by Pier ${when(order.release.confirmedAt)}` : 'Awaiting Pier confirmation'}</dd></div></>}{order.invoice && finance && <><div><dt>{order.release ? 'Withdrawn invoice' : 'Invoice'}</dt><dd>{order.invoice.number}</dd></div><div><dt>Issued</dt><dd>{day(order.invoice.issuedAt)}</dd></div><div><dt>Due</dt><dd>{day(order.invoice.dueAt)}</dd></div></>}</dl></details>
           {!['draft','superseded'].includes(order.status) && <OrderConfirmations key={order.revision} orderId={order.id} supplier={supplier&&canPurchase} />}
           {order.status !== 'draft' && <OrderTimeline order={order} />}
+          {supplier && !['draft','superseded'].includes(order.status) && <OrderFollowthrough key={`trace:${order.id}:${order.revision}`} order={order} run={run} />}
           {supplier&&canQuote&&<AgentProposals orderId={order.id} version={order.revision} busy={busy} run={run}/>}
         </div>
       </article>
