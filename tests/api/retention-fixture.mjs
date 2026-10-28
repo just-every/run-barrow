@@ -76,5 +76,15 @@ export async function historicalCreditEvents(h,orderId='commercial',accountId='c
  const event={id:'synthetic-barrow-613',type:'refund.updated',status:'succeeded',amountCents:100,currency:'USD',providerRefundId:'synthetic-barrow-610',verifiedAt:'2024-02-29T12:39:56.789Z'};
  await h.db.prepare('INSERT INTO bw_refund_events VALUES(?,?,?,?)').bind(event.id,rows[3][1],event.verifiedAt,JSON.stringify(event)).run();
  assert.equal((await h.command('retention.preview',{accountId})).items.find(row=>row.id==='order:'+orderId).floorUntil,'2031-02-28T12:39:56.789Z');
- return rows.map(([table,id])=>({table,id}));
+ // Historical native release provenance makes a later source event protect both documents.
+ const original=JSON.parse((await h.db.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(orderId).first()).value_json),releaseId=orderId+'-deposit-release';
+ const release={...original,id:releaseId,prebookRelease:{orderId,windowId:'historical-window',seasonId:'historical-season'},revision:releaseId,invoice:{...original.invoice,number:'INV-'+releaseId}};
+ await h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(releaseId,accountId,JSON.stringify(release),releaseId).run();
+ const receipt=await h.db.prepare('SELECT id FROM bw_card_payments WHERE order_id=?').bind(orderId).first();
+ const allocation={id:'synthetic-barrow-614',accountId,orderId:releaseId,sourceOrderId:orderId,paymentId:receipt.id,currency:'USD',amountCents:100,createdAt:'2024-02-29T12:40:56.789Z',actorId:'synthetic-barrow-607',reason:'Historical finance-reviewed seasonal deposit allocation',revision:'synthetic-barrow-614'};
+ await h.db.prepare('INSERT INTO bw_card_allocations VALUES(?,?,?,?,?,?)').bind(allocation.id,accountId,releaseId,allocation.paymentId,JSON.stringify(allocation),allocation.revision).run();
+ await h.db.prepare('INSERT INTO bw_card_events VALUES(?,?,?,?)').bind('synthetic-barrow-615',allocation.paymentId,'2024-02-29T12:41:56.789Z',JSON.stringify({id:'synthetic-barrow-615',type:'payment_intent.succeeded',state:'captured',amountCents:100,currency:'usd',verifiedAt:'2024-02-29T12:41:56.789Z'})).run();
+ const preview=await h.command('retention.preview',{accountId});
+ for(const id of [orderId,releaseId])assert.equal(preview.items.find(row=>row.id==='order:'+id).floorUntil,'2031-02-28T12:41:56.789Z');
+ return [...rows.map(([table,id])=>({table,id})),{table:'bw_card_allocations',id:allocation.id}];
 }

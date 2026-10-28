@@ -7,7 +7,6 @@ import type { CardPayment } from './card-model'
 import { creditAuthority } from './credit-access'
 import { creditRecords,financialGuard,invoiceOutstanding } from './credit-ledger'
 import type { PaymentAllocation } from './credit-model'
-import { readOrder } from './orders'
 import { provider } from './card-provider'
 import { cardInstallation } from './card-installation'
 import { fail,integer,text,type Actor,type Order } from './model'
@@ -15,24 +14,32 @@ import { fail,integer,text,type Actor,type Order } from './model'
 type Records=Awaited<ReturnType<typeof creditRecords>>
 /** Reserved and returned principal never becomes new allocatable cash. Surcharges are excluded. */
 export function unappliedPrincipal(payment:CardPayment,records:Records) {
- return Math.max(0,payment.amountCents-records.allocations.filter(row=>row.paymentId===payment.id).reduce((sum,row)=>sum+row.amountCents,0)-records.refunds.filter(row=>row.paymentId===payment.id&&!['failed','cancelled'].includes(row.status)).reduce((sum,row)=>sum+row.amountCents,0))
+ const allocated=records.allocations.filter(row=>row.paymentId===payment.id).reduce((sum,row)=>sum+row.amountCents,0)
+ const reserved=records.refunds.filter(row=>row.paymentId===payment.id&&!['failed','cancelled'].includes(row.status)).reduce((sum,row)=>sum+row.amountCents,0)
+ // Refunds consume previously allocated paid principal; never subtract those cents twice.
+ return Math.max(0,payment.amountCents-Math.max(allocated,reserved))
 }
 const seller=(order:Order)=>JSON.stringify([order.buyingProfile?.brandId??null,order.buyingProfile?.seller??null])
-async function sourceOrder(env:Bindings,actor:Actor,order:Order) {
+async function sourceOrder(env:Bindings,order:Order) {
  if(!order.prebookRelease)return null
- const source=await readOrder(env.DB,actor,order.prebookRelease.orderId)
+ // The authorized release is the read boundary. Finance may inspect its deposit provenance
+ // without gaining the original commitment's purchasing or catalog doors.
+ const row=await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE id=?').bind(order.prebookRelease.orderId).first<{value_json:string;revision:string}>()
+ if(!row)fail('DEPOSIT_SOURCE','The original commitment is unavailable.',409)
+ const source={...JSON.parse(row.value_json),revision:row.revision} as Order
  const window=source.prebook?.windows.find(row=>row.id===order.prebookRelease!.windowId&&row.releaseId===order.id)
  if(!window||source.status!=='approved'||source.accountId!==order.accountId||source.currency!==order.currency||seller(source)!==seller(order))fail('DEPOSIT_SCOPE','Use an original commitment and its linked release in the same company, seller and currency.',409)
  return source
 }
 export async function depositReceipts(env:Bindings,actor:Actor,order:Order,records:Records) {
- const source=await sourceOrder(env,actor,order)
+ const source=await sourceOrder(env,order)
  if(!source)return []
  const rows=await env.DB.prepare("SELECT value_json FROM bw_card_payments WHERE order_id=? AND json_extract(value_json,'$.state')='captured'").bind(source.id).all<{value_json:string}>()
  return rows.results.map(row=>JSON.parse(row.value_json) as CardPayment).map(payment=>({...publicCard(payment),availableCents:unappliedPrincipal(payment,records),sourceRevision:source.revision}))
 }
 export async function allocateDeposit(env:Bindings,actor:Actor,p:any,order:Order,payment:CardPayment) {
- const source=await sourceOrder(env,actor,order)
+ if(order.status!=='approved'||!order.invoice||!order.pierOrderId)fail('DEPOSIT_INVOICE','Use a fully acknowledged, eligible release invoice.',409)
+ const source=await sourceOrder(env,order)
  if(!source||source.id!==payment.orderId||payment.accountId!==order.accountId||payment.currency!==order.currency||payment.amountCents!==source.prebook!.depositCents)fail('DEPOSIT_SCOPE','Allocate only the verified deposit of this release’s original seasonal commitment.',409)
  if(source.prebook!.restored||order.prebookRelease?.restored||payment.restored)fail('RESTORED','Restored financial history cannot create allocations.',409)
  const amountCents=integer(p.amountCents,'Allocation cents',1);creditAuthority(actor,order.accountId,amountCents,payment.currency)

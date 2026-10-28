@@ -125,7 +125,7 @@ function CreditActions({ order, report, disabled, command }: { order: Order; rep
   const [quantities, setQuantities] = useState<Record<number, string>>({})
   const [consentKey, setConsentKey] = useState('')
   const currency = order.currency ?? 'AUD', data = report.credits
-  const receipts = [...report.payments,...(action==='allocate'?data.depositReceipts:[])].filter(payment => (payment.orderId === order.id || action==='allocate'&&data.depositReceipts.some(row=>row.id===payment.id)) && payment.currency === currency && payment.state === 'captured'
+  const receipts = [...report.payments,...data.depositReceipts].filter(payment => (payment.orderId === order.id || data.depositReceipts.some(row=>row.id===payment.id)&&(action==='allocate'||data.allocations.some(row=>row.paymentId===payment.id))) && payment.currency === currency && payment.state === 'captured'
     && (action !== 'allocate' || !data.allocations.some(row => row.paymentId === payment.id)))
   const credits = data.credits.filter(credit => credit.currency === currency && credit.availableCents > 0 && (action === 'refund'
     ? credit.orderId === order.id && !data.refunds.some(row => row.creditId === credit.id)

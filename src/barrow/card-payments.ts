@@ -14,7 +14,10 @@ import { reconcileCard,reconcileHostedState,storedCard } from './card-ledger'
 import type { CardPayment } from './card-model'
 export function publicCard(p:CardPayment) {const {paymentMethodId,setupSessionId,providerCustomerId,savedCardRevision,...value}=p;return value}
 async function permitted(env:Bindings,actor:Actor,p:CardPayment) {
- requirePerson(actor);await account(env.DB,actor,p.accountId);await requireCompanyRight(env.DB,actor,p.accountId,'finance',(await readOrder(env.DB,actor,p.orderId)).shipTo?.id)
+ requirePerson(actor);await account(env.DB,actor,p.accountId)
+ const row=await env.DB.prepare('SELECT value_json FROM bw_orders WHERE id=? AND account_id=?').bind(p.orderId,p.accountId).first<{value_json:string}>()
+ if(!row)fail('NOT_FOUND','Payment source not found.',404)
+ await requireCompanyRight(env.DB,actor,p.accountId,'finance',(JSON.parse(row.value_json) as Order).shipTo?.id)
 }
 function payable(order:Order) {if(order.prebook){if(order.status!=='approved'||order.prebook.restored||order.prebook.depositCents<=0)fail('PAYMENT_ORDER','An accepted active prebook with a recorded deposit requirement is required.',409);return order.prebook.depositCents}if(order.status!=='approved'||!order.invoice||!order.pierOrderId)fail('PAYMENT_ORDER','Card collection needs a fully reserved approved order and issued invoice.',409);return order.totalCents}
 export async function readCards(env:Bindings,actor:Actor,orderId:string) {

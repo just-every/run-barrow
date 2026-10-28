@@ -79,13 +79,13 @@ export async function statement(db: D1Database, actor: Actor, accountId: string,
  return { accountId: selected.id, customer: selected.value.name, lifecycle: selected.value.lifecycle ?? 'active', from: from ?? null, to, dates: 'Inclusive invoice issue, card capture, credit issue and completed refund dates (America/New_York calendar days).', sections, note: cardStatementNote }
 }
 
-const statementRows = (value: Awaited<ReturnType<typeof statement>>) => [['currency', 'kind', 'date', 'due_date', 'invoice_number', 'order', 'customer_reference', 'amount_cents', 'balance_cents', 'payment_id', 'credit_id', 'refund_id', 'source_path','applied_cents','provider_payment_id'],
+const statementRows = (value: Awaited<ReturnType<typeof statement>>) => [['currency', 'kind', 'date', 'due_date', 'invoice_number', 'order', 'customer_reference', 'amount_cents', 'balance_cents', 'payment_id', 'credit_id', 'refund_id', 'source_path','applied_cents','provider_payment_id','allocation_id','unapplied_cents'],
  ...value.sections.flatMap(section => {
   let balance = section.openingCents
-  return [[section.currency, 'opening', value.from ?? '', '', '', '', '', section.openingCents, balance, '', '', '', ''],
-   ...section.entries.map(line => [section.currency, line.kind, line.date, line.kind === 'invoice' ? line.dueAt : '', line.kind === 'invoice' ? line.number : '', line.orderId, line.kind === 'invoice' ? line.reference : '', line.amountCents, balance += line.amountCents, line.kind === 'card-payment' || line.kind === 'card-surcharge' ? line.id : '', line.kind === 'credit-note' ? line.id : '', line.kind === 'refund' ? line.id : '', line.kind === 'invoice' ? line.invoicePath : line.paymentPath,line.kind==='card-allocation'?line.appliedCents??0:0,line.kind==='invoice'?'':line.providerPaymentId??'']),
-   [section.currency,'unapplied principal',value.to,'','','','',section.unappliedCents,'','','','',''],
-   [section.currency, 'closing', value.to, '', '', '', '', section.closingCents, section.closingCents, '', '', '', '']]
+  return [[section.currency, 'opening', value.from ?? '', '', '', '', '', section.openingCents, balance, '', '', '', '','','','',''],
+   ...section.entries.map(line => [section.currency, line.kind, line.date, line.kind === 'invoice' ? line.dueAt : '', line.kind === 'invoice' ? line.number : '', line.orderId, line.kind === 'invoice' ? line.reference : '', line.amountCents, balance += line.amountCents, line.kind === 'card-allocation'?line.paymentId??'':line.kind === 'card-payment' || line.kind === 'card-surcharge' ? line.id : '', line.kind === 'credit-note' ? line.id : '', line.kind === 'refund' ? line.id : '', line.kind === 'invoice' ? line.invoicePath : line.paymentPath,line.kind==='card-allocation'?line.appliedCents??0:0,line.kind==='invoice'?'':line.providerPaymentId??'',line.kind==='card-allocation'?line.id:'','']),
+   ...(section.unappliedCents||section.entries.some(row=>row.kind==='card-payment')?[[section.currency,'unapplied principal',value.to,'','','','','','','','','','','','',section.unappliedCents]]:[]),
+   [section.currency, 'closing', value.to, '', '', '', '', section.closingCents, section.closingCents, '', '', '', '','','','','']]
  })]
 
 export async function statementResponse(db: D1Database, actor: Actor, accountId: string, format: 'json' | 'csv' | 'pdf', query: URLSearchParams) {

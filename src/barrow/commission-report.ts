@@ -45,9 +45,12 @@ function measured(order: Order, line: number, rule: CommissionRule, source: Comm
  // The stored line's own discounted price remains intact; no current pricing enters this ratio.
  const eligible = rule.basis === 'acceptance' ? source.base : source.dispatched
  const basisCents = rule.basis==='payment'?paidBasisCents:half(BigInt(merchandise) * eligible, source.base)
- const cancelledBasisCents = rule.basis === 'acceptance'||rule.basis==='payment' ? Math.min(basisCents,half(BigInt(merchandise) * source.cancelled, source.base)) : 0
- const returnedBasisCents = Math.min(basisCents - cancelledBasisCents, half(BigInt(merchandise) * source.returned, source.base))
- const adjustedBasisCents=Math.min(basisCents-cancelledBasisCents-returnedBasisCents,priceCreditCents)
+ const cancelledOriginal=half(BigInt(merchandise)*source.cancelled,source.base),returnedOriginal=half(BigInt(merchandise)*source.returned,source.base)
+ // Payment earning remains backed by the retained merchandise. Credits first reduce unpaid
+ // principal; they reverse earned payment commission only when that backing falls below it.
+ const cancelledBasisCents = rule.basis==='payment'?Math.max(0,basisCents-(merchandise-cancelledOriginal)):rule.basis === 'acceptance'?cancelledOriginal:0
+ const returnedBasisCents = rule.basis==='payment'?Math.max(0,basisCents-cancelledBasisCents-Math.max(0,merchandise-cancelledOriginal-returnedOriginal)):Math.min(basisCents-cancelledBasisCents,returnedOriginal)
+ const adjustedBasisCents=rule.basis==='payment'?Math.max(0,basisCents-cancelledBasisCents-returnedBasisCents-Math.max(0,merchandise-cancelledOriginal-returnedOriginal-priceCreditCents)):Math.min(basisCents-cancelledBasisCents-returnedBasisCents,priceCreditCents)
  const gross = half(BigInt(basisCents) * BigInt(rule.rateBps), 10000n)
  const remaining = half(BigInt(basisCents - cancelledBasisCents - returnedBasisCents - adjustedBasisCents) * BigInt(rule.rateBps), 10000n)
  const grossShares = allocate(gross, rule.splits)
@@ -112,7 +115,7 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
   amounts: 'Merchandise only at original discounted line cents; excludes delivery, handling and tax. Acceptance records original merchandise commission and reverses confirmed cancelled units; shipment earns only confirmed dispatched units. Duplicate item selling units share source quantities proportionally to base units. Basis amounts repeat across split rows; sum commission cents only. Currencies remain separate.',
   rounding: 'BigInt ratios round half up once per line. Commission rounds half up before splits; largest remainders allocate earned cents with lexical rep ties. Remaining commission uses original earned split cents as proportional weights, again by largest remainder. Reversals are original earned less remaining split cents, never negative; a full return or cancellation reverses every original cent.',
   returns: 'Only actual Pier return receipts linked to the original shipment reverse merchandise commission, capped by the earned merchandise basis. Missing or unreconciled sources leave amounts unknown, never zero.',
-  payments: 'Payment earning uses verified principal allocated to each invoice, distributed over its original merchandise and freight cents. Only merchandise earns under the frozen rule and split. Unapplied receipts earn nothing. Physical returns, cancellation and price credits reduce only the earned original basis once; linked provider references remain on each statement. Other payment sources are not recorded.',
+  payments: 'Payment earning uses verified principal allocated to each invoice, distributed over its original merchandise and freight cents. Only merchandise earns under the frozen rule and split. Unapplied receipts earn nothing. Physical returns, cancellation and price credits cap earning at the retained original merchandise basis and reverse the paid excess once; linked provider references remain on each statement. Other payment sources are not recorded.',
   credits: 'Credit notes retain the original physical return, approved line, currency and frozen split. Their linked refunds return cash only. The original physical-return reversal is applied once, capped by earned merchandise; issuing credit or refunding it never reverses the same return again.',
   access: 'Owner, admins and all-account managers read every frozen statement. A rep reads only their fixed label’s statements for accounts they hold today (assignment or temporary coverage); an account transferred away leaves their view while its frozen attribution stays. Rep labels alone grant no access.',
  } }
