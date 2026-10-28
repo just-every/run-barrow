@@ -394,6 +394,12 @@
       "name": "0060_integration_grants.sql",
       "sha256": "42cf578c6184156a4413a99aae546facfc5d9ee020e87942412ddae4e934cff0",
       "sql": "-- Credentials are installation-local and excluded from owner archives.\nCREATE TABLE bw_integration_grants (\n id TEXT PRIMARY KEY,\n digest TEXT NOT NULL UNIQUE,\n account_id TEXT NOT NULL REFERENCES bw_accounts(id) ON DELETE CASCADE,\n issuer_id TEXT NOT NULL REFERENCES oa_operators(id) ON DELETE CASCADE,\n issuer_version INTEGER NOT NULL,\n scopes_json TEXT NOT NULL CHECK(json_valid(scopes_json)),\n expires_at INTEGER NOT NULL,\n revision TEXT NOT NULL,\n state TEXT NOT NULL CHECK(state IN ('active','revoked')),\n reason TEXT NOT NULL\n);\nCREATE INDEX bw_integration_grants_account ON bw_integration_grants(account_id);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0061_payment_promises.sql",
+      "sha256": "0af5a8913788a329706bc4a6f872013823065fb2f59ee89e48a91f3a83e20b17",
+      "sql": "CREATE TABLE bw_payment_promises (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL UNIQUE,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_payment_promises_account ON bw_payment_promises(account_id);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
