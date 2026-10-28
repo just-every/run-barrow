@@ -55,3 +55,5 @@ export async function cardFixture(t,{built=false,https=false,edge=cardEdge(),con
  const prepared=async(options={})=>{const issued=await order(),payment=await h.command('card.prepare',{orderId:issued.id},buyer);edge.complete(payment,options);return {order:issued,payment:await h.command('card.refresh',{paymentId:payment.id},buyer)}};
  return {h,pier,product,buyer,other,edge,order,prepared};
 }
+
+export async function assertFinancialFloor(h,payment){const date=new Date(payment.latestFinancialAt??payment.updatedAt),month=date.getUTCMonth();date.setUTCFullYear(date.getUTCFullYear()+7);if(date.getUTCMonth()!==month)date.setUTCDate(0);const preview=await h.command('retention.preview',{accountId:payment.accountId});assert.equal(preview.items.find(row=>row.id==='order:'+payment.orderId).floorUntil,date.toISOString())}

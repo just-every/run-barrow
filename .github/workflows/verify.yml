@@ -48,6 +48,11 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promotion-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs
+      - name: Order follow-through screens
+        if: matrix.shard == 2
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-order-followthrough-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/order-followthrough.test.mjs
       - name: Faire fulfillment source screens
         if: matrix.shard == 3
         env:

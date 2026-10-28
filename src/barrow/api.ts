@@ -1,3 +1,4 @@
+import { orderFollowthrough } from './order-followthrough'
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
 import { requireActiveAccount } from './account-profile'
 import { seasons, seasonCommand } from './prebooks'
@@ -285,6 +286,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   // RPT-001 drill-down: one order as its reader may see it.
   const one=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
+  const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
+  if(followthrough && request.method==='GET') return json(await orderFollowthrough(env,actor,followthrough[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
   if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
   if(path==='/api/barrow/feeds/probe'&&request.method==='POST')return json(await probeSftp(env,actor,await boundedJson(request,10000)))

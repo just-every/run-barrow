@@ -108,7 +108,7 @@
       "executable": false
     },
     ".github/workflows/verify.yml": {
-      "sha256": "2508d80ac93414a999611ab872fb3fcbb80977aa45461ba9aa81daeb23c483d3",
+      "sha256": "403abd9a4fd50087c6aea0362b2c1bfd7b345b27be9765b72435705cc4fc33cb",
       "executable": false
     },
     ".gitignore": {
@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "390db554e551675991708ff925e976cb3994ef604d8c8aeb4f9e22cd766fedb5",
+      "sha256": "b6c8b3c8caf64cedf44830fabc9fc07185d26b64bb3d1159ba7f506cdd657f21",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "92fbe6269c74dfcfc1f5b127e73a2b6fad96fa1ebda8e2be2b7652a835b244f5",
+      "sha256": "ade3819c0e7cca01265026f3772ec11ba90c512d75c2920ba44d71c0b0a52f6f",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "da36a05444c47a5259337a782fd41e2fb6efc08a68d8e1fd4b997a628ea258a3",
+      "sha256": "2d96e20603467bc553bbdd74945d3854f71aa317f3d7edec6f3dc017668e3bdd",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -229,6 +229,10 @@
     },
     "docs/ORDER-CONFIRMATIONS.md": {
       "sha256": "c4c53a43b3f5f80b0cbd1a492dc58f2b100d9d2ed092842e012ed7edc05ef49e",
+      "executable": false
+    },
+    "docs/ORDER-FOLLOWTHROUGH.md": {
+      "sha256": "33ab70b84ab1b4caa8d177b09a78454a893a063f3de5abdf6379d125244d7c6e",
       "executable": false
     },
     "docs/ORDER-HISTORY.md": {
@@ -1136,7 +1140,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "97f214a989aa7bfcf33f13b8c231ca8cd315e83f9396071f497f821920c566b9",
+      "sha256": "2784b3621aefa44619f42a949ffcfd19d00fb875664e94a53f3d4e52be9801cc",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1416,7 +1420,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "728668fdf884a39e3d525238a15737b5da15e00819a0bcb03835c3dd4c569966",
+      "sha256": "d5e1086bea3af42bed61e7a07766874e51782aa4cdab97662d7a2610dab57399",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -1468,11 +1472,11 @@
       "executable": false
     },
     "src/barrow/followup-sources.ts": {
-      "sha256": "bc1ac46945812649444445afc6098d24f75ff0046f0485341a0cdd40503215e0",
+      "sha256": "594cea60c9f0c47db0fa71d0f43237b3ab8666ad9954e30255450124d3ddab52",
       "executable": false
     },
     "src/barrow/followups.ts": {
-      "sha256": "bf7ed2b893db8c9d0989888cf8c7dcf93699cbc6a6a918c63680fc36db4e6efc",
+      "sha256": "769aa9c094f606a69961f8b6b479f53749cabeabea0cfda121efd10c41ed7233",
       "executable": false
     },
     "src/barrow/freshness.ts": {
@@ -1661,6 +1665,10 @@
     },
     "src/barrow/model.ts": {
       "sha256": "06a482555f3c40fdebca9886304ea55c3baff05b0d4696cd33a95b37689b00bc",
+      "executable": false
+    },
+    "src/barrow/order-followthrough.ts": {
+      "sha256": "be2e0361819425b09f54c4e1f0a96b8d7c41286c4851a32d01699faf26b00143",
       "executable": false
     },
     "src/barrow/order-revisions.ts": {
@@ -1876,7 +1884,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "378af6bcde38a81ced76222cfc8305bdfa0ec352ee14bf5fa014da6a5645ef1f",
+      "sha256": "c3634b4bcfc40da30caf644e3138505b40daf896db0387eb8be40c1be62b6746",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -2147,6 +2155,10 @@
       "sha256": "c1f527ef85e055fe7139f5d4359971779f68cc86e55bef3c6ed5bc0f881e1a16",
       "executable": false
     },
+    "src/barrow/ui/order-followthrough.tsx": {
+      "sha256": "256fa76a9f5b9844e347097c778e435376013a4bdd8433c469c6ea73713ad2d5",
+      "executable": false
+    },
     "src/barrow/ui/order-pad.tsx": {
       "sha256": "781d11f74990eeee0a9ed733b3fb445e7702682cb4737f65064eb71ddff15754",
       "executable": false
@@ -2168,7 +2180,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "f793d62c09862ccf2f9d68ea94a5951eb90e2bf9e74abd30b466c2c55ee3e64a",
+      "sha256": "58e06d7d78e381b6b534bcd98cb9193218acea16caea1a22be13449c0d0cc609",
       "executable": false
     },
     "src/barrow/ui/prebooks.tsx": {
@@ -4368,11 +4380,11 @@
       "executable": false
     },
     "tests/api/card-fixture.mjs": {
-      "sha256": "bc3d679d702e36fe8a3f009bcc74e56f91804ad269cda52ed0c4bf0f87894d22",
+      "sha256": "f8ba6385d734847209ab57f907ef1bf00bc691996f1d7b4b74d2a3c70d15236f",
       "executable": false
     },
     "tests/api/card-payments.test.mjs": {
-      "sha256": "383d9d521a7780f1c34fc599fea4aa0e2abee126b7bde53a1298434dd92eb893",
+      "sha256": "a686e37a16a11cb387253cad6a08ca5b8f79bc5f30f5200fad1c9b948bf6eeaf",
       "executable": false
     },
     "tests/api/cart-import.test.mjs": {
@@ -4507,6 +4519,14 @@
       "sha256": "de3850c207037129f2728ca43909f7ef98ed178d5a315a010c73285ca274d51e",
       "executable": false
     },
+    "tests/api/order-followthrough-fixture.mjs": {
+      "sha256": "68848e4d8bf262c7a404228c212f81d41a9c5cf4a9484859e7785f670bc32133",
+      "executable": false
+    },
+    "tests/api/order-followthrough.test.mjs": {
+      "sha256": "9c60212e9bedd5bfb20f4404101033458e8be08f4756ba09232899e950a294ab",
+      "executable": false
+    },
     "tests/api/order-guarantee.test.mjs": {
       "sha256": "698c0983cd53c99c18489775a0eee7a2d95dded63c788bfeee1482d954e24a36",
       "executable": false
@@ -4532,7 +4552,7 @@
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
-      "sha256": "ee1e087ec448eb7683b6dd8a7567c81909d818aec7773161149880e9187cee42",
+      "sha256": "7e9070b16af7ef0e150e605a44399cf606a8b4f02b29832cf0e93e36ebea22df",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {
@@ -4608,7 +4628,7 @@
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
-      "sha256": "8669940ea9b1873299a4f6329106d459ae2996edd3f5708686041bdc0f3d6bc1",
+      "sha256": "4d27d49ee453b478b063e4145d0c31208bd1cae485e5b080a1c74f7470f3754f",
       "executable": false
     },
     "tests/api/stock-sync-fixture.mjs": {
@@ -4712,7 +4732,7 @@
       "executable": false
     },
     "tests/journeys/confirmations.test.mjs": {
-      "sha256": "14506b1f18eab661f109986f4745703a7d172e3671ae78d0a1e2bfb225233b7b",
+      "sha256": "48b8d00f740760eedb761293220b5e0632ce54901fe3237267029ec1e8356964",
       "executable": false
     },
     "tests/journeys/connector-review.test.mjs": {
@@ -4769,6 +4789,10 @@
     },
     "tests/journeys/move-wizcommerce.test.mjs": {
       "sha256": "a87d628a8b24017cedb22752ceb590119be9a407e836b9d5ffdf80ebacd26417",
+      "executable": false
+    },
+    "tests/journeys/order-followthrough.test.mjs": {
+      "sha256": "c7e85b86b0888e6568ae97c159ac5586468086241875ce6e4841e0a69b95a7d4",
       "executable": false
     },
     "tests/journeys/pricing.test.mjs": {
