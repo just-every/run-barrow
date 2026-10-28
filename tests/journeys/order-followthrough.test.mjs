@@ -1,3 +1,4 @@
+import {proveShipmentTrackingScreens} from './shipment-tracking-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
@@ -49,4 +50,6 @@ test('supplier reviews order-linked inventory and card exceptions, retries one d
   assert.equal(await region.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
   assert.equal(await region.locator('p,label,button,a,li').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&parseFloat(getComputedStyle(element).fontSize)<13).length),0);
  }
+ await browser.close();
+ await proveShipmentTrackingScreens(t);
 });

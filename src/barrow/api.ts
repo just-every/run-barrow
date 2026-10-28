@@ -1,5 +1,7 @@
 import { readReturnClaims,returnClaimCommand } from './return-claims'
+import { trackingCommand, trackingView } from './shipment-tracking'
 import { orderFollowthrough } from './order-followthrough'
+import { paymentPromiseCommand, readPaymentPromises } from './payment-promises'
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
 import { integrationResponse } from './integration-api'
 import { requireActiveAccount } from './account-profile'
@@ -150,6 +152,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/payment-promises'&&request.method==='GET')return json(await readPaymentPromises(env,actor,url.searchParams))
   if(path==='/api/barrow/account-credit'&&request.method==='GET')return json(await readAccountCredit(env,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/credits'&&request.method==='GET')return json(await readCredits(env,actor,url.searchParams.get('orderId')??''))
   const creditPath=/^\/api\/barrow\/credits\/([-a-zA-Z0-9_]+)$/.exec(path),refundPath=/^\/api\/barrow\/refunds\/([-a-zA-Z0-9_]+)$/.exec(path)
@@ -292,10 +295,12 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
   const returnClaims=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/return-claims$/.exec(path)
   if(returnClaims&&request.method==='GET')return json(await readReturnClaims(env,actor,returnClaims[1]))
+  const tracking=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/tracking$/.exec(path)
+  if(tracking && request.method==='GET') return json(await trackingView(env,actor,tracking[1]))
   const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
   if(followthrough && request.method==='GET') return json(await orderFollowthrough(env,actor,followthrough[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
-  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
+  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1]),actor))
   if(path==='/api/barrow/feeds/probe'&&request.method==='POST')return json(await probeSftp(env,actor,await boundedJson(request,10000)))
   if(path==='/api/barrow/cutover/deltas') {
    if(request.method==='GET')return json(await listDeltas(env,actor))
@@ -361,6 +366,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent && !['order.prepare','cart.preview','cart.form','proposal.submit'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
+   if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
    if(['return.request','return.revise','return.decide','return.reconcile'].includes(body.type))return json({result:await returnClaimCommand(env,actor,body.type,body.payload)})
    if(['prebook.publish','prebook.close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
@@ -369,6 +375,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
+   if(body.type.startsWith('promise.'))return json({result:await paymentPromiseCommand(env,actor,body.type,body.payload)})
    if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})

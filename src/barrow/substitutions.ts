@@ -1,3 +1,4 @@
+import { deliveryDisclosure } from './shipment-tracking'
 import { admitCredit, creditPolicy, creditSignature } from './credit-policy'
 import { buyingOrderGuards } from './buying-profiles'
 import {deltaEntryGuard} from './imports/delta-entry'
@@ -29,10 +30,10 @@ export async function substitutionCommand(env:Bindings,actor:Actor,type:string,p
   requireSupplier(actor)
   if(latest?.status==='accepted')fail('SUBSTITUTION_ACCEPTED','This order already has an accepted substitution. Follow its replacement order.')
   const preview=await previewSubstitution(env,actor,order,p)
-  if(type==='substitution.preview')return {lines:preview.lines,deliveryOptions:preview.deliveryOptions,totalCents:preview.totalCents,taxNote:preview.taxNote}
+  if(type==='substitution.preview')return {lines:preview.lines,deliveryOptions:preview.deliveryOptions,totalCents:preview.totalCents,taxNote:preview.taxNote,carrierDelivery:await deliveryDisclosure(env,order)}
   if(p.orderRevision!==order.revision)fail('SUBSTITUTION_CHANGED','Refresh the original order before proposing a revision.')
   if(preview.deliveryOptions.required&&!preview.delivery)fail('SHIPPING_REQUIRED','Select a replacement delivery method before offering it.')
-  const offer:Substitution={...(context?{agentProposal:{id:context.proposal.id,number:context.proposal.number}}:{}),number:(latest?.number??0)+1,status:'offered',reason:text(p.reason,'Substitution reason',240),proposedBy:actor.id,proposedAt:(await now()).toISOString(),accountRevision:preview.selected.revision,lines:preview.lines,totalCents:preview.totalCents,delivery:preview.delivery,freightQuotes:preview.freightQuotes,taxNote:preview.taxNote}
+  const offer:Substitution={...(context?{agentProposal:{id:context.proposal.id,number:context.proposal.number}}:{}),number:(latest?.number??0)+1,status:'offered',reason:text(p.reason,'Substitution reason',240),proposedBy:actor.id,proposedAt:(await now()).toISOString(),accountRevision:preview.selected.revision,lines:preview.lines,totalCents:preview.totalCents,delivery:preview.delivery,freightQuotes:preview.freightQuotes,taxNote:preview.taxNote,carrierDelivery:await deliveryDisclosure(env,order)}
   return store(env,actor,order,[...offers,offer],'substitution.offered',`Offer ${offer.number}: ${offer.reason}`,[activeAccountGuard(env.DB,preview.selected),shippingGuard(env.DB,preview.delivery),...(context?.statements??[])])
  }
  if(!latest||latest.number!==p.number)fail('SUBSTITUTION_CHANGED','Review the latest numbered offer.')
