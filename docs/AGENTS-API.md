@@ -76,7 +76,12 @@ purchasers read their current assortment and quotes; finance reads authorized
 invoices. Fulfillment requires the existing supplier fulfillment-report rights,
 including staff account and warehouse scope. Agents cannot read invoices or
 fulfillment. Fulfillment rows reuse RPT-003's live source-confirmed quantities,
-warehouse attribution and explicit unknown delivery and tracking facts. A missing
+warehouse attribution and explicit unknown delivery and tracking facts. Rows name
+`kind`: `source-line` for Pier, `channel-line` for existing channel observations,
+and `commitment` for seasonal promises. A commitment's released quantity is a
+handoff, never proof of shipment; its shipped quantity, warehouse and delivery
+remain explicitly unknown. Channel observations keep their recorded source and
+unknown quantities without being combined with Pier's stock. A missing
 or mismatched source refuses the read; Barrow never infers quantities from a draft.
 
 The envelope is `{version:1,data:[...],snapshot,nextCursor}`. `limit` is one to

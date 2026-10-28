@@ -95,6 +95,8 @@ test('versioned exchange imports reviewed catalog and companies, pages authorize
  const audit=(await h.api('/api/barrow/audit?accountId=cedar')).events;
  const event=audit.find(row=>row.action==='integration.granted');assert.ok(event);assert.equal(event.actorId,owner.id);assert.equal(event.actorKind,'human');assert.equal(event.revision,issued.grant.revision);assert.equal(event.source,'integration.grant');assert.equal(event.reason,consent('cedar').reason);assert.ok(event.createdAt);
  const prepared=audit.find(row=>row.orderId===draft.id&&row.action==='order.prepared');assert.equal(prepared.actorKind,'agent');assert.equal(prepared.actorId,'agent:'+issued.grant.id);
+ assert.ok((await h.api('/api/barrow/audit?person='+encodeURIComponent(owner.id))).events.some(row=>row.id===event.id));
+ assert.ok((await h.api('/api/barrow/audit?person='+encodeURIComponent(prepared.actorId))).events.some(row=>row.id===prepared.id));
  await h.api('/api/barrow/audit',undefined,{...agent,status:403});
  const csvAudit=await (await h.request('/api/barrow/audit.csv?accountId=cedar&limit=1')).text();assert.ok(csvAudit.includes(event.id));assert.ok(csvAudit.includes(prepared.id));assert.ok(!csvAudit.includes(issued.token));
  const auditBefore=(await h.api('/api/barrow/audit?accountId=cedar')).events;
@@ -134,7 +136,11 @@ test('integration expiry, scoped permissions, revocation, issuer changes, accoun
  const secondOwner={as:await h.signIn('owner.'+a.value.email,'owner')};await proveOwner(secondOwner);
  await h.api('/auth/operator/status',{operatorId:owner.id,status:'inactive'},secondOwner);await read(oldIssuer.token,{status:401});
  await h.api('/auth/operator/status',{operatorId:owner.id,status:'active'},secondOwner);await read(oldIssuer.token,{status:401});
- const signedOwner={as:await h.signIn(owner.email,'existing')};
+ let signedOwner={as:await h.signIn(owner.email,'existing')};
+ const demoted=await h.api(base+'/grants',consent(a.id),signedOwner);
+ await h.api('/auth/operator/role',{operatorId:owner.id,role:'admin'},secondOwner);await read(demoted.token,{status:401});
+ await h.api('/auth/operator/role',{operatorId:owner.id,role:'owner'},secondOwner);await read(demoted.token,{status:401});
+ signedOwner={as:await h.signIn(owner.email,'existing')};
  const erased=await h.api(base+'/grants',consent(a.id),signedOwner);
  await h.command('account.erase',{accountId:a.id,confirm:'ERASE'},signedOwner);await read(erased.token,{status:401});
  assert.equal((await h.api(base+'/accounts?accountId=cedar',undefined,{...signedOwner,status:404})).error.code,'NOT_FOUND');

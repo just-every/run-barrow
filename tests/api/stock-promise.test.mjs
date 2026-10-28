@@ -135,6 +135,7 @@ test('seasonal prebooks bind published windows, live incoming capacity and exact
  assert.equal((await h.command('order.prepare',input,{...buyer,status:409})).error.code,'SEASON_CLOSED');
  const stored=await h.api('/api/barrow/orders/'+order.id,undefined,buyer);assert.equal(stored.prebook.depositCents,21000);
  const report=await h.api('/api/barrow/reports/fulfillment?accountId=cedar');assert.deepEqual(report.prebooks.map(row=>[row.sku,row.committed,row.released,row.outstanding]),[['OAT-1','8','0','8'],['RYE-1','6','0','6']]);
+ const exchange=await h.api('/api/barrow/v1/fulfillment?accountId=cedar');assert.deepEqual(exchange.data.map(row=>[row.kind,row.sku,row.committed,row.released,row.outstanding,row.shipped,row.warehouse,row.delivery]),[['commitment','OAT-1','8','0','8','unknown','unknown','unknown'],['commitment','RYE-1','6','0','6','unknown','unknown','unknown']]);
  // A received PO feeds the first release; Pier remains the only allocator.
  await pier.command('receipt.create',{poId:po.id,supplierReference:'Spring first delivery',lines:[{poLineId:po.lines[0].id,locationId:product.location.id,quantity:'12',cost:'20.00'}]});
  const currentCredit=await h.api('/api/barrow/account-credit?accountId=cedar');await h.command('credit-policy.save',{accountId:'cedar',revision:currentCredit.revision,currency:'USD',limitCents:80000,termsDays:30,reason:'Finance extends the current limit before fulfillment without changing the commitment.'});
