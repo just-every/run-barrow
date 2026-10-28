@@ -57,7 +57,7 @@ export async function catalogue(env: Bindings,account: Account) {
   const byWarehouse=stockByItem.get(item.id)??new Map<string,bigint>()
   const sellable=[...byWarehouse].filter(([name])=>!allowed||allowed.has(name)).reduce((n,[,quantity])=>n+quantity,0n)
   const held=unconfirmed.get(item.id)??0n,available=sellable>held?sellable-held:0n
-  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{}),warehouses:[...byWarehouse].sort(([a],[b])=>a.localeCompare(b)).map(([warehouse,quantity])=>({warehouse,available:format(quantity),promised:!allowed||allowed.has(warehouse)})),incoming:incoming(state,item.id)}
+  const offer={...price,itemId:item.id,name:item.name,unit:item.unit,...(typeof item.barcode==='string'&&item.barcode?{barcode:item.barcode as string}:{}),available:format(available),...(held?{awaitingRelease:format(held)}:{}),warehouses:[...byWarehouse].sort(([a],[b])=>a.localeCompare(b)).map(([warehouse,quantity])=>({warehouse,available:format(quantity),promised:!allowed||allowed.has(warehouse)})),incoming:incoming(state,item.id),prebookSupply:prebookSupply(state,item.id),incomingDemand:format((state.orders??[]).flatMap((order:any)=>order.lines??[]).filter((line:any)=>line.itemId===item.id).reduce((n:bigint,line:any)=>n+decimal(line.backorder??'0'),0n))}
   sellingUnits(offer)
   return [offer]
  })
@@ -71,6 +71,13 @@ function incoming(state:any,itemId:string) {
   if(open>0n) dates.set(po.promiseDate??null,(dates.get(po.promiseDate??null)??0n)+open)
  }
  return [...dates].sort(([a],[b])=>a===null?1:b===null?-1:a.localeCompare(b)).map(([date,quantity])=>({date,quantity:format(quantity)}))
+}
+/** Dated source capacity retains its exact PO and declared receiving warehouse. */
+function prebookSupply(state:any,itemId:string) {
+ return (state.purchaseOrders??[]).filter((po:any)=>po.status==='committed').flatMap((po:any)=>(po.lines??[]).filter((line:any)=>line.itemId===itemId).flatMap((line:any)=>{
+  const quantity=decimal(line.quantity)-decimal(line.received??'0')
+  return quantity>0n?[{date:po.promiseDate??null,quantity:format(quantity),warehouse:po.destinationWarehouse??null,sourceId:po.id}]:[]
+ })) as {date:string|null;quantity:string;warehouse:string|null;sourceId:string}[]
 }
 /** Several selling units of one SKU become one exact base-unit reservation at Pier. */
 export function reservationLines(lines:Line[]) {

@@ -16,7 +16,7 @@ export function publicCard(p:CardPayment) {const {paymentMethodId,setupSessionId
 async function permitted(env:Bindings,actor:Actor,p:CardPayment) {
  requirePerson(actor);await account(env.DB,actor,p.accountId);await requireCompanyRight(env.DB,actor,p.accountId,'finance',(await readOrder(env.DB,actor,p.orderId)).shipTo?.id)
 }
-function payable(order:Order) {if(order.status!=='approved'||!order.invoice||!order.pierOrderId)fail('PAYMENT_ORDER','Card collection needs a fully reserved approved order and issued invoice.',409)}
+function payable(order:Order) {if(order.prebook){if(order.status!=='approved'||order.prebook.restored||order.prebook.depositCents<=0)fail('PAYMENT_ORDER','An accepted active prebook with a recorded deposit requirement is required.',409);return order.prebook.depositCents}if(order.status!=='approved'||!order.invoice||!order.pierOrderId)fail('PAYMENT_ORDER','Card collection needs a fully reserved approved order and issued invoice.',409);return order.totalCents}
 export async function readCards(env:Bindings,actor:Actor,orderId:string) {
  const order=await readOrder(env.DB,actor,orderId);await permitted(env,actor,{accountId:order.accountId,orderId:order.id} as CardPayment)
  const rows=await env.DB.prepare('SELECT value_json FROM bw_card_payments WHERE order_id=?').bind(orderId).all<{value_json:string}>()
@@ -34,7 +34,7 @@ export async function cardCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='card.prepare') {
   const order=await readOrder(env.DB,actor,text(p.orderId,'Order'));await permitted(env,actor,{accountId:order.accountId,orderId:order.id} as CardPayment);payable(order)
   const config=await connection(env),id=`card-${order.id}`,at=new Date().toISOString()
-  const value:CardPayment={id,installationId:await cardInstallation(env.DB),orderId:order.id,accountId:order.accountId,orderRevision:order.revision,currency:order.currency??'AUD',amountCents:order.totalCents,surchargeCents:0,state:'prepared',createdAt:at,updatedAt:at,providerAccountId:config.account_id,livemode:!!config.livemode}
+  const value:CardPayment={id,installationId:await cardInstallation(env.DB),orderId:order.id,accountId:order.accountId,orderRevision:order.revision,currency:order.currency??'AUD',amountCents:payable(order),surchargeCents:0,state:'prepared',createdAt:at,updatedAt:at,providerAccountId:config.account_id,livemode:!!config.livemode}
   await commit(env.DB,actor,[env.DB.prepare('INSERT OR IGNORE INTO bw_card_payments VALUES(?,?,?,?,?)').bind(id,order.accountId,order.id,JSON.stringify(value),crypto.randomUUID())])
   const row=await storedCard(env,id)
   if(row.value.restored)fail('RESTORED','Restored payment history cannot initiate charges.',409)
@@ -43,7 +43,7 @@ export async function cardCommand(env:Bindings,actor:Actor,type:string,p:any) {
   const stripe=await provider(env,config),session=await stripe.call('/checkout/sessions',{mode:'setup',customer:customerId,'payment_method_types[0]':'card',billing_address_collection:'required',currency:value.currency.toLowerCase(),client_reference_id:id,'setup_intent_data[metadata][barrowPaymentId]':id,'setup_intent_data[metadata][barrowInstallationId]':row.value.installationId!,success_url:`${env.AUTH_ORIGIN}/app?cardPayment=${encodeURIComponent(id)}`,cancel_url:`${env.AUTH_ORIGIN}/app?cardPayment=${encodeURIComponent(id)}`},`barrow-setup-${row.value.installationId}-${id}`)
   const checkoutUrl=hostedUrl(session.url)
   if(!checkoutUrl)fail('STRIPE_CHECKOUT','Stripe did not provide a hosted card-entry page.',409)
-  return publicCard(await save(env,actor,{...row.value,providerCustomerId:customerId,setupSessionId:session.id,checkoutUrl},row.revision,'card.prepared','Buyer requested Stripe-hosted card entry for the exact issued order.'))
+  return publicCard(await save(env,actor,{...row.value,providerCustomerId:customerId,setupSessionId:session.id,checkoutUrl},row.revision,'card.prepared',order.prebook?'Buyer requested Stripe-hosted card entry for the recorded prebook deposit; no invoice allocation.':'Buyer requested Stripe-hosted card entry for the exact issued order.'))
  }
  const id=text(p.paymentId,'Payment'),row=await storedCard(env,id),value=row.value
  await permitted(env,actor,value)
@@ -65,7 +65,7 @@ export async function cardCommand(env:Bindings,actor:Actor,type:string,p:any) {
  if(type==='card.authorize') {
   if(value.state==='cancelled'||value.state==='declined')fail('PAYMENT_STATE','This card attempt has ended; it cannot create a new authorization.',409)
   const order=await readOrder(env.DB,actor,value.orderId);payable(order)
-  if(order.revision!==value.orderRevision||order.totalCents!==value.amountCents||(order.currency??'AUD')!==value.currency)fail('PAYMENT_CHANGED','The order changed after this payment was prepared.',409)
+  if(order.revision!==value.orderRevision||payable(order)!==value.amountCents||(order.currency??'AUD')!==value.currency)fail('PAYMENT_CHANGED','The order changed after this payment was prepared.',409)
   if(p.consent!==true||p.amountCents!==value.amountCents||p.surchargeCents!==value.surchargeCents||!value.paymentMethodId)fail('CONSENT','Review and explicitly accept the exact amount and disclosed surcharge after hosted card entry.',400)
   if(value.providerPaymentId)return publicCard(await reconcileCard(env,id,await stripe.call(`/payment_intents/${value.providerPaymentId}?expand[]=latest_charge`),undefined,actor.id))
   const guards=await assertSavedConsent(env,actor,value)

@@ -30,6 +30,7 @@ jobs:
       - name: Use the official Ubuntu archive for browser dependencies
         run: echo "https://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
       - run: pnpm exec playwright install --with-deps chromium
+      - run: node scripts/contract-docs.mjs check
       - run: pnpm exec rer check --profile first-party
       - run: pnpm exec rer verify --no-queue
       - name: Credit notes and finance allowance screens
@@ -37,6 +38,11 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-credit-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs
+      - name: Seasonal commitment and release screens
+        if: matrix.shard == 1
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-prebook-screens
+        run: timeout 1200 node --test --test-concurrency=1 --test-name-pattern='buyer books a spring season' tests/journeys/confirmations.test.mjs
       - name: Promotion preview and return attribution screens
         if: matrix.shard == 2
         env:

@@ -37,7 +37,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
   if (method === 'GET' && (access === 'review' || access === 'documents' && relative === 'export/applicationdocuments.csv')) return
   return denied(env, actor, path)
  }
- if(method==='GET'&&['state','company/invitations','usage-terms','report-schedules','audit','audit.csv'].includes(relative))return
+ if(method==='GET'&&['prebook-seasons','state','company/invitations','usage-terms','report-schedules','audit','audit.csv'].includes(relative))return
  if(method==='GET'&&/^report-runs\/[A-Za-z0-9_-]+\.json$/.test(relative))return
  if(method==='GET'&&/^reports\/(sales|finance|quotes|fulfillment|commissions|rep-performance)(\.csv)?$/.test(relative))return // report computes whole-filter entitlement before reading
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
@@ -71,7 +71,7 @@ const commandRoles:Record<string,string[]>={
  'cart.preview':selling,'cart.form':selling,'list.save':selling,'list.duplicate':selling,'list.delete':selling,
  'quote.request':selling,'quote.propose':selling,'quote.approve':['sales-manager'],'quote.message':selling,'quote.read':selling,
  'shipping.select':selling,'shipping.quote':['sales-manager'],
- 'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
+ 'prebook.release':operating,'prebook.delay':operating,'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
  'substitution.preview':['sales-manager'],'substitution.propose':['sales-manager'],'substitution.execute':operating,
  'location.save':['sales-manager'],'location.archive':['sales-manager'],
  'rep.assign':['sales-manager'],'rep.cover':['sales-manager'],'rep.end':['sales-manager'],'rep.transfer':['sales-manager'],
@@ -90,7 +90,7 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
  }
  if(!commandRoles[type]?.includes(grant.role))return denied(env,actor,type)
  if(['terms.publish','commission.settings','rep.assign','rep.cover','rep.end','rep.transfer'].includes(type)&&grant.accounts!=='all')return denied(env,actor,type)
- if(['order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
+ if(['prebook.release','prebook.delay','order.approve','order.refresh','order.cancel','substitution.execute','visit.handoff'].includes(type)&&grant.warehouses!=='all')return denied(env,actor,type) // current Pier door may allocate across warehouses
  let accountId=typeof p.accountId==='string'?p.accountId:undefined
  for(const [key,table] of [['orderId','bw_orders'],['creditId','bw_credit_notes'],['refundId','bw_credit_refunds'],['paymentId','bw_card_payments'],['quoteId','bw_quotes'],['listId','bw_lists'],['sheetId','bw_line_sheets'],['id','bw_followups']] as const){
   if(typeof p[key]!=='string'||key==='id'&&!type.startsWith('followup.'))continue

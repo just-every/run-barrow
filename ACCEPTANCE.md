@@ -8,10 +8,10 @@ The primary journey: Exercise the capabilities and acceptance journeys below.
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 67 | 28 | 44 | 139 |
+| Core | 68 | 28 | 43 | 139 |
 | Agent surface | 0 | 0 | 0 | 0 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 67 | 28 | 44 | 139 |
+| Full target | 68 | 28 | 43 | 139 |
 
 Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370dba` (28 October 2026). INT-014 candidate evidence is the code and tests in this tree, subject to exact-candidate Verify and guarded landing; its broader scheduled-feed duties remain with INT-020. ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance, shipment and physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged. CAT-010 is a partial implementation with current public-door evidence below; its candidate SHA and run receipts accompany the branch handoff. Field proof register: 0 rows; 0 passed, 0 failed, 0 not run.
 
@@ -563,16 +563,16 @@ Core · target · **done**
 
 #### ORD-008 — Seasonal prebooks and ship windows
 
-Core · target · **missing**
+Core · target · **done**
 
-**Requirement.** Buyers order future seasons and preorder inventory against published opening/closing dates, minimums, deposits and promised ship/cancel windows. Prebook quantities and available-now stock are distinguished, capacity is checked with the inventory authority and later releases remain linked to the original commitment. Before it ships, this clause takes over ordering into future ship windows against STK-002’s incoming supply, which today is shown but never promised. Before shipping, this clause adds its release-level commitments and recorded promise-change history to RPT-003. Before it ships, this clause shows prebooks as their own rows in RPT-001’s sales report.
+**Requirement.** *Cites:* BAR-002, CAT-006, STK-002, RPT-001, RPT-003, DATA-002. Buyers order future seasons and preorder inventory against published opening/closing dates, minimums, deposits and promised ship/cancel windows. Prebook quantities and available-now stock are distinguished, capacity is checked with the inventory authority and later releases remain linked to the original commitment. Before it ships, this clause takes over ordering into future ship windows against STK-002’s incoming supply, which today is shown but never promised. Before shipping, this clause adds its release-level commitments and recorded promise-change history to RPT-003. Before it ships, this clause shows prebooks as their own rows in RPT-001’s sales report. Current native semantics: the owner or admin publishes immutable season terms in one ISO currency, intake instants, minimums, deposit basis points and ship windows. One SKU and selling unit retains one window under ORD-014. The recorded deposit requirement rounds up to an integer minor unit; explicit buyer review and the existing PAY-001 card path collect it, while PAY-003 owns allocation and invoice settlement. Commercial commitments are distinct from inventory balances. Each admission reads live Pier unreceived committed supply by its source promise date and receiving warehouse, accounts for other native commitments and source backorders, and retains the immediate-stock and freshness refusals. After intake closes, currently authorized fulfillment staff explicitly create one fixed-price order for a window within its agreed cancel date, requiring a verified deposit capture when one is recorded; the existing supplier approval sends its durable identity to Pier. Pier routing must stay inside the account warehouse rule. Released quantities measure handoff to that linked fulfillment order; allocation and shipment remain source-confirmed facts. Estimated delays are attributed and retained within the agreed window without rewriting confirmations; broader edits and cancellation remain ORD-009 and ORD-011 duties. RPT-003 carries commitments, releases and estimate history. RPT-001 books the commitment once, with zero new booked cents on linked releases. Releases retain original commission attribution. Archives close intake and preserve inert commitments and pending releases.
 
 **Acceptance.**
 1. Place a spring prebook with two ship windows and a deposit, close the season, release the first window and backorder a delayed style.
 2. Buyer and operations see committed, released and outstanding quantities separately.
 
-**Evidence.** None.
-**Gap.** Implement seasonal prebooks and ship windows and prove the stated journey.
+**Evidence.** `tests/api/stock-promise.test.mjs` — “seasonal prebooks bind published windows, live incoming capacity and exact deposits; closing, release and delayed commitments reconcile without booking twice”: two dated windows, exact deposit and frozen confirmations, real Pier incoming supply and routing, linked release and original commissions, quantity reconciliation, promise history, booked sales and attributed searchable audit with CSV. “seasonal admissions refuse closed dates, insufficient or changed source capacity, wrong currency and warehouses, stale observations and invalid windows”: admission refusals. “seasonal authority, deposit gates, promise bounds and restore fences preserve original commitments and refuse replayed effects”: current authority, captured-deposit gate, replay, erasure and inert restoration. `tests/api/pricing.test.mjs` — “seasonal brand profile requires current approval and keeps the exact CAD seller, deposit and linked invoice without mixing currencies”: brand approval, integer CAD cents, deposit rounding and linked invoice. `tests/journeys/confirmations.test.mjs` — “buyer books a spring season with a deposit and two windows; supplier closes intake, releases once and records a delayed style visible to buyer and operations”: settings, buyer order, captured deposit, closing and buyer and operations quantity screens at 1440 and 390; invoked by Verify shard 1.
+**Gap.** None.
 
 #### ORD-009 — Backorders and shipment splits
 

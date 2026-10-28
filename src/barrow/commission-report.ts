@@ -79,7 +79,7 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
  const rows: CommissionRow[] = [], exceptions: { orderId: string; reason: string }[] = []
  let unmatchedLines = 0
  for (const { order, commission } of orders) {
-  if (!commission) continue
+  if (!commission || order.prebook) continue
   let quantities: Map<string, CommissionSource> | undefined
   if (source === 'read') {
    try { quantities = commissionSources(order, state, origin) }
