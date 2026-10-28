@@ -378,8 +378,8 @@ Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370d
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 63 | 29 | 41 | 133 |
-| All | 69 | 29 | 41 | 139 |
+| Target and push further | 64 | 28 | 41 | 133 |
+| All | 70 | 28 | 41 | 139 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -470,7 +470,7 @@ Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370d
 | `INT-003` | Xero accounting | target | missing |  | Implement xero accounting and prove the stated journey. |
 | `INT-004` | NetSuite ERP | target | missing |  | Implement netsuite erp and prove the stated journey. |
 | `INT-005` | Shopify commerce connection | target | missing |  | Implement shopify commerce connection and prove the stated journey. |
-| `INT-006` | WooCommerce commerce connection | target | partial | `tests/api/woocommerce.test.mjs` — “controlled WooCommerce variation, protected prices, durable approval, source fulfillment and refunds survive replay while unsafe authority and stock paths refuse”: real controlled WooCommerce REST variation and customer mapping, protected account prices, human approval, durable lost-acknowledgment retry, explicit shortfalls, source fulfillment and refund references, signed replay, credential revocation and buyer isolation. | Built-page proof, complete inherited reporting and restore proof, and exact-candidate Verify remain to be established. |
+| `INT-006` | WooCommerce commerce connection | target | done | `tests/api/woocommerce.test.mjs` — “controlled WooCommerce variation, protected prices, durable approval, source fulfillment and refunds survive replay while unsafe authority and stock paths refuse”: actual controlled WooCommerce REST variation and customer mapping, negotiated account prices distinct from retail, exact currency and terms with human approval snapshots, durable lost-acknowledgment retry, explicit shortfalls and invoice refusal, authenticated fulfillment and native refund references, signed duplicate and older webhook reconciliation, destination binding, source credential revocation, warehouse restrictions, stale-stock refusal and audited owner exception, private attributed audit search and complete CSV, disabled restored consent and erased-buyer replay refusal. `tests/journeys/woocommerce.test.mjs` — “buyer reviews a controlled WooCommerce variation at negotiated prices and the owner reconciles exact shipment and refund receipts with unknown warehouse and delivery”: built order pad, human submission and supplier approval, exact linked source receipts and source-confirmed fulfillment quantities with unknown warehouse, dates and delivery; captures at 1440 and 390. Existing Pier preservation: `tests/api/order-guarantee.test.mjs` and `tests/api/fulfillment.test.mjs`. | |
 | `INT-007` | Cin7 Core inventory connection | target | missing |  | Implement cin7 core inventory connection and prove the stated journey. |
 | `INT-008` | Brightpearl inventory connection | target | missing |  | Implement brightpearl inventory connection and prove the stated journey. |
 | `INT-009` | Katana inventory connection | target | missing |  | Implement katana inventory connection and prove the stated journey. |

@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {chromium,expect} from '@playwright/test';
+import {installation,accountValue} from '../api/harness.mjs';
+import {controlledWoo,wooStock} from '../woocommerce-store.mjs';
+import {signedContext,captureWidths,captureRegionWidths} from './browser-helpers.mjs';
+
+test('buyer reviews a controlled WooCommerce variation at negotiated prices and the owner reconciles exact shipment and refund receipts with unknown warehouse and delivery', {timeout:360000}, async t=>{
+ const store=await controlledWoo();t.after(()=>store.close());const source=await wooStock(store);
+ const h=await installation({built:true,https:true,bindings:store.bindings});t.after(()=>h.close());
+ await h.command('woocommerce.connect',{reason:'Owner authorizes the controlled source for this built-page journey.'});
+ const email='synthetic-barrow-browser'+'@'+'example.test';
+ await h.command('account.save',{id:'cedar',value:{...accountValue('unused-pier',email),minimumCents:0,providerReferences:{woocommerce:String(source.customer.id)},prices:[{sku:source.variation.sku,unitCents:6501,minQty:1}]}});
+ const buyerCookie=await h.signIn(email);
+ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM_EXECUTABLE?{executablePath:process.env.BARROW_CHROMIUM_EXECUTABLE}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const ownerContext=await signedContext(browser,h);t.after(()=>ownerContext.close());const owner=await ownerContext.newPage();await owner.goto(h.origin+'/app');
+ if(new URL(owner.url()).pathname==='/setup'){await owner.getByLabel('Your name').fill('Supplier owner');await owner.getByRole('checkbox').check();await owner.getByRole('button',{name:'Finish setup',exact:true}).click()}
+ const buyerContext=await signedContext(browser,h,buyerCookie);t.after(()=>buyerContext.close());const buyer=await buyerContext.newPage();await buyer.goto(h.origin+'/app');
+ await buyer.getByRole('spinbutton',{name:/quantity for Controlled wholesale shirt/}).fill('3');
+ await expect(buyer.locator('.br-pad')).toContainText('WooCommerce stock');await expect(buyer.locator('.br-pad')).toContainText('USD 65.01');await expect(buyer.locator('.br-pad')).toContainText('Unknown warehouse');await expect(buyer.locator('.br-pad')).toContainText('Incoming quantity and promise date unknown');
+ await captureWidths(buyer,'woocommerce-negotiated-order-pad');
+ await buyer.getByRole('button',{name:'Prepare draft',exact:true}).click();
+ const buyerOrder=buyer.locator('article.br-order').first();await expect(buyerOrder).toContainText('USD 195.03');
+ await buyerOrder.getByRole('button',{name:'Submit for supplier review',exact:true}).click();await expect(buyerOrder.getByText('submitted',{exact:true})).toBeVisible();
+ await owner.reload();await owner.getByRole('button',{name:'Orders',exact:true}).click();
+ const orderCard=owner.locator('article.br-order').first();await orderCard.getByRole('button',{name:'Approve & reserve stock',exact:true}).click();await expect(orderCard.getByText('approved',{exact:true})).toBeVisible();
+ const accepted=(await h.api('/api/barrow/orders/history')).orders[0],external=await store.request(`/wp-json/wc/v3/orders/${accepted.pierOrderId}`),lineId=String(external.line_items[0].id);
+ await store.request(`/wp-json/barrow/v1/orders/${external.id}/fulfillments`,{reference:'SYNTHETIC-SHIPMENT-UI',lines:[{lineId,quantity:2}]});
+ const refund=await store.request(`/wp-json/wc/v3/orders/${external.id}/refunds`,{amount:'65.01',reason:'Controlled source refund',api_refund:false,api_restock:false,line_items:[{id:Number(lineId),quantity:1,refund_total:65.01}]});
+ await orderCard.getByRole('button',{name:'Reconcile WooCommerce',exact:true}).click();
+ const receipts=orderCard.getByRole('region',{name:'WooCommerce source receipts'});
+ await expect(receipts).toContainText('Fulfillment SYNTHETIC-SHIPMENT-UI: 2 units');await expect(receipts).toContainText(`Refund ${refund.id}: USD 65.01`);await expect(receipts).toContainText('warehouse unknown');
+ await captureRegionWidths(owner,orderCard,'woocommerce-source-receipts');
+ await owner.getByRole('button',{name:'Data',exact:true}).click();await owner.getByText('Fulfillment & backorders',{exact:true}).click();
+ const report=owner.locator('.br-card').filter({has:owner.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).first();
+ await expect(report).toContainText('WooCommerce observed');await expect(report).toContainText('Ordered 3 · shipped 2 · cancelled 0 · allocated 1 · backordered 0 · outstanding 1');await expect(report).toContainText('Fill 66.67%');await expect(report).toContainText('Delivery: unknown');await expect(report).toContainText('Unknown warehouse: 1 allocated, 2 shipped');
+ const iconOnly=await report.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length);assert.equal(iconOnly,0);
+ await captureRegionWidths(owner,report,'woocommerce-fulfillment-report');
+ const sourceVariation=await store.request(`/wp-json/wc/v3/products/${source.product.id}/variations/${source.variation.id}`);assert.equal(sourceVariation.regular_price,'120.00');assert.equal((await store.request('/wp-json/wc/v3/orders')).length,1);
+});

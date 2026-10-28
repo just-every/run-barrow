@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac} from 'node:crypto';
 import {installation,accountValue,archive,restore} from './harness.mjs';
+import {erasurePayload,verifiedRequest} from './retention-fixture.mjs';
 import {controlledWoo,wooStock} from '../woocommerce-store.mjs';
 
 test('controlled WooCommerce variation, protected prices, durable approval, source fulfillment and refunds survive replay while unsafe authority and stock paths refuse', {timeout:360000}, async t=>{
@@ -23,7 +24,7 @@ test('controlled WooCommerce variation, protected prices, durable approval, sour
  const draft=await h.command('order.prepare',{accountId:account.id,reference:'SYNTHETIC-APPROVED',lines:[{sku:source.variation.sku,quantity:3}]},buyer);
  assert.equal(draft.totalCents,19503);assert.equal(draft.termsDays,30);assert.equal(draft.currency,'USD');
  await h.command('settings.save',{stockFreshnessMinutes:15});await h.configure({BARROW_TEST_CLOCK:'2026-10-28T12:20:00Z'});
- const stale=await h.command('order.submit',{orderId:draft.id},{...buyer,status:409});assert.equal(stale.error.code,'STOCK_STALE');
+ const stale=await h.command('order.submit',{orderId:draft.id},{...buyer,status:409});assert.equal(stale.error.code,'STOCK_STALE');assert.match(stale.error.message,/WooCommerce stock/);
  await h.command('order.stock-exception',{orderId:draft.id,reason:'Unauthorized buyer exception.'},{...buyer,status:403});
  await h.command('order.stock-exception',{orderId:draft.id,reason:'Owner rechecked the controlled source and accepts this observation.'});
  await h.command('order.submit',{orderId:draft.id},buyer);
@@ -47,6 +48,8 @@ test('controlled WooCommerce variation, protected prices, durable approval, sour
  assert.equal(linked.woocommerce.lines[0].dispatched,'2');assert.equal(linked.woocommerce.fulfillments[0].reference,'SYNTHETIC-SHIPMENT-1');assert.equal(linked.woocommerce.fulfillments[0].warehouse,null);assert.equal(linked.woocommerce.refunds[0].id,String(refund.id));assert.equal(linked.woocommerce.refunds[0].amount,'65.01');
  for(const event of [{id:external.id,status:'pending',refunds:[]},{id:external.id,status:'completed'}])assert.equal((await send(event)).status,200);
  assert.deepEqual((await h.api(`/api/barrow/orders/${draft.id}`,undefined,buyer)).woocommerce,linked.woocommerce);
+ const report=await h.api('/api/barrow/reports/fulfillment');const fulfillment=report.lines.find(row=>row.orderId===draft.id);
+ assert.equal(report.source,'WooCommerce');assert.equal(fulfillment.ordered,'3');assert.equal(fulfillment.shipped,'2');assert.equal(fulfillment.allocated,'1');assert.equal(fulfillment.fillBasisPoints,6667);assert.equal(fulfillment.warehouses[0].warehouse,'Unknown warehouse');assert.equal(fulfillment.dispatchedByDate,null);assert.equal(fulfillment.onTimeDelivery,null);assert.equal((await h.request('/api/barrow/reports/fulfillment',buyer)).status,403);
  const variation=await store.request(`/wp-json/wc/v3/products/${source.product.id}/variations/${source.variation.id}`);assert.equal(variation.regular_price,'120.00');assert.equal(variation.stock_quantity,27);assert.equal((await store.request('/wp-json/wc/v3/orders')).length,1);
  account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,termsDays:7,prices:[{sku:source.variation.sku,unitCents:9999,minQty:1}]}});
  assert.equal(await(await h.request(`/api/barrow/invoices/${draft.id}.csv`,buyer)).text(),invoice);
@@ -54,15 +57,28 @@ test('controlled WooCommerce variation, protected prices, durable approval, sour
  const short=await h.command('order.prepare',{accountId:account.id,lines:[{sku:source.variation.sku,quantity:5}]},buyer);await h.command('order.submit',{orderId:short.id},buyer);
  await store.request(`/wp-json/wc/v3/products/${source.product.id}/variations/${source.variation.id}`,{stock_quantity:2},'PUT');
  const shortfall=await h.command('order.approve',{orderId:short.id});assert.equal(shortfall.status,'shortfall');assert.equal(shortfall.woocommerce.lines[0].reserved,'2');assert.equal(shortfall.woocommerce.lines[0].backorder,'3');assert.equal((await h.request(`/api/barrow/invoices/${short.id}.csv`,buyer)).status,409);
+ await assert.rejects(store.request(`/wp-json/barrow/v1/orders/${external.id}/fulfillments`,{reference:'SYNTHETIC-OVERSHIP',lines:[{lineId,quantity:2}]}),/refused/);
+ await assert.rejects(store.request(`/wp-json/wc/v3/orders/${external.id}`,{status:'cancelled'},'PUT'),/refused/);
+ const cancel=await store.request(`/wp-json/wc/v3/orders/${shortfall.pierOrderId}`,{status:'cancelled'},'PUT');assert.equal(cancel.status,'cancelled');await send({id:cancel.id});
+ const cancelled=await h.api(`/api/barrow/orders/${short.id}`);assert.equal(cancelled.status,'cancelled');assert.equal(cancelled.woocommerce.lines[0].cancelled,'5');assert.equal(cancelled.woocommerce.lines[0].reserved,'0');
  const other=await h.signIn('synthetic-barrow-other'+'@'+'example.test');assert.equal((await h.request(`/api/barrow/orders/${draft.id}`,{as:other})).status,404);assert.equal((await h.request(`/api/barrow/invoices/${draft.id}.csv`,{as:other})).status,404);
  account=await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,warehouses:['Restricted warehouse']}});
  const restricted=await h.api('/api/barrow/catalogue?accountId=cedar',undefined,{...buyer,status:409});assert.equal(restricted.error.code,'WOO_WAREHOUSE');
  const audit=await h.api('/api/barrow/audit?accountId=cedar');assert.ok(audit.events.some(event=>event.action==='woocommerce.reconciled'&&event.orderId===draft.id&&event.source==='woocommerce.webhook'&&event.revision&&event.reason));
  const csv=await(await h.request('/api/barrow/audit.csv')).text();assert.match(csv,/woocommerce.connected/);assert.match(csv,/woocommerce.reconciled/);assert.ok(!csv.includes(store.bindings.WOO_KEY)&&!csv.includes(store.bindings.WOO_SECRET));assert.equal((await h.request('/api/barrow/audit',buyer)).status,403);
- await h.configure({WOO_ORIGIN:'http://127.0.0.1:1'});await h.command('order.approve',{orderId:approved.id},{status:503});
- await h.configure({WOO_ORIGIN:store.origin});await h.command('woocommerce.revoke',{reason:'Owner disables the source; signed replay must not reauthorize it.'});assert.equal((await send({id:external.id})).status,503);
+ const otherStore=await controlledWoo();t.after(()=>otherStore.close());
+ await h.configure({...otherStore.bindings});await h.command('woocommerce.connect',{reason:'Owner selects a different controlled store for future work.'});
+ const changed=await h.command('order.approve',{orderId:approved.id},{status:409});assert.equal(changed.error.code,'PIER_CHANGED');assert.deepEqual(await otherStore.request('/wp-json/wc/v3/orders'),[]);
+ await h.configure({...store.bindings});await h.command('woocommerce.connect',{reason:'Owner reconnects the original store for its bound orders.'});
+ const restored=await installation({bindings:store.bindings});t.after(()=>restored.close());await restore(restored,await archive(h));
+ const restoredBody=JSON.stringify({id:external.id});assert.equal((await restored.raw('/api/barrow/woocommerce/webhook',{method:'POST',headers:{'x-wc-webhook-signature':createHmac('sha256',store.bindings.WOO_WEBHOOK_SECRET).update(restoredBody).digest('base64')},body:restoredBody})).status,503);
+ assert.equal((await restored.request(`/api/barrow/invoices/${draft.id}.csv`)).status,200);
+await h.command('woocommerce.revoke',{reason:'Owner disables the source; signed replay must not reauthorize it.'});assert.equal((await send({id:external.id})).status,503);
  await h.command('woocommerce.connect',{reason:'Owner deliberately reconnects the same controlled destination.'});
+ await verifiedRequest(h,'cedar');const erasure=await h.command('retention.preview',{accountId:'cedar'});const erasureReceipt=await h.command('retention.erase-account',erasurePayload(erasure));assert.match(erasureReceipt.custody.inventory,/WooCommerce/);assert.equal((await store.request(`/wp-json/wc/v3/customers/${source.customer.id}`)).id,source.customer.id);
+ const erased=await h.api('/api/barrow/accounts/by-id/cedar');assert.notEqual(erased.value.email,email);assert.equal((await h.request('/api/barrow/state',buyer)).status,401);
+ assert.equal((await send({id:external.id,status:'pending'})).status,200);assert.equal((await h.api('/api/barrow/accounts/by-id/cedar')).value.email,erased.value.email);assert.equal((await h.request('/api/barrow/state',buyer)).status,401);
  await store.revoke();await h.command('order.refresh',{orderId:approved.id},{status:503});
- assert.equal((await h.api(`/api/barrow/orders/${draft.id}`,undefined,buyer)).woocommerce.refunds[0].id,String(refund.id));
+ assert.equal((await h.api(`/api/barrow/orders/${draft.id}`)).woocommerce.refunds[0].id,String(refund.id));
  console.log('CONTROLLED_WOOCOMMERCE',JSON.stringify({version:store.version,order:external.id,fulfillment:'SYNTHETIC-SHIPMENT-1',refund:refund.id,orders:2,retailPrice:'120.00'}));
 });

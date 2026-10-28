@@ -52,7 +52,9 @@
         "MAIL_ACCOUNT_ID",
         "MAIL_EVENT_TENANT",
         "OWNER_EMAIL",
-        "PIER_ORIGIN"
+        "PIER_ORIGIN",
+        "INVENTORY_PROVIDER",
+        "WOO_ORIGIN"
       ],
       "secretNames": [
         "SESSION_SECRET",
@@ -63,7 +65,10 @@
         "MAIL_WEBHOOK_SECRET",
         "PIER_SESSION",
         "BARROW_SFTP_SECRETS",
-        "FAIRE_CONNECTIONS"
+        "FAIRE_CONNECTIONS",
+        "WOO_KEY",
+        "WOO_SECRET",
+        "WOO_WEBHOOK_SECRET"
       ],
       "healthPath": "/health",
       "recovery": "Follow OPERATIONS.md and docs/RETENTION.md: stop this installation, retain its exact source and private configuration, export through rer export, preserve the independent ERASURE_JOURNAL outside D1, attach the complete current journal to a fresh empty installation before rer import, then re-export and compare commercial records. Re-establish owner access and reconnect Pier before resuming. Never edit applied migration names or bytes.",

@@ -60,9 +60,10 @@ function barrow_order($order) {
         $shipped = 0;
         foreach ($fulfillments as $entry) foreach ($entry['lines'] as $sent) if ((int)$sent['lineId'] === $id) $shipped += $sent['quantity'];
         $allocated = (int)$item->get_meta('_barrow_allocated');
+        $cancelled = $order->has_status('cancelled') ? $item->get_quantity() - $shipped : 0;
         $lines[] = array('id' => (string)$id, 'itemId' => (string)($item->get_variation_id() ?: $item->get_product_id()),
-            'quantity' => (string)$item->get_quantity(), 'reserved' => (string)max(0, $allocated - $shipped),
-            'dispatched' => (string)$shipped, 'cancelled' => '0', 'backorder' => (string)($item->get_quantity() - $allocated));
+            'quantity' => (string)$item->get_quantity(), 'reserved' => (string)($cancelled ? 0 : max(0, $allocated - $shipped)),
+            'dispatched' => (string)$shipped, 'cancelled' => (string)$cancelled, 'backorder' => (string)($cancelled ? 0 : $item->get_quantity() - $allocated));
     }
     $refunds = array();
     foreach ($order->get_refunds() as $refund) {
@@ -78,6 +79,12 @@ function barrow_order($order) {
 }
 function barrow_handoff(WP_REST_Request $request) {
     global $wpdb;
+    // The durable acknowledgment and native Woo writes require transactional storage.
+    $required = array('posts', 'postmeta', 'options', 'woocommerce_order_items', 'woocommerce_order_itemmeta', 'wc_product_meta_lookup', 'barrow_handoffs');
+    if (get_option('woocommerce_custom_orders_table_enabled') === 'yes') $required = array_merge($required, array('wc_orders', 'wc_orders_meta', 'wc_order_addresses', 'wc_order_operational_data'));
+    $engines = array();
+    foreach ($wpdb->get_results('SHOW TABLE STATUS') as $table) $engines[$table->Name] = $table->Engine;
+    foreach ($required as $table) if (($engines[$wpdb->prefix . $table] ?? '') !== 'InnoDB') return barrow_error('Transactional WordPress and WooCommerce tables are required.');
     $body = $request->get_json_params();
     if (($body['destination'] ?? '') !== get_option('barrow_destination')) return barrow_error('Destination differs.');
     $identity = $body['identity'] ?? '';
@@ -126,6 +133,7 @@ function barrow_handoff(WP_REST_Request $request) {
             if ($allocated) wc_update_product_stock($product, $allocated, 'decrease');
         }
         $order->calculate_totals(false); $order->save();
+        if (!$order->get_id()) throw new Exception('Native order storage failed.');
         $order->get_data_store()->set_stock_reduced($order->get_id(), true);
         $result = barrow_order($order);
         if ($wpdb->update($table, array('order_id' => $order->get_id(), 'result_json' => wp_json_encode($result)), array('identity_key' => $identity)) !== 1) throw new Exception('Acknowledgment storage failed.');
@@ -142,6 +150,12 @@ function barrow_fulfill(WP_REST_Request $request) {
     if (!$order || !$order->get_meta('_barrow_identity')) return barrow_error('Linked order not found.', 404);
     $entry = $request->get_json_params();
     if (!is_string($entry['reference'] ?? null) || !preg_match('/^[A-Za-z0-9_-]{1,80}$/', $entry['reference']) || !is_array($entry['lines'] ?? null) || !count($entry['lines'])) return barrow_error('Name the source fulfillment reference and exact lines.', 400);
+    if ($order->has_status('cancelled')) return barrow_error('A cancelled source order cannot be fulfilled.');
+    foreach ($entry['lines'] as &$line) {
+        if (!is_string($line['lineId'] ?? null) || !ctype_digit($line['lineId']) || !is_int($line['quantity'] ?? null)) return barrow_error('Exact native line IDs and whole quantities are required.', 400);
+        $line = array('lineId' => $line['lineId'], 'quantity' => $line['quantity']);
+    }
+    unset($line);
     $entry = array('reference' => $entry['reference'], 'lines' => $entry['lines'], 'warehouse' => null);
     $prior = $order->get_meta('_barrow_fulfillments') ?: array();
     foreach ($prior as $row) if ($row['reference'] === $entry['reference']) return $row === $entry ? barrow_order($order) : barrow_error('Fulfillment reference differs.');
@@ -164,3 +178,19 @@ add_action('rest_api_init', function () {
         register_rest_route('barrow/v1', $path, array('methods' => $handler[0], 'callback' => $handler[1], 'permission_callback' => 'barrow_authorize'));
     }
 });
+
+// A native cancellation must not return units already recorded as physically shipped.
+add_action('woocommerce_before_order_object_save', function ($order) {
+    if ($order->get_meta('_barrow_identity') && $order->has_status('cancelled') && $order->get_meta('_barrow_fulfillments')) {
+        $recorded = wc_get_order($order->get_id());
+        if ($recorded) $order->set_status($recorded->get_status());
+        throw new WC_Data_Exception('barrow_shipped', 'Recorded shipments must be resolved through source returns, not cancellation.');
+    }
+});
+add_filter('woocommerce_rest_pre_insert_shop_order_object', function ($order, $request) {
+    $recorded = wc_get_order((int)$request['id']);
+    if ($request['status'] === 'cancelled' && $recorded && $recorded->get_meta('_barrow_identity') && $recorded->get_meta('_barrow_fulfillments')) {
+        return barrow_error('Recorded shipments require source returns, not cancellation.');
+    }
+    return $order;
+}, 10, 2);

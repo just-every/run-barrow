@@ -109,7 +109,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
           {order.status==='approved'&&(!order.prebook||order.prebook.depositCents>0)&&finance&&<CardPaymentPanel orderId={order.id} deposit={Boolean(order.prebook)} merchant={supplier} canAct={canOperate}/>}
           {['approved','cancelled'].includes(order.status)&&!!order.invoice&&finance&&<CreditPanel order={order}/>}
           <OrderShipping order={order} supplier={canQuote} canSelect={canPurchase} busy={busy} run={run} />
-          <p className="br-order-explain">{order.prebook?'Seasonal commitment recorded; stock allocation is confirmed on each linked release.':order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' :order.status==='approved'&&!finance?'Stock is reserved in full.':explanations[order.status]}</p>
+          <p className="br-order-explain">{order.prebook?'Seasonal commitment recorded; stock allocation is confirmed on each linked release.':order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' :order.status==='approved'&&!finance?'Stock is reserved in full.':order.woocommerce&&order.status==='cancelled'?'Cancelled at WooCommerce. Original commercial snapshots remain recorded.':order.woocommerce&&order.status==='shortfall'?'WooCommerce confirmed an explicit shortfall. No invoice is available.':explanations[order.status]}</p>
         </div>
         <div className="br-order-side">
           <p className="br-order-amount">{money(order.totalCents, order.currency ?? 'AUD')}</p>

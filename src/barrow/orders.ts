@@ -59,8 +59,8 @@ async function save(env:Bindings,actor:Actor,order:Order,action:string,guards:D1
   'order.document-attached':'Attached the supporting PO document to the draft.',
   'order.submitted-release':'Submitted as an explicitly authorized numbered release of a PO already on order.',
   'order.approved':'Supplier approved the submitted revision for stock reservation.',
-  'order.reserved':'Pier acknowledged reservation of every requested unit.',
-  'order.shortfall':'Pier acknowledged a stock shortfall; invoicing remains blocked.',
+  'order.reserved':wooSelected(env)?'WooCommerce acknowledged allocation or shipment of every requested unit.':'Pier acknowledged reservation of every requested unit.',
+  'order.shortfall':`${wooSelected(env)?'WooCommerce':'Pier'} acknowledged a stock shortfall; invoicing remains blocked.`,
   'order.release-requested':'Supplier cancelled the order; its Pier stock release is requested and the units stay unpromised until Pier confirms.',
   'order.released':'Pier acknowledged the stock release; the cancelled order holds no stock.',
  } as Record<string,string>)[action]??action})])
@@ -79,7 +79,7 @@ export async function nextNumber(db:D1Database) {
 }
 async function recordReservation(env:Bindings,actor:Actor,order:Order,result:any) {
  if(typeof result?.id!=='string' || typeof result?.reference!=='string') fail('PIER_RESPONSE','Pier returned an incomplete reservation. Retry the same order.',502)
- const full=fullyReserved(result,order.lines)
+ const full=wooSelected(env)?fullyReserved({...result,lines:result.lines.map((line:any)=>({...line,reserved:String(Number(line.reserved)+Number(line.dispatched))}))},order.lines):fullyReserved(result,order.lines)
  order={...order,...(wooSelected(env)?{woocommerce:result}:{}),pierOrderId:result.id,pierReference:result.reference,reservation:result.lines,status:full?'approved':'shortfall'}
  if(full && !order.invoice) {
   const issuedAt=supplierDate(await now()),due=new Date(issuedAt+'T00:00:00Z');due.setUTCDate(due.getUTCDate()+order.termsDays)

@@ -5,7 +5,10 @@ import { now } from './clock'
 import { commercialAuditEvent } from './audit-event'
 import { fail, text, type Account, type Actor, type Order } from './model'
 
-export const wooSelected = (env: Bindings) => env.INVENTORY_PROVIDER === 'woocommerce'
+export const wooSelected = (env: Bindings) => {
+ if(env.INVENTORY_PROVIDER&&!['pier','woocommerce'].includes(env.INVENTORY_PROVIDER))fail('INVENTORY_PROVIDER','Select a supported inventory authority explicitly.',503)
+ return env.INVENTORY_PROVIDER === 'woocommerce'
+}
 async function observeConfiguration(env:Bindings) {
  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.SESSION_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign'])
  const fingerprint=Array.from(new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(JSON.stringify([env.WOO_ORIGIN??null,env.WOO_KEY??null,env.WOO_SECRET??null,env.WOO_WEBHOOK_SECRET??null])))),n=>n.toString(16).padStart(2,'0')).join('')
@@ -28,13 +31,19 @@ function origin(env: Bindings) {
  if(!env.WOO_KEY||!env.WOO_SECRET)fail('WOO_UNAVAILABLE','The WooCommerce REST credential is unavailable. Reconnect; pending orders retain their identity.',503)
  return url.origin
 }
+async function boundedText(message:Request|Response,limit:number) {
+ const reader=message.body?.getReader();if(!reader)return ''
+ const chunks:Uint8Array[]=[],decoder=new TextDecoder();let length=0
+ try{while(true){const part=await reader.read();if(part.done)break;length+=part.value.length;if(length>limit){await reader.cancel();fail('WOO_SIZE','WooCommerce message exceeds its bounded size.',413)}chunks.push(part.value)}}finally{reader.releaseLock()}
+ return chunks.map(chunk=>decoder.decode(chunk,{stream:true})).join('')+decoder.decode()
+}
 async function call(env:Bindings,path:string,body?:unknown) {
  const base=origin(env)
  let response:Response
  try { response=await fetch(base+'/wp-json/barrow/v1'+path,{method:body===undefined?'GET':'POST',redirect:'manual',signal:AbortSignal.timeout(12000),headers:{authorization:'Basic '+btoa(env.WOO_KEY+':'+env.WOO_SECRET),'content-type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)})}) }
  catch { return fail('WOO_UNAVAILABLE','WooCommerce did not acknowledge the request. Reconcile or retry this same order; never create a replacement.',503) }
  if(!response.ok)fail('WOO_UNAVAILABLE',response.status===401||response.status===403?'WooCommerce revoked or refused the REST credential.':'WooCommerce refused the request; reconcile the source before continuing.',503)
- const bytes=await response.text()
+ const bytes=await boundedText(response,1000000)
  if(bytes.length>1000000)fail('WOO_RESPONSE','WooCommerce returned an oversized response.',502)
  try{return JSON.parse(bytes)}catch{return fail('WOO_RESPONSE','WooCommerce returned an invalid response.',502)}
 }
@@ -112,7 +121,9 @@ export async function wooReserve(env:Bindings,order:Order) {
  for(const line of order.lines){const prior=grouped.get(line.itemId)??{itemId:line.itemId,sku:line.sku,quantity:0,totalCents:0};prior.quantity+=Number(line.baseQuantity??line.quantity);prior.totalCents+=line.lineCents??line.quantity*line.unitCents;grouped.set(line.itemId,prior)}
  if([...grouped.values()].some(line=>!Number.isSafeInteger(line.quantity)||!Number.isSafeInteger(line.totalCents)))fail('WOO_UNSUPPORTED','WooCommerce requires whole source units and exact minor units.')
  const value=await call(env,'/handoffs',{destination:(await connection(env)).destination,identity:`barrow:${order.id}`,customerId:order.pierCustomerId,currency:order.currency,termsDays:order.termsDays,approval:{preparedBy:order.preparedBy,submittedBy:order.submittedBy,approvedBy:order.approvedBy,approvedAt:order.approvedAt},lines:[...grouped.values()]})
- return receipt(order,value)
+ const acknowledged=receipt(order,value)
+ // An acknowledgment may be a replay: read current source facts before admitting an invoice.
+ return wooOrder(env,{...order,pierOrderId:acknowledged.id})
 }
 export async function wooOrder(env:Bindings,order:Order) {
  if(order.pierOrigin!==await wooDestination(env))fail('WOO_CHANGED','Reconnect the original WooCommerce destination before reconciling.')
@@ -122,7 +133,7 @@ export async function wooOrder(env:Bindings,order:Order) {
  return receipt(order,value)
 }
 export async function reconcileWoo(env:Bindings,actor:Actor,order:Order) {
- const value=await wooOrder(env,order),revision=crypto.randomUUID(),updated={...order,woocommerce:value,revision}
+ const value=await wooOrder(env,order),revision=crypto.randomUUID(),updated={...order,...(value.state==='cancelled'?{status:'cancelled' as const}:{}),woocommerce:value,revision}
  await commit(env.DB,actor,[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(updated),revision,order.id,order.revision),changed(env.DB),audit(env.DB,actor,order.id,'woocommerce.reconciled',{accountId:order.accountId,orderId:order.id,revision,source:'woocommerce.rest',reason:'Reconciled the exact source order, fulfillment references and native refund references; retail prices unchanged.'})])
  return updated
 }
@@ -130,7 +141,7 @@ export async function wooWebhook(request:Request,env:Bindings) {
  if(request.method!=='POST')return new Response(null,{status:405})
  if(!wooSelected(env)||!env.WOO_WEBHOOK_SECRET)fail('WOO_SIGNATURE','WooCommerce webhook is not connected.',401)
  await connection(env)
- const body=await request.text();if(body.length>100000)fail('INPUT','Webhook too large.',413)
+ const body=await boundedText(request,100000)
  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.WOO_WEBHOOK_SECRET),{name:'HMAC',hash:'SHA-256'},false,['verify'])
  let valid=false
  try{valid=await crypto.subtle.verify('HMAC',key,Uint8Array.from(atob(request.headers.get('x-wc-webhook-signature')??''),c=>c.charCodeAt(0)),new TextEncoder().encode(body))}catch{}
@@ -142,7 +153,7 @@ export async function wooWebhook(request:Request,env:Bindings) {
  const order=JSON.parse(row.value_json) as Order,value=await wooOrder(env,order)
  // A notification is only a prompt to read the current authenticated source, never an event-state overwrite.
  if(JSON.stringify(value)!==JSON.stringify(order.woocommerce)) {
-  const revision=crypto.randomUUID(),updated={...order,woocommerce:value,revision}
+  const revision=crypto.randomUUID(),updated={...order,...(value.state==='cancelled'?{status:'cancelled' as const}:{}),woocommerce:value,revision}
   const eventActor:Actor={id:'system:woocommerce',role:'system',email:'',version:0,agent:false}
   await env.DB.batch([env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(updated),revision,order.id,order.revision),changed(env.DB),audit(env.DB,eventActor,order.id,'woocommerce.reconciled',{accountId:order.accountId,orderId:order.id,revision,source:'woocommerce.webhook',reason:'Signed notification reconciled against the current authenticated source; notification state is not trusted.'}),env.DB.prepare('DELETE FROM bw_guard')])
  }

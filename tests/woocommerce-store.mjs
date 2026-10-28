@@ -26,7 +26,7 @@ async function distribution(){
 export async function controlledWoo(){
  const directory=await mkdtemp(join(tmpdir(),'barrow-woo-')),tag='barrow-'+randomUUID().slice(0,12),port=await freePort(),origin=`http://127.0.0.1:${port}`;
  const containers=[],network=tag,volume=tag+'-wordpress';let closed=false;
- const close=async()=>{if(closed)return;closed=true;for(const name of containers.reverse())await docker('rm','-f',name);await docker('volume','rm',volume);await docker('network','rm',network);await rm(directory,{recursive:true,force:true})};
+ const close=async()=>{if(closed)return;closed=true;for(const name of containers.reverse())await docker('rm','-fv',name);await docker('volume','rm',volume);await docker('network','rm',network);await rm(directory,{recursive:true,force:true})};
  try{
   const source=await distribution();
   // Only public dependency files are mounted for Apache. Private proof keys stay root-only.
