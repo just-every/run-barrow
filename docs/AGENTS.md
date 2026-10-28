@@ -58,3 +58,19 @@ Origin header` to the native GET carrying its supplier Origin and Cookie. That
 prevents the production owner initializer from preparing its real source-priced
 draft. The request validation remains enabled; no alternate native code path or
 fake order is used to make verification pass.
+
+## Runtime and command pins
+
+Runtime source is recorded in `base-copies.json` at Base
+`d555e789cffb744a9f83d76ebe42a2e3bdd7a055`. Apply the three new additive migrations
+through the ordinary installation migration runner; never replace applied SQL.
+The published command dependency is `@runeditrun/rer@0.2.85`, which understands the
+Business manifest. That release does not contain this agent verifier.
+
+Until the matching CLI is released, CI reads the exact Base source archive and
+runs its `bin/rer.mjs verify --no-queue`. `bin/rer.mjs` is the direct CLI entry:
+the global launcher delegates to the checkout's installed package pin. The
+complete native verification target remains in that command; a failed agent
+journey retains its normal failure exit. For touched local iteration after a
+production build, the same CLI's `cli/agent-door.mjs` runs just the agent stage.
+The read registry remains an incomplete adoption even if that stage passes.
