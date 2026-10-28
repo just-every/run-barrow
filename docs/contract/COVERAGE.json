@@ -2803,7 +2803,15 @@
       "line": 491,
       "cell": "gap",
       "text": "Live Resend and hosted deployment proof remain separately PENDING; native operating proof uses the real sender and signed intake with a controlled paid-provider edge.",
-      "to": "changelog"
+      "to": "register",
+      "ids": [
+        "R-9"
+      ],
+      "also": [
+        {
+          "to": "changelog"
+        }
+      ]
     },
     {
       "file": "CONTRACT.md",

@@ -1375,7 +1375,7 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 #### AUTO-003 — Quote activity notifications
 
-*Tier:* Core · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+*Tier:* Core · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · *Register:* R-9
 
 **Requirement.** New quote messages, commercial revisions, impending expiry and acceptance notify the assigned buyer and rep with a direct authorized link. Internal notes reach only staff; delivery failure creates a follow-up rather than silently dropping the opportunity. Before it ships, this clause delivers ORD-005’s in-app quote notices (request, buyer-visible message, internal note, revision ready to accept, acceptance) to the same audiences by email, never an internal note to a buyer.
 
@@ -1390,7 +1390,7 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 #### AUTO-009 — Immutable notification submission and retry
 
-*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · *Register:* R-9
 
 **Requirement.** Quote mail submission preserves the exact sender request, provider outcome and one stable delivery identity; ambiguous retries cannot invent delivery. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1406,7 +1406,7 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 #### AUTO-010 — Quote expiry reminder delivery
 
-*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · *Register:* R-9
 
 **Requirement.** Quote expiry reminders follow the exact latest commercial revision and current authorized audience on the account’s last valid day. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1416,7 +1416,7 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 #### AUTO-011 — Verified quote delivery callbacks
 
-*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · *Register:* R-9
 
 **Requirement.** Only authenticated provider evidence for the exact saved tenant, provider identity and recipients changes quote-mail delivery state. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1429,7 +1429,7 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 #### AUTO-012 — Failed quote contact ownership
 
-*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · *Register:* R-9
 
 **Requirement.** Failed quote contact remains source-linked owned work until an entitled person records its exact resolution. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1444,7 +1444,7 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 #### AUTO-013 — Notification custody and inert restoration
 
-*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · *Register:* R-9
 
 **Requirement.** Quote-mail delivery history, recipient custody and failed-contact work survive archives without resending restored work or leaking credentials. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1454,7 +1454,7 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 #### AUTO-014 — Quote notification handoffs and diagnostics
 
-*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+*Tier:* Core · *From:* AUTO-003 · *Cites:* BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · *Register:* R-9
 
 **Requirement.** Quote-mail diagnostics and downstream buyer and rep routing preserve their named source and audience obligations. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -2244,6 +2244,7 @@ Inherits BASE-AGENT-001 to BASE-AGENT-013. The company's policy decides every ca
 | R-6 | ChatGPT client interoperability receipt | SURFACE-013 | not run | | |
 | R-7 | Codex client interoperability receipt | SURFACE-013 | not run | | |
 | R-8 | Copilot client interoperability receipt | SURFACE-013 | not run | | |
+| R-9 | Live Resend merchant-tenant delivery receipt | AUTO-003, AUTO-009, AUTO-010, AUTO-011, AUTO-012, AUTO-013, AUTO-014 | not run | | |
 
 ## Boundaries
 
@@ -2310,15 +2311,15 @@ Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370d
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 0 | 1 | 0 | 1 |
-| Target and push further | 5 | 104 | 57 | 166 |
-| All | 5 | 105 | 57 | 167 |
+| Target and push further | 4 | 105 | 57 | 166 |
+| All | 4 | 106 | 57 | 167 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
 | `BAR-006` | Run site | published | partial | `src/site/pages.ts`; `src/site/docs/pages.ts`; `tests/site.test.mjs` | The cited evidence exercises run site. Traced assertions cover A missing guide serves the actual built 404 document; Guide navigation reaches a rendered article. The outcome-level assertion trace is incomplete for: Build with rer build --site; serve the output; traverse the homepage; /run; guide navigation; local assets; a missing guide; Confirm the installed route keeps its Lobby; the site contains no private account data.  |
 | `ACC-001` | Trade applications and approval | target | partial | `tests/api/flows.test.mjs` — “trade applicant verification, duplicate-reviewed decisions, quarantined certificates, usage reacceptance and owner custody through HTTP”: public form fields and email verification; duplicate-reviewed request/approve/decline, quarantined document uploads and existing certificates; both parties’ status and native invitation; unknown-person price exclusion; usage person/version/hash/time and reacceptance; scoped exports, retention nomination/erasure and restore fence. `tests/journeys/applications.test.mjs` — “native trade application, review, private status, usage acceptance and retention screens at desktop and phone”: UI journey at 1440/390. | Public application certificate screening and downloadable review await the owner-configured scanner processor and Base adapter required by ct 22 October 15:46Z. Without it uploads and existing documents remain quarantined; no malware verdict is claimed. |
 | `ACC-002` | Company buyers and purchasing rights | target | partial | `tests/api/flows.test.mjs` — “company buyers: native invitations, scoped purchasing approval, finance, shared lists, exact recipients and one-user erasure”: legacy administrator and native seven-day exact-email invitations/collision review; explicit user/location limits, no supplier powers, last-administrator and cross-company refusals; within-limit submission, distinct-person company release with current rights/limits/prices/stock and both identities; finance invoice/statement/export and ordering refusal; purchasing-only shared lists/thread, private lists/internal notes hidden; exact quote/expiry recipients, dispatch revocation, supplier-owned transfer and owner-reviewed one-user erasure/hold/restore fence with commercial attribution retained. The same file’s “trade applicant verification, duplicate-reviewed decisions, quarantined certificates, usage reacceptance and owner custody through HTTP” proves the approved first buyer becomes company administrator. `tests/journeys/company.test.mjs` — “company administrator invites four native users, limited purchaser waits for another approver, finance reads invoices, shared lists and removal at desktop and phone”: real built Worker/Pier screens, approvals, downloads, collision review, removal and erasure at 1440/390. | The cited evidence exercises company buyers and purchasing rights. Traced assertions cover The released order records purchaser and approver identities; Finance reads the source invoice on its statement; Quote notices reach current purchasing recipients and omit finance; Expiry delivery has the exact current recipient list and no replay. The outcome-level assertion trace is incomplete for: Invite four company users; build a cart as a limited purchaser; approve it as the authorized approver; read its statement as finance; refuse finance ordering; cross-company administration; Before shipping; route AUTO-003 emails; expiry reminders to the company purchasers with current rights; retaining exact recipient identity/revocation; private internal notes.  |
-| `ACC-003` | Billing and delivery locations | target | done | `src/barrow/locations.ts`; `src/barrow/us-address.ts`; `src/barrow/ui/locations.tsx`; `src/barrow/orders.ts`; `src/barrow/export.ts`; `tests/api/locations.test.mjs` |  |
+| `ACC-003` | Billing and delivery locations | target | partial | `src/barrow/locations.ts`; `src/barrow/us-address.ts`; `src/barrow/ui/locations.tsx`; `src/barrow/orders.ts`; `src/barrow/export.ts`; `tests/api/locations.test.mjs` | The cited address test asserts both store jurisdictions, names, the original delivery instructions and source revision after a default change. It does not compare every copied bill-to and ship-to address field after that change; full address immutability remains unasserted. |
 | `ACC-004` | Account lifecycle and commercial profile | target | partial | `src/barrow/accounts.ts`; `src/barrow/account-profile.ts`; `src/barrow/imports/service.ts`; `src/barrow/orders.ts`; `src/barrow/ui/account-form.tsx`; `tests/api/flows.test.mjs`; `tests/api/order-guarantee.test.mjs` | The cited evidence exercises account lifecycle and commercial profile. Traced assertions cover Closed-account history preserves the original order; The buyer still reads an identical issued invoice; Recovery after closure leaves one inventory order. The outcome-level assertion trace is incomplete for: Record the commercial profile; place an order; hold then close its account; attempt checkout through the buyer; agent HTTP doors; including submission; first approval of earlier drafts; History; invoices remain readable to the same authorized buyer; new orders are refused; a duplicate email cannot take over the company; Recover an already-approved lost reservation response after closure without a second stock command; Refuse an unreviewed or stale duplicate-company save; review separate companies; import a duplicate-bearing CSV plan; inspect the attributed review through an owner export; original identities; native profile fields survive.  |
 | `ACC-005` | Supplier roles and separation of duties | target | partial | `tests/api/application-followup.test.mjs`; `tests/journeys/application-routing.test.mjs`; `tests/api/staff.test.mjs`; `tests/journeys/staff.test.mjs`; `tests/journeys/applications.test.mjs`; `tests/journeys/credit-payments.test.mjs`; `src/barrow/access.ts`; `src/barrow/accounts.ts`; `src/barrow/api.ts`; `tests/api/flows.test.mjs` | The cited evidence exercises supplier roles and separation of duties. The outcome-level assertion trace is incomplete for: Invite each supplier role; attempt a credit override as a rep; a catalog edit as operations; allow the authorized finance; manager actions; inspect attributed audit events; Before shipping; each new functional supplier role; including invited analyst/finance operators for outside accountants or buyer AP; becomes eligible for RPT-006 only for its entitled report types; Outside recipients are invited operators; never bare addresses; Using the native sign-in; HTTP commands; read as two different buyers; attempt foreign account reads; cross-origin writes; supplier actions as a buyer; then revoke an agent grant; Unauthorized requests return no commercial data; perform no mutation. Functional application review and AUTO-001 routing/tasks/escalation are proven for current all-account sales-manager `applications` grants, with finance certificate-only and other-role refusals. PAY-010 credit and refund decisions now have explicit account-scoped finance allowances and current grant admission. PAY-004/005 credit override and hold doors, INT-002/003 and SHIP-004 still inherit source-backed role and amount admission; ACC-005 stays partial under ct’s 21 October ruling until the finance doors ship. ACC-006 coverage is implemented. |
 | `ACC-006` | Rep territories and delegated coverage | target | partial | `src/barrow/rep-scope.ts`; `src/barrow/rep-assignments.ts`; `src/barrow/quote-routing.ts`; `migrations/core/0035_rep_assignments.sql`; `tests/api/rep-territories.test.mjs` — “ACC-006 / ACC-008 / ACC-009 / ACC-010: managers assign reps to territories and accounts with dated coverage; access, quote routing, reports, tasks, commissions and sends follow the current assignment and no history is rewritten”: assign/cover/end/transfer authority and refusals, overlap and past-date refusals, disjoint reps (assignment and coverage), vacation coverage then expiry through the stored dates, buyer-visible current rep names, ORD-005 notices/thread/AUTO-003 mail and expiry reminders to the holding reps, discount approvals to owner/admin, failed-contact task ownership and reassignment, AUTO-005 queue/source links/export, RPT-001 and RPT-004 account/territory/partial-territory refusals through page and CSV, REP-004 statements and CSV with frozen attribution across a transfer, RPT-006 saved-filter refusals, cancelled queued send, revoked link and system audit, order access, RPT-002 rep rows retained by the assignment name. `tests/journeys/territories.test.mjs` — “manager assigns, covers and transfers rep territories; the rep, the buyer and the manager each see only the current assignment at desktop and phone”: owner/manager assignment, coverage and transfer forms, the rep’s own-assignments card, the buyer’s current rep and the ended assignment at 1440/390. | The cited evidence exercises rep territories and delegated coverage. The outcome-level assertion trace is incomplete for: Assign two reps disjoint accounts; give one temporary vacation coverage; expire it; Order; export access follows current assignments; a rep is an active Native member whose ACC-005 grant is the rep role; A rep holds an account on a calendar day in America/New_York (inclusive dates) only through a primary assignment of that exact account or of every account whose profile territory equals the named territory; temporary coverage of an account; a territory or everything another rep primarily holds (coverage requires an end date; never moves commission attribution); or an exact account the owner listed on the grant; Profile assigned-rep; territory text; rep labels; names grant nothing; Owner; admin; an all-account sales manager assign; cover; end; transfer with a reason; every change is revision-guarded; immediate; audited (assignment; coverage; ending; transfer events); at most one primary rep holds an account on any day; no earlier order; quote; notice; commission snapshot or audit event is rewritten; One current-scope definition feeds the staff account scope; so catalog; order; invoice; export; report; task doors follow it with no second list; a write that read an older scope fails its guard; Archives restore assignments as ended (restored grants are already revoked); unused-account erasure removes that account’s assignments.  |

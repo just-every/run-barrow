@@ -8,12 +8,12 @@ The primary journey: approve a trade account, publish its assortment and prices,
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 5 | 105 | 44 | 154 |
+| Core | 4 | 106 | 44 | 154 |
 | Agent surface | 0 | 0 | 13 | 13 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 5 | 105 | 57 | 167 |
+| Full target | 4 | 106 | 57 | 167 |
 
-Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370dba` (28 October 2026). INT-014 candidate evidence is the code and tests in this tree, subject to exact-candidate Verify and guarded landing; its broader scheduled-feed duties remain with INT-020. ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance, shipment and physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged. CAT-010 is a partial implementation with current public-door evidence below; its candidate SHA and run receipts accompany the branch handoff. Field proof register: 8 rows; 0 passed, 0 failed, 8 not run.
+Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370dba` (28 October 2026). INT-014 candidate evidence is the code and tests in this tree, subject to exact-candidate Verify and guarded landing; its broader scheduled-feed duties remain with INT-020. ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance, shipment and physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged. CAT-010 is a partial implementation with current public-door evidence below; its candidate SHA and run receipts accompany the branch handoff. Field proof register: 9 rows; 0 passed, 0 failed, 9 not run.
 
 ## Core
 
@@ -62,7 +62,7 @@ Core · target · **partial** · Cites BASE-MAIL-001, BASE-ROLE-001 · Rules D-3
 
 #### ACC-003 — Billing and delivery locations
 
-Core · target · **done** · Cites BASE-DATA-001, BASE-ROLE-001 · Rules D-2, D-3
+Core · target · **partial** · Cites BASE-DATA-001, BASE-ROLE-001 · Rules D-2, D-3
 
 **Requirement.** An account maintains separate bill-to, ship-to and contact records with US address validation, default delivery instructions and location-specific tax exemption references. Orders snapshot the chosen addresses; an address edit never rewrites an already accepted order.   The detailed formats and commercial boundaries in [the ACC-003 reference](docs/COMMERCIAL-REFERENCE.md#acc-003) apply.
 
@@ -70,7 +70,7 @@ Core · target · **done** · Cites BASE-DATA-001, BASE-ROLE-001 · Rules D-2, D
 1. Save a headquarters and two stores, place an order to each store, change the default afterward and inspect unchanged order addresses and the correct tax jurisdictions.
 
 **Evidence.** `src/barrow/locations.ts`; `src/barrow/us-address.ts`; `src/barrow/ui/locations.tsx`; `src/barrow/orders.ts`; `src/barrow/export.ts`; `tests/api/locations.test.mjs`
-**Gap.** None.
+**Gap.** The cited address test asserts both store jurisdictions, names, the original delivery instructions and source revision after a default change. It does not compare every copied bill-to and ship-to address field after that change; full address immutability remains unasserted.
 
 #### ACC-004 — Account lifecycle and commercial profile
 
@@ -1665,7 +1665,7 @@ Core · target · **partial** · Cites BASE-MAIL-001
 
 #### AUTO-003 — Quote activity notifications
 
-Core · target · **partial** · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+Core · target · **partial** · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · Register R-9
 
 **Requirement.** New quote messages, commercial revisions, impending expiry and acceptance notify the assigned buyer and rep with a direct authorized link. Internal notes reach only staff; delivery failure creates a follow-up rather than silently dropping the opportunity. Before it ships, this clause delivers ORD-005’s in-app quote notices (request, buyer-visible message, internal note, revision ready to accept, acceptance) to the same audiences by email, never an internal note to a buyer.
 
@@ -1683,7 +1683,7 @@ Core · target · **partial** · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-
 
 #### AUTO-009 — Immutable notification submission and retry
 
-Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · Register R-9
 
 **Requirement.** Quote mail submission preserves the exact sender request, provider outcome and one stable delivery identity; ambiguous retries cannot invent delivery. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1702,7 +1702,7 @@ Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DAT
 
 #### AUTO-010 — Quote expiry reminder delivery
 
-Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · Register R-9
 
 **Requirement.** Quote expiry reminders follow the exact latest commercial revision and current authorized audience on the account’s last valid day. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1715,7 +1715,7 @@ Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DAT
 
 #### AUTO-011 — Verified quote delivery callbacks
 
-Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · Register R-9
 
 **Requirement.** Only authenticated provider evidence for the exact saved tenant, provider identity and recipients changes quote-mail delivery state. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1731,7 +1731,7 @@ Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DAT
 
 #### AUTO-012 — Failed quote contact ownership
 
-Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · Register R-9
 
 **Requirement.** Failed quote contact remains source-linked owned work until an entitled person records its exact resolution. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1749,7 +1749,7 @@ Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DAT
 
 #### AUTO-013 — Notification custody and inert restoration
 
-Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · Register R-9
 
 **Requirement.** Quote-mail delivery history, recipient custody and failed-contact work survive archives without resending restored work or leaking credentials. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -1762,7 +1762,7 @@ Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DAT
 
 #### AUTO-014 — Quote notification handoffs and diagnostics
 
-Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001
+Core · target · **partial** · From AUTO-003 · Cites BASE-AUDIT-001, BASE-DATA-001, BASE-DATA-003, BASE-DATA-006, BASE-INPUT-003, BASE-MAIL-001, BASE-ROLE-001 · Register R-9
 
 **Requirement.** Quote-mail diagnostics and downstream buyer and rep routing preserve their named source and audience obligations. The detailed formats and commercial boundaries in the [AUTO-003 reference](docs/COMMERCIAL-REFERENCE.md#auto-003) apply.
 
@@ -2364,3 +2364,4 @@ None.
 | R-6 | ChatGPT client interoperability receipt | SURFACE-013 | not run | | |
 | R-7 | Codex client interoperability receipt | SURFACE-013 | not run | | |
 | R-8 | Copilot client interoperability receipt | SURFACE-013 | not run | | |
+| R-9 | Live Resend merchant-tenant delivery receipt | AUTO-003, AUTO-009, AUTO-010, AUTO-011, AUTO-012, AUTO-013, AUTO-014 | not run | | |

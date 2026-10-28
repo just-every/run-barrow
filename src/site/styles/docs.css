@@ -10,7 +10,7 @@
 .docs-nav a { display: block; padding: 8px 12px; border-radius: 10px; color: #2a3050; font-size: 16.5px; line-height: 1.35; text-decoration: none; }
 .docs-nav a:hover { background: #f3f5fb; }
 .docs-nav a[aria-current] { background: var(--br-wash); color: var(--br-ultramarine); font-weight: 600; }
-.docs-article { min-width: 0; font-size: 18px; line-height: 1.65; color: #2a3050; }
+.docs-article { min-width: 0; overflow-wrap: anywhere; font-size: 18px; line-height: 1.65; color: #2a3050; }
 .docs-article:focus { outline: none; }
 .docs-article h1 { margin-top: 12px; font: 860 clamp(38px, 4.4vw, 58px)/1.02 var(--rer-font-heading); letter-spacing: -.03em; word-spacing: .07em; color: var(--br-ink); text-wrap: balance; }
 .docs-swatch { display: flex; gap: 5px; margin: 18px 0 26px; }

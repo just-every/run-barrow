@@ -30,6 +30,7 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | ACC-003 | 1 | Changing defaults leaves the first order’s delivery instructions, jurisdiction and revision unchanged. | `tests/api/locations.test.mjs:51` | asserted |
 | ACC-003 | 1 | The second existing order retains US-NJ. | `tests/api/locations.test.mjs:52` | asserted |
 | ACC-003 | 1 | A later order uses the new default store. | `tests/api/locations.test.mjs:54` | asserted |
+| ACC-003 | 1 | Every copied bill-to and ship-to physical-address field remains unchanged after changing the default. | none | none |
 | ACC-004 | 1 | Record the commercial profile. | none | none |
 | ACC-004 | 1 | place an order. | none | none |
 | ACC-004 | 1 | hold then close its account. | none | none |
@@ -307,6 +308,7 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | PRI-007 | 3 | refresh. | none | none |
 | PRI-007 | 3 | a supplier-only reasoned exception. | none | none |
 | PRI-007 | 3 | inspect its audit. | none | none |
+| PRI-007 | 4 (old) | The credit-exhaustion step is retained in PAY-004/PAY-005 before credit ships.. | none | moved |
 | PRI-008 | 1 | Import a price book with wholesale. | none | none |
 | PRI-008 | 1 | MSRP columns in USD. | none | none |
 | PRI-008 | 1 | CAD. | none | none |
@@ -386,9 +388,9 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | ORD-008 | 2 | outstanding quantities separately. | none | none |
 | ORD-010 | 1 | Native buyer submission and supplier approval retain the recorded people. | `tests/api/flows.test.mjs:55` | asserted |
 | ORD-010 | 1 | After changing current prices, the second invoice equals the first. | `tests/api/flows.test.mjs:66` | asserted |
-| ORD-010 | 2 | Original exact cents and customer reference appear in the issued invoice. | `tests/api/flows.test.mjs:63` | asserted |
-| ORD-010 | 2 | The original agreed terms define the same 30-day due date. | `tests/api/flows.test.mjs:64` | asserted |
-| ORD-010 | 2 | Repeated download retains the same commercial invoice. | `tests/api/flows.test.mjs:66` | asserted |
+| ORD-010 | 2 | Original exact cents and customer reference appear in the issued invoice. | `tests/api/order-guarantee.test.mjs:115` | asserted |
+| ORD-010 | 2 | The original agreed terms define the same 30-day due date. | `tests/api/order-guarantee.test.mjs:115` | asserted |
+| ORD-010 | 2 | Repeated download retains the same commercial invoice. | `tests/api/order-guarantee.test.mjs:115` | asserted |
 | ORD-010 | 3 | The order records exact USD totals and line price. | `tests/api/order-guarantee.test.mjs:50` | asserted |
 | ORD-010 | 3 | The lost acknowledgment leaves the pending order without an invoice. | `tests/api/order-guarantee.test.mjs:66` | asserted |
 | ORD-010 | 3 | The upstream system has one new order. | `tests/api/order-guarantee.test.mjs:72` | asserted |
@@ -593,6 +595,7 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | RPT-003 | 3 | warehouse. | none | none |
 | RPT-003 | 3 | delivery remain unknown when the source does not report them. | none | none |
 | RPT-003 | 4 | They never change Pier fill denominators. | none | none |
+| RPT-003 | 5 (old) | See `tests/api/faire.test.mjs` and `tests/journeys/faire.test.mjs`.. | none | moved |
 | RPT-004 | 1 | Run aging on a stated date across net-30. | none | none |
 | RPT-004 | 1 | disputed. | none | none |
 | RPT-004 | 1 | partially paid invoices. | none | none |
@@ -802,6 +805,7 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | MOVE-007 | 3 | refuse a stale fingerprint. | none | none |
 | MOVE-007 | 3 | apply over several batches. | none | none |
 | MOVE-007 | 3 | replay it. | none | none |
+| MOVE-007 | 3 (old) | The receivable-mismatch and by-status totals steps remain obligations of PAY-008/PAY-009 and MOVE-001 through MOVE-006 before those capabilities ship.. | none | moved |
 | MOVE-007 | 4 | Inspect originals. | none | none |
 | MOVE-007 | 4 | journal. | none | none |
 | MOVE-007 | 4 | then undo untouched accounts. | none | none |
@@ -826,6 +830,7 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | DATA-001 | 3 | task references. | none | none |
 | DATA-001 | 3 | buyer exports omit it. | none | none |
 | DATA-001 | 3 | an agent call without that entitlement is refused. | none | none |
+| DATA-001 | 3 (old) | The 3-location, split-order, return and partial-payment steps remain obligations of ACC-003, ORD-009/013, SHIP-004 and PAY-003 before those capabilities ship.. | none | moved |
 | DATA-001 | 4 | RPT-005 activity goals join the owner/admin export as `reptargets` (exact Native user ID. | none | none |
 | DATA-001 | 4 | period. | none | none |
 | DATA-001 | 4 | frozen time zone. | none | none |
@@ -862,6 +867,7 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | DATA-002 | 4 | verified delivery events. | none | none |
 | DATA-002 | 4 | failed-contact task creation. | none | none |
 | DATA-002 | 4 | existing attributed followup.update records assignment/contact/resolution. | none | none |
+| DATA-002 | 4 (old) | The future credit override, refund and connector decision acceptance steps remain obligations of PAY-004/005/006/009/010 and INT-002 through INT-020 before those capabilities ship.. | none | moved |
 | DATA-002 | 5 | No secret. | none | none |
 | DATA-002 | 5 | fingerprint. | none | none |
 | DATA-002 | 5 | message body or attachment enters these events. | none | none |
@@ -1000,8 +1006,3 @@ Old reference: `b8c30605789ead56f02fdba13574b18a0285110e`.
 | AGT-008 | 2 | show its provenance. | none | none |
 | AGT-008 | 2 | approval in history. | none | none |
 | AGT-008 | 2 | execute a newly reviewed revision once after reauthorization. | none | none |
-| PRI-007 | 4 (old) | The credit-exhaustion step is retained in PAY-004/PAY-005 before credit ships.. | none | moved |
-| RPT-003 | 5 (old) | See `tests/api/faire.test.mjs` and `tests/journeys/faire.test.mjs`.. | none | moved |
-| MOVE-007 | 3 (old) | The receivable-mismatch and by-status totals steps remain obligations of PAY-008/PAY-009 and MOVE-001 through MOVE-006 before those capabilities ship.. | none | moved |
-| DATA-001 | 3 (old) | The 3-location, split-order, return and partial-payment steps remain obligations of ACC-003, ORD-009/013, SHIP-004 and PAY-003 before those capabilities ship.. | none | moved |
-| DATA-002 | 4 (old) | The future credit override, refund and connector decision acceptance steps remain obligations of PAY-004/005/006/009/010 and INT-002 through INT-020 before those capabilities ship.. | none | moved |
