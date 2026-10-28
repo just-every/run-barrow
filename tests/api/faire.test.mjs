@@ -97,6 +97,7 @@ test('Faire owner decisions are private, attributed, append-only and fully expor
   assert.equal(row.actorId,owner.id);assert.equal(row.actorKind,'human');assert.equal(row.source,value.source);assert.equal(row.reason,value.reason);
   assert.equal(row.orderId==='unrecorded'?undefined:row.orderId||undefined,value.orderId);
   if(value.revision!==undefined)assert.equal(row.revision,value.revision);else assert.match(row.revision,/^[a-f0-9]{64}$/);
+  assert.match(row.createdAt,/^\d{4}-\d\d-\d\dT/);
   assert.ok(Date.parse(row.createdAt)>=value.from&&Date.parse(row.createdAt)<=value.to,'Decision time must fall within its own public request');
  };
  const decisionKey=row=>JSON.stringify([row.action,row.source,row.orderId==='unrecorded'?undefined:row.orderId||undefined,row.action==='faire.configured'?undefined:row.revision,row.reason]);
