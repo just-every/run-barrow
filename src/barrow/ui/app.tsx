@@ -139,25 +139,34 @@ export function BarrowApp() {
   useEffect(() => {
     if (busy || focusOrderId || !returnFocus.current) return
     const target = returnFocus.current
+    const finish = () => {
+      observer.disconnect()
+      document.removeEventListener('focusin', moved)
+      if (returnFocus.current === target) returnFocus.current = null
+    }
+    const moved = (event: FocusEvent) => {
+      if (event.target !== target && event.target !== document.body) finish()
+    }
     const restore = () => {
-      if (document.activeElement !== document.body && document.activeElement !== target) { returnFocus.current = null; return true }
-      if (document.getElementById('main-content')?.querySelector('[aria-busy="true"]')) return false
+      if (document.activeElement !== document.body && document.activeElement !== target) { finish(); return }
+      if (document.getElementById('main-content')?.querySelector('[aria-busy="true"]')) return
       if (!target.isConnected) {
         document.getElementById('command-error')?.focus()
-        returnFocus.current = null
-        return true
+        finish()
+        return
       }
-      if (target.matches(':disabled')) return false
+      if (target.matches(':disabled')) return
       target.focus()
-      returnFocus.current = null
-      return true
+      // A failed request can trigger several later workspace refreshes. Keep
+      // following its action until the user moves on or recovery takes focus.
+      if (!error) finish()
     }
-    // Child workspaces can finish their record refresh after the command itself.
-    const observer = new MutationObserver(() => { if (restore()) observer.disconnect() })
+    const observer = new MutationObserver(restore)
     observer.observe(document.getElementById('main-content')!, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'aria-busy'] })
-    const frame = requestAnimationFrame(() => { if (restore()) observer.disconnect() })
-    return () => { cancelAnimationFrame(frame); observer.disconnect() }
-  }, [busy, focusOrderId, state])
+    document.addEventListener('focusin', moved)
+    const frame = requestAnimationFrame(restore)
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); document.removeEventListener('focusin', moved) }
+  }, [busy, focusOrderId, state, error])
 
   async function signOut() {
     setSigningOut(true); setError('')

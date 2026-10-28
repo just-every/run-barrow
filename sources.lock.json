@@ -1976,7 +1976,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "48c61c082ff4208f7bc3a38303d260e6d46056dc01fb9bccf5a7d1464e231e51",
+      "sha256": "cbc35118e0a93f96bbffe6d1546310ff82cd05af16663a66a50086ac86dc926e",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
