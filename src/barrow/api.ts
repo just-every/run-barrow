@@ -1,3 +1,4 @@
+import { readReturnClaims,returnClaimCommand } from './return-claims'
 import { orderFollowthrough } from './order-followthrough'
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
 import { requireActiveAccount } from './account-profile'
@@ -286,6 +287,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   // RPT-001 drill-down: one order as its reader may see it.
   const one=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
+  const returnClaims=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/return-claims$/.exec(path)
+  if(returnClaims&&request.method==='GET')return json(await readReturnClaims(env,actor,returnClaims[1]))
   const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
   if(followthrough && request.method==='GET') return json(await orderFollowthrough(env,actor,followthrough[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
@@ -356,6 +359,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
    let result
+   if(['return.request','return.revise','return.decide','return.reconcile'].includes(body.type))return json({result:await returnClaimCommand(env,actor,body.type,body.payload)})
    if(['prebook.publish','prebook.close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
    if(['prebook.release','prebook.delay'].includes(body.type))return json({result:await orderCommand(env,actor,body.type,body.payload)})
    if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})
