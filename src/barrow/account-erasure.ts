@@ -19,7 +19,7 @@ type PersonalValue={value:string;replacement:string}
 export type ErasureOperation={version:1;sourceIdentity:string;id:string;accountId:string;actorId:string;at:string;reason:string;mode:'erase'|'revoke';exclusions:Exclusion[];deleteOrderIds:string[];people:{id:string;email:string;name:string;subjects:string[]}[];accountEmail:string;personal?:PersonalValue[];receipt:any}
 type Item={id:string;kind:string;action:string;reason:string;floorUntil:string|null}
 const sql=(sql:string,...params:any[]):Sql=>({sql,params})
-const tables=[...creditFinancialTables,'bw_refund_events','bw_card_customers','bw_saved_cards','bw_card_payments','bw_card_events','bw_brands','bw_buying_profiles','bw_profile_approvals','bw_delta_feed_runs','bw_delta_cutovers','bw_delta_sources','bw_cutover_imports','bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
+const tables=[...creditFinancialTables,'bw_refund_events','bw_card_customers','bw_saved_cards','bw_card_payments','bw_card_events','bw_brands','bw_buying_profiles','bw_profile_approvals','bw_delta_feed_runs','bw_delta_cutovers','bw_delta_sources','bw_cutover_imports','bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_integration_grants','bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
 function owner(actor:Actor){if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may review account erasure.',403)}
 async function snapshot(env:Bindings) {
  const rows:Record<string,any[]>={},guards:Sql[]=[]
@@ -111,6 +111,7 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   ])
  }
  add('access','proposal-access:'+accountId,'revoke account proposal grants','Account-scoped agent authority ends even under a hold',[
+  sql('DELETE FROM bw_integration_grants WHERE account_id=?',accountId),
   sql('DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',accountId),
   sql("UPDATE bw_agent_proposal_grants SET state='revoked',revision=?,revoked_at=?,revocation_reason='Owner-reviewed account access revocation' WHERE account_id=?",op.id,at,accountId),
  ])
@@ -138,7 +139,12 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
  }))
  for(const {table,row} of creditHistoryItems(r,accountId)) {
   const floor=orderFloors.get(row.order_id)??null
-  add('credit financial history',table+':'+row.id,'keep financial history','Keep original line, currency, source, amount, actor and verified financial times',[],floor)
+  const operations:Sql[]=[]
+  if(table==='bw_payment_promises') {
+   const value=JSON.parse(row.value_json);value.restored=true;delete value.pause;value.history=value.history.map((event:any)=>({...event,reason:'[Erased decision note]',pause:undefined}));
+   operations.push(sql('UPDATE bw_payment_promises SET value_json=?,revision=? WHERE id=?',JSON.stringify(value),op.id,row.id))
+  }
+  add('credit financial history',table+':'+row.id,'keep financial history','Keep original line, currency, source, amount, actor and verified financial times',operations,floor)
   if(table==='bw_credit_refunds') {
    statements.push(sql("UPDATE bw_credit_refunds SET value_json=json_set(value_json,'$.restored',json('true')),revision=? WHERE id=?",op.id,row.id))
    for(const event of r.bw_refund_events.filter(event=>event.refund_id===row.id))add('credit financial history','refund-event:'+event.id,'keep financial history','Keep the verified refund event and exact financial time',[],floor)
