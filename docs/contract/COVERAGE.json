@@ -818,7 +818,32 @@
     {
       "file": "CONTRACT.md",
       "line": 117,
-      "text": "**ORD-009 \u2014 Backorders and shipment splits.** Buyers choose ship-complete, partial shipment or permitted backorder policies with explicit freight and billing consequences. Accepted lines may split into dated releases; shipped, allocated, backordered and canceled quantities reconcile to the original and exceptions need a named owner. Canceling a remaining release inherits STK-004's acknowledged release and held-until-confirmed promise. Each split release inherits PRI-003's quantity rules, with any per-split minimum policy stated before splits ship. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause takes over ordering into future ship windows against STK-002\u2019s incoming supply, which today is shown but never promised. Before shipping, this clause adds its release-level commitments and recorded promise-change history to RPT-003. Before shipping, retain REP-004 original commission attribution on release splits and earn/reverse only the eligible quantity once. **Acceptance evidence:** Accept ten cases with six available now and four next month, choose a split, ship six and cancel one remaining case. Order, invoices, freight and stock authority agree on six shipped and three outstanding.",
+      "text": "**ORD-009 \u2014 Backorders and shipment splits.** Buyers choose ship-complete, partial shipment or permitted backorder policies with explicit freight and billing consequences. Accepted lines may split into dated releases; shipped, allocated, backordered and canceled quantities reconcile to the original and exceptions need a named owner. Canceling a remaining release inherits STK-004's acknowledged release and held-until-confirmed promise. Each split release inherits PRI-003's quantity rules, with any per-split minimum policy stated before splits ship.",
+      "to": "clause",
+      "ids": [
+        "ORD-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 117,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 117,
+      "text": "Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause takes over ordering into future ship windows against STK-002\u2019s incoming supply, which today is shown but never promised. Before shipping, this clause adds its release-level commitments and recorded promise-change history to RPT-003. Before shipping, retain REP-004 original commission attribution on release splits and earn/reverse only the eligible quantity once. **Acceptance evidence:** Accept ten cases with six available now and four next month, choose a split, ship six and cancel one remaining case. Order, invoices, freight and stock authority agree on six shipped and three outstanding.",
       "to": "clause",
       "ids": [
         "ORD-009"
@@ -1165,7 +1190,32 @@
     {
       "file": "CONTRACT.md",
       "line": 165,
-      "text": "**PAY-001 \u2014 Stripe card checkout.** Merchants connect their own Stripe account and collect card payments with hosted/tokenized entry, supported authentication and exact order/currency references. Authorization, capture, decline and cancellation are distinct; signed provider events and idempotency reconcile money state and never expose full card data. A merchant may add a disclosed card surcharge only where card-network rules and the buyer's state permit it, shown before payment and never applied to debit cards or ACH. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause adds unapplied card payments to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds verified card-payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. Exact implemented semantics: the owner explicitly consents to a merchant-owned Stripe connection in the selected verified mode; encrypted connection credentials are omitted from archives. Hosted setup binds a card to one installation, account and merchant customer; a company finance buyer explicitly approves the recorded amount and disclosed surcharge before manual authorization. Only the supplier owner or admin captures or cancels with an audited reason. Provider reads and signed events bind installation, merchant, customer, order, exact amount and currency; browser return parameters never prove payment. Durable identities survive transport loss, duplicate events and inert archive restore. Only a verified US merchant, USD credit card and matching permitted billing state receive the owner-reviewed surcharge; debit, prepaid, unknown funding and prohibited jurisdictions receive none. **Acceptance evidence:** Use Stripe test checkout for successful and declined cards and an authentication challenge, replay an event and lose a capture response. The buyer sees one appropriate payment result and one reconciled charge; a configured surcharge appears for an eligible credit card and is refused for a debit card and a prohibiting state.",
+      "text": "**PAY-001 \u2014 Stripe card checkout.** Merchants connect their own Stripe account and collect card payments with hosted/tokenized entry, supported authentication and exact order/currency references. Authorization, capture, decline and cancellation are distinct; signed provider events and idempotency reconcile money state and never expose full card data. A merchant may add a disclosed card surcharge only where card-network rules and the buyer's state permit it, shown before payment and never applied to debit cards or ACH.",
+      "to": "clause",
+      "ids": [
+        "PAY-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 165,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 165,
+      "text": "Before it ships, this clause adds unapplied card payments to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds verified card-payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. Exact implemented semantics: the owner explicitly consents to a merchant-owned Stripe connection in the selected verified mode; encrypted connection credentials are omitted from archives. Hosted setup binds a card to one installation, account and merchant customer; a company finance buyer explicitly approves the recorded amount and disclosed surcharge before manual authorization. Only the supplier owner or admin captures or cancels with an audited reason. Provider reads and signed events bind installation, merchant, customer, order, exact amount and currency; browser return parameters never prove payment. Durable identities survive transport loss, duplicate events and inert archive restore. Only a verified US merchant, USD credit card and matching permitted billing state receive the owner-reviewed surcharge; debit, prepaid, unknown funding and prohibited jurisdictions receive none. **Acceptance evidence:** Use Stripe test checkout for successful and declined cards and an authentication challenge, replay an event and lose a capture response. The buyer sees one appropriate payment result and one reconciled charge; a configured surcharge appears for an eligible credit card and is refused for a debit card and a prohibiting state.",
       "to": "clause",
       "ids": [
         "PAY-001"
@@ -1180,7 +1230,32 @@
     {
       "file": "CONTRACT.md",
       "line": 167,
-      "text": "**PAY-002 \u2014 Stripe ACH collection.** US buyers authorize ACH debit with the provider mandate and bank verification flow. Pending, processing, settled, failed and returned states remain distinct; staff set fulfillment policy for unsettled funds and later returns reopen the balance without inventing settlement. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause adds unapplied ACH cash to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds verified ACH-payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Authorize a test bank account, submit a debit, inspect the pending statement then simulate settlement and a return. Order policy, balance and buyer notification reflect each verified provider event once.",
+      "text": "**PAY-002 \u2014 Stripe ACH collection.** US buyers authorize ACH debit with the provider mandate and bank verification flow. Pending, processing, settled, failed and returned states remain distinct; staff set fulfillment policy for unsettled funds and later returns reopen the balance without inventing settlement.",
+      "to": "clause",
+      "ids": [
+        "PAY-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 167,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 167,
+      "text": "Before it ships, this clause adds unapplied ACH cash to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds verified ACH-payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Authorize a test bank account, submit a debit, inspect the pending statement then simulate settlement and a return. Order policy, balance and buyer notification reflect each verified provider event once.",
       "to": "clause",
       "ids": [
         "PAY-002"
@@ -1195,7 +1270,32 @@
     {
       "file": "CONTRACT.md",
       "line": 169,
-      "text": "**PAY-003 \u2014 Deposits partial payments and allocations.** Orders can require percentage or fixed deposits, scheduled remaining payments and partial invoice payments. Payments allocate to named invoices/releases with unapplied cash shown separately, so a deposit is neither a second sale nor a full-paid statement. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause adds deposits and partial payments with their allocations to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds paid amounts, including partial payments, to RPT-001\u2019s sales report and reduces its outstanding amounts. Before it ships, this clause adds deposits and verified partial payments to RPT-004 aging, reducing the correct invoice balances and buckets in the page and CSV with provider source IDs. Before it ships, this clause adds unresolved deposit/allocation/payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add REP-004 verified partial-payment allocations to the original immutable commission lines, assert earning on payment and exact remaining/reversed cents, and export the provider source references. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Collect a 30% deposit on a seasonal prebook, invoice two releases, apply the deposit and a partial balance payment. Statement and provider references reconcile to the exact amount outstanding.",
+      "text": "**PAY-003 \u2014 Deposits partial payments and allocations.** Orders can require percentage or fixed deposits, scheduled remaining payments and partial invoice payments. Payments allocate to named invoices/releases with unapplied cash shown separately, so a deposit is neither a second sale nor a full-paid statement.",
+      "to": "clause",
+      "ids": [
+        "PAY-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 169,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 169,
+      "text": "Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause adds deposits and partial payments with their allocations to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds paid amounts, including partial payments, to RPT-001\u2019s sales report and reduces its outstanding amounts. Before it ships, this clause adds deposits and verified partial payments to RPT-004 aging, reducing the correct invoice balances and buckets in the page and CSV with provider source IDs. Before it ships, this clause adds unresolved deposit/allocation/payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add REP-004 verified partial-payment allocations to the original immutable commission lines, assert earning on payment and exact remaining/reversed cents, and export the provider source references. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Collect a 30% deposit on a seasonal prebook, invoice two releases, apply the deposit and a partial balance payment. Statement and provider references reconcile to the exact amount outstanding.",
       "to": "clause",
       "ids": [
         "PAY-003"
@@ -1210,7 +1310,32 @@
     {
       "file": "CONTRACT.md",
       "line": 171,
-      "text": "**PAY-004 \u2014 Approved net terms and credit limits.** Finance sets due-on-receipt or net terms, credit limit, credit currency and exposure policy covering open orders, unpaid invoices and permitted deposits. Checkout uses the connected receivables balance, shows available credit and requests approval when exposure exceeds policy. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for credit overrides, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause inherits PRI-007 credit-exposure revalidation, including exhaustion after drafting, with current blocking reasons and authorized recorded exceptions. Before it ships, ORD-004 quote acceptance runs this credit-exposure check before converting a quote into an order. Before it ships, this clause adds available credit and exposure to RPT-004 with source-linked currency amounts in the page and CSV. **Acceptance evidence:** Give an account net 30 and a $10,000 limit, place an $8,000 order with $3,000 already owed, and block or route it for approval. Record a payment and observe recalculated available credit.",
+      "text": "**PAY-004 \u2014 Approved net terms and credit limits.** Finance sets due-on-receipt or net terms, credit limit, credit currency and exposure policy covering open orders, unpaid invoices and permitted deposits. Checkout uses the connected receivables balance, shows available credit and requests approval when exposure exceeds policy.",
+      "to": "clause",
+      "ids": [
+        "PAY-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 171,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 171,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for credit overrides, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause inherits PRI-007 credit-exposure revalidation, including exhaustion after drafting, with current blocking reasons and authorized recorded exceptions. Before it ships, ORD-004 quote acceptance runs this credit-exposure check before converting a quote into an order. Before it ships, this clause adds available credit and exposure to RPT-004 with source-linked currency amounts in the page and CSV. **Acceptance evidence:** Give an account net 30 and a $10,000 limit, place an $8,000 order with $3,000 already owed, and block or route it for approval. Record a payment and observe recalculated available credit.",
       "to": "clause",
       "ids": [
         "PAY-004"
@@ -1225,7 +1350,32 @@
     {
       "file": "CONTRACT.md",
       "line": 173,
-      "text": "**PAY-005 \u2014 Credit holds and controlled release.** Finance can impose overdue, manual or provider credit holds with reason, expiry and named owner. Reps and buyers see a suitable explanation and remediation request. Only authorized finance can release or override within limits, recording the decision and rechecking current exposure before acceptance. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed credit hold/release and override decisions, with actor/source/time/revision/reason, before shipping. A hold and its release add entries to ORD-012's order timeline. Before shipping, this clause inherits PRI-007 current credit-exposure revalidation and recorded exception authority, including refusal when credit is exhausted after drafting. Before it ships, a credit hold also refuses ORD-004 quote acceptance with its explanation. **Acceptance evidence:** Hold an overdue account, attempt checkout as buyer and rep, collect a partial payment, then release within a finance limit. Refuse a rep override and invalidate a stale release if exposure changes.",
+      "text": "**PAY-005 \u2014 Credit holds and controlled release.** Finance can impose overdue, manual or provider credit holds with reason, expiry and named owner. Reps and buyers see a suitable explanation and remediation request. Only authorized finance can release or override within limits, recording the decision and rechecking current exposure before acceptance.",
+      "to": "clause",
+      "ids": [
+        "PAY-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 173,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 173,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed credit hold/release and override decisions, with actor/source/time/revision/reason, before shipping. A hold and its release add entries to ORD-012's order timeline. Before shipping, this clause inherits PRI-007 current credit-exposure revalidation and recorded exception authority, including refusal when credit is exhausted after drafting. Before it ships, a credit hold also refuses ORD-004 quote acceptance with its explanation. **Acceptance evidence:** Hold an overdue account, attempt checkout as buyer and rep, collect a partial payment, then release within a finance limit. Refuse a rep override and invalidate a stale release if exposure changes.",
       "to": "clause",
       "ids": [
         "PAY-005"
@@ -1240,7 +1390,32 @@
     {
       "file": "CONTRACT.md",
       "line": 175,
-      "text": "**PAY-006 \u2014 B2B pay later through Resolve.** Eligible merchants offer Resolve-backed B2B net terms using provider enrollment, US business verification, credit decision, available-credit and invoice/charge states. Buyer sees financing terms, fees and lender identity before consent; Barrow never grants credit or treats an application as approval. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for refund/financial adjustment decisions, including actor/source/time/revision/reason, before its capability ships. Before it ships, this clause adds verified financing/payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Connect a Resolve sandbox merchant, submit eligible and declined buyer applications, accept a provider-approved order and reconcile invoice funding and repayment events. A declined decision or insufficient provider credit cannot be overridden as provider approval.",
+      "text": "**PAY-006 \u2014 B2B pay later through Resolve.** Eligible merchants offer Resolve-backed B2B net terms using provider enrollment, US business verification, credit decision, available-credit and invoice/charge states. Buyer sees financing terms, fees and lender identity before consent; Barrow never grants credit or treats an application as approval.",
+      "to": "clause",
+      "ids": [
+        "PAY-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 175,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 175,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for refund/financial adjustment decisions, including actor/source/time/revision/reason, before its capability ships. Before it ships, this clause adds verified financing/payment exceptions to AUTO-005 with source links, owner and positive resolution evidence. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Connect a Resolve sandbox merchant, submit eligible and declined buyer applications, accept a provider-approved order and reconcile invoice funding and repayment events. A declined decision or insufficient provider credit cannot be overridden as provider approval.",
       "to": "clause",
       "ids": [
         "PAY-006"
@@ -1255,7 +1430,38 @@
     {
       "file": "CONTRACT.md",
       "line": 177,
-      "text": "**PAY-007 \u2014 Customer account statements.** Buyers and authorized staff see dated opening balance, invoices, deposits, payments, returns, credit notes, unapplied cash and closing balance by currency, with source document links and downloadable PDF/CSV. Account history explains partial settlement and disputed balances. PAY-007 inherits ACC-004: holding or closing an account never removes its authorized access to existing statements. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Exact semantics (ct 20 October, extended by PAY-001 and PAY-010): invoices retain their approved integer minor-unit currency, exact eligible quantities and immutable order references. `GET /api/barrow/statements/<accountId>` and its `.csv` and `.pdf` downloads use inclusive YYYY-MM-DD bounds. Invoice issue dates keep their recorded New York calendar day; card receipts use the capture instant's calendar day in that same zone. The default end remains today there. Per currency, opening is the sum of earlier signed entries; period entries are original invoices, captured card surcharge assessments, full captured card receipts, issued line credits and verified succeeded refunds. Closing is opening plus invoices and surcharge assessments less receipts and credits, plus succeeded refunds. Applications explain invoice settlement without changing account cash twice. Every payment entry links its payment source and order; CSV carries the same running balances and PDF the same amounts. The note distinguishes account cash from invoice allocation: explicit verified card allocations and credit applications now explain invoice settlement, while other payment types and deposits remain unrecorded. Pending and failed refunds never count as returned cash. Supplier owner and admin read any account, current authorized staff retain their account scope, company finance reads its own company, agents are refused and another company is not found. Held and closed accounts retain authorized history access. Statements are derived; DATA-001 exports their invoices and card financial sources. Before they ship, PAY-003 adds deposits, partial payments and invoice allocations, PAY-010 credit notes and refunds, SHIP-004 return credits, PAY-002 unapplied bank cash, PAY-011 disputed balances, and INT-002 and INT-003 connected-ledger comparison as dated rows in every format. No ledger comparison is claimed today.  **Acceptance evidence:** Open a statement spanning an opening balance, two invoices, deposit, partial payment and credit; compare the closing balance with the connected ledger and download it as the buyer. Another company is refused. Hold and then close the account and confirm that its authorized buyer can still read and download the statement.",
+      "text": "**PAY-007 \u2014 Customer account statements.** Buyers and authorized staff see dated opening balance, invoices, deposits, payments, returns, credit notes, unapplied cash and closing balance by currency, with source document links and downloadable PDF/CSV. Account history explains partial settlement and disputed balances. PAY-007 inherits ACC-004: holding or closing an account never removes its authorized access to existing statements.",
+      "to": "clause",
+      "ids": [
+        "PAY-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        },
+        {
+          "to": "rulings",
+          "ids": [
+            "RL-6"
+          ]
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 177,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 177,
+      "text": "Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Exact semantics (ct 20 October, extended by PAY-001 and PAY-010): invoices retain their approved integer minor-unit currency, exact eligible quantities and immutable order references. `GET /api/barrow/statements/<accountId>` and its `.csv` and `.pdf` downloads use inclusive YYYY-MM-DD bounds. Invoice issue dates keep their recorded New York calendar day; card receipts use the capture instant's calendar day in that same zone. The default end remains today there. Per currency, opening is the sum of earlier signed entries; period entries are original invoices, captured card surcharge assessments, full captured card receipts, issued line credits and verified succeeded refunds. Closing is opening plus invoices and surcharge assessments less receipts and credits, plus succeeded refunds. Applications explain invoice settlement without changing account cash twice. Every payment entry links its payment source and order; CSV carries the same running balances and PDF the same amounts. The note distinguishes account cash from invoice allocation: explicit verified card allocations and credit applications now explain invoice settlement, while other payment types and deposits remain unrecorded. Pending and failed refunds never count as returned cash. Supplier owner and admin read any account, current authorized staff retain their account scope, company finance reads its own company, agents are refused and another company is not found. Held and closed accounts retain authorized history access. Statements are derived; DATA-001 exports their invoices and card financial sources. Before they ship, PAY-003 adds deposits, partial payments and invoice allocations, PAY-010 credit notes and refunds, SHIP-004 return credits, PAY-002 unapplied bank cash, PAY-011 disputed balances, and INT-002 and INT-003 connected-ledger comparison as dated rows in every format. No ledger comparison is claimed today.  **Acceptance evidence:** Open a statement spanning an opening balance, two invoices, deposit, partial payment and credit; compare the closing balance with the connected ledger and download it as the buyer. Another company is refused. Hold and then close the account and confirm that its authorized buyer can still read and download the statement.",
       "to": "clause",
       "ids": [
         "PAY-007"
@@ -1276,7 +1482,32 @@
     {
       "file": "CONTRACT.md",
       "line": 179,
-      "text": "**PAY-008 \u2014 Invoice documents and delivery.** Eligible accepted releases produce stable numbered invoice records with seller/buyer identity, PO, line quantities, currency, tax, freight, terms and due dates. Buyers download PDF and CSV; the configured accounting authority controls legal issue/void state, and delivery is tracked without duplicate invoice creation. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, any import this clause adds or feeds reports its entities in MOVE-007\u2019s dry-run reconciliation (source against planned counts and sums by currency, rejected fields, missing entities) and records the approved fingerprint. **Acceptance evidence:** Invoice a split shipment through the connected accounting sandbox, deliver its PDF, download CSV and change the current price list. Both documents retain the issued revision, correct tax/freight and one accounting invoice ID.",
+      "text": "**PAY-008 \u2014 Invoice documents and delivery.** Eligible accepted releases produce stable numbered invoice records with seller/buyer identity, PO, line quantities, currency, tax, freight, terms and due dates. Buyers download PDF and CSV; the configured accounting authority controls legal issue/void state, and delivery is tracked without duplicate invoice creation.",
+      "to": "clause",
+      "ids": [
+        "PAY-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 179,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 179,
+      "text": "Before it ships, any import this clause adds or feeds reports its entities in MOVE-007\u2019s dry-run reconciliation (source against planned counts and sums by currency, rejected fields, missing entities) and records the approved fingerprint. **Acceptance evidence:** Invoice a split shipment through the connected accounting sandbox, deliver its PDF, download CSV and change the current price list. Both documents retain the issued revision, correct tax/freight and one accounting invoice ID.",
       "to": "clause",
       "ids": [
         "PAY-008"
@@ -1291,7 +1522,32 @@
     {
       "file": "CONTRACT.md",
       "line": 181,
-      "text": "**PAY-009 \u2014 Receivables aging and collections.** Finance sees current and aged receivables by due date, account, rep and disputed status, assigns collection follow-ups and schedules policy-based reminders with contact consent and stopping rules. Verified settlement, dispute or promise-to-pay changes the next action; a sent reminder alone does not close collection. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for refund/financial adjustment decisions, including actor/source/time/revision/reason, before its capability ships. Before it ships, any import this clause adds or feeds reports its entities in MOVE-007\u2019s dry-run reconciliation (source against planned counts and sums by currency, rejected fields, missing entities) and records the approved fingerprint. **Acceptance evidence:** Age three invoices, dispute one and record a promise-to-pay for another. Run scheduled reminders, settle the third via provider event and inspect aging, recipient delivery and the remaining owned tasks.",
+      "text": "**PAY-009 \u2014 Receivables aging and collections.** Finance sees current and aged receivables by due date, account, rep and disputed status, assigns collection follow-ups and schedules policy-based reminders with contact consent and stopping rules. Verified settlement, dispute or promise-to-pay changes the next action; a sent reminder alone does not close collection.",
+      "to": "clause",
+      "ids": [
+        "PAY-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 181,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 181,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for refund/financial adjustment decisions, including actor/source/time/revision/reason, before its capability ships. Before it ships, any import this clause adds or feeds reports its entities in MOVE-007\u2019s dry-run reconciliation (source against planned counts and sums by currency, rejected fields, missing entities) and records the approved fingerprint. **Acceptance evidence:** Age three invoices, dispute one and record a promise-to-pay for another. Run scheduled reminders, settle the third via provider event and inspect aging, recipient delivery and the remaining owned tasks.",
       "to": "clause",
       "ids": [
         "PAY-009"
@@ -1306,7 +1562,32 @@
     {
       "file": "CONTRACT.md",
       "line": 183,
-      "text": "**PAY-010 \u2014 Credit notes and refunds.** Authorized finance issues linked line-level credit notes for returns, price corrections and cancellations, applies them to an invoice or initiates provider refunds under role limits. Tax and freight adjustments use the original commercial basis; failed or pending refunds remain visible and do not count as returned funds. Current semantics: existing supplier owners and admins act directly; an owner-granted Native finance operator needs current account scope and explicit positive per-decision credit and refund allowances in USD cents, with revision and Native-version guards. Existing grants default to zero; other currencies remain owner or admin decisions. Every financial decision is explicit and audited. Credit documents freeze the approved line, currency, source revision, original replacement linkage and original freight basis. Physical returns and cancellations require reconciled Pier evidence; price corrections need an attributed reference and explicit line cents capped by the original remaining basis. Partial physical credits share remaining original value in integer cents, conserving the full line. Current invoices have no verified tax, so nonzero tax corrections are refused; TAX-004 inherits original provider-backed tax corrections before verified tax ships. Original accepted freight and handling cap freight credits; current delivery-rate changes cannot rewrite them. Credit first reduces original unpaid principal; only paid excess remains available for another unpaid invoice of the same company and currency or an explicit original-card refund. Principal allocations exclude card surcharge. Pending or uncertain refund requests reserve unused credit; only verified succeeded refunds return cash, and verified failure releases the reservation. Stripe errors with uncertain completion keep the same request identity. Signed callbacks re-read the provider object and cannot create a second credit or refund. Return and cancellation commission reversals reuse their original physical evidence once; price credits add only the remaining capped original-line reversal, preserving currency and frozen split. A cancellation credit retains the original withdrawn invoice with its correcting document. General deposits, release allocations and payment-basis commission earning remain PAY-003; no deposit collection is claimed here. Stripe copies are disclosed without provider-erasure claims, and restored refund history cannot initiate provider operations. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed credit-note and provider refund decisions, with actor/source/time/revision/reason, before shipping. Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause adds credit notes and refunds to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds credited amounts to RPT-001\u2019s sales report and reduces its outstanding amounts. Before it ships, this clause adds applied credits and pending, failed and completed refund status to RPT-004, changing aged invoice balances only for applicable verified effects in the page and CSV. Before shipping, credits for STK-005 replacements retain each line\u2019s original order/line linkage and the exact accepted replacement basis. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, link REP-004 credit/refund commission reversals to the original line, currency and frozen split, cap reversals and refuse a second reversal for the same economic return. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Credit a partial return, apply part to an unpaid invoice and refund the paid remainder through Stripe. Replay the refund callback and verify one credit, one refund and the exact statement balance.",
+      "text": "**PAY-010 \u2014 Credit notes and refunds.** Authorized finance issues linked line-level credit notes for returns, price corrections and cancellations, applies them to an invoice or initiates provider refunds under role limits. Tax and freight adjustments use the original commercial basis; failed or pending refunds remain visible and do not count as returned funds. Current semantics: existing supplier owners and admins act directly; an owner-granted Native finance operator needs current account scope and explicit positive per-decision credit and refund allowances in USD cents, with revision and Native-version guards. Existing grants default to zero; other currencies remain owner or admin decisions. Every financial decision is explicit and audited. Credit documents freeze the approved line, currency, source revision, original replacement linkage and original freight basis. Physical returns and cancellations require reconciled Pier evidence; price corrections need an attributed reference and explicit line cents capped by the original remaining basis. Partial physical credits share remaining original value in integer cents, conserving the full line. Current invoices have no verified tax, so nonzero tax corrections are refused; TAX-004 inherits original provider-backed tax corrections before verified tax ships. Original accepted freight and handling cap freight credits; current delivery-rate changes cannot rewrite them. Credit first reduces original unpaid principal; only paid excess remains available for another unpaid invoice of the same company and currency or an explicit original-card refund. Principal allocations exclude card surcharge. Pending or uncertain refund requests reserve unused credit; only verified succeeded refunds return cash, and verified failure releases the reservation. Stripe errors with uncertain completion keep the same request identity. Signed callbacks re-read the provider object and cannot create a second credit or refund. Return and cancellation commission reversals reuse their original physical evidence once; price credits add only the remaining capped original-line reversal, preserving currency and frozen split. A cancellation credit retains the original withdrawn invoice with its correcting document. General deposits, release allocations and payment-basis commission earning remain PAY-003; no deposit collection is claimed here. Stripe copies are disclosed without provider-erasure claims, and restored refund history cannot initiate provider operations.",
+      "to": "clause",
+      "ids": [
+        "PAY-010"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 183,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 183,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed credit-note and provider refund decisions, with actor/source/time/revision/reason, before shipping. Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause adds credit notes and refunds to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds credited amounts to RPT-001\u2019s sales report and reduces its outstanding amounts. Before it ships, this clause adds applied credits and pending, failed and completed refund status to RPT-004, changing aged invoice balances only for applicable verified effects in the page and CSV. Before shipping, credits for STK-005 replacements retain each line\u2019s original order/line linkage and the exact accepted replacement basis. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, link REP-004 credit/refund commission reversals to the original line, currency and frozen split, cap reversals and refuse a second reversal for the same economic return. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Credit a partial return, apply part to an unpaid invoice and refund the paid remainder through Stripe. Replay the refund callback and verify one credit, one refund and the exact statement balance.",
       "to": "clause",
       "ids": [
         "PAY-010"
@@ -1321,7 +1602,32 @@
     {
       "file": "CONTRACT.md",
       "line": 185,
-      "text": "**PAY-011 \u2014 Payment disputes and reconciliation.** Staff see card disputes, ACH returns, chargebacks and provider fees alongside the original order/invoice, submit permitted evidence through the provider and reconcile gross, fees, net and timing differences to accounting. Disputes remain distinct from product returns and do not delete the sale. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause adds disputed balances to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds failed payments and disputed invoice balances to RPT-004 in the page and CSV without deleting the invoice. Before it ships, this clause adds verified payment disputes, ACH returns and reconciliation exceptions to AUTO-005 with source links and owner; reminders alone never close them. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Receive a Stripe test dispute and ACH return, attach delivery evidence, reconcile a payout including fees and inspect a named owner for the open disputed balance.",
+      "text": "**PAY-011 \u2014 Payment disputes and reconciliation.** Staff see card disputes, ACH returns, chargebacks and provider fees alongside the original order/invoice, submit permitted evidence through the provider and reconcile gross, fees, net and timing differences to accounting. Disputes remain distinct from product returns and do not delete the sale.",
+      "to": "clause",
+      "ids": [
+        "PAY-011"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 185,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 185,
+      "text": "Before it ships, this clause adds disputed balances to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds failed payments and disputed invoice balances to RPT-004 in the page and CSV without deleting the invoice. Before it ships, this clause adds verified payment disputes, ACH returns and reconciliation exceptions to AUTO-005 with source links and owner; reminders alone never close them. Before shipping, extend DATA-003\u2019s commercial-retention minimum from the latest recorded financial event, including every event introduced here, and assert the exact UTC seven-calendar-year cutoff (leap day clamps to February 28), refusal before that cutoff, the configured retention expiry, legal-hold refusal and attributed release, explicit owner review and attributed erasure receipt, preservation of required financial history, and refusal to resurrect erased data when restoring an older archive with the later erasure journal. Before shipping, add its separate provider-held copies to DATA-003\u2019s custody report; no provider erasure is claimed. **Acceptance evidence:** Receive a Stripe test dispute and ACH return, attach delivery evidence, reconcile a payout including fees and inspect a named owner for the open disputed balance.",
       "to": "clause",
       "ids": [
         "PAY-011"
@@ -1336,7 +1642,32 @@
     {
       "file": "CONTRACT.md",
       "line": 187,
-      "text": "**PAY-012 \u2014 Saved payment methods and consent.** Buyers manage provider-tokenized cards and bank mandates with explicit company and location permission and consent for later charges. Staff see masked brand and last four digits and status only; removing consent blocks new off-session collections without erasing historical receipts. Card semantics: an active company finance buyer explicitly consents after Stripe-hosted card verification for the source company and exact delivery location. Each later approved invoice needs a fresh exact-amount and surcharge authorization; no schedule or automatic collection is added. Current company finance and location permission is rechecked at use. Supplier finance staff see masked records only; supplier owner or admin may withdraw consent but cannot grant buyer consent. Withdrawal fences every new saved-card authorization, including already-prepared attempts, and preserves earlier receipts. Reusable card and customer references never appear in public payment reads, commercial exports or owner archives; saved consent is excluded from restore. PAY-002 retains the bank collection dependency, and PAY-012 retains its bank-mandate obligation. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. **Acceptance evidence:** Save a test payment method, authorize a later balance charge, remove consent and attempt another charge. Provider tokens stay private, the new charge is blocked and old receipts remain accessible.",
+      "text": "**PAY-012 \u2014 Saved payment methods and consent.** Buyers manage provider-tokenized cards and bank mandates with explicit company and location permission and consent for later charges. Staff see masked brand and last four digits and status only; removing consent blocks new off-session collections without erasing historical receipts. Card semantics: an active company finance buyer explicitly consents after Stripe-hosted card verification for the source company and exact delivery location. Each later approved invoice needs a fresh exact-amount and surcharge authorization; no schedule or automatic collection is added. Current company finance and location permission is rechecked at use. Supplier finance staff see masked records only; supplier owner or admin may withdraw consent but cannot grant buyer consent. Withdrawal fences every new saved-card authorization, including already-prepared attempts, and preserves earlier receipts. Reusable card and customer references never appear in public payment reads, commercial exports or owner archives; saved consent is excluded from restore. PAY-002 retains the bank collection dependency, and PAY-012 retains its bank-mandate obligation.",
+      "to": "clause",
+      "ids": [
+        "PAY-012"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 187,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 187,
+      "text": "**Acceptance evidence:** Save a test payment method, authorize a later balance charge, remove consent and attempt another charge. Provider tokens stay private, the new charge is blocked and old receipts remain accessible.",
       "to": "clause",
       "ids": [
         "PAY-012"
@@ -1351,7 +1682,32 @@
     {
       "file": "CONTRACT.md",
       "line": 191,
-      "text": "**TAX-001 \u2014 Avalara AvaTax calculation.** An Avalara AvaTax adapter calculates US state/local sales tax from seller nexus settings, product tax codes, ship-from/to, freight and account exemptions. Checkout quotes, committed invoice transactions, voids and credits retain provider IDs and explain any recalculation before buyer acceptance. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before shipping, this clause inherits PRI-007 tax validation with current blocking reasons before acceptance. Before shipping, STK-005 substitution offers and acceptance show the source-verified tax difference on the original commercial basis; a tax unknown cannot be presented as verified. **Acceptance evidence:** Use an AvaTax sandbox with taxable interstate and exempt orders, change the delivery address, commit an invoice and credit one line. Checkout, invoice and provider transaction totals reconcile to the cent.",
+      "text": "**TAX-001 \u2014 Avalara AvaTax calculation.** An Avalara AvaTax adapter calculates US state/local sales tax from seller nexus settings, product tax codes, ship-from/to, freight and account exemptions. Checkout quotes, committed invoice transactions, voids and credits retain provider IDs and explain any recalculation before buyer acceptance.",
+      "to": "clause",
+      "ids": [
+        "TAX-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 191,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 191,
+      "text": "Before shipping, this clause inherits PRI-007 tax validation with current blocking reasons before acceptance. Before shipping, STK-005 substitution offers and acceptance show the source-verified tax difference on the original commercial basis; a tax unknown cannot be presented as verified. **Acceptance evidence:** Use an AvaTax sandbox with taxable interstate and exempt orders, change the delivery address, commit an invoice and credit one line. Checkout, invoice and provider transaction totals reconcile to the cent.",
       "to": "clause",
       "ids": [
         "TAX-001"
@@ -1366,7 +1722,32 @@
     {
       "file": "CONTRACT.md",
       "line": 193,
-      "text": "**TAX-002 \u2014 TaxJar alternative tax adapter.** Merchants can choose TaxJar instead of AvaTax for configured US tax calculation and transaction/refund reporting. Provider authority and jurisdiction setup are explicit, unavailable calculation blocks acceptance or requires a disclosed authorized policy, and switching providers does not rewrite issued tax. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before shipping, this clause inherits PRI-007 tax validation with current blocking reasons before acceptance. Before shipping, STK-005 substitution offers and acceptance show the source-verified tax difference on the original commercial basis; a tax unknown cannot be presented as verified. **Acceptance evidence:** Configure TaxJar, quote two destination jurisdictions, import a refund and interrupt the provider during checkout. Refuse an invented tax amount and preserve previous invoice provider references after a switch.",
+      "text": "**TAX-002 \u2014 TaxJar alternative tax adapter.** Merchants can choose TaxJar instead of AvaTax for configured US tax calculation and transaction/refund reporting. Provider authority and jurisdiction setup are explicit, unavailable calculation blocks acceptance or requires a disclosed authorized policy, and switching providers does not rewrite issued tax.",
+      "to": "clause",
+      "ids": [
+        "TAX-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 193,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 193,
+      "text": "Before shipping, this clause inherits PRI-007 tax validation with current blocking reasons before acceptance. Before shipping, STK-005 substitution offers and acceptance show the source-verified tax difference on the original commercial basis; a tax unknown cannot be presented as verified. **Acceptance evidence:** Configure TaxJar, quote two destination jurisdictions, import a refund and interrupt the provider during checkout. Refuse an invented tax amount and preserve previous invoice provider references after a switch.",
       "to": "clause",
       "ids": [
         "TAX-002"
@@ -1381,7 +1762,32 @@
     {
       "file": "CONTRACT.md",
       "line": 195,
-      "text": "**TAX-003 \u2014 Resale certificates and exemption review.** Buyers upload resale certificates with company, state, effective/expiry dates and covered locations. Staff review them, and Avalara ECM can collect and validate certificate custody. Only applicable approved exemptions affect tax; expiry requests renewal and exposes the order impact. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before shipping, this clause inherits PRI-007 exemption validation with current blocking reasons before acceptance. Before shipping, STK-005 substitution offers preserve the original exemption basis and disclose how its verified change affects tax. Before shipping, validate and review ACC-001 application certificates; the application\u2019s format check is not exemption validation. **Acceptance evidence:** Upload a certificate for one state, approve it through staff review, order in covered and uncovered states and let it expire. Only the eligible transaction is exempt and the buyer receives a renewal action.",
+      "text": "**TAX-003 \u2014 Resale certificates and exemption review.** Buyers upload resale certificates with company, state, effective/expiry dates and covered locations. Staff review them, and Avalara ECM can collect and validate certificate custody. Only applicable approved exemptions affect tax; expiry requests renewal and exposes the order impact.",
+      "to": "clause",
+      "ids": [
+        "TAX-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 195,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 195,
+      "text": "Before shipping, this clause inherits PRI-007 exemption validation with current blocking reasons before acceptance. Before shipping, STK-005 substitution offers preserve the original exemption basis and disclose how its verified change affects tax. Before shipping, validate and review ACC-001 application certificates; the application\u2019s format check is not exemption validation. **Acceptance evidence:** Upload a certificate for one state, approve it through staff review, order in covered and uncovered states and let it expire. Only the eligible transaction is exempt and the buyer receives a renewal action.",
       "to": "clause",
       "ids": [
         "TAX-003"
@@ -1396,7 +1802,32 @@
     {
       "file": "CONTRACT.md",
       "line": 197,
-      "text": "**TAX-004 \u2014 Tax corrections and audit trail.** Tax-relevant address, certificate, refund and line changes create linked adjustments using the selected tax provider. Issued transactions remain immutable with correction references, and finance exports the tax basis and provider response for reconciliation and advisor filing. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before shipping, STK-005 substitution tax corrections preserve original-line linkage and disclose the verified original-to-replacement difference. **Acceptance evidence:** Correct an address after invoice issue and return a taxable item. Inspect the original plus linked correcting transaction in Barrow and the provider export; no silent mutation or duplicate refund tax occurs.",
+      "text": "**TAX-004 \u2014 Tax corrections and audit trail.** Tax-relevant address, certificate, refund and line changes create linked adjustments using the selected tax provider. Issued transactions remain immutable with correction references, and finance exports the tax basis and provider response for reconciliation and advisor filing.",
+      "to": "clause",
+      "ids": [
+        "TAX-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 197,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 197,
+      "text": "Before shipping, STK-005 substitution tax corrections preserve original-line linkage and disclose the verified original-to-replacement difference. **Acceptance evidence:** Correct an address after invoice issue and return a taxable item. Inspect the original plus linked correcting transaction in Barrow and the provider export; no silent mutation or duplicate refund tax occurs.",
       "to": "clause",
       "ids": [
         "TAX-004"
@@ -1411,7 +1842,32 @@
     {
       "file": "CONTRACT.md",
       "line": 201,
-      "text": "**SHIP-001 \u2014 Delivery methods and shipping charges.** Merchants offer configured parcel, freight/LTL, local pickup and own-carrier-account choices by account, warehouse and order size, with handling fees, free-freight thresholds and delivery windows. Checkout shows the binding quote or marks a freight quote as approval-required before acceptance. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before shipping, this clause inherits PRI-007 shipping validation with current blocking reasons before acceptance. Before it ships, ORD-004 quotes carry quoted shipping amounts into these charges; until then a quote records shipping as a note only. Exact semantics (SHIP-001): owner/admin configures merchant delivery rates in Data \u2192 Delivery settings and `shipping.settings`; these are merchant quotes, never a claim of a live UPS or other carrier rate. Eligibility uses the account ID, snapshotted ship-to state, account warehouse eligibility and the merchandise subtotal in integer USD cents, with inclusive minimum/maximum bounds. Each eligible warehouse produces a distinct option; this is delivery-method eligibility, while Pier remains the stock allocator. Blank scopes mean all; no configured methods preserves existing ordering. Delivery rates are USD: a historical AUD draft must be replaced by a newly reviewed USD draft before selecting a USD delivery charge, and the historical record retains its original currency and cents. The free-freight threshold is inclusive and waives the base shipping charge only; handling remains payable. Delivery windows add the configured minimum/maximum calendar days to today in America/New_York, with both dates included. Freight marked quote-required stays unpriced and cannot be selected or accepted until owner/admin records the exact cents, dates and reason. An own-carrier choice records the buyer\u2019s account reference, never a credential or a carrier booking. Orders select delivery after draft preparation and before submission; selection alone is not acceptance. Submission requires the account buyer\u2019s explicit acknowledgment of the final method, delivery-plus-handling amount and window. The server recomputes eligibility and fingerprints the commercial lines, account revision, exact address snapshot and rate-book revision, rechecking the rate book atomically when accepting; changed quotes or eligibility require renewed review. Quotes carry their proposed delivery amount/window into one accepted order after the same acknowledgment and revalidation. Accepted order snapshots, inventory quantities, terms, currency and approval attribution remain fixed; invoice CSV includes one separate delivery/handling line, commercial exports retain the full delivery snapshot, and archives restore it. RPT-001 shows freight and invoiced freight once on the first product line in separate columns; merchandise columns exclude those amounts, and adding invoiced freight reconciles the invoice total. SKU filters include freight only when that first product line is selected. No shipping provider booking or delivery event is claimed by this clause; SHIP-002 and SHIP-003 add those capabilities under their own requirements. **Acceptance evidence:** Compare pickup, UPS parcel and freight-quote orders, cross a free-freight threshold and change the ship-to state. Buyer explicitly accepts the final method, cost and window before ordering.",
+      "text": "**SHIP-001 \u2014 Delivery methods and shipping charges.** Merchants offer configured parcel, freight/LTL, local pickup and own-carrier-account choices by account, warehouse and order size, with handling fees, free-freight thresholds and delivery windows. Checkout shows the binding quote or marks a freight quote as approval-required before acceptance.",
+      "to": "clause",
+      "ids": [
+        "SHIP-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 201,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 201,
+      "text": "Before shipping, this clause inherits PRI-007 shipping validation with current blocking reasons before acceptance. Before it ships, ORD-004 quotes carry quoted shipping amounts into these charges; until then a quote records shipping as a note only. Exact semantics (SHIP-001): owner/admin configures merchant delivery rates in Data \u2192 Delivery settings and `shipping.settings`; these are merchant quotes, never a claim of a live UPS or other carrier rate. Eligibility uses the account ID, snapshotted ship-to state, account warehouse eligibility and the merchandise subtotal in integer USD cents, with inclusive minimum/maximum bounds. Each eligible warehouse produces a distinct option; this is delivery-method eligibility, while Pier remains the stock allocator. Blank scopes mean all; no configured methods preserves existing ordering. Delivery rates are USD: a historical AUD draft must be replaced by a newly reviewed USD draft before selecting a USD delivery charge, and the historical record retains its original currency and cents. The free-freight threshold is inclusive and waives the base shipping charge only; handling remains payable. Delivery windows add the configured minimum/maximum calendar days to today in America/New_York, with both dates included. Freight marked quote-required stays unpriced and cannot be selected or accepted until owner/admin records the exact cents, dates and reason. An own-carrier choice records the buyer\u2019s account reference, never a credential or a carrier booking. Orders select delivery after draft preparation and before submission; selection alone is not acceptance. Submission requires the account buyer\u2019s explicit acknowledgment of the final method, delivery-plus-handling amount and window. The server recomputes eligibility and fingerprints the commercial lines, account revision, exact address snapshot and rate-book revision, rechecking the rate book atomically when accepting; changed quotes or eligibility require renewed review. Quotes carry their proposed delivery amount/window into one accepted order after the same acknowledgment and revalidation. Accepted order snapshots, inventory quantities, terms, currency and approval attribution remain fixed; invoice CSV includes one separate delivery/handling line, commercial exports retain the full delivery snapshot, and archives restore it. RPT-001 shows freight and invoiced freight once on the first product line in separate columns; merchandise columns exclude those amounts, and adding invoiced freight reconciles the invoice total. SKU filters include freight only when that first product line is selected. No shipping provider booking or delivery event is claimed by this clause; SHIP-002 and SHIP-003 add those capabilities under their own requirements. **Acceptance evidence:** Compare pickup, UPS parcel and freight-quote orders, cross a free-freight threshold and change the ship-to state. Buyer explicitly accepts the final method, cost and window before ordering.",
       "to": "clause",
       "ids": [
         "SHIP-001"
@@ -1426,7 +1882,32 @@
     {
       "file": "CONTRACT.md",
       "line": 203,
-      "text": "**SHIP-002 \u2014 EasyPost carrier connection.** EasyPost connects USPS, UPS and FedEx accounts for eligible rates, address validation, labels and tracking; operations choose packages and service using fulfillment data from the inventory/WMS. Rate quotes are time-bound and label purchase/void requests are idempotent with provider references. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before shipping, STK-005 substitution offers and acceptance disclose verified carrier charge and delivery differences, retaining the exact accepted revision. **Acceptance evidence:** Rate and purchase a sandbox UPS label, a USPS shipment and a FedEx shipment, lose one response and retry, then void an unused label. Exactly one label charge occurs per purchase and the order retains tracking IDs.",
+      "text": "**SHIP-002 \u2014 EasyPost carrier connection.** EasyPost connects USPS, UPS and FedEx accounts for eligible rates, address validation, labels and tracking; operations choose packages and service using fulfillment data from the inventory/WMS. Rate quotes are time-bound and label purchase/void requests are idempotent with provider references.",
+      "to": "clause",
+      "ids": [
+        "SHIP-002"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 203,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 203,
+      "text": "Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before shipping, STK-005 substitution offers and acceptance disclose verified carrier charge and delivery differences, retaining the exact accepted revision. **Acceptance evidence:** Rate and purchase a sandbox UPS label, a USPS shipment and a FedEx shipment, lose one response and retry, then void an unused label. Exactly one label charge occurs per purchase and the order retains tracking IDs.",
       "to": "clause",
       "ids": [
         "SHIP-002"
@@ -1441,7 +1922,32 @@
     {
       "file": "CONTRACT.md",
       "line": 205,
-      "text": "**SHIP-003 \u2014 Shipment tracking and delivery exceptions.** Buyer timelines show each package, carrier, tracking link, shipped quantities, expected delivery and verified carrier events. Delays, failed delivery and missing tracking create owned exceptions; a label or estimated date never counts as delivery. Buyer delivery disputes remain open until resolved. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Carrier tracking and delivery events add their entries to ORD-012's order timeline with source and time before they ship. Before shipping, this clause adds verified tracking, delivery and on-time-delivery measures to RPT-003 without treating dispatch or a label as delivery. Before it ships, this clause adds source-linked delivery exceptions to AUTO-005 and closes them only on verified carrier resolution or an attributed human resolution, never a label. Before shipping, STK-005 substitution offers and timelines disclose source-confirmed delivery differences without inferring delivery from estimates. **Acceptance evidence:** Ship two packages, send delayed and delivered carrier events out of order, then raise a missing-package report. Only the truly delivered package closes and the other has an assigned follow-up.",
+      "text": "**SHIP-003 \u2014 Shipment tracking and delivery exceptions.** Buyer timelines show each package, carrier, tracking link, shipped quantities, expected delivery and verified carrier events. Delays, failed delivery and missing tracking create owned exceptions; a label or estimated date never counts as delivery. Buyer delivery disputes remain open until resolved.",
+      "to": "clause",
+      "ids": [
+        "SHIP-003"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 205,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 205,
+      "text": "Carrier tracking and delivery events add their entries to ORD-012's order timeline with source and time before they ship. Before shipping, this clause adds verified tracking, delivery and on-time-delivery measures to RPT-003 without treating dispatch or a label as delivery. Before it ships, this clause adds source-linked delivery exceptions to AUTO-005 and closes them only on verified carrier resolution or an attributed human resolution, never a label. Before shipping, STK-005 substitution offers and timelines disclose source-confirmed delivery differences without inferring delivery from estimates. **Acceptance evidence:** Ship two packages, send delayed and delivered carrier events out of order, then raise a missing-package report. Only the truly delivered package closes and the other has an assigned follow-up.",
       "to": "clause",
       "ids": [
         "SHIP-003"
@@ -1456,7 +1962,32 @@
     {
       "file": "CONTRACT.md",
       "line": 207,
-      "text": "**SHIP-004 \u2014 Return authorizations and claims.** Buyers request an RMA for eligible order lines with reason, condition, photos and quantity; staff approve instructions and labels, track receipt/inspection in the WMS and decide restock, replacement or credit under policy. Neither request nor carrier receipt alone grants a credit. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause adds return credits to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds source-linked unresolved return/delivery claims to AUTO-005, preserving ownership until verified or attributed resolution. Before shipping, claims and returns for STK-005 replacements retain each line\u2019s original order/line linkage and exact accepted replacement basis. Before shipping, link REP-004 return commission reversals to the original line and frozen split, preserving the physical receipt source and avoiding a second reversal when PAY-010 credits the same return. **Acceptance evidence:** Request a damaged-goods return with photos, approve two of three units, receive and inspect them in the connected system and issue the approved credit. Remaining disputed quantity stays open and stock changes only in the authority.",
+      "text": "**SHIP-004 \u2014 Return authorizations and claims.** Buyers request an RMA for eligible order lines with reason, condition, photos and quantity; staff approve instructions and labels, track receipt/inspection in the WMS and decide restock, replacement or credit under policy. Neither request nor carrier receipt alone grants a credit.",
+      "to": "clause",
+      "ids": [
+        "SHIP-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 207,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 207,
+      "text": "Before it ships, this clause adds its records to DATA-001\u2019s export (JSON and per-kind CSV) with stable IDs, currency, source mapping and revision, in the same owner/buyer scope. Before it ships, this clause adds return credits to PAY-007's statement as dated rows in its view, CSV and PDF, changing the opening and closing balances and the note accordingly. Before it ships, this clause adds source-linked unresolved return/delivery claims to AUTO-005, preserving ownership until verified or attributed resolution. Before shipping, claims and returns for STK-005 replacements retain each line\u2019s original order/line linkage and exact accepted replacement basis. Before shipping, link REP-004 return commission reversals to the original line and frozen split, preserving the physical receipt source and avoiding a second reversal when PAY-010 credits the same return. **Acceptance evidence:** Request a damaged-goods return with photos, approve two of three units, receive and inspect them in the connected system and issue the approved credit. Remaining disputed quantity stays open and stock changes only in the authority.",
       "to": "clause",
       "ids": [
         "SHIP-004"
@@ -1471,7 +2002,32 @@
     {
       "file": "CONTRACT.md",
       "line": 209,
-      "text": "**SHIP-005 \u2014 Exchanges and service resolution.** Buyers and staff manage shortages, defects, exchanges and replacement shipments linked to the original order and RMA. The case has an owner, response deadline and buyer-visible resolution; price differences, tax and freight are approved before the exchange order is accepted. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. **Acceptance evidence:** Report a short shipment, choose a replacement of different value, approve its price difference and follow the linked shipment to delivery. The original case closes only after the buyer-facing resolution is recorded.",
+      "text": "**SHIP-005 \u2014 Exchanges and service resolution.** Buyers and staff manage shortages, defects, exchanges and replacement shipments linked to the original order and RMA. The case has an owner, response deadline and buyer-visible resolution; price differences, tax and freight are approved before the exchange order is accepted.",
+      "to": "clause",
+      "ids": [
+        "SHIP-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 209,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 209,
+      "text": "**Acceptance evidence:** Report a short shipment, choose a replacement of different value, approve its price difference and follow the linked shipment to delivery. The original case closes only after the buyer-facing resolution is recorded.",
       "to": "clause",
       "ids": [
         "SHIP-005"
@@ -1486,7 +2042,32 @@
     {
       "file": "CONTRACT.md",
       "line": 213,
-      "text": "**INT-001 \u2014 Optional Pier inventory connection.** Pier is an optional stock/order authority alongside the adapters below. Its authenticated connection supplies catalog/stock and receives durable reservation commands without exposing supplier credentials to buyers. Revocation and destination mismatch remain actionable; adopting Barrow does not require adopting Pier. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Configure Pier, place an approved order and revoke its credential. Show a failed handoff without lost orders, reconnect the same origin and reconcile it, then configure a different supported inventory authority without creating a Pier ledger.",
+      "text": "**INT-001 \u2014 Optional Pier inventory connection.** Pier is an optional stock/order authority alongside the adapters below. Its authenticated connection supplies catalog/stock and receives durable reservation commands without exposing supplier credentials to buyers. Revocation and destination mismatch remain actionable; adopting Barrow does not require adopting Pier. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 213,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 213,
+      "text": "Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Configure Pier, place an approved order and revoke its credential. Show a failed handoff without lost orders, reconnect the same origin and reconcile it, then configure a different supported inventory authority without creating a Pier ledger.",
       "to": "clause",
       "ids": [
         "INT-001"
@@ -1531,7 +2112,32 @@
     {
       "file": "CONTRACT.md",
       "line": 219,
-      "text": "**INT-004 \u2014 NetSuite ERP.** NetSuite connects customers, subsidiary/location, items/variants, price levels, stock/ATP, sales orders, fulfillment, invoices and payments using explicit field ownership. External IDs link every release and retry; mapping and permission failures appear with a named owner. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Map a sandbox subsidiary and warehouse, submit a prebook and split fulfillment, return invoice/payment states and revoke a role permission mid-sync. Inspect linked records, correct balances and resumable errors.",
+      "text": "**INT-004 \u2014 NetSuite ERP.** NetSuite connects customers, subsidiary/location, items/variants, price levels, stock/ATP, sales orders, fulfillment, invoices and payments using explicit field ownership. External IDs link every release and retry; mapping and permission failures appear with a named owner. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-004"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 219,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 219,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Map a sandbox subsidiary and warehouse, submit a prebook and split fulfillment, return invoice/payment states and revoke a role permission mid-sync. Inspect linked records, correct balances and resumable errors.",
       "to": "clause",
       "ids": [
         "INT-004"
@@ -1546,7 +2152,32 @@
     {
       "file": "CONTRACT.md",
       "line": 221,
-      "text": "**INT-005 \u2014 Shopify commerce connection.** A Shopify connection maps products/variants, customers/company identifiers, stock locations and wholesale orders without replacing the merchant consumer store. Existing storefront pricing/fulfillment authority is explicit; correlated orders, fulfillments and refunds synchronize without feedback loops. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a development store, import variants and customer mapping, place a Barrow order and fulfill/refund it in Shopify. See one order on each side and correct buyer status after duplicate events.",
+      "text": "**INT-005 \u2014 Shopify commerce connection.** A Shopify connection maps products/variants, customers/company identifiers, stock locations and wholesale orders without replacing the merchant consumer store. Existing storefront pricing/fulfillment authority is explicit; correlated orders, fulfillments and refunds synchronize without feedback loops. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-005"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 221,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 221,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a development store, import variants and customer mapping, place a Barrow order and fulfill/refund it in Shopify. See one order on each side and correct buyer status after duplicate events.",
       "to": "clause",
       "ids": [
         "INT-005"
@@ -1561,7 +2192,32 @@
     {
       "file": "CONTRACT.md",
       "line": 223,
-      "text": "**INT-006 \u2014 WooCommerce commerce connection.** A WooCommerce connection exchanges products/variations, customers, inventory and orders through authorized REST/webhook interfaces with stable external IDs. Wholesale account pricing stays protected and returned fulfillment/refund states update the linked order without changing retail customer prices. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a controlled WooCommerce store, import a variation, order with negotiated pricing, receive a fulfillment and refund and replay the webhook. Retail prices remain distinct and no duplicate order is created.",
+      "text": "**INT-006 \u2014 WooCommerce commerce connection.** A WooCommerce connection exchanges products/variations, customers, inventory and orders through authorized REST/webhook interfaces with stable external IDs. Wholesale account pricing stays protected and returned fulfillment/refund states update the linked order without changing retail customer prices. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-006"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 223,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 223,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a controlled WooCommerce store, import a variation, order with negotiated pricing, receive a fulfillment and refund and replay the webhook. Retail prices remain distinct and no duplicate order is created.",
       "to": "clause",
       "ids": [
         "INT-006"
@@ -1576,7 +2232,32 @@
     {
       "file": "CONTRACT.md",
       "line": 225,
-      "text": "**INT-007 \u2014 Cin7 Core inventory connection.** Cin7 Core supplies product, stock, customer and price mappings and receives sales orders/releases; fulfillment, invoice and payment references return under chosen ownership. Warehouse allocations and backorders remain in Cin7 rather than a Barrow stock ledger. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a Cin7 test company, order mixed available/backordered lines, fulfill a release and reconcile the portal timeline and source quantities. Retry an acknowledgment failure without another sale.",
+      "text": "**INT-007 \u2014 Cin7 Core inventory connection.** Cin7 Core supplies product, stock, customer and price mappings and receives sales orders/releases; fulfillment, invoice and payment references return under chosen ownership. Warehouse allocations and backorders remain in Cin7 rather than a Barrow stock ledger. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-007"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 225,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 225,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a Cin7 test company, order mixed available/backordered lines, fulfill a release and reconcile the portal timeline and source quantities. Retry an acknowledgment failure without another sale.",
       "to": "clause",
       "ids": [
         "INT-007"
@@ -1591,7 +2272,32 @@
     {
       "file": "CONTRACT.md",
       "line": 227,
-      "text": "**INT-008 \u2014 Brightpearl inventory connection.** A Brightpearl adapter maps accounts, products, warehouses, price lists and sales orders and returns allocation, shipment and financial document references. Setup names ownership and shows gaps in unsupported custom fields before live ordering. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Map a Brightpearl sandbox account and warehouse, place an order and receive a partial shipment; inspect matched external IDs and a surfaced invalid-field error with no duplicate handoff.",
+      "text": "**INT-008 \u2014 Brightpearl inventory connection.** A Brightpearl adapter maps accounts, products, warehouses, price lists and sales orders and returns allocation, shipment and financial document references. Setup names ownership and shows gaps in unsupported custom fields before live ordering. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-008"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 227,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 227,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Map a Brightpearl sandbox account and warehouse, place an order and receive a partial shipment; inspect matched external IDs and a surfaced invalid-field error with no duplicate handoff.",
       "to": "clause",
       "ids": [
         "INT-008"
@@ -1606,7 +2312,32 @@
     {
       "file": "CONTRACT.md",
       "line": 229,
-      "text": "**INT-009 \u2014 Katana inventory connection.** A Katana adapter reads sellable product/variant availability and expected production supply where exposed, sends approved sales orders and returns fulfillment references. Manufacturing scheduling and stock postings remain in Katana. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a Katana test account, map a made-to-order SKU, show its source-provided availability date, create one sales order and receive its completed fulfillment without inventing production progress.",
+      "text": "**INT-009 \u2014 Katana inventory connection.** A Katana adapter reads sellable product/variant availability and expected production supply where exposed, sends approved sales orders and returns fulfillment references. Manufacturing scheduling and stock postings remain in Katana. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-009"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 229,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 229,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a Katana test account, map a made-to-order SKU, show its source-provided availability date, create one sales order and receive its completed fulfillment without inventing production progress.",
       "to": "clause",
       "ids": [
         "INT-009"
@@ -1621,7 +2352,32 @@
     {
       "file": "CONTRACT.md",
       "line": 231,
-      "text": "**INT-010 \u2014 Unleashed inventory connection.** An Unleashed adapter maps customers, products, units, price/stock data, warehouses and sales orders and returns shipment/invoice references. Sync preserves source identities, units and tax basis and reports refused mappings before accepting an order. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a test organization, order cases with a mapped unit conversion, ship in Unleashed and compare base quantities and buyer status. Invalid unit mapping blocks the handoff with a repair action.",
+      "text": "**INT-010 \u2014 Unleashed inventory connection.** An Unleashed adapter maps customers, products, units, price/stock data, warehouses and sales orders and returns shipment/invoice references. Sync preserves source identities, units and tax basis and reports refused mappings before accepting an order. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-010"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 231,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 231,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. **Acceptance evidence:** Connect a test organization, order cases with a mapped unit conversion, ship in Unleashed and compare base quantities and buyer status. Invalid unit mapping blocks the handoff with a repair action.",
       "to": "clause",
       "ids": [
         "INT-010"
@@ -1750,7 +2506,32 @@
     {
       "file": "CONTRACT.md",
       "line": 245,
-      "text": "**INT-017 \u2014 AIMS360 apparel ERP connection.** An AIMS360 adapter imports styles with color/size matrices, UPCs, wholesale and retail prices, images, available-to-sell by warehouse, and customers with terms and reps, and sends approved Barrow orders as AIMS360 sales orders with exact size quantities, ship and cancel windows, PO and rep attribution. Pick ticket, shipment, invoice and payment references return to the order timeline; AIMS360 stays the inventory and invoicing authority. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Connect an AIMS360 test company, import a style with a color/size matrix, images and ATS, place an order with rep attribution, drop its acknowledgment and retry. AIMS360 holds one sales order with the exact size quantities, its fulfillment and invoice references return to the buyer timeline, and no duplicate order exists.",
+      "text": "**INT-017 \u2014 AIMS360 apparel ERP connection.** An AIMS360 adapter imports styles with color/size matrices, UPCs, wholesale and retail prices, images, available-to-sell by warehouse, and customers with terms and reps, and sends approved Barrow orders as AIMS360 sales orders with exact size quantities, ship and cancel windows, PO and rep attribution. Pick ticket, shipment, invoice and payment references return to the order timeline; AIMS360 stays the inventory and invoicing authority.",
+      "to": "clause",
+      "ids": [
+        "INT-017"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 245,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 245,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Connect an AIMS360 test company, import a style with a color/size matrix, images and ATS, place an order with rep attribution, drop its acknowledgment and retry. AIMS360 holds one sales order with the exact size quantities, its fulfillment and invoice references return to the buyer timeline, and no duplicate order exists.",
       "to": "clause",
       "ids": [
         "INT-017"
@@ -1765,7 +2546,32 @@
     {
       "file": "CONTRACT.md",
       "line": 247,
-      "text": "**INT-018 \u2014 ApparelMagic apparel ERP connection.** An ApparelMagic adapter imports styles with color/size matrices, UPCs, prices, images, available-to-sell and customers with terms and reps, and sends approved Barrow orders as ApparelMagic sales orders with exact size quantities, ship and cancel windows, PO and rep attribution. Pick ticket, shipment, invoice and payment references return to the order timeline; ApparelMagic stays the inventory and invoicing authority. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Connect an ApparelMagic test company, import a style with a color/size matrix, images and ATS, place an order with rep attribution, drop its acknowledgment and retry. ApparelMagic holds one sales order with the exact size quantities, its fulfillment and invoice references return to the buyer timeline, and no duplicate order exists.",
+      "text": "**INT-018 \u2014 ApparelMagic apparel ERP connection.** An ApparelMagic adapter imports styles with color/size matrices, UPCs, prices, images, available-to-sell and customers with terms and reps, and sends approved Barrow orders as ApparelMagic sales orders with exact size quantities, ship and cancel windows, PO and rep attribution. Pick ticket, shipment, invoice and payment references return to the order timeline; ApparelMagic stays the inventory and invoicing authority.",
+      "to": "clause",
+      "ids": [
+        "INT-018"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 247,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 247,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Connect an ApparelMagic test company, import a style with a color/size matrix, images and ATS, place an order with rep attribution, drop its acknowledgment and retry. ApparelMagic holds one sales order with the exact size quantities, its fulfillment and invoice references return to the buyer timeline, and no duplicate order exists.",
       "to": "clause",
       "ids": [
         "INT-018"
@@ -1780,7 +2586,32 @@
     {
       "file": "CONTRACT.md",
       "line": 249,
-      "text": "**INT-019 \u2014 A2000 apparel ERP connection.** An A2000 adapter exchanges styles with color/size matrices, UPCs, prices, available-to-sell and customers, and sends approved orders as A2000 sales orders with exact size quantities, windows, PO and rep attribution through A2000's supported file or API exchange, returning shipment and invoice references. A2000 stays the inventory and invoicing authority. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Connect an A2000 test company or its documented exchange boundary, import a size-matrix style with ATS, place an order with rep attribution and replay the exchange. A2000 holds one sales order with the exact size quantities and its shipment and invoice references return to the buyer timeline.",
+      "text": "**INT-019 \u2014 A2000 apparel ERP connection.** An A2000 adapter exchanges styles with color/size matrices, UPCs, prices, available-to-sell and customers, and sends approved orders as A2000 sales orders with exact size quantities, windows, PO and rep attribution through A2000's supported file or API exchange, returning shipment and invoice references. A2000 stays the inventory and invoicing authority.",
+      "to": "clause",
+      "ids": [
+        "INT-019"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 249,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 249,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Connect an A2000 test company or its documented exchange boundary, import a size-matrix style with ATS, place an order with rep attribution and replay the exchange. A2000 holds one sales order with the exact size quantities and its shipment and invoice references return to the buyer timeline.",
       "to": "clause",
       "ids": [
         "INT-019"
@@ -1795,7 +2626,32 @@
     {
       "file": "CONTRACT.md",
       "line": 251,
-      "text": "**INT-020 \u2014 Scheduled flat-file SFTP data feed.** This feed is for a merchant whose ERP has no built-in adapter, such as AS400, Epicor, JD Edwards, Apparel 21, SAP Business One, QuickBooks Desktop through a file bridge, or a homegrown system. The merchant gets a scheduled flat-file exchange over SFTP, either a Barrow-hosted endpoint with per-merchant key or password credentials or a merchant-hosted server Barrow connects to. Each feed has separate import and export directories. **Import:** product/variant (style, color, size, UPC), price book (wholesale and MSRP), customer/location (company, bill-to, ship-to, terms, rep) and inventory/ATS files arrive in documented CSV/TXT layouts with a saved column mapping. NuORDER's standard integration templates are accepted as-is so an existing ERP job keeps working unchanged. Files are picked up on a configured interval, and each file has a stable identity, so a file replayed or dropped twice applies once. Valid rows apply; bad rows are quarantined with a per-file error report assigned to an owner under INT-014. A feed run is never a silent partial import. ATS files make the feed STK-002's inventory authority, with freshness shown. **Export:** approved orders are written as files in a configurable layout (CSV, TXT or an X12 850 file), one per order or batched. Order edits (ORD-011, ORD-016), cancellations and, inbound, shipment acknowledgments follow the same layouts. Each exported file carries STK-003's handoff identity and stays pending until the ERP's processed acknowledgment file, or the file's removal under a configured processed rule, closes it. An operator can resend an order, and the next pickup sees exactly one file per order. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping. This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Configure an SFTP feed with a column mapping and NuORDER template layout. Drop product, customer and ATS files on a schedule, including one malformed row and one file replayed twice. Valid rows apply once, the bad row appears in the file's error report with an owner, and ATS freshness shows in STK-002. Approve two orders: exactly two order files appear in the export folder in the configured layout. Remove one before the ERP acknowledges it and resend it: the next pickup sees one file per order, and a processed acknowledgment closes each handoff. Edit one order and see one edit file. Stop the schedule past the freshness limit and see STK-002 block on stale ATS. Before shipping, INT-020 must use ORD-014's persisted named layout IDs and column ordering for per-line confirmation exports, retain the chosen layout and exact order/revision identities, and prove the same snapshot values through ERP file delivery.",
+      "text": "**INT-020 \u2014 Scheduled flat-file SFTP data feed.** This feed is for a merchant whose ERP has no built-in adapter, such as AS400, Epicor, JD Edwards, Apparel 21, SAP Business One, QuickBooks Desktop through a file bridge, or a homegrown system. The merchant gets a scheduled flat-file exchange over SFTP, either a Barrow-hosted endpoint with per-merchant key or password credentials or a merchant-hosted server Barrow connects to. Each feed has separate import and export directories. **Import:** product/variant (style, color, size, UPC), price book (wholesale and MSRP), customer/location (company, bill-to, ship-to, terms, rep) and inventory/ATS files arrive in documented CSV/TXT layouts with a saved column mapping. NuORDER's standard integration templates are accepted as-is so an existing ERP job keeps working unchanged. Files are picked up on a configured interval, and each file has a stable identity, so a file replayed or dropped twice applies once. Valid rows apply; bad rows are quarantined with a per-file error report assigned to an owner under INT-014. A feed run is never a silent partial import. ATS files make the feed STK-002's inventory authority, with freshness shown. **Export:** approved orders are written as files in a configurable layout (CSV, TXT or an X12 850 file), one per order or batched. Order edits (ORD-011, ORD-016), cancellations and, inbound, shipment acknowledgments follow the same layouts. Each exported file carries STK-003's handoff identity and stays pending until the ERP's processed acknowledgment file, or the file's removal under a configured processed rule, closes it. An operator can resend an order, and the next pickup sees exactly one file per order. Any inventory order handoff added by this clause inherits STK-003: one durable identity, timeout pending until acknowledgment/reconciliation, idempotent retry and destination binding before shipping.",
+      "to": "clause",
+      "ids": [
+        "INT-020"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 251,
+      "text": "This clause inherits BAR-002\u2019s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities.",
+      "to": "door-rule",
+      "ids": [
+        "D-1",
+        "D-2"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 251,
+      "text": "This clause inherits DATA-002 append-only, searchable and exportable attributed audit events for connector/configuration/reconciliation changes, including actor/source/time/revision/reason, before its capability ships. Before it ships, this clause inherits STK-002\u2019s stock labels (source, observation time, warehouse, incoming promise dates or \"date unknown\"), the account warehouse rule and the stock freshness policy, and allocates by the account\u2019s warehouses where its source supports it. Before shipping, this clause brings any fulfillment records it adds into RPT-003 with exact source-confirmed quantities, warehouse attribution and explicit unknowns for facts its source does not report. **Acceptance evidence:** Configure an SFTP feed with a column mapping and NuORDER template layout. Drop product, customer and ATS files on a schedule, including one malformed row and one file replayed twice. Valid rows apply once, the bad row appears in the file's error report with an owner, and ATS freshness shows in STK-002. Approve two orders: exactly two order files appear in the export folder in the configured layout. Remove one before the ERP acknowledges it and resend it: the next pickup sees one file per order, and a processed acknowledgment closes each handoff. Edit one order and see one edit file. Stop the schedule past the freshness limit and see STK-002 block on stale ATS. Before shipping, INT-020 must use ORD-014's persisted named layout IDs and column ordering for per-line confirmation exports, retain the chosen layout and exact order/revision identities, and prove the same snapshot values through ERP file delivery.",
       "to": "clause",
       "ids": [
         "INT-020"
@@ -1971,7 +2827,8 @@
       "text": "Event replay cannot send duplicate confirmations and sensitive finance details are role-scoped.",
       "to": "base",
       "ids": [
-        "BASE-OPS-003"
+        "BASE-OPS-003",
+        "BASE-ROLE-001"
       ]
     },
     {
@@ -2289,7 +3146,31 @@
     {
       "file": "CONTRACT.md",
       "line": 321,
-      "text": "**AGT-001 \u2014 Turn inbound purchase orders into validated drafts.** An account agent reads authorized buyer email, PDF, spreadsheet and photographed/handwritten PO images, maps buyer aliases to SKUs and extracts quantities, units, addresses, references and dates with source-page/region citations and confidence. It validates against current account catalogs, prices, stock and terms, asks for missing details through a human-reviewed draft message and prepares an order for buyer/rep approval. Documents are untrusted data and cannot grant tools or change policy. **Acceptance evidence:** Submit email, PDF and photographed POs containing an ambiguous SKU and a hostile instruction. Review cited extraction and validation errors, correct the ambiguity and approve a draft. Nothing is ordered or sent before the authorized person approves.",
+      "text": "**AGT-001 \u2014 Turn inbound purchase orders into validated drafts.** An account agent reads authorized buyer email, PDF, spreadsheet and photographed/handwritten PO images, maps buyer aliases to SKUs and extracts quantities, units, addresses, references and dates with source-page/region citations and confidence. It validates against current account catalogs, prices, stock and terms, asks for missing details through a human-reviewed draft message and prepares an order for buyer/rep approval.",
+      "to": "clause",
+      "ids": [
+        "AGT-001"
+      ],
+      "also": [
+        {
+          "to": "docs",
+          "path": "docs/COMMERCIAL-RULES.md"
+        }
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 321,
+      "text": "Documents are untrusted data and cannot grant tools or change policy.",
+      "to": "base",
+      "ids": [
+        "BASE-AGENT-005"
+      ]
+    },
+    {
+      "file": "CONTRACT.md",
+      "line": 321,
+      "text": "**Acceptance evidence:** Submit email, PDF and photographed POs containing an ambiguous SKU and a hostile instruction. Review cited extraction and validation errors, correct the ambiguity and approve a draft. Nothing is ordered or sent before the authorized person approves.",
       "to": "clause",
       "ids": [
         "AGT-001"
@@ -3060,9 +3941,26 @@
       "line": 487,
       "cell": "gap",
       "text": "ct approval pending for the adopted activity-goal policy and exact performance attribution semantics: owner/admin-only count goals with no compensation or automatic effect; Native identity and frozen labels remain separate, current held-account privacy never widens. Implementation and named public-door/browser evidence cover the current source-backed flow; RPT-005 remains partial until ct approves. Verified payment/credit effects remain inherited by PAY-003/PAY-010.",
-      "to": "gap",
+      "to": "rulings",
       "ids": [
-        "RPT-005"
+        "RL-102"
+      ],
+      "also": [
+        {
+          "to": "gap",
+          "ids": [
+            "RPT-005"
+          ]
+        },
+        {
+          "to": "clause",
+          "ids": [
+            "RPT-005"
+          ]
+        },
+        {
+          "to": "changelog"
+        }
       ]
     },
     {
@@ -3171,9 +4069,26 @@
       "line": 504,
       "cell": "gap",
       "text": "Conservative default ADOPTED pending ct approval: signed-in owner only; separate explicit consent for scoped entry hold, cutoff/pack approval, each delivery and native-only rollback; mandatory pinned host trust and server-held credentials; incumbent retains historical order/invoice authority and Pier retains native stock authority; no automatic outbound delivery or replay after restore. The full INT-020 scheduled feed, unchanged NuORDER templates and live feed ATS authority are not implemented by this bridge; accepted-order edit exchange still needs ORD-011/016 and Pier\u2019s missing edit command.",
-      "to": "gap",
+      "to": "rulings",
       "ids": [
-        "MOVE-008"
+        "RL-101"
+      ],
+      "also": [
+        {
+          "to": "gap",
+          "ids": [
+            "MOVE-008"
+          ]
+        },
+        {
+          "to": "clause",
+          "ids": [
+            "MOVE-008"
+          ]
+        },
+        {
+          "to": "changelog"
+        }
       ]
     },
     {
