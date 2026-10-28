@@ -5,7 +5,7 @@ import {releasedDepositFixture} from './prebook-fixture.mjs';
 import {activateStaff,archive,installation,restore,accountValue} from './harness.mjs';
 
 test('finance allocates one verified seasonal deposit across two acknowledged release invoices with exact cash, exposure, commission, exports and inert restore',async t=>{
- const {h,pier,buyer,edge,commitment,payment,releases,allocation}=await releasedDepositFixture(t,{surchargeBps:200});
+ const {h,pier,product,buyer,edge,commitment,payment,releases,allocation}=await releasedDepositFixture(t,{surchargeBps:200});
  assert.equal(payment.amountCents,21000);assert.equal(payment.surchargeCents,420);await h.command('followup.refresh',{});let queue=await h.api('/api/barrow/followups?view=all');const pending=queue.tasks.find(row=>row.id==='deposit-allocation:'+payment.id);assert.ok(pending&&pending.ownerId&&pending.status==='open');await h.command('followup.update',{id:pending.id,revision:pending.revision,close:true,resolution:'Cannot pretend the deposit is allocated.'},{status:409});assert.deepEqual(releases.map(row=>row.totalCents),[52000,18000]);assert.ok(releases.every(row=>row.invoice&&row.pierOrderId&&row.status==='approved'));
  const inventory=(await pier.api('/api/pier/state')).orders;assert.equal(inventory.length,2);
  let statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer);assert.equal(statement.sections[0].unappliedCents,21000);assert.equal(statement.sections[0].closingCents,49000);
@@ -35,12 +35,30 @@ test('finance allocates one verified seasonal deposit across two acknowledged re
  let commissions=await h.api('/api/barrow/reports/commissions');assert.equal(commissions.rows.reduce((sum,row)=>sum+row.grossCents,0),2100);assert.equal(commissions.rows.reduce((sum,row)=>sum+row.netCents,0),2100);assert.ok(commissions.rows.every(row=>row.paymentSources.includes(payment.providerPaymentId)));
  const account=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,assignedRep:'Replacement rep'}});
  const policy=await h.api('/api/barrow/commissions');await h.command('commission.settings',{revision:policy.revision,rules:[],reason:'Later policy cannot rewrite earned deposit allocations.'});assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows,commissions.rows);
- await h.command('credit.issue',{orderId:releases[0].id,kind:'price-correction',sourceReference:'synthetic-barrow-705',lines:[{line:1,quantity:1,amountCents:1000}],reason:'Correct unpaid original merchandise without reversing still-backed earned payment commission.'});
+ const correction=await h.command('credit.issue',{orderId:releases[0].id,kind:'price-correction',sourceReference:'synthetic-barrow-705',lines:[{line:1,quantity:8,amountCents:10400}],reason:'Correct unpaid original merchandise without reversing still-backed earned payment commission.'});
  const afterCorrection=await h.api('/api/barrow/reports/commissions');assert.equal(afterCorrection.rows.reduce((sum,row)=>sum+row.grossCents,0),2100);assert.equal(afterCorrection.rows.reduce((sum,row)=>sum+row.reversedCents,0),0);assert.equal(afterCorrection.rows.reduce((sum,row)=>sum+row.netCents,0),2100);
  const exported=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(exported.cardallocations.length,2);assert.equal(exported.manifest.counts.cardallocations,2);const amounts=exported.manifest.totals.find(row=>row.currency==='USD');assert.deepEqual([amounts.orders,amounts.orderCents,amounts.commitments,amounts.commitmentCents,amounts.releases,amounts.releaseCents,amounts.invoiceCents,amounts.allocatedCardCents],[3,70000,1,70000,2,70000,70000,21000]);assert.equal(exported.orders.find(row=>row.id===releases[0].id).prebookRelease.orderId,commitment.id);assert.ok(exported.cardallocations.every(row=>row.sourceOrderId===commitment.id&&row.providerPaymentId===payment.providerPaymentId));
  for(const path of ['/api/barrow/export/cardallocations.csv','/api/barrow/reports/sales.csv?from=2000-01-01&to=2100-12-31','/api/barrow/reports/finance.csv?asOf=2100-12-31','/api/barrow/reports/commissions.csv']){const response=await h.request(path);assert.equal(response.status,200);assert.ok((await response.text()).includes(payment.providerPaymentId))}
  const audit=await h.api('/api/barrow/audit?accountId=cedar&limit=200'),decisions=audit.events.filter(row=>row.action==='deposit.allocated');assert.equal(decisions.length,2);assert.ok(decisions.every(row=>row.actorId&&row.source===payment.id&&row.reason&&row.revision));
  const restored=await installation({networkEdge:edge.networkEdge});t.after(()=>restored.close());await restore(restored,await archive(h));await restored.command('card.allocate',allocation(0,15000),{status:409});assert.equal((await restored.api('/api/barrow/export.json')).cardallocations.length,2);assert.equal(edge.captures,1);
+ // Returning six corrected cases leaves USD 104.00 of merchandise backing payment earning.
+ const upstream=(await pier.api('/api/pier/state')).orders.find(row=>row.id===releases[0].pierOrderId);
+ const shipment=await pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'synthetic-barrow-706',lines:[{orderLineId:upstream.lines[0].id,quantity:'8'}]});
+ const received=await pier.command('return.create',{shipmentId:shipment.id,shipmentLineId:shipment.lines[0].id,locationId:product.location.id,quantity:'6',reason:'Receive six of the eight corrected cases.'});
+ const returnInput={orderId:releases[0].id,returnId:received.id,lines:[{line:1,quantity:6}],reason:'Credit returned merchandise at its corrected price.'};
+ const credit=await h.command('credit.issue',returnInput);assert.equal(credit.amountCents,31200);
+ const returnedRows=(await h.api('/api/barrow/reports/commissions')).rows.filter(row=>row.orderId===releases[0].id);
+ const expected=winning===0?[[900,276,624],[600,184,416]]:[[360,0,360],[240,0,240]];
+ assert.deepEqual(returnedRows.map(row=>[row.grossCents,row.reversedCents,row.netCents]),expected);
+ assert.ok(returnedRows.every(row=>row.creditIds.includes(correction.id)&&row.creditIds.includes(credit.id)&&row.returnIds.includes(received.id)&&row.paymentSources.includes(payment.providerPaymentId)));
+ const [headers,...values]=(await(await h.request('/api/barrow/reports/commissions.csv')).text()).trim().split('\r\n').map(line=>[...line.matchAll(/"((?:[^"]|"")*)"(?:,|$)/g)].map(match=>match[1].replaceAll('""','"')));
+ const commissionCsv=values.map(row=>Object.fromEntries(headers.map((name,index)=>[name,row[index]]))).filter(row=>row.orderId===releases[0].id);
+ assert.deepEqual(commissionCsv.map(row=>[Number(row.grossCents),Number(row.reversedCents),Number(row.netCents)]),expected);
+ await h.command('credit.issue',returnInput);
+ assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows.filter(row=>row.orderId===releases[0].id),returnedRows);
+ const afterReturn=await h.api('/api/barrow/credits?orderId='+releases[0].id);
+ assert.equal(afterReturn.credits.filter(row=>row.orderId===releases[0].id).reduce((sum,row)=>sum+row.amountCents,0),41600);
+ assert.equal(afterReturn.outstandingCents,winning===0?0:4400);assert.equal(edge.captures,1);
 });
 
 test('deposit review refuses foreign releases and stale finance authority without changing allocations or provider funds',async t=>{

@@ -38,7 +38,7 @@ function allocate(total: number, splits: CommissionRule['splits'], denominator =
  for (let index = 0; index < extra; index++) ranked[index].amount++
  return new Map(rows.map(row => [row.rep, row.amount]))
 }
-function measured(order: Order, line: number, rule: CommissionRule, source: CommissionSource | undefined,priceCreditCents=0,paidBasisCents=0) {
+function measured(order: Order, line: number, rule: CommissionRule, source: CommissionSource | undefined,priceCreditCents=0,paidBasisCents=0,creditedBasisCents=0) {
  if (!source) return null
  const merchandise = cents(order.lines[line - 1].lineCents)
  // All selling-unit lines for an item receive the same fraction of confirmed source units.
@@ -50,7 +50,11 @@ function measured(order: Order, line: number, rule: CommissionRule, source: Comm
  // principal; they reverse earned payment commission only when that backing falls below it.
  const cancelledBasisCents = rule.basis==='payment'?Math.max(0,basisCents-(merchandise-cancelledOriginal)):rule.basis === 'acceptance'?cancelledOriginal:0
  const returnedBasisCents = rule.basis==='payment'?Math.max(0,basisCents-cancelledBasisCents-Math.max(0,merchandise-cancelledOriginal-returnedOriginal)):Math.min(basisCents-cancelledBasisCents,returnedOriginal)
- const adjustedBasisCents=rule.basis==='payment'?Math.max(0,basisCents-cancelledBasisCents-returnedBasisCents-Math.max(0,merchandise-cancelledOriginal-returnedOriginal-priceCreditCents)):Math.min(basisCents-cancelledBasisCents-returnedBasisCents,priceCreditCents)
+ // Physical quantities and issued credits cap the same retained merchandise. A return
+ // credit already uses corrected prices, so subtracting the full price correction from
+ // the original physical remainder would count its returned portion twice.
+ const retainedMerchandiseCents=Math.max(0,Math.min(merchandise-cancelledOriginal-returnedOriginal,merchandise-creditedBasisCents))
+ const adjustedBasisCents=rule.basis==='payment'?Math.max(0,basisCents-cancelledBasisCents-returnedBasisCents-retainedMerchandiseCents):Math.min(basisCents-cancelledBasisCents-returnedBasisCents,priceCreditCents)
  const gross = half(BigInt(basisCents) * BigInt(rule.rateBps), 10000n)
  const remaining = half(BigInt(basisCents - cancelledBasisCents - returnedBasisCents - adjustedBasisCents) * BigInt(rule.rateBps), 10000n)
  const grossShares = allocate(gross, rule.splits)
@@ -98,7 +102,8 @@ export async function commissionReport(env: Bindings, actor: Actor, params: URLS
    if (!line) fail('COMMISSION_SNAPSHOT', 'Commission snapshot references a missing order line.', 409)
    const rule = entry.rule, confirmed = quantities?.get(line.itemId)
    const linkedCredits=financial.credits.filter(credit=>credit.orderId===order.id&&credit.currency===(order.currency??'AUD')&&credit.lines.some(line=>line.line===entry.line)&&confirmed&&(credit.kind==='price-correction'||credit.kind==='cancellation'&&confirmed.cancelled>0n||confirmed.returnIds.includes(credit.returnId)))
-   const measuredLine = rule ? measured(order, entry.line, rule, confirmed,linkedCredits.filter(credit=>credit.kind==='price-correction').flatMap(credit=>credit.lines.filter(line=>line.line===entry.line)).reduce((sum,line)=>sum+line.amountCents,0),paid[entry.line-1]) : null
+   const creditedLines=linkedCredits.flatMap(credit=>credit.lines.filter(line=>line.line===entry.line).map(line=>({kind:credit.kind,amountCents:line.amountCents})))
+   const measuredLine = rule ? measured(order, entry.line, rule, confirmed,creditedLines.filter(line=>line.kind==='price-correction').reduce((sum,line)=>sum+line.amountCents,0),paid[entry.line-1],creditedLines.reduce((sum,line)=>sum+line.amountCents,0)) : null
    if (!rule) unmatchedLines++
    const base = { paymentSources,adjustedBasisCents:measuredLine?.adjustedBasisCents??null,creditIds:linkedCredits.map(credit=>credit.id),refundIds:financial.refunds.filter(refund=>linkedCredits.some(credit=>credit.id===refund.creditId)).map(refund=>refund.id),assignedRep: commission.assignedRep, orderId: order.id, line: entry.line, accountId: order.accountId, account: order.customerName, sku: line.sku, currency: order.currency ?? 'AUD', ruleId: rule?.id ?? null, ruleRevision: commission.policyRevision, basis: rule?.basis ?? null, rateBps: rule?.rateBps ?? null, acceptedAt: commission.at, sourceOrderId: confirmed?.sourceOrderId ?? order.pierOrderId ?? null, sourceLineId: confirmed?.sourceLineId ?? null, shipmentIds: confirmed?.shipmentIds ?? [], returnIds: confirmed?.returnIds ?? [], basisCents: measuredLine?.basisCents ?? null, cancelledBasisCents: measuredLine?.cancelledBasisCents ?? null, returnedBasisCents: measuredLine?.returnedBasisCents ?? null, source: confirmed ? 'read' as const : 'unavailable' as const, reason: !rule ? 'No matching rule at first approval; no commission recorded.' : !confirmed ? 'Pier source unavailable or unreconciled; commission and reversals are unknown.' : null, path: `/api/barrow/orders/${order.id}/timeline` }
    const splits = rule?.splits ?? [{ rep: commission.assignedRep, shareBps: null }]
