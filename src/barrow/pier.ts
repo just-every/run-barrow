@@ -1,3 +1,4 @@
+import { wooSelected, wooCatalogue, wooDestination, wooConfigured, wooOrder } from './woocommerce'
 import { effectiveBook } from './currency'
 import { observePierConfiguration } from './connection-security'
 import { demoEffect } from '../modules/demo/index.mjs'
@@ -34,10 +35,11 @@ async function call(env: Bindings,path: string,body?: unknown,observe=true) {
  if(data.ok===false) fail('PIER_REJECTED','Pier refused this order. Check its customer, items and session permissions.',409)
  return data
 }
-export const pierOrigin = (env: Bindings) => demoEffect(() => env.PIER_ORIGIN && env.PIER_SESSION ? origin(env) : undefined, demoPierOrigin)
-export const pierConfigured = (env: Bindings) => demoEffect(async () => { await observePierConfiguration(env); return Boolean(env.PIER_ORIGIN && env.PIER_SESSION) }, true)
+export const pierOrigin = (env: Bindings) => demoEffect(() => wooSelected(env) ? wooDestination(env) : env.PIER_ORIGIN && env.PIER_SESSION ? origin(env) : undefined, demoPierOrigin)
+export const pierConfigured = (env: Bindings) => demoEffect(async () => { if(wooSelected(env))return wooConfigured(env); await observePierConfiguration(env); return Boolean(env.PIER_ORIGIN && env.PIER_SESSION) }, true)
 export const pierState = (env: Bindings) => demoEffect(() => call(env,'/api/pier/state'), demoPierState)
 export async function catalogue(env: Bindings,account: Account) {
+ if(wooSelected(env))return wooCatalogue(env,account)
  account=effectiveBook(account,await now())
  const state=await pierState(env)
  if(!Array.isArray(state.items)||!Array.isArray(state.positions)||!Array.isArray(state.locations)||!Array.isArray(state.parties)) fail('PIER_RESPONSE','Pier stock response is incomplete.',502)
@@ -61,7 +63,7 @@ export async function catalogue(env: Bindings,account: Account) {
   sellingUnits(offer)
   return [offer]
  })
- return {account,items,currency:account.value.currency??'USD',observedAt:(await now()).toISOString()}
+ return {account,items,currency:account.value.currency??'USD',source:'Pier',observedAt:(await now()).toISOString()}
 }
 /** STK-002: unreceived quantity on committed Pier POs for one item, by promise date (null when the PO gives none), earliest first. */
 function incoming(state:any,itemId:string) {
@@ -117,6 +119,7 @@ async function unconfirmedReleases(env: Bindings,state: any) {
 }
 /** Pier's current view of one recorded order: per line quantity, reserved, dispatched and cancelled. */
 export async function pierOrder(env: Bindings,order: Order) {
+ if(wooSelected(env))return wooOrder(env,order)
  const state=await demoEffect(() => call(env,'/api/pier/state'), () => ({orders:[demoPierOrder(order)]}))
  const found=Array.isArray(state.orders)?state.orders.find((o:any)=>o.id===order.pierOrderId):undefined
  if(!found || !Array.isArray(found.lines)) fail('PIER_ORDER','The recorded Pier order is missing. Check the stock desk.')

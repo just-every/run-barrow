@@ -1,3 +1,4 @@
+import { wooSelected, wooReserve, reconcileWoo } from './woocommerce'
 import { preparePrebook, prebookAdmission, prebookWindowCommand, prebookCommission, prebookWarehouseAdmission } from './prebooks'
 import { digest } from './access'
 import { sellThroughReview, sellThroughDate, sellThroughBuyer, sellThroughOutcomes, type SellThroughAcceptance } from './sell-through'
@@ -79,7 +80,7 @@ export async function nextNumber(db:D1Database) {
 async function recordReservation(env:Bindings,actor:Actor,order:Order,result:any) {
  if(typeof result?.id!=='string' || typeof result?.reference!=='string') fail('PIER_RESPONSE','Pier returned an incomplete reservation. Retry the same order.',502)
  const full=fullyReserved(result,order.lines)
- order={...order,pierOrderId:result.id,pierReference:result.reference,reservation:result.lines,status:full?'approved':'shortfall'}
+ order={...order,...(wooSelected(env)?{woocommerce:result}:{}),pierOrderId:result.id,pierReference:result.reference,reservation:result.lines,status:full?'approved':'shortfall'}
  if(full && !order.invoice) {
   const issuedAt=supplierDate(await now()),due=new Date(issuedAt+'T00:00:00Z');due.setUTCDate(due.getUTCDate()+order.termsDays)
   order.invoice={number:`BAR-${order.id}`,issuedAt,dueAt:due.toISOString().slice(0,10)}
@@ -251,7 +252,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   return save(env,actor,{...order,stockException:{by:actor.id,at:(await now()).toISOString(),reason}},'order.stock-exception',[],`Supplier accepted stock observed ${order.preparedAt} past the freshness limit: ${reason}`)
  }
  if(order.prebookRelease?.restored&&type==='order.approve')fail('RESTORED','Restored seasonal releases cannot initiate stock effects.')
- if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original Pier installation before reserving or reconciling this order.')
+ if(order.pierOrigin!==await pierOrigin(env)) fail('PIER_CHANGED','Reconnect the original inventory installation before reserving or reconciling this order.')
  if(type==='order.approve') {
   await linkedReplacementGuard(env,actor,order)
   if(order.fromSubstitution) {
@@ -278,10 +279,11 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
    if(!grant||!['sales-manager','operations'].includes(grant.role)||grant.warehouses!=='all'||!staffAccountAllowed(grant,order.accountId))fail('APPROVAL_REVOKED','The recorded approver no longer has authority.')
   }
   if(!approver) fail('APPROVAL_REVOKED','The recorded approver no longer has authority.')
-  const result=await reserveOrder(env,order.id,order.pierCustomerId,order.lines,promiseDate(order))
+  const result=wooSelected(env)?await wooReserve(env,order):await reserveOrder(env,order.id,order.pierCustomerId,order.lines,promiseDate(order))
   return recordReservation(env,actor,order,result)
  }
  if(type==='order.refresh') {
+  if(wooSelected(env))return reconcileWoo(env,actor,order)
   if(!order.pierOrderId) fail('RESERVATION','Approve this order or retry its pending approval first.')
   if(order.status==='approved'||order.status==='cancelled') return order
   if(order.status==='releasing') {
@@ -293,6 +295,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   return recordReservation(env,actor,order,result)
  }
  if(type==='order.cancel') {
+  if(wooSelected(env))fail('WOO_UNSUPPORTED','Reconcile cancellation at the WooCommerce stock authority; this bridge does not initiate cancellation.')
   // STK-004: cancelling an allocated, unshipped order asks Pier to release its stock; only Pier's acknowledgment clears it.
   if(order.status==='cancelled') return order
   if(order.status==='approved'||order.status==='shortfall') {
@@ -319,6 +322,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   if(!Array.isArray(p.lines)||!p.lines.length||p.lines.length>100) fail('LINES','Choose between one and 100 lines.',400)
   if(p.lines.some((line:any)=>line.profileId!==undefined&&line.profileId!==(selected.buyingProfile?.id??'')||line.brandId!==undefined&&line.brandId!==selected.buyingProfile?.brandId))fail('SELLER_MIX','Every cart line must belong to its selected buying profile.')
   const available=context?.available ?? await catalogue(env,selected)
+  if(wooSelected(env)&&(p.prebook||p.delivery))fail('WOO_UNSUPPORTED','WooCommerce core does not provide seasonal warehouse promises or freight handoffs.')
   const today=supplierDate(await now()),unpromoted=await withVariantAttributes(env.DB,prepareLines(p.lines,available.items,today,!p.prebook).map((line,index)=>({...line,...buyerSku(p.lines[index]),...lineWindow(p.lines[index],today)}))),details=purchaseDetails(p,today)
   const lines=applyPromotions(unpromoted,(await promotionSettings(env.DB)).offers,selected.id,today)
   const totalCents=lines.reduce((sum,line)=>sum+line.lineCents!,0)
@@ -340,7 +344,7 @@ async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<Retu
   if(member&&member.locations!=='all'&&!shipTo)fail('FORBIDDEN','Choose one of your permitted ship-to locations.',403)
   const id=await nextNumber(env.DB),revision=crypto.randomUUID()
   const policy=await creditPolicy(env.DB,selected.id)
-  const order:Order={creditPolicySnapshot:creditSignature(policy),...(prebook?{prebook,season:prebook.season.name}:{}),usdConversion:conversionSnapshot(selected,await now()),...(plan?{sellThrough:(({guards,...saved})=>saved)(plan)}:{}),...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:policy?.termsDays??selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
+  const order:Order={creditPolicySnapshot:creditSignature(policy),...(prebook?{prebook,season:prebook.season.name}:{}),usdConversion:conversionSnapshot(selected,await now()),...(plan?{sellThrough:(({guards,...saved})=>saved)(plan)}:{}),...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id,accountId:selected.id,accountRevision:selected.revision,customerName:selected.value.name,pierCustomerId:wooSelected(env)?selected.value.providerReferences!.woocommerce:selected.value.pierCustomerId,pierOrigin:(await pierOrigin(env))!,reference:p.reference?text(p.reference,'Customer reference',100):'',...details,...(replaced?.document?{document:replaced.document}:{}),...(p.deliveryLocation?{deliveryLocation:text(p.deliveryLocation,'Delivery location',240)}:{}),...(billTo?{billTo}:{}),...(shipTo?{shipTo}:{}),...(context?{reorderedFrom:context.review.orderId,reorderReview:{fingerprint:context.review.fingerprint,acknowledgedBy:actor.id,acknowledgedAt:(await now()).toISOString(),differences:context.review}}:{}),lines,totalCents,...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),...(sheet?{lineSheet:{id:sheet.id,revision:sheet.revision},season:sheet.season}:{}),currency:available.currency,termsDays:policy?.termsDays??selected.value.termsDays,status:'draft',...(replaced?{replaces:replaced.id}:{}),preparedBy:actorLabel(actor),...(supplier(actor)&&!actor.agent?{preparedAs:(actor.staff?.role??actor.role) as NonNullable<Order['preparedAs']>}:{}),preparedAt:(await now()).toISOString(),revision}
   const retired=crypto.randomUUID()
   const supersede=replaced?[env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replaced,status:'superseded',supersededBy:id,revision:retired}),retired,replaced.id,replaced.revision),changed(env.DB),audit(env.DB,actor,replaced.id,'order.superseded',{accountId:selected.id,orderId:replaced.id,revision:retired,source:'order.prepare',reason:`Replaced by newly reviewed draft ${id}.`}),env.DB.prepare('UPDATE bw_approval_notices SET closed_at=?,closed_reason=? WHERE order_id=? AND closed_at IS NULL').bind(new Date().toISOString(),`Superseded by revised request ${id}; it needs fresh approval at every step.`,replaced.id)]:[]
   await commit(env.DB,actor,[...(plan?.guards??[]),profile.guard,entryGuard,companyRightsGuard(env.DB,member),activeAccountGuard(env.DB,selected),...(sheet?[env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_line_sheets WHERE id=? AND revision=? AND json_extract(value_json,'$.state')='published') THEN 1 ELSE 0 END").bind(sheet.id,sheet.revision)]:[]),env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,selected.id,JSON.stringify(order),revision),audit(env.DB,actor,id,'order.prepared',{accountId:selected.id,orderId:id,revision,source:context?'order.reorder':'order.prepare',reason:context?`Prepared from acknowledged comparison of ${context.review.orderId}.`:'Prepared a current-price draft; no stock reserved.'}),...(replaced?.document?[carryDocument(env,replaced.id,id)]:[]),...(plan?[audit(env.DB,actor,id,'sellthrough.accepted',{accountId:selected.id,orderId:id,revision,source:'order.sellthrough',reason:'Buyer explicitly authorized a POS export and accepted its exact dated arithmetic and edited quantities; one draft, zero contacts and no stock effect.'})]:[]),...supersede])

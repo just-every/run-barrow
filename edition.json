@@ -67,7 +67,8 @@
       "source": {
         "kind": "local",
         "paths": [
-          "src/barrow"
+          "src/barrow",
+          "integrations/woocommerce"
         ]
       }
     }

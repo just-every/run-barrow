@@ -30,17 +30,17 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
   <div className="br-actions"><button className="br-secondary" onClick={() => setRefresh(value => value + 1)}>Refresh fulfillment</button><button className="br-secondary" aria-pressed={late} onClick={() => setLate(value => !value)}>{late ? 'Show all lines' : 'Open late-line queue'}</button></div>
   <details><summary>Reporting time zone</summary><label>Installation reporting time zone<input placeholder="America/New_York" value={zone} onChange={event => setZone(event.target.value)} /></label><button className="br-secondary" disabled={saving || !zone} onClick={() => void saveZone()}>Save reporting time zone</button><p>Existing order date snapshots keep their original semantics.</p></details>
   {error && <Notice error>{error}</Notice>}
-  {!report && !error && <p role="status">Reading Pier…</p>}
-  {report && <><p>Report days: {report.timeZone} · Pier observed {when(report.checkedAt)} · {report.status === 'read' ? 'Source answered' : 'Unavailable'}</p><p className="br-quiet-text">{report.note}</p>
+  {!report && !error && <p role="status">Reading the stock authority…</p>}
+  {report && <><p>Report days: {report.timeZone} · {report.source} observed {when(report.checkedAt)} · {report.status === 'read' ? 'Source answered' : 'Unavailable'}</p><p className="br-quiet-text">{report.note}</p>
    {report.prebooks.filter(()=>!warehouse||warehouse==='Unassigned backorder').map(row=><article className="br-card br-stack" key={`${row.orderId}:${row.windowId}:${row.sku}`}><h3>{row.season} · {row.orderId} · {row.sku}</h3><p>{row.window}: committed {row.committed} · released {row.released} · outstanding {row.outstanding} {row.unit}</p><p>Agreed {row.shipDate} to {row.cancelAfter} · estimated {row.estimatedDate}{row.backordered?' · backordered':''}{row.releaseId?` · release ${row.releaseId}`:''}</p>{row.history.map((entry,index)=><p key={index}>{entry.at}: {entry.from} → {entry.to} · {entry.reason}</p>)}</article>)}
    {channelLines?.map(line=><article className="br-card br-stack" key={`${line.brand}:${line.orderId}:${line.lineId}`}><h3>Faire · {line.orderId} · {line.sku}</h3><p>Ordered {line.ordered} · shipped {line.shipped} · warehouse {line.warehouse}</p><p>Delivery {line.delivery} · settlement owned by {line.settlementOwner}</p>{line.reviewRequired&&<Notice>Source changed. Owner review required.</Notice>}</article>)}
-   {report.status === 'unavailable' && <Notice>Fulfillment unknown. Reconnect Pier and refresh.</Notice>}
+   {report.status === 'unavailable' && <Notice>Fulfillment unknown. Reconnect the selected source and refresh.</Notice>}
    {report.status === 'read' && lines?.length === 0 && <p>No matching {late ? 'late ' : ''}lines.</p>}
    {lines?.map(line => <article className="br-card br-stack" key={`${line.orderId}:${line.sku}`}>
     <h3>{orderNumber(line.orderId)} · {line.customer} · {line.sku}</h3><p>{line.reference || 'No buyer PO'} · base unit: {line.unit}</p>
     <p>Ordered {line.ordered} · shipped {line.shipped} · cancelled {line.cancelled} · allocated {line.allocated} · backordered {line.backordered} · outstanding {line.outstanding}</p>
     <p>Fill {line.fillBasisPoints === null ? 'not applicable' : `${(line.fillBasisPoints / 100).toFixed(2)}%`} · age since approval {line.ageDays} days{line.overdue ? ' · past requested date' : ''}</p>
-    <p>Agreed date {line.agreedDate ?? 'not recorded'} · Pier promise {line.promisedDate ?? 'not recorded'}{line.promiseChanged ? ' · differs from agreed date' : ''} · promise history: {line.promiseHistory}</p>
+    <p>Agreed date {line.agreedDate ?? 'not recorded'} · Source promise {line.promisedDate ?? 'not recorded'}{line.promiseChanged ? ' · differs from agreed date' : ''} · promise history: {line.promiseHistory}</p>
     <p>Dispatched by requested date: {line.dispatchedByDate ?? 'unknown'} · dispatched late: {line.dispatchedLate ?? 'unknown'}</p>
     <p>Delivery: unknown · on-time delivery: unknown · {line.tracking}</p>
     <ul>{line.warehouses.map(row => <li key={row.warehouse}>{row.warehouse}: {row.allocated} allocated, {row.shipped} shipped</li>)}{line.unassignedBackorder !== '0' && <li>Unassigned backorder: {line.unassignedBackorder}</li>}</ul>

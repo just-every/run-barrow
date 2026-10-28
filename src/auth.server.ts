@@ -18,6 +18,11 @@ export interface Bindings {
  ERASURE_JOURNAL?: R2Bucket
  DB: D1Database
  CARD_WEBHOOK_ORIGIN?: string
+ INVENTORY_PROVIDER?: string
+ WOO_ORIGIN?: string
+ WOO_KEY?: string
+ WOO_SECRET?: string
+ WOO_WEBHOOK_SECRET?: string
  PIER_ORIGIN?: string
  PIER_SESSION?: string
  BARROW_SFTP_SECRETS?: string

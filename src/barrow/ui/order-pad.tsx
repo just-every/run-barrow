@@ -140,7 +140,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
         <h1>{currentAccount.value.name}{town(currentAccount.value) && <span className="br-pad-town"> · {town(currentAccount.value)}</span>}</h1>
         <div className="br-chips">
           <span className="br-chip">{money(minimum)} minimum · {terms(currentAccount.value.termsDays)}</span>
-          {catalogue && <span className="br-chip">Pier stock {clock(catalogue.observedAt)} <span className="br-check" aria-label="observed">✓</span> · {draftCount} {draftCount === 1 ? 'draft' : 'drafts'}</span>}
+          {catalogue && <span className="br-chip">{catalogue.source??'Pier'} stock {clock(catalogue.observedAt)} <span className="br-check" aria-label="observed">✓</span> · {draftCount} {draftCount === 1 ? 'draft' : 'drafts'}</span>}
         </div>
       </div>
       <div className="br-pad-pickers">
@@ -164,11 +164,11 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       {hint && <p className="br-quiet-text">{hint}</p>}
       {corrections.length > 0 && <div className="br-actions">{corrections.map(({ sku, value }) => <button key={`${sku}-${value}`} type="button" className="br-secondary" disabled={busy} onClick={() => setQuantities(current => ({ ...current, [sku]: value }))}>Use {value} for {sku}</button>)}</div>}
     </div>
-    {loading && <p role="status" className="br-pad-status br-card">Fetching live stock and agreed prices from Pier…</p>}
+    {loading && <p role="status" className="br-pad-status br-card">Fetching live source stock and agreed account prices…</p>}
     {error && <div className="br-pad-status"><Notice error><strong>Catalog unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p><div><button type="button" className="br-secondary" onClick={() => setRefresh(value => value + 1)} disabled={busy}>Refresh stock</button></div></Notice></div>}
     {catalogue && items.length === 0 && <div className="br-pad-status"><Empty title="No agreed products yet">Your supplier needs to add agreed SKU prices to this trade account before you can order.</Empty></div>}
     {catalogue && items.length > 0 && <>
-      <StyleCard row={shown} observedAt={catalogue.observedAt} />
+      <StyleCard row={shown} observedAt={catalogue.observedAt} source={catalogue.source} incomingNote={catalogue.incomingNote} />
       <section className="br-matrix-card br-card" aria-label="Size matrix">
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}
         <StyleMatrix rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}

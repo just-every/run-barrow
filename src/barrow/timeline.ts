@@ -1,6 +1,7 @@
 // ORD-012: an order's timeline lists only recorded facts, each with its source, time and owner. Nothing is inferred:
 // a state no connected source records reads "not recorded".
 import type { Bindings } from '../auth.server'
+import { wooSelected } from './woocommerce'
 import { pierState, pierOrigin } from './pier'
 import type { Order } from './model'
 const states: Record<string, string> = {
@@ -17,7 +18,7 @@ export async function orderTimeline(env: Bindings, order: Order) {
  const events = (await env.DB.prepare(`SELECT e.action,e.created_at,e.actor_id,o.display_name,c.number AS confirmation FROM bw_audit e LEFT JOIN oa_operators o ON o.id=e.actor_id LEFT JOIN bw_confirmations c ON e.action='order.confirmation' AND c.order_id=e.subject_id AND json_extract(c.value_json,'$.orderRevision')=json_extract(e.context_json,'$.revision') WHERE e.subject_id=? OR json_extract(e.context_json,'$.orderId')=? OR (e.subject_id=? AND e.action IN ('credit-policy.hold','credit-policy.release')) ORDER BY e.created_at,e.rowid`).bind(order.id, order.id, order.accountId).all<{ action: string; created_at: string; actor_id: string; display_name: string | null; confirmation: number | null }>()).results
  const entries: TimelineEntry[] = events.filter(event => states[event.action]).map(event => ({ state: states[event.action], at: event.created_at, source: 'Barrow', owner: event.actor_id.startsWith('agent:') ? 'An agent' : event.display_name ?? 'A former user', ...(event.confirmation ? {confirmation:event.confirmation,detail:`${order.id}-C${event.confirmation}`} : {}) }))
  let pier: 'read' | 'none' | 'unavailable' = 'none'
- if (order.pierOrderId && order.pierOrigin === await pierOrigin(env)) {
+ if (!wooSelected(env) && order.pierOrderId && order.pierOrigin === await pierOrigin(env)) {
   try {
    const state = await pierState(env), itemName = (id: string) => order.lines.find(line => line.itemId === id)?.sku ?? id
    for (const shipment of Array.isArray(state.shipments) ? state.shipments.filter((s: any) => s.orderId === order.pierOrderId) : [])
