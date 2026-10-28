@@ -1,10 +1,8 @@
 # Product claims
 
-Generated from the canonical status rows in [CONTRACT.md](../CONTRACT.md). Acceptance journeys remain in [ACCEPTANCE.md](../ACCEPTANCE.md).
+Generated from the canonical status rows in [CONTRACT.md](../CONTRACT.md) by `node scripts/contract-docs.mjs write`. Done rows describe the recorded current scope; partial and missing rows retain their named gaps.
 
-139 clauses: 67 done, 28 partial, 44 missing.
-
-| Clause | Title | Status | Evidence | Remaining |
+| Clause | Title | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- |
 | `BAR-001` | Accounts and access | done | `src/barrow/access.ts`; `src/barrow/accounts.ts`; `src/barrow/api.ts`; `tests/api/flows.test.mjs` |  |
 | `BAR-002` | Orders and invoices | done | `src/barrow/orders.ts`; `src/barrow/invoice.ts`; `tests/api/order-guarantee.test.mjs` |  |
@@ -45,7 +43,7 @@ Generated from the canonical status rows in [CONTRACT.md](../CONTRACT.md). Accep
 | `ORD-005` | Quote conversation revisions and notes | done | `src/barrow/quote-thread.ts`; `src/barrow/quotes.ts`; `src/barrow/ui/quote-thread.tsx`; `src/barrow/export.ts`; `tests/api/quotes.test.mjs` ; `tests/api/quote-delivery.test.mjs` |  |
 | `ORD-006` | Self-service checkout | partial | `src/barrow/orders.ts`; `src/barrow/ui/orders.tsx`; `tests/api/flows.test.mjs` | Buyers submit drafts with terms; every order requires supplier approval and checkout tax, freight and payment are missing. |
 | `ORD-007` | Purchase references and requested dates | done | `src/barrow/purchase.ts`; `src/barrow/documents.ts`; `src/barrow/orders.ts`; `src/barrow/pier.ts`; `src/barrow/ui/orders.tsx`; `src/barrow/ui/order-pad.tsx`; `tests/api/purchase.test.mjs` |  |
-| `ORD-008` | Seasonal prebooks and ship windows | missing |  | Implement seasonal prebooks and ship windows and prove the stated journey. |
+| `ORD-008` | Seasonal prebooks and ship windows | partial | `tests/api/stock-promise.test.mjs` — “seasonal prebooks bind published windows, live incoming capacity and exact deposits; closing, release and delayed commitments reconcile without booking twice”: published terms, two windows, native Pier incoming supply, captured deposit at the paid network edge, season closing, linked first release, separate quantities, delay history and sales rows. | Screen controls and browser proof, refusal coverage and exact-candidate verification remain. PAY-003 owns allocation of captured deposits; no settled invoice or provider sandbox is claimed. |
 | `ORD-009` | Backorders and shipment splits | partial | `src/barrow/orders.ts`; `src/barrow/ui/orders.tsx`; `tests/api/flows.test.mjs` | Reservation shortfalls are visible; buyer backorder acceptance, release splits and shipment billing do not exist. |
 | `ORD-010` | Immutable agreed order snapshots | done | `src/barrow/orders.ts`; `src/barrow/invoice.ts`; `tests/api/flows.test.mjs` |  |
 | `ORD-011` | Order changes and cancellation | partial | `tests/api/confirmations.test.mjs` — “ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep”: the account buyer reduces one line of a submitted order before acceptance with current terms acceptance and gets one revised confirmation carrying only that diff; supplier, stale, unaccepted-terms, unchanged and accepted-order revisions are refused. | Supplier-started edits within ACC-005 role and amount limits, accepted-order edits with STK-004 release or reallocation and one edit handoff to Pier (the pinned Pier has no order-edit command), adding or removing lines, moving windows, ship-to and PO, the disclosed cutoff, AUTO-004 change notices, material-change holds, RPT-003 revision history, REP-004 commission differences, refusing shipped lines with a linked return and the acceptance journey remain. |

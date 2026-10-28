@@ -7,6 +7,7 @@ export interface AccountValue { priceRevisions?:import('../imports/validation').
 export interface CurrentRep { name: string; coverage: boolean; through?: string }
 export interface Account { buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot; id: string; value: AccountValue; revision: string }
 export interface Order {
+  prebook?:import("../prebooks").Prebook; prebookRelease?:import("../prebooks").PrebookRelease
   sellThrough?: import("../model").Order["sellThrough"]
   buyingProfile?:import('../buying-profiles').BuyingProfileSnapshot
   substitutions?: import("../substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}

@@ -110,3 +110,32 @@ test('scheduled stock synchronization resumes an interrupted ACK, sends one requ
  await h.command('account.erase',{accountId:f.account.id,confirm:'ERASE'});let exported=await h.api('/api/barrow/export.json');assert.equal(exported.stockwatches.length,0);assert.equal(exported.stocknotices.length,0);
  const rewound=await installation({bindings:{PIER_ORIGIN:f.pier.origin,PIER_SESSION:f.pier.cookie}});t.after(()=>rewound.close());await restore(rewound,snapshot);exported=await rewound.api('/api/barrow/export.json');assert.equal(exported.stockwatches.length,0);assert.equal(exported.stocknotices.length,0);
 });
+
+test('seasonal prebooks bind published windows, live incoming capacity and exact deposits; closing, release and delayed commitments reconcile without booking twice',async t=>{
+ const {prebookFixture}=await import('./prebook-fixture.mjs');
+ const {h,pier,product,po,account,buyer,publication,publish,input,prepare,submit,accept,deposit}=await prebookFixture(t);
+ await publish();
+ const current=await h.api('/api/barrow/prebook-seasons',undefined,buyer);assert.equal(current.seasons[0].depositBps,3000);assert.deepEqual(current.seasons[0].windows,publication.windows);
+ const draft=await prepare();assert.equal(draft.season,'Spring 2027');assert.equal(draft.totalCents,70000);assert.equal(draft.prebook.depositCents,21000);assert.equal(draft.prebook.currency,'USD');
+ assert.deepEqual(draft.lines.map(line=>[line.sku,line.quantity,line.requestedDate,line.cancelAfter]),[['OAT-1',8,'2027-03-05','2027-03-20'],['RYE-1',6,'2027-03-10','2027-03-30']]);
+ assert.deepEqual(draft.prebook.supply.filter(row=>row.sku==='OAT-1').map(row=>[row.date,row.quantity,row.warehouse,row.sourceId]),[['2027-03-01','30','New York',po.id]]);
+ let order=await accept(await submit(draft));assert.equal(order.status,'approved');assert.equal(order.pierOrderId,undefined);assert.equal(order.invoice,undefined);assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+ const pay=await deposit(order);assert.equal(pay.amountCents,21000);assert.equal(pay.state,'captured');assert.equal((await h.api('/api/barrow/statements/cedar?to=2027-12-31')).sections[0].receivedCents,21000);
+ await h.command('card.capture',{paymentId:pay.id,reason:'Repeat capture after a lost confirmation.'});assert.equal((await h.api('/api/barrow/payments?orderId='+order.id,undefined,buyer)).payments.length,1);
+ const closed=await h.command('prebook.close',{id:publication.id,revision:current.revision,reason:'Spring intake complete.'});assert.equal(closed.seasons[0].state,'closed');
+ assert.equal((await h.command('order.prepare',input,{...buyer,status:409})).error.code,'SEASON_CLOSED');
+ const stored=await h.api('/api/barrow/orders/'+order.id,undefined,buyer);assert.equal(stored.prebook.depositCents,21000);
+ const report=await h.api('/api/barrow/reports/fulfillment?accountId=cedar');assert.deepEqual(report.prebooks.map(row=>[row.sku,row.committed,row.released,row.outstanding]),[['OAT-1','8','0','8'],['RYE-1','6','0','6']]);
+ // A received PO feeds the first release; Pier remains the only allocator.
+ await pier.command('receipt.create',{poId:po.id,supplierReference:'Spring first delivery',lines:[{poLineId:po.lines[0].id,locationId:product.location.id,quantity:'12',cost:'20.00'}]});
+ const released=await h.command('prebook.release',{orderId:order.id,windowId:'first',revision:order.revision,reason:'First promised shipment is ready.'});
+ assert.equal(released.releaseId,order.id+'-W1');assert.equal((await h.command('prebook.release',{orderId:order.id,windowId:'first',revision:order.revision,reason:'Retry after lost response.'})).releaseId,released.releaseId);
+ const child=await h.command('order.approve',{orderId:released.releaseId});assert.equal(child.status,'approved');assert.equal(child.totalCents,52000);assert.equal(child.prebookRelease.orderId,order.id);assert.equal(child.prebookRelease.windowId,'first');assert.deepEqual(child.lines.map(line=>[line.sku,line.quantity]),[['OAT-1',8]]);
+ assert.equal((await pier.api('/api/pier/state')).orders.length,1);
+ order=(await h.command('prebook.delay',{orderId:order.id,windowId:'second',revision:released.order.revision,estimatedDate:'2027-03-15',reason:'Source supplier delayed the rye style.'})).order;
+ const after=await h.api('/api/barrow/reports/fulfillment?accountId=cedar');assert.deepEqual(after.prebooks.map(row=>[row.sku,row.committed,row.released,row.outstanding,row.backordered]),[['OAT-1','8','8','0',false],['RYE-1','6','0','6',true]]);
+ assert.deepEqual(after.prebooks[1].history.map(row=>[row.from,row.to,row.reason]),[['2027-03-10','2027-03-15','Source supplier delayed the rye style.']]);
+ const buyerOrder=await h.api('/api/barrow/orders/'+order.id,undefined,buyer);assert.equal(buyerOrder.prebook.windows[1].estimatedDate,'2027-03-15');assert.equal(buyerOrder.prebook.windows[0].releaseId,child.id);
+ const sales=await h.api('/api/barrow/reports/sales?from=2027-01-01&to=2027-12-31');assert.deepEqual(sales.rows.map(row=>[row.bookingType,row.season,row.windowId,row.bookedCents]),[['prebook','Spring 2027','first',52000],['prebook','Spring 2027','second',18000],['prebook-release','Spring 2027','first',0]]);assert.equal(sales.totals[0].bookedCents,70000);assert.equal(sales.totals[0].invoicedCents,52000);
+ assert.equal((await h.request('/api/barrow/reports/sales.csv?from=2027-01-01&to=2027-12-31')).status,200);
+});
