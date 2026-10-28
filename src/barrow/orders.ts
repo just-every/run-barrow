@@ -124,7 +124,7 @@ async function assertCurrentPricing(env:Bindings,actor:Actor,selected:Account,or
   if(lines.reduce((sum,line)=>sum+line.lineCents!,0)<selected.value.minimumCents)fail('MINIMUM','The order is below this customer’s minimum order value.')
  }
 }
-export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
+export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any,basis?:{accountRevision:string;currency:string}) {
  if(type==='order.sellthrough-outcomes')return sellThroughOutcomes(env,actor,await readOrder(env.DB,actor,text(p.orderId,'Order')))
  if(type==='order.sellthrough-preview'||type==='order.sellthrough') {
   if(type==='order.sellthrough-preview')return (await sellThroughReview(env,actor,p)).review
@@ -155,7 +155,7 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
   if(context.review.blockers.length) fail('REORDER_BLOCKED',context.review.blockers.join(' '))
   return prepareOrder(env,actor,{accountId:context.selected.id,profileId:context.selected.buyingProfile?.id,reference:p.reference,deliveryLocation:context.review.deliveryLocation,shipToId:context.review.shipToId,lines:context.review.lines.map(line=>({sku:line.sku,unit:line.unit,quantity:line.quantity}))},context)
  }
- if(type==='order.prepare') return prepareOrder(env,actor,p)
+ if(type==='order.prepare') return prepareOrder(env,actor,p,undefined,undefined,basis)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
  if(type==='order.sellthrough-contact') {
@@ -308,10 +308,12 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any) {
  fail('NOT_FOUND','Unknown order command.',404)
 }
 
-async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<ReturnType<typeof reviewReorder>>,plan?:SellThroughAcceptance) {
+async function prepareOrder(env:Bindings,actor:Actor,p:any,context?:Awaited<ReturnType<typeof reviewReorder>>,plan?:SellThroughAcceptance,basis?:{accountRevision:string;currency:string}) {
   const base=context?.selected ?? await account(env.DB,actor,text(p.accountId,'Account'))
   const profile=await resolveBuyingProfile(env.DB,actor,base,p.profileId??base.buyingProfile?.id),selected=profile.selected
   requireActiveAccount(selected)
+  if(basis&&basis.accountRevision!==base.revision)fail('CHANGED','The account revision changed. Refresh before preparing a draft.')
+  if(basis&&basis.currency!==(selected.value.currency??'USD'))fail('CURRENCY','The requested currency differs from the current price book.',400)
   if(plan&&(selected.revision!==plan.review.accountRevision||JSON.stringify(selected.buyingProfile)!==JSON.stringify(plan.review.buyingProfile)))fail('SELLTHROUGH_CHANGED','The account changed; review the plan again.')
   const sheet=p.lineSheetId===undefined?undefined:await (await import('./line-sheets')).sheetForOrder(env,actor,p,selected)
   const entryGuard=await deltaEntryGuard(env.DB,selected.id)

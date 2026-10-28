@@ -388,6 +388,18 @@
       "name": "0060_deposit_allocations.sql",
       "sha256": "cb92da066340cf8f72c5c0e7eeb49e27baa2d234fe585f49b66881fe47262dc0",
       "sql": "-- Preserve existing immutable allocations while admitting one allocation per linked release.\nCREATE TABLE bw_card_allocations_next(id TEXT PRIMARY KEY,account_id TEXT NOT NULL,order_id TEXT NOT NULL,payment_id TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nINSERT INTO bw_card_allocations_next SELECT * FROM bw_card_allocations;\nDROP TABLE bw_card_allocations;\nALTER TABLE bw_card_allocations_next RENAME TO bw_card_allocations;\nCREATE UNIQUE INDEX bw_card_allocation_destination ON bw_card_allocations(payment_id,order_id);\nCREATE INDEX bw_card_allocation_order ON bw_card_allocations(order_id);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0060_integration_grants.sql",
+      "sha256": "42cf578c6184156a4413a99aae546facfc5d9ee020e87942412ddae4e934cff0",
+      "sql": "-- Credentials are installation-local and excluded from owner archives.\nCREATE TABLE bw_integration_grants (\n id TEXT PRIMARY KEY,\n digest TEXT NOT NULL UNIQUE,\n account_id TEXT NOT NULL REFERENCES bw_accounts(id) ON DELETE CASCADE,\n issuer_id TEXT NOT NULL REFERENCES oa_operators(id) ON DELETE CASCADE,\n issuer_version INTEGER NOT NULL,\n scopes_json TEXT NOT NULL CHECK(json_valid(scopes_json)),\n expires_at INTEGER NOT NULL,\n revision TEXT NOT NULL,\n state TEXT NOT NULL CHECK(state IN ('active','revoked')),\n reason TEXT NOT NULL\n);\nCREATE INDEX bw_integration_grants_account ON bw_integration_grants(account_id);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0061_return_claims.sql",
+      "sha256": "decd7e89a6fd38b8fc31ffeae6279bd118e1323b5f7817de6a1ee90d5c5a6129",
+      "sql": "CREATE TABLE bw_return_claims (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_return_claims_order ON bw_return_claims(order_id);\nCREATE TABLE bw_return_claim_epoch (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL);\nINSERT INTO bw_return_claim_epoch VALUES(1,0);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
