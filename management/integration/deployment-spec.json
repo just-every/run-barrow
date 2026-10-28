@@ -382,6 +382,12 @@
       "name": "0059_faire_reconciliation.sql",
       "sha256": "ef45deceb61b3396c7ed49febe21147c6a1b7a10479f64a4516f96d6c84a8fee",
       "sql": "ALTER TABLE bw_faire_sync ADD COLUMN completed_at TEXT;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0060_campaigns.sql",
+      "sha256": "258406050f7fba65bf53df9e0600c1b4ce74010fe8f4f491ede4db2b754ff5eb",
+      "sql": "CREATE TABLE bw_campaign_segments(id TEXT PRIMARY KEY,created_by TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nCREATE TABLE bw_campaigns(id TEXT PRIMARY KEY,created_by TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'draft',due_at TEXT,restored INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE bw_campaign_deliveries(id TEXT PRIMARY KEY,campaign_id TEXT NOT NULL,account_id TEXT NOT NULL,recipient_id TEXT NOT NULL,recipient_version INTEGER NOT NULL,sheet_id TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'queued',reason TEXT,provider_message_id TEXT,first_attempt_at TEXT,updated_at TEXT NOT NULL,UNIQUE(campaign_id,recipient_id));\nCREATE INDEX bw_campaign_deliveries_campaign ON bw_campaign_deliveries(campaign_id);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
