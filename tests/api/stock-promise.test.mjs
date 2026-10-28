@@ -128,6 +128,7 @@ test('seasonal prebooks bind published windows, live incoming capacity and exact
  const changedAccount=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:'cedar',revision:changedAccount.revision,value:{...changedAccount.value,assignedRep:'New rep',prices:[{sku:'OAT-1',unitCents:9999,minQty:1},{sku:'RYE-1',unitCents:4000,minQty:1}]}});
  const pay=await deposit(order);assert.equal(pay.amountCents,21000);assert.equal(pay.state,'captured');assert.equal((await h.api('/api/barrow/statements/cedar?to=2027-12-31')).sections[0].receivedCents,21000);
  await h.command('card.capture',{paymentId:pay.id,reason:'Repeat capture after a lost confirmation.'});assert.equal((await h.api('/api/barrow/payments?orderId='+order.id,undefined,buyer)).payments.length,1);
+ assert.equal((await h.command('prebook.release',{orderId:order.id,windowId:'first',revision:order.revision,reason:'Captured deposit does not bypass open intake.'},{status:409})).error.code,'SEASON_OPEN');
  const closed=await h.command('prebook.close',{id:publication.id,revision:current.revision,reason:'Spring intake complete.'});assert.equal(closed.seasons[0].state,'closed');
  assert.equal((await h.command('order.prepare',input,{...buyer,status:409})).error.code,'SEASON_CLOSED');
  const stored=await h.api('/api/barrow/orders/'+order.id,undefined,buyer);assert.equal(stored.prebook.depositCents,21000);
@@ -149,6 +150,10 @@ test('seasonal prebooks bind published windows, live incoming capacity and exact
  const buyerOrder=await h.api('/api/barrow/orders/'+order.id,undefined,buyer);assert.equal(buyerOrder.prebook.windows[1].estimatedDate,'2027-03-15');assert.equal(buyerOrder.prebook.windows[0].releaseId,child.id);
  const sales=await h.api('/api/barrow/reports/sales?from=2027-01-01&to=2027-12-31');assert.deepEqual(sales.rows.map(row=>[row.bookingType,row.season,row.windowId,row.bookedCents]),[['prebook','Spring 2027','first',52000],['prebook','Spring 2027','second',18000],['prebook-release','Spring 2027','first',0]]);assert.equal(sales.totals[0].bookedCents,70000);assert.equal(sales.totals[0].invoicedCents,52000);
  assert.equal((await h.request('/api/barrow/reports/sales.csv?from=2027-01-01&to=2027-12-31')).status,200);
+ const events=(await h.api('/api/barrow/audit?limit=200')).events.filter(event=>event.action.startsWith('prebook.'));assert.deepEqual(events.map(event=>event.action).sort(),['prebook.close','prebook.delay','prebook.publish','prebook.release','prebook.release-created']);
+ for(const event of events){assert.equal(event.actorKind,'human');assert.equal(event.actorId,(await h.api('/api/barrow/state')).actor.id);assert.ok(event.revision);assert.ok(event.source);assert.ok(event.createdAt);assert.ok(event.reason)}
+ const scoped=(await h.api('/api/barrow/audit?orderId='+order.id+'&limit=200')).events.filter(event=>event.action.startsWith('prebook.'));assert.deepEqual(scoped.map(event=>event.action).sort(),['prebook.delay','prebook.release']);
+ const auditCsv=await (await h.request('/api/barrow/audit.csv?orderId='+order.id)).text();for(const event of scoped)assert.ok(auditCsv.includes(event.id));
 });
 
 test('seasonal admissions refuse closed dates, insufficient or changed source capacity, wrong currency and warehouses, stale observations and invalid windows',async t=>{
@@ -161,6 +166,7 @@ test('seasonal admissions refuse closed dates, insufficient or changed source ca
  await day('2027-03-06T00:00:00Z');assert.equal((await command({})).error.code,'SEASON_CLOSED');await day('2027-03-05T15:00:00Z');
  assert.equal((await command({lines:[{sku:'OAT-1',quantity:1}],prebook:{seasonId:publication.id,windowIds:['first']}})).error.code,'MINIMUM');
  assert.equal((await command({prebook:{seasonId:publication.id,windowIds:['missing','second']}},400)).error.code,'PREBOOK_WINDOW');
+ const late=await pier.command('po.draft',{supplierId:product.supplier.id,promiseDate:'2027-03-25',destinationWarehouse:'New York',reason:'Later supply cannot cover an earlier spring promise.',lines:[{itemId:product.item.id,quantity:'10',price:'20.00'}]});await pier.command('po.approve',{poId:late.id,version:late.version});await pier.command('po.commit',{poId:late.id,version:late.version});
  assert.equal((await command({lines:[{sku:'OAT-1',quantity:31},{sku:'RYE-1',quantity:6}]})).error.code,'PREBOOK_CAPACITY');
  const draft=await prepare();await submit(draft);
  assert.equal((await command({lines:[{sku:'OAT-1',quantity:23},{sku:'RYE-1',quantity:6}]})).error.code,'PREBOOK_CAPACITY');

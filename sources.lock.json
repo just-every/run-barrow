@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "08255b742d70d7476a2a9b29b1955e52e453616463c0331f479ba95a6dbd4879",
+      "sha256": "ecccf51d7d0d111c3634b246c24b75e2951ed7d49d40c6d8390c19e490317786",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d0c13733c3ae74a83d8e21c5cd29f5a72c74c6d2a8e5da0c63fb3b0d2fe83de5",
+      "sha256": "8fc431e354f169b791bf5420c0cb0306b03b41f1f163e38cc5268d7e7e95a81d",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "dfbe6cb7acb7d4321f75666340afa6fce60541b3a88263f17bcae3eb3da472d7",
+      "sha256": "fd5b79047fa301965b6133b5e51066bc184eb365fd1b23984de3715dad8c5761",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -1647,6 +1647,10 @@
       "sha256": "939ba26b3d9a802d4b534e83496552996532ae10d230cc9f8e146f8d1b0371f3",
       "executable": false
     },
+    "src/barrow/prebook-view.ts": {
+      "sha256": "06d3337e61d6dc7a72414318ac5825cdc8e49e5ca5cd7f441d7a40a477e09d99",
+      "executable": false
+    },
     "src/barrow/prebooks.ts": {
       "sha256": "452676601c56145492c97609bb738cf3b90632c1107e1683f99c38b73c4eff6b",
       "executable": false
@@ -2109,6 +2113,10 @@
     },
     "src/barrow/ui/orders.tsx": {
       "sha256": "f793d62c09862ccf2f9d68ea94a5951eb90e2bf9e74abd30b466c2c55ee3e64a",
+      "executable": false
+    },
+    "src/barrow/ui/prebooks.tsx": {
+      "sha256": "9f9c1b4b1adf947c7ae05c3bfff8da14a30d435b7115adb56878c3e69846377a",
       "executable": false
     },
     "src/barrow/ui/pricing-settings.tsx": {
@@ -4528,7 +4536,7 @@
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
-      "sha256": "4d6ccebc2a6079a54ee8dac2b42118e6e75e73d89b5dc8c502fa7f1687e1cc46",
+      "sha256": "76f725954fe918f1c8c91c91332a6fa155f1970ea71d1588b7be4e39ca9a81c1",
       "executable": false
     },
     "tests/api/stock-sync-fixture.mjs": {
