@@ -38,7 +38,7 @@ const notes = {
  scope: 'Your role and current account access determine which follow-ups you can read, assign and resolve. Refresh reconciles current wholesale records; recorded quote email failures create owned tasks automatically.',
  sources: 'Verified card payment exceptions, quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days, plus source-linked missing tracking and carrier exceptions. Missing sources or unknown ages do not prove resolution.',
  contact: 'Contact attempts are manually recorded and do not send outreach; quote email delivery is recorded separately. Failed contact leaves work open unless a person explicitly records a separate resolution.',
- exceptions: 'Verified card payment exceptions remain assigned until a recorded provider resolution. Inventory acknowledgment and source-confirmed shortfall tasks are reconciled on refresh; tracking exceptions and buyer disputes retain their own source-linked tasks; labels and contact attempts never establish carrier delivery. Other payment exceptions remain unknown.',
+ exceptions: 'Verified card payment exceptions remain assigned until a recorded provider resolution. Inventory acknowledgment and source-confirmed shortfall tasks are reconciled on refresh; tracking exceptions and buyer disputes retain their own source-linked tasks; labels and contact attempts never establish carrier delivery. Other payment exceptions are not recorded.',
 }
 export async function readFollowups(env: Bindings, actor: Actor, params: URLSearchParams) {
  authorize(actor)

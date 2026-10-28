@@ -1,10 +1,9 @@
-import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
 import {shipmentTrackingFixture,trackedReplacement} from '../api/shipment-tracking-fixture.mjs';
 import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
 
-test('buyer sees two packages and reports a missing parcel while supplier keeps its owned exception and reviews carrier history',async t=>{
+export async function proveShipmentTrackingScreens(t) {
  const f=await shipmentTrackingFixture(t,{built:true}),{h,buyer,order,event,set}=f;
  const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM?{executablePath:process.env.BARROW_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const supplier=await signedContext(browser,h),buyerContext=await signedContext(browser,h,buyer.as);t.after(()=>supplier.close());t.after(()=>buyerContext.close());
@@ -15,7 +14,7 @@ test('buyer sees two packages and reports a missing parcel while supplier keeps 
  await region.getByText('Link a dispatched package',{exact:true}).click();await region.getByLabel('Pier shipment',{exact:true}).selectOption(f.shipment.id);
  for(const [n,quantity] of [[1,'4'],[2,'6']]){await region.getByLabel('EasyPost tracker identity',{exact:true}).fill('trk_syntheticbarrow'+n);await region.getByLabel('Carrier',{exact:true}).fill('UPS');await region.getByLabel('Tracking code',{exact:true}).fill('synthetic-barrow-'+n);await region.getByLabel('OAT-1 package base quantity',{exact:true}).fill(quantity);await region.getByRole('button',{name:'Link package',exact:true}).click();await expect(region.getByRole('article',{name:'Package synthetic-barrow-'+n,exact:true})).toBeVisible()}
  const first=region.getByRole('article',{name:'Package synthetic-barrow-1',exact:true}),second=region.getByRole('article',{name:'Package synthetic-barrow-2',exact:true});
- set(1,[event('delivered','2031-01-15T10:00:00Z','Carrier confirmed delivery'),event('in_transit','2031-01-15T07:00:00Z','Older delayed scan','delayed')]);await first.getByRole('button',{name:'Refresh carrier status',exact:true}).click();await expect(first).toContainText('Status: delivered');await expect(second).toContainText('delivered unknown');
+ set(1,[event('delivered','2031-01-15T10:00:00Z','Carrier confirmed delivery'),event('in_transit','2031-01-15T07:00:00Z','Older delayed scan','delayed')]);await first.getByRole('button',{name:'Refresh carrier status',exact:true}).click();await expect(first).toContainText('Status: delivered');await expect(second).toContainText('delivered unknown');await expect(second).toContainText('estimated 2031-01-16T18:00:00.000Z');await expect(second.getByRole('link',{name:'Open carrier tracking',exact:true})).toHaveAttribute('href','https://track.easypost.com/synthetic-barrow-2');
  set(2,[event('in_transit','2031-01-15T11:00:00Z','Carrier delay','delayed')]);await second.getByRole('button',{name:'Refresh carrier status',exact:true}).click();await expect(second).toContainText('Carrier delay');
  await captureRegionWidths(page,region,'shipment-tracking-supplier');
  const bp=await buyerContext.newPage();await bp.goto(h.origin+'/app');let buyerRegion=await open(bp);await expect(buyerRegion.getByRole('button',{name:'Link package',exact:true})).toHaveCount(0);await expect(buyerRegion.getByRole('link',{name:'Open carrier tracking',exact:true})).toHaveCount(2);
@@ -26,4 +25,4 @@ test('buyer sees two packages and reports a missing parcel while supplier keeps 
  const card=page.locator('article.br-order').filter({hasText:'Reference: '+order.reference});await card.getByText('Order timeline',{exact:true}).click();await expect(card).toContainText('Carrier delivered');await expect(card).toContainText('EasyPost');await captureRegionWidths(page,card,'shipment-tracking-timeline');
  await page.getByRole('button',{name:'Data',exact:true}).click();const report=page.locator('div.br-card').filter({has:page.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).last();await expect(report).toContainText('verified delivered 4');await expect(report).toContainText('delivered by promise 4');await captureRegionWidths(page,report,'shipment-tracking-fulfillment');
  const related=await trackedReplacement(f);await page.reload();await page.getByRole('button',{name:'Orders',exact:true}).click();const original=page.locator('article.br-order').filter({has:page.locator('summary').filter({hasText:'Substitution 1:'})});await original.locator('summary').filter({hasText:'Substitution 1:'}).click();await expect(original).toContainText('Carrier delivery at offer: Unknown');await expect(original).toContainText('Unknown: no source-confirmed replacement carrier delivery.');await original.getByText('Order timeline',{exact:true}).click();await expect(original).toContainText('Replacement carrier delivery confirmed');await expect(original).toContainText(related.replacement.id);await captureRegionWidths(page,original,'shipment-tracking-replacement-disclosure');
-});
+}

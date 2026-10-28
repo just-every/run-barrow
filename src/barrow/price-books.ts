@@ -3,11 +3,19 @@ import { now } from './clock'
 import type { Bindings } from '../auth.server'
 import { account, prepareAccountSave } from './accounts'
 import { commit } from './access'
-import { fail, requireSupplier, supplierDate, text, type Actor } from './model'
+import { fail, requireSupplier, supplierDate, text, type Actor, type Account } from './model'
+import { validateAccountValue } from './imports'
 import { parseCsv, csvText } from './cart-csv'
 export async function importPriceBook(env:Bindings,actor:Actor,p:any) {
  requireSupplier(actor)
  const selected=await account(env.DB,actor,text(p.accountId,'Account'))
+ const value=await priceBookValue(selected,p)
+ const saved=await prepareAccountSave(env,actor,{id:selected.id,revision:selected.revision,value})
+ await commit(env.DB,actor,saved.statements)
+ return saved.record
+}
+/** Validate without writes so integration preparation and native import use one rule. */
+export async function priceBookValue(selected:Account,p:any) {
  if(p.revision!==selected.revision)fail('CHANGED','Refresh the price book before importing.')
  const [header,...rows]=parseCsv(p.csv)
  if(header?.join(',')!=='sku,currency,unitCents,msrpCents,minQty')fail('INPUT','Use sku,currency,unitCents,msrpCents,minQty headers.',400)
@@ -19,9 +27,7 @@ export async function importPriceBook(env:Bindings,actor:Actor,p:any) {
  const sameCurrency=rows[0][1]===(selected.value.currency??'USD')
  if(!sameCurrency&&(selected.value.priceRevisions?.length||selected.value.usdConversion||selected.value.prices.some(p=>p.units?.length||p.pricing)))fail('INPUT','Currency changes require explicitly repricing configured selling units and rules in Edit account first.',400)
  const prices=rows.map(row=>{if(row.length!==5)fail('INPUT','Each price row needs five columns.',400);const prior=currentPrices.find(price=>price.sku===row[0]);return {...prior,sku:row[0],unitCents:integer(row[2]),msrpCents:row[3]===''?undefined:integer(row[3]),minQty:integer(row[4])}})
- const saved=await prepareAccountSave(env,actor,{id:selected.id,revision:selected.revision,value:{...selected.value,currency:rows[0][1],...(active?{priceRevisions:selected.value.priceRevisions!.map(row=>row===active?{...row,prices}:row)}:{prices})}})
- await commit(env.DB,actor,saved.statements)
- return saved.record
+ return validateAccountValue({...selected.value,currency:rows[0][1],...(active?{priceRevisions:selected.value.priceRevisions!.map(row=>row===active?{...row,prices}:row)}:{prices})})
 }
 export async function priceBookCsv(env:Bindings,actor:Actor,id:string) {
  requireSupplier(actor)
