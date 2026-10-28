@@ -1,3 +1,4 @@
+import { agentDoorResponse } from './agent-door/response.server'
 import { barrowAgentDoor } from './agent-door/index.server'
 import { businessSettings } from './business.server'
 import { runStockSync } from './barrow/stock-sync'
@@ -46,7 +47,7 @@ export default withDemo({
     const settings = await businessSettings(bindings).handle(request)
     if (settings) return settings
     const door = await barrowAgentDoor(bindings).handle(request)
-    if (door) return door
+    if (door) return agentDoorResponse(door)
     const barrow = await barrowResponse(request, env)
     if (barrow) return barrow
     const auth = await authResponse(request, env)

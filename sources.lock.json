@@ -603,6 +603,10 @@
       "sha256": "eda82099aed68306baa9ca5f8e6d8bb6d79837310ff0dec289e9519c9cbc45a5",
       "executable": false
     },
+    "public/agent-door.css": {
+      "sha256": "ab36058ee1cfc7912e958c1c9693e7c0619682b4d339f55c9e1965aad2faf97d",
+      "executable": false
+    },
     "public/apple-touch-icon.png": {
       "sha256": "11136bfb05d83a651f0e881cdf184cc47d33d99e64a307feef616bc5687d2104",
       "executable": false
@@ -1117,6 +1121,10 @@
     },
     "src/agent-door/resources.ts": {
       "sha256": "df017323bf89e06a7106c8a1b7e3080079ee5887c636a492a33cbab271e48d93",
+      "executable": false
+    },
+    "src/agent-door/response.server.ts": {
+      "sha256": "9536fe77a1d0e4f23ca96f22a2a82db5b2e4d18536dd02814adb7397dadeadd2",
       "executable": false
     },
     "src/auth.server.ts": {
@@ -4516,7 +4524,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "d3b96206a4e4e1e454049b0ab32da2b8ed4438d60105a3118880612e35cea694",
+      "sha256": "d2a3045c19acd01757728838d672dafd17b08c8d36fed4cd00f402a292556e18",
       "executable": false
     },
     "src/site/docs/content.ts": {
