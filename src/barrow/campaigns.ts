@@ -1,3 +1,4 @@
+import { resolveBuyingProfile } from './buying-profiles'
 import type { Bindings } from '../auth.server'
 import { accounts, account } from './accounts'
 import { audit, commit, changed } from './access'
@@ -9,7 +10,7 @@ import { readList } from './lists'
 import { catalogue } from './pier'
 import { now } from './clock'
 import { currentReps, supplierToday } from './rep-scope'
-import { sheetDownload, storedSheet, type Sheet } from './line-sheets'
+import { sheetDownload, sheetDocument, storedSheet, type Sheet } from './line-sheets'
 import { operatorMail } from '../mail.server.mjs'
 import { reportSuppressed } from './report-access'
 import { observeMailConfiguration } from './quote-mail-config'
@@ -72,18 +73,18 @@ async function audience(env:Bindings,actor:Actor,f:any){
 async function source(env:Bindings,actor:Actor,p:any){
  if(p.source?.kind==='sheet'){
   const sheet=await storedSheet(env,actor,text(p.source.id,'Source sheet'))
-  return {name:sheet.name,season:sheet.season,display:sheet.display,shipStart:sheet.shipStart,shipEnd:sheet.shipEnd,skus:sheet.items.map(i=>i.sku),packs:sheet.packs,presentation:sheet.presentation,imageRefs:sheet.imageRefs}
+  return {brandId:sheet.buyingProfile?.brandId,profileId:sheet.buyingProfile?.id,sourceAccountId:sheet.accountId,suggestions:sheet.suggestions,name:sheet.name,season:sheet.season,display:sheet.display,shipStart:sheet.shipStart,shipEnd:sheet.shipEnd,skus:sheet.items.map(i=>i.sku),packs:sheet.packs,presentation:sheet.presentation,imageRefs:sheet.imageRefs}
  }
- let rows:any[]=[]
+ let rows:any[]=[],brandId:string|undefined,profileId:string|undefined,sourceAccountId:string|undefined
  if(p.source?.kind==='list')rows=(await readList(env.DB,actor,text(p.source.id,'Source list'))).lines
  else if(p.source?.kind==='order'){
-  const row=await env.DB.prepare('SELECT account_id,value_json FROM bw_orders WHERE id=?').bind(text(p.source.id,'Source order')).first<any>();if(!row)campaignMissing();await account(env.DB,actor,row.account_id);const order=JSON.parse(row.value_json);if(order.buyingProfile)fail('PROFILE','Use a recipient sheet for branded ordering; a campaign cannot change its seller.',409);rows=order.lines
+  const row=await env.DB.prepare('SELECT account_id,value_json FROM bw_orders WHERE id=?').bind(text(p.source.id,'Source order')).first<any>();if(!row)campaignMissing();await account(env.DB,actor,row.account_id);const order=JSON.parse(row.value_json);brandId=order.buyingProfile?.brandId;profileId=order.buyingProfile?.id;sourceAccountId=order.accountId;rows=order.lines
  }else if(p.source?.kind==='products')rows=p.lines
  else fail('INPUT','Choose a published sheet, saved list, working order or explicit product list.',400)
  if(!Array.isArray(rows)||!rows.length||rows.length>100)fail('INPUT','Choose up to 100 source lines.',400)
  const shipStart=text(p.shipStart,'Ship start',10),shipEnd=text(p.shipEnd,'Ship end',10)
  if(!/^\d{4}-\d{2}-\d{2}$/.test(shipStart)||!/^\d{4}-\d{2}-\d{2}$/.test(shipEnd)||shipEnd<shipStart)fail('INPUT','Use an ordered ship window.',400)
- return {name:text(p.name,'Campaign name',100),season:text(p.season,'Season',80),display:'wholesale' as const,shipStart,shipEnd,skus:[...new Set(rows.map(l=>text(l.sku,'SKU',100)))],packs:[]}
+ return {brandId,profileId,sourceAccountId,suggestions:rows.map(l=>({sku:l.sku,quantity:integer(Number(l.quantity),'Source quantity',1,1000000),...(l.unit?{unit:text(l.unit,'Source selling unit',32)}:{})})),name:text(p.name,'Campaign name',100),season:text(p.season,'Season',80),display:'wholesale' as const,shipStart,shipEnd,skus:[...new Set(rows.map(l=>text(l.sku,'SKU',100)))],packs:[]}
 }
 export async function storedCampaign(env:Bindings,actor:Actor,id:string){
  campaignSeller(actor)
@@ -120,11 +121,13 @@ export async function campaignCommand(env:Bindings,actor:Actor,type:string,p:any
   const prior=p.id?await storedCampaign(env,actor,p.id):null
   if(prior&&(prior.revision!==p.revision||prior.state!=='draft'||prior.restored))fail('CHANGED','Only a current native draft can be edited.')
   const template=await source(env,actor,p),saved=p.segmentId?await segment(env,actor,text(p.segmentId,'Segment')):null
-  const lines=p.suggested===false?[]:(p.lines??template.skus.map(sku=>({sku,quantity:1})))
+  const lines=p.suggested===false?[]:(p.lines??template.suggestions??template.skus.map(sku=>({sku,quantity:1})))
   if(!Array.isArray(lines)||lines.length>100||lines.some(l=>!template.skus.includes(l.sku)))fail('INPUT','Suggested lines must be on the source.',400)
-  const suggestions=lines.map(l=>({sku:l.sku,quantity:integer(l.quantity,'Suggested quantity',1,1000000)}))
+  const suggestions=lines.map(l=>({sku:l.sku,quantity:integer(l.quantity,'Suggested quantity',1,1000000),...(l.unit?{unit:text(l.unit,'Suggested selling unit',32)}:{})}))
   if(new Set(suggestions.map(l=>l.sku)).size!==suggestions.length)fail('INPUT','Use distinct suggested SKUs.',400)
-  const id=prior?.id??crypto.randomUUID(),revision=crypto.randomUUID(),value={name:text(p.name,'Campaign name',100),subject:text(p.subject,'Subject',200),message:text(p.message,'Message',10000),template,segmentId:saved?.id??null,filters:saved?.filters??filters(p.filters),suggestions,attachPdf:p.attachPdf!==false,attachmentFormat:p.attachmentFormat==='xlsx'?'xlsx':'pdf',excluded:[]}
+  const profileByAccount:Record<string,string>={}
+  if(p.profileByAccount!==undefined){if(!p.profileByAccount||typeof p.profileByAccount!=='object'||Array.isArray(p.profileByAccount)||Object.keys(p.profileByAccount).length>1000)fail('INPUT','Map exact account IDs to approved buying profiles.',400);for(const [key,value] of Object.entries(p.profileByAccount)){await account(env.DB,actor,key);profileByAccount[key]=text(value,'Buying profile',100)}}
+  const id=prior?.id??crypto.randomUUID(),revision=crypto.randomUUID(),value={profileByAccount,source:{kind:p.source.kind,...(p.source.id?{id:text(p.source.id,'Source record')}: {})},name:text(p.name,'Campaign name',100),subject:text(p.subject,'Subject',200),message:text(p.message,'Message',10000),template,segmentId:saved?.id??null,filters:saved?.filters??filters(p.filters),suggestions,attachPdf:p.attachPdf!==false,attachmentFormat:p.attachmentFormat==='xlsx'?'xlsx':'pdf',excluded:[]}
   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_campaigns(id,created_by,value_json,revision) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision WHERE bw_campaigns.revision=? AND bw_campaigns.state=\'draft\'').bind(id,actor.id,JSON.stringify(value),revision,prior?.revision??''),changed(env.DB),audit(env.DB,actor,id,'campaign.saved',{revision,source:type,reason:'Saved a reviewed campaign draft; no recipients contacted.'})]);return campaignSummary(env,actor,id)
  }
  const campaign=await storedCampaign(env,actor,text(p.id,'Campaign'))
@@ -133,7 +136,7 @@ export async function campaignCommand(env:Bindings,actor:Actor,type:string,p:any
   const selected=await account(env.DB,actor,text(p.accountId,'Test price account'))
   const preview=await makeSheet(env,actor,campaign,selected)
   const result=await sendMessage(env,actor,campaign,{id:crypto.randomUUID(),sheet:preview,email:actor.email},true)
-  await commit(env.DB,actor,[audit(env.DB,actor,campaign.id,'campaign.tested',{revision:campaign.revision,source:type,reason:'Sent a labelled test to the signed-in sender only; campaign delivery totals unchanged.'})]);return {status:result.status}
+  await commit(env.DB,actor,[audit(env.DB,actor,campaign.id,'campaign.tested',{revision:campaign.revision,source:type,reason:'Self-only test outcome: '+result.status+'; campaign delivery totals unchanged.'})]);return {status:result.status}
  }
  if(type==='campaign.schedule'){
   if(campaign.state!=='draft')fail('CHANGED','Only a draft can be scheduled.')
@@ -149,10 +152,19 @@ export async function campaignCommand(env:Bindings,actor:Actor,type:string,p:any
  }
  fail('COMMAND','Unknown campaign action.',404)
 }
+async function campaignProfile(env:Bindings,actor:Actor,campaign:any,selected:Account){
+ const template=campaign.template,id=campaign.profileByAccount?.[selected.id]??(template.sourceAccountId===selected.id?template.profileId:undefined)
+ if(template.brandId&&!id)fail('PROFILE','Choose this account’s approved buying profile for the source brand.')
+ const context=await resolveBuyingProfile(env.DB,actor,selected,id)
+ if((context.selected.buyingProfile?.brandId??undefined)!==(template.brandId??undefined))fail('SELLER_MIX','Every recipient must keep the source brand and legal seller.')
+ return context
+}
 async function makeSheet(env:Bindings,actor:Actor,campaign:any,selected:Account):Promise<Sheet>{
- const live=await catalogue(env,selected),template=campaign.template,today=supplierDate(await now())
+ const template=campaign.template,today=supplierDate(await now()),context=await campaignProfile(env,actor,campaign,selected)
+ selected=context.selected
+ const live=await catalogue(env,selected)
  if(template.skus.some((sku:string)=>!live.items.some(i=>i.sku===sku)))fail('ASSORTMENT','A source SKU is unavailable for this recipient; review their assortment before sending.')
- return {...template,id:crypto.randomUUID(),revision:crypto.randomUUID(),accountId:selected.id,state:'published',publishedAt:(await now()).toISOString(),publishedBy:actor.id,bookRevision:selected.revision,bookEffectiveFrom:selected.value.priceRevisions?.filter(r=>r.effectiveFrom<=today).at(-1)?.effectiveFrom,currency:live.currency,items:live.items.filter(i=>template.skus.includes(i.sku)),campaignId:campaign.id,suggestions:campaign.suggestions}
+ return {...template,...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id:crypto.randomUUID(),revision:crypto.randomUUID(),accountId:selected.id,state:'published',publishedAt:(await now()).toISOString(),publishedBy:actor.id,bookRevision:selected.revision,bookEffectiveFrom:selected.value.priceRevisions?.filter(r=>r.effectiveFrom<=today).at(-1)?.effectiveFrom,currency:live.currency,items:live.items.filter(i=>template.skus.includes(i.sku)),campaignId:campaign.id,suggestions:campaign.suggestions}
 }
 async function freezeCampaign(env:Bindings,actor:Actor,campaign:any){
  const f=campaign.segmentId?(await segment(env,actor,campaign.segmentId)).filters:campaign.filters
@@ -160,9 +172,11 @@ async function freezeCampaign(env:Bindings,actor:Actor,campaign:any){
  const statements:D1PreparedStatement[]=[]
  for(const {account:selected,person} of resolved.recipients){
   if(await env.DB.prepare('SELECT id FROM bw_campaign_deliveries WHERE campaign_id=? AND recipient_id=?').bind(campaign.id,person.id).first())continue
+  let recipientProfile:Awaited<ReturnType<typeof campaignProfile>>
+  try{recipientProfile=await campaignProfile(env,{id:person.id,email:person.email,version:person.version,role:'member',agent:false},campaign,selected)}catch{resolved.excluded.push({accountId:selected.id,buyerId:person.id,name:selected.value.name,reason:'buying profile not approved or not mapped for this recipient'});continue}
   const sheet=await makeSheet(env,actor,campaign,selected),id=crypto.randomUUID()
   const suppressed=await campaignSuppressed(env,person.email)
-  statements.push(env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(selected.id,selected.revision),env.DB.prepare('INSERT INTO bw_line_sheets VALUES(?,?,?,?)').bind(sheet.id,selected.id,JSON.stringify(sheet),sheet.revision),env.DB.prepare('INSERT INTO bw_campaign_deliveries(id,campaign_id,account_id,recipient_id,recipient_version,sheet_id,status,reason,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,campaign.id,selected.id,person.id,person.version,sheet.id,suppressed?'suppressed':'queued',suppressed?'terminal address suppression':null,stamp))
+  statements.push(recipientProfile.guard,env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(selected.id,selected.revision),env.DB.prepare('INSERT INTO bw_line_sheets VALUES(?,?,?,?)').bind(sheet.id,selected.id,JSON.stringify(sheet),sheet.revision),env.DB.prepare('INSERT INTO bw_campaign_deliveries(id,campaign_id,account_id,recipient_id,recipient_version,sheet_id,status,reason,updated_at) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,campaign.id,selected.id,person.id,person.version,sheet.id,suppressed?'suppressed':'queued',suppressed?'terminal address suppression':null,stamp))
  }
  const {id,revision,createdBy,state,restored,...value}=campaign
  statements.push(env.DB.prepare("UPDATE bw_campaigns SET value_json=?,state='sent' WHERE id=? AND revision=? AND restored=0").bind(JSON.stringify({...value,excluded:resolved.excluded}),id,revision),changed(env.DB),audit(env.DB,actor,id,'campaign.sent',{revision,source:'campaign.send',reason:'Resolved current approved buyers; existing recipient identities are never queued twice.'}))
@@ -177,7 +191,7 @@ async function sendMessage(env:Bindings,actor:Actor,campaign:any,target:{id:stri
  const link=test?`${origin.origin}/app?campaignPreview=${encodeURIComponent(campaign.id)}`:`${origin.origin}/app?campaignDelivery=${encodeURIComponent(target.id)}`
  // Test attachments use an unsaved preview; recipient attachments use the actual private sheet door.
  let attachment:Uint8Array|undefined
- if(campaign.attachPdf){const response=test?new Response((await import('./pdf')).textPdf([campaign.name,...target.sheet.items.map(i=>`${i.sku} ${target.sheet.currency} ${(i.unitCents/100).toFixed(2)}`)])):await sheetDownload(env,actor,target.sheet.id,campaign.attachmentFormat??'pdf');attachment=new Uint8Array(await response.arrayBuffer())}
+ if(campaign.attachPdf){const response=test?await sheetDocument(env,actor,target.sheet,campaign.attachmentFormat??'pdf'):await sheetDownload(env,actor,target.sheet.id,campaign.attachmentFormat??'pdf');attachment=new Uint8Array(await response.arrayBuffer())}
  try{const result=await operatorMail(env)?.send({deliveryId:target.id,from:env.MAIL_FROM,to:[target.email],subject:(test?'[Test] ':'')+campaign.subject,headers:{},text:`${test?'Test preview only.\n':''}${campaign.message}\n\nSign in with your own buyer identity:\n${link}`,html:`<p>${escape(campaign.message).replaceAll('\n','<br>')}</p><p><a href="${escape(link)}">${test?'Test preview':'Open your suggested order'}</a></p>`,...(attachment?{attachments:[{filename:'line-sheet.'+(campaign.attachmentFormat??'pdf'),contentType:campaign.attachmentFormat==='xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'application/pdf',content:attachment}]}:{})});return {status:result?.status==='development'?'not sent (development)':result?.status??'uncertain',providerMessageId:result?.providerMessageId??null}}catch{return {status:'uncertain',providerMessageId:null}}
 }
 export async function dispatchCampaignDeliveries(env:Bindings,campaignId?:string){
@@ -185,7 +199,7 @@ export async function dispatchCampaignDeliveries(env:Bindings,campaignId?:string
  for(const d of rows){
   const row=await env.DB.prepare('SELECT * FROM bw_campaigns WHERE id=? AND restored=0').bind(d.campaign_id).first<any>(),actor=row?await campaignActor(env,row.created_by):null
   let person:any,allowed=false
-  try{if(actor){await account(env.DB,actor,d.account_id);person=await env.DB.prepare(`SELECT p.id,p.email,p.version FROM oa_operators p JOIN bw_accounts a ON a.id=? WHERE p.id=? AND p.status='active' AND p.version=? AND ${companyPurchasingRecipientSql('p','a.id')}`).bind(d.account_id,d.recipient_id,d.recipient_version).first();const a=await account(env.DB,actor,d.account_id);allowed=!!person&&(a.value.lifecycle??'active')==='active';await storedSheet(env,actor,d.sheet_id)}}catch{}
+  try{if(actor){await account(env.DB,actor,d.account_id);person=await env.DB.prepare(`SELECT p.id,p.email,p.version FROM oa_operators p JOIN bw_accounts a ON a.id=? WHERE p.id=? AND p.status='active' AND p.version=? AND ${companyPurchasingRecipientSql('p','a.id')}`).bind(d.account_id,d.recipient_id,d.recipient_version).first();const a=await account(env.DB,actor,d.account_id);allowed=!!person&&(a.value.lifecycle??'active')==='active';await storedSheet(env,actor,d.sheet_id);if(person)await storedSheet(env,{id:person.id,email:person.email,version:person.version,role:'member',agent:false},d.sheet_id)}}catch{allowed=false}
   if(!allowed||!actor){await env.DB.prepare("UPDATE bw_campaign_deliveries SET status='withdrawn',reason='Current sender, recipient, account or share authority withdrawn' WHERE id=? AND first_attempt_at IS NULL").bind(d.id).run();continue}
   if(await campaignSuppressed(env,person.email)){await env.DB.prepare("UPDATE bw_campaign_deliveries SET status='suppressed',reason='terminal address suppression' WHERE id=?").bind(d.id).run();continue}
   const stamp=(await now()).toISOString(),claimed=await env.DB.prepare("UPDATE bw_campaign_deliveries SET status='uncertain',first_attempt_at=?,updated_at=? WHERE id=? AND first_attempt_at IS NULL AND status IN ('queued','not configured') RETURNING id").bind(stamp,stamp,d.id).first()
