@@ -119,7 +119,7 @@ test('versioned exchange imports reviewed catalog and companies, pages authorize
  await h.api(base+'/exchange/apply',{...preparedProduct,reason:'No explicit confirmation'},{status:400});
  const altered=structuredClone(preparedProduct);altered.proposal.payload.workbook.name='synthetic-barrow-6.xlsx';
  await apply(altered,{status:409});assert.deepEqual(await read('products',{}),productBefore);
- const review=await h.api(base+'/exchange/review',preparedProduct);assert.deepEqual(review.proposal,preparedProduct.proposal);
+ const review=await h.api(base+'/exchange/review',preparedProduct);assert.deepEqual(review.proposal,preparedProduct.proposal);assert.deepEqual(review.catalog.rows[0].categories,['Prepared catalog']);
  receipts.push((await apply(preparedProduct)).receipt);
  assert.equal((await read('products',{})).data[0].externalId,'oat-case');
  assert.deepEqual((await read('products',{})).data[0].categories,['Prepared catalog']);
@@ -158,6 +158,13 @@ test('versioned exchange imports reviewed catalog and companies, pages authorize
  assert.equal((await read('quotes',{})).data.find(row=>row.id===quoteResult.result.id).status,'requested');
  const offered=await apply(revisedQuote);receipts.push(offered.receipt);assert.equal(offered.result.status,'proposed');assert.equal(offered.result.revisions[0].totalCents,14600);
  await stage('quotes',{type:'quote.propose',accountId:'cedar',quoteId:quote.id,revision:'stale',lines:[{sku:'OAT-1',quantity:2}]},{...writer,status:409});
+ const removalEntries={...scopedEntries};removalEntries['xl/worksheets/sheet1.xml']=strToU8(strFromU8(removalEntries['xl/worksheets/sheet1.xml']).replace(/<c r="J2"[^>]*>[\s\S]*?<\/c>/,'<c r="J2" t="inlineStr"><is><t>removed</t></is></c>'));
+ const removal=await stage('products',{workbook:{name:'synthetic-barrow-7.xlsx',base64:Buffer.from(zipSync(removalEntries)).toString('base64')}});
+ assert.deepEqual((await h.api(base+'/exchange/review',removal)).catalog.reconciliation.removedListings,['OAT-1']);
+ const listingsBefore=(await h.api('/api/barrow/catalog-maintenance')).listings;
+ await apply(removal,{status:400});assert.deepEqual((await h.api('/api/barrow/catalog-maintenance')).listings,listingsBefore);
+ const removed=await h.api(base+'/exchange/apply',{...removal,confirm:true,approveRemoved:true,reason:'Owner reviewed the exact products exchange.'});receipts.push(removed.receipt);
+ assert.equal((await h.api('/api/barrow/catalog-maintenance')).listings.find(row=>row.sku==='OAT-1').listing,'removed');
  const applied=(await h.api('/api/barrow/audit?accountId=cedar&person='+encodeURIComponent(owner.id))).events.filter(row=>row.action==='integration.applied');
  assert.deepEqual(applied.map(row=>row.id).sort(),receipts.map(row=>row.id).sort());
  for(const receipt of receipts){const event=applied.find(row=>row.id===receipt.id);assert.equal(event.actorId,owner.id);assert.equal(event.actorKind,'human');assert.equal(event.subjectId,delegated.grant.id);assert.equal(event.revision,receipt.id);assert.equal(event.source,'integration.exchange.'+receipt.entity);assert.ok(event.createdAt);assert.deepEqual(JSON.parse(event.reason),{reason:'Owner reviewed the exact '+receipt.entity+' exchange.',preparedBy:'agent:'+delegated.grant.id,appliedBy:owner.id,grantRevision:delegated.grant.revision});}
