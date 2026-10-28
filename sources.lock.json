@@ -1260,7 +1260,7 @@
       "executable": false
     },
     "src/barrow/card-ledger.ts": {
-      "sha256": "44f691a6ff94532d5a3a5dfc302a96416d8473dfcefd6967a8eae7e843ce548d",
+      "sha256": "4349f571fb677467d9dba87653384c1c7b9fba9c6200b1ae4e535fe2ebaeda09",
       "executable": false
     },
     "src/barrow/card-model.ts": {
@@ -1516,7 +1516,7 @@
       "executable": false
     },
     "src/barrow/fulfillment.ts": {
-      "sha256": "f74e8b10720c71fc7ce43c643cbf51b4fb8111438a344b88f770c6e26d8296c1",
+      "sha256": "da57b5f85cf0df2dba5d4c0798ae4330faa40d6872474a1f432e37cac6bf4629",
       "executable": false
     },
     "src/barrow/image-archive.ts": {
@@ -1920,7 +1920,7 @@
       "executable": false
     },
     "src/barrow/shipment-tracking.ts": {
-      "sha256": "75faf8c884b3f734f26c0594b55f61f48ea9d3aeaf3b2986ff4dcb785a935fbc",
+      "sha256": "fab9c70d597b9b9a9d7fad26ebd710df0e76810ba51fa452af2ac9793d29f4df",
       "executable": false
     },
     "src/barrow/shipping-rules.ts": {
@@ -4680,7 +4680,7 @@
       "executable": false
     },
     "tests/api/shipment-tracking-proof.mjs": {
-      "sha256": "7d500108fc2cc1dfac6a527cddd8d52b975d95950e72f54da7f540ac8854624c",
+      "sha256": "697cfd77ddcb2bcfb437059fb6024e36bbed49247c7c287a4fb7577ab7de3acd",
       "executable": false
     },
     "tests/api/shipping.test.mjs": {
