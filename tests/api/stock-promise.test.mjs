@@ -116,12 +116,14 @@ test('seasonal prebooks bind published windows, live incoming capacity and exact
  const {h,pier,product,po,account,buyer,publication,publish,input,prepare,submit,accept,deposit}=await prebookFixture(t);
  await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,assignedRep:'Season rep'}});
  await h.command('commission.settings',{revision:null,rules:[{id:'season-commission',rep:'Season rep',from:'2027-01-01',rateBps:1000,basis:'acceptance',splits:[{rep:'Season rep',shareBps:10000}]}],reason:'Supplier approved the original seasonal commission.'});
+ await h.command('credit-policy.save',{accountId:'cedar',revision:null,currency:'USD',limitCents:70000,termsDays:30,reason:'Finance approves the complete seasonal commitment once.'});
  await publish();
  const current=await h.api('/api/barrow/prebook-seasons?accountId=cedar',undefined,buyer);assert.equal(current.seasons[0].depositBps,3000);assert.deepEqual(current.seasons[0].windows,publication.windows);
  const draft=await prepare();assert.equal(draft.season,'Spring 2027');assert.equal(draft.totalCents,70000);assert.equal(draft.prebook.depositCents,21000);assert.equal(draft.prebook.currency,'USD');
  assert.deepEqual(draft.lines.map(line=>[line.sku,line.quantity,line.requestedDate,line.cancelAfter]),[['OAT-1',8,'2027-03-05','2027-03-20'],['RYE-1',6,'2027-03-10','2027-03-30']]);
  assert.deepEqual(draft.prebook.supply.filter(row=>row.sku==='OAT-1').map(row=>[row.date,row.quantity,row.warehouse,row.sourceId]),[['2027-03-01','30','New York',po.id]]);
  let order=await accept(await submit(draft));assert.equal(order.status,'approved');assert.equal(order.pierOrderId,undefined);assert.equal(order.invoice,undefined);assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+ assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,70000);
  const confirmationPath='/api/barrow/orders/'+order.id+'/confirmations';const confirmation=(await h.api(confirmationPath,undefined,buyer)).confirmations.at(-1);assert.deepEqual(confirmation.snapshot.prebook,{seasonId:publication.id,depositCents:21000,currency:'USD'});
  const pdf=Buffer.from(await (await h.request(confirmationPath+'/'+confirmation.number+'.pdf',buyer)).arrayBuffer()).toString();assert.ok(pdf.includes('Prebook deposit requirement: USD 210.00'));
  assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows,[]);
@@ -135,13 +137,16 @@ test('seasonal prebooks bind published windows, live incoming capacity and exact
  const report=await h.api('/api/barrow/reports/fulfillment?accountId=cedar');assert.deepEqual(report.prebooks.map(row=>[row.sku,row.committed,row.released,row.outstanding]),[['OAT-1','8','0','8'],['RYE-1','6','0','6']]);
  // A received PO feeds the first release; Pier remains the only allocator.
  await pier.command('receipt.create',{poId:po.id,supplierReference:'Spring first delivery',lines:[{poLineId:po.lines[0].id,locationId:product.location.id,quantity:'12',cost:'20.00'}]});
+ const currentCredit=await h.api('/api/barrow/account-credit?accountId=cedar');await h.command('credit-policy.save',{accountId:'cedar',revision:currentCredit.revision,currency:'USD',limitCents:80000,termsDays:30,reason:'Finance extends the current limit before fulfillment without changing the commitment.'});
  const released=await h.command('prebook.release',{orderId:order.id,windowId:'first',revision:order.revision,reason:'First promised shipment is ready.'});
+ assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,70000);
  assert.equal(released.releaseId,order.id+'-W1');assert.equal((await h.command('prebook.release',{orderId:order.id,windowId:'first',revision:order.revision,reason:'Retry after lost response.'})).releaseId,released.releaseId);
  await pier.command('location.save',{name:'Other receiving shelf',warehouse:'Newark',kind:'bin'});
  const route=async warehouses=>{let rule=await pier.command('routing.save',{source:'manual',mode:'rules',shortage:'split',zones:[],defaultEligible:warehouses});rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});await pier.command('routing.activate',{ruleId:rule.id,version:rule.version})};
  await route(['New York','Newark']);assert.equal((await h.command('order.approve',{orderId:released.releaseId},{status:409})).error.code,'PREBOOK_WAREHOUSE');assert.equal((await pier.api('/api/pier/state')).orders.length,0);
  await route(['New York']);
  const child=await h.command('order.approve',{orderId:released.releaseId});assert.equal(child.status,'approved');assert.equal(child.totalCents,52000);assert.equal(child.prebookRelease.orderId,order.id);assert.equal(child.prebookRelease.windowId,'first');assert.deepEqual(child.lines.map(line=>[line.sku,line.quantity]),[['OAT-1',8]]);
+ assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,70000);
  assert.equal((await pier.api('/api/pier/state')).orders.length,1);assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows.map(row=>[row.orderId,row.rep,row.grossCents,row.netCents]),[[child.id,'Season rep',5200,5200]]);
  order=(await h.command('prebook.delay',{orderId:order.id,windowId:'second',revision:released.order.revision,estimatedDate:'2027-03-15',reason:'Source supplier delayed the rye style.'})).order;
  const after=await h.api('/api/barrow/reports/fulfillment?accountId=cedar');assert.deepEqual(after.prebooks.map(row=>[row.sku,row.committed,row.released,row.outstanding,row.backordered]),[['OAT-1','8','8','0',false],['RYE-1','6','0','6',true]]);

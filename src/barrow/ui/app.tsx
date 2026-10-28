@@ -1,5 +1,6 @@
 import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
+import { CreditSettings, CreditBalance } from './account-credit'
 import { CatalogMaintenance } from './catalog-maintenance'
 import { StockSync } from './stock-sync'
 import { StockAlerts } from './stock-alerts'
@@ -160,6 +161,7 @@ export function BarrowApp() {
           {activeTab !== pad && <div className="br-page-title"><div><p className="br-eyebrow">{supplier ? 'Supplier workspace' : selected?.value.name ?? 'Your trade account'}</p><h1>{activeTab}</h1>{!supplier&&<CurrentRep reps={state.currentReps?.[accountId]}/>}</div>
             <span className={`br-chip br-connection${state.connection.configured ? ' br-connected' : ''}`}>{state.connection.configured ? 'Pier connected' : 'Pier connection required'}</span>
           </div>}
+          {activeTab === pad && selected && <CreditBalance accountId={selected.id} version={state}/>}
           {activeTab === pad && !supplier && <CurrentRep reps={state.currentReps?.[accountId]}/>}
           {activeTab === pad && (selected
             ? <ProfileWorkspace canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} key={`draft:${selected.id}`} account={selected} accounts={state.accounts} supplier={supplier} draftId={draftId} version={state} draftCount={state.orderPage.counts.draft ?? 0} run={run} busy={busy} commandError={error}
@@ -203,6 +205,7 @@ export function BarrowApp() {
           {activeTab === 'Data'&&legacySupplier&&<PrebookSettings version={state} run={run} busy={busy}/>}
           {activeTab === pad && !supplier && selected && <StockAlerts accountId={selected.id} skus={selected.value.prices.map(price=>price.sku)} />}
           {activeTab === 'Data' && legacySupplier && <ProfileConfiguration accounts={state.accounts} version={state}/>}
+          {(activeTab === 'Data' && legacySupplier || activeTab === 'Reports' && staff?.role==='finance') && <CreditSettings accounts={state.accounts} ownerId={state.actor.id} ownerLabel={state.actor.email}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <details className="br-details"><summary>Payment settings</summary><CardSettings /></details>}
           {activeTab === 'Data' && supplier && <DataTools owner={state.actor.role==='owner'} accounts={state.accounts} freshness={state.settings.stockFreshnessMinutes} busy={busy} run={run} />}
         </>}
