@@ -10,6 +10,7 @@ type Preview = {
   source: Counts
   planned: Counts & { newDocuments: number; newLists: number }
   catalog?: unknown
+  priceBooks?: Array<{accountId:string;currency:string;sourceRows:number;plannedRows:number;sourceUnitCents:number;plannedUnitCents:number}>
   nativeEntities?: { source: Entities; planned: Entities & { newCustomers: number; newContacts: number; newAddresses: number } }
   totals: CurrencyTotal[]
   plannedTotals: CurrencyTotal[]
@@ -32,6 +33,7 @@ function SourceReview({ report, name }: { report: Preview; name:string }) {
       <thead><tr><th scope="col">Records</th><th scope="col">Source</th><th scope="col">Planned</th></tr></thead>
       <tbody>{([['documents', 'Documents'], ['lines', 'Document lines'], ['lists', 'Lists'], ['listLines', 'List lines']] as const).map(([key, label]) => <tr key={key}><th scope="row">{label}</th><td>{report.source[key]}</td><td>{report.planned[key]}</td></tr>)}</tbody>
     </table></div>
+    {Boolean(report.priceBooks?.length) && <div className="br-table-wrap"><table><caption>Supplied current price books, in exact currency cents</caption><thead><tr><th scope="col">Account</th><th scope="col">Currency</th><th scope="col">Source rows</th><th scope="col">Planned rows</th><th scope="col">Source unit cents</th><th scope="col">Planned unit cents</th></tr></thead><tbody>{report.priceBooks!.map(book=><tr key={book.accountId}><th scope="row">{book.accountId}</th><td>{book.currency}</td><td>{book.sourceRows}</td><td>{book.plannedRows}</td><td>{book.sourceUnitCents}</td><td>{book.plannedUnitCents}</td></tr>)}</tbody></table></div>}
     <p>New retained documents: {report.planned.newDocuments}. New lists: {report.planned.newLists}.</p>
     {native && <div className="br-table-wrap"><table>
       <caption>Native customer, contact and address reconciliation</caption>
@@ -50,7 +52,7 @@ function SourceReview({ report, name }: { report: Preview; name:string }) {
     <div><h4>Invitation candidates</h4><p>Website users require a separate explicit native invitation review. Applying this import does not send invitations.</p>
       {(report.invitationCandidates??[]).length ? <div className="br-table-wrap"><table><caption>Website users retained for invitation review</caption><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Account</th></tr></thead><tbody>{report.invitationCandidates.map(candidate => <tr key={candidate.email}><th scope="row">{candidate.name}</th><td>{candidate.email}</td><td>{candidate.accountId}</td></tr>)}</tbody></table></div> : <p>No invitation candidates supplied.</p>}
     </div>
-    {Boolean(report.catalog) && <JsonDetail value={report.catalog} label="Review product coverage and primary images" />}
+    {Boolean(report.catalog) && <JsonDetail value={report.catalog} label="Review product coverage and image slots" />}
     <JsonDetail value={report} label={`Review complete ${name} preview`} />
   </div>
 }
@@ -104,7 +106,7 @@ export function WizCommerceMoveIn({ reload }: { reload: () => Promise<void> }) {
     <label>{name} source<textarea aria-label={`${name} source`} value={source} rows={9} spellCheck={false} disabled={busy} onChange={event => changeSource(event.target.value)} /></label>
     <div className="br-actions"><button type="button" disabled={busy || !source.trim()} onClick={() => void act(preview)}>Preview {name} import</button></div>
     {error && <Notice error>{error}</Notice>}
-    {applied && <Notice>{name} import completed.{applied.replayed ? ' Replay confirmed; this approval was already applied.' : ''}{applied.id ? ` Import reference: ${applied.id}.` : ''} {system==='nuorder'?'Review retained history and catalog metadata; other image slots and document rebuilding remain pending.':'Review native customers, contacts and addresses in Accounts.'} Keep this exact source and reviewed fingerprint: replaying the same approval does not create duplicate records.</Notice>}
+    {applied && <Notice>{name} import completed.{applied.replayed ? ' Replay confirmed; this approval was already applied.' : ''}{applied.id ? ` Import reference: ${applied.id}.` : ''} {system==='nuorder'?'Review retained history, image slots, held files and retrieval failures; document rebuilding remains pending.':'Review native customers, contacts and addresses in Accounts.'} Keep this exact source and reviewed fingerprint: replaying the same approval does not create duplicate records.</Notice>}
     {review && <div className="br-stack" role="region" aria-label={`${name} preview`}>
       <h3>Review {name} import</h3>
       <p>{review.report.label}</p>

@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "ecccf51d7d0d111c3634b246c24b75e2951ed7d49d40c6d8390c19e490317786",
+      "sha256": "3fef547e1a00fb74485c8732cbaa1b9919fffa4d5fb07b7655b9709b04aaa560",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8fc431e354f169b791bf5420c0cb0306b03b41f1f163e38cc5268d7e7e95a81d",
+      "sha256": "9ae75c784fe6a1e951d5577971ac35dcc4311c07bd4f85952dec3f30e589d5b6",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "fd5b79047fa301965b6133b5e51066bc184eb365fd1b23984de3715dad8c5761",
+      "sha256": "446da4e3db542556d94e89df5d80c27f9b5284b44fd5a8aa0a14ef60d3e42e19",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -220,7 +220,7 @@
       "executable": false
     },
     "docs/MOVE-IN.md": {
-      "sha256": "21bc7bdc86ed4553e00d87bb6c566bfd51b42d7d3f1acf2e80f362d91e416e2d",
+      "sha256": "62d5581f97488957d42691dab2475158946310d98a66393f7178d084b35b42e4",
       "executable": false
     },
     "docs/ORDER-CONFIRMATIONS.md": {
@@ -1256,11 +1256,11 @@
       "executable": false
     },
     "src/barrow/catalog-maintenance-model.ts": {
-      "sha256": "da94ae0bedd1a1a20bef6cc40e7c1829db7965864116698ae95a4124510a9958",
+      "sha256": "9a3f1831551e81885c4dc97a97d5c1eb1f756689d8c29b3beaaa13616ba6bcfb",
       "executable": false
     },
     "src/barrow/catalog-maintenance-preview.ts": {
-      "sha256": "b778553ecf6b98a76aae0b9aec711b254f86e7d360802cce7e5b0ed9bc3b3d12",
+      "sha256": "f536c5579b6a11aeae970dd85042408ec3f57552dd466bf90439dd053ba7200b",
       "executable": false
     },
     "src/barrow/catalog-maintenance-workbook.ts": {
@@ -1544,11 +1544,15 @@
       "executable": false
     },
     "src/barrow/imports/nuorder-catalog.ts": {
-      "sha256": "57eff3b914ce40303ede60e55116c08e6824cdd1fe7cc5c1c3da81b8baed77a3",
+      "sha256": "26d9b60837556fb040ab617a0fc10a599d73e7644a3404dabdc61778241cb045",
+      "executable": false
+    },
+    "src/barrow/imports/nuorder-media.ts": {
+      "sha256": "20883193651e3ac2d02a2b66d8c5240725cb4dd5d193d964982e5bbae8436473",
       "executable": false
     },
     "src/barrow/imports/nuorder.ts": {
-      "sha256": "5ec1972de1b7ed726dae472595182b8cd6d6bc6ec6adb96f6ee89d2a24ddb907",
+      "sha256": "499d271ef289cad1ac47b426804949975f7270e8e0e3f7aaf2fcc14ed8aa536c",
       "executable": false
     },
     "src/barrow/imports/platform-csv.ts": {
@@ -1556,7 +1560,7 @@
       "executable": false
     },
     "src/barrow/imports/platform-history.ts": {
-      "sha256": "964339f614b757f0d756678fca5fdf8e2c625672b15478e235bc74b98d94c887",
+      "sha256": "460085db2eee794f3996795aa36d496b7d724d8e6716aeaa1ceb7e2023cfb8d4",
       "executable": false
     },
     "src/barrow/imports/reconcile.ts": {
@@ -1668,7 +1672,7 @@
       "executable": false
     },
     "src/barrow/product-images.ts": {
-      "sha256": "b3375a9b16146d4fafbac30dcfaea053e4ca2072dc717f80b4f557b626f58318",
+      "sha256": "6f8a3e894cb51df4c59a5e8d8455e1e1685e100af0cae32e2ecc60be7aadb98b",
       "executable": false
     },
     "src/barrow/promotions.ts": {
@@ -2260,7 +2264,7 @@
       "executable": false
     },
     "src/barrow/ui/wizcommerce.tsx": {
-      "sha256": "731271fec0bc79cf44fcfd9defce554df6ce4283f8e6696025d5452ae0282832",
+      "sha256": "28d451be470b7f2a0b42d1f815ef0b17e3601c98be43045f57221eed63b87971",
       "executable": false
     },
     "src/barrow/unit-lines.ts": {
@@ -4400,7 +4404,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "0a6ece25e0516a936fe7dac4db7e74d6075bff9937cb4e6fae506e4ca1a2ccfe",
+      "sha256": "6e7bb2ea7940901440d03d55249f5f15d726127793e2236708b1c557eea0fa2e",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
@@ -4420,7 +4424,7 @@
       "executable": false
     },
     "tests/api/move-nuorder.test.mjs": {
-      "sha256": "c95d1825d18c87ba80e5c01d93759949b4f4d76deb070f4dee4a2bc4c281e881",
+      "sha256": "24ae8475271edd15988d0a120a3f578cc36b68404850fa8daa336daf76072f7f",
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {
@@ -4436,7 +4440,7 @@
       "executable": false
     },
     "tests/api/nuorder-fixture.mjs": {
-      "sha256": "645268d6af5ca9e08b8bb2438334ec435484571122bb48f8acb142f7ac2ccafd",
+      "sha256": "de3850c207037129f2728ca43909f7ef98ed178d5a315a010c73285ca274d51e",
       "executable": false
     },
     "tests/api/order-guarantee.test.mjs": {
@@ -4664,7 +4668,7 @@
       "executable": false
     },
     "tests/journeys/move-nuorder.test.mjs": {
-      "sha256": "b029db027da86eb87bcdc7abae5077e4a82d4dedcb29a67368fd7166dfdf8056",
+      "sha256": "df357b9c735d7184670490f6bbef3175fd079150609bbbfcaf3f99d48bf1554b",
       "executable": false
     },
     "tests/journeys/move-sparklayer.test.mjs": {

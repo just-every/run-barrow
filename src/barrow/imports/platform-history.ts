@@ -13,19 +13,29 @@ const hash=(value:unknown)=>sha256(canonicalJson(value as any))
 export function platformOwner(actor:Actor) {if(actor.agent||actor.staff||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may review incumbent source history.',403)}
 const docKey=(source:PlatformSource,id:string,type:string)=>hash([source.system,source.tenant,id,source.system==='wizcommerce'&&type!=='list'?'document':type])
 function normalizedHistory(doc:HistoryDocument) {
- const {originals,...document}=doc
+ const {originals,label:ignoredLabel,...document}=doc as HistoryDocument&{label?:string}
  return {...document,lines:document.lines.map(({original,row,...line})=>line)}
 }
 const snapshot=async(db:D1Database,query:string)=>(await db.prepare(query).all<any>()).results
 async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|NuorderInput,system:'sparklayer'|'wizcommerce'|'nuorder'='sparklayer') {
  platformOwner(actor)
- const source=system==='nuorder'?await parseNuorder(input as NuorderInput):system==='wizcommerce'?await parseWizCommerce(input as WizInput):parseSparkLayer(input as SparkInput),db=env.DB
+ const db=env.DB
+ const latest=system==='nuorder'?await db.prepare("SELECT source_json FROM bw_platform_imports WHERE system='nuorder' AND tenant=? ORDER BY rowid DESC LIMIT 1").bind(input.tenant).first<{source_json:string}>():null
+ const retained=latest?JSON.parse(latest.source_json).catalog?.heldImages??[]:[]
+ for(const file of retained)if(!file.image.base64){const row=await db.prepare('SELECT content_base64 FROM bw_product_images WHERE sha256=?').bind(file.image.sha256).first<{content_base64:string}>();if(!row)fail('IMPORT_IMAGES','Retained media bytes are unavailable; restore the complete owner archive before applying.');file.image.base64=row!.content_base64}
+ const source=system==='nuorder'?await parseNuorder(input as NuorderInput,retained):system==='wizcommerce'?await parseWizCommerce(input as WizInput):parseSparkLayer(input as SparkInput)
  const queries={...(system==='nuorder'?{settings:"SELECT key,value_json,revision FROM bw_settings WHERE key IN ('catalog-maintenance','variant-attributes') ORDER BY key"}:{}),accounts:'SELECT id,value_json,revision FROM bw_accounts ORDER BY id',lists:'SELECT * FROM bw_lists ORDER BY id',history:'SELECT * FROM bw_import_history ORDER BY id',links:'SELECT * FROM bw_import_lists ORDER BY system,tenant,source_id',locations:'SELECT * FROM bw_locations ORDER BY id',imports:'SELECT id,system,tenant,source_json FROM bw_platform_imports ORDER BY id'}
  const native=Object.fromEntries(await Promise.all(Object.entries(queries).map(async([kind,query])=>[kind,await snapshot(db,query)]))) as Record<keyof typeof queries,any[]>
  const errors:string[]=[],activation=source.activation?planWizNative(source.tenant,source.activation,{accounts:native.accounts,locations:native.locations,imports:native.imports},errors):undefined
  const accounts=activation?.accounts??new Map(native.accounts.map(row=>[row.id,row])),catalog=source.catalog?await planNuorderCatalog(env,source.catalog,errors):undefined,scope=[...new Set([...source.documents,...source.lists].map(row=>row.accountId).concat(source.relatedAccounts??[]))].sort()
  const updates=new Map<string,any>()
  for(const id of scope){const row=accounts.get(id);if(!row)errors.push(`Missing mapped account ${id}`);else if(JSON.parse(row.value_json).lifecycle==='closed')errors.push(`Mapped account ${id} is closed; do not restore retired source custody`)}
+ for(const book of source.catalog?.priceBooks??[]) {
+  const account=accounts.get(book.accountId);if(!account)continue
+  const value=JSON.parse(account.value_json)
+  if(value.prices.some((price:any)=>price.units?.length||price.pricing)){errors.push(`Account ${book.accountId} has configured selling units or pricing rules; review these through the native account door before replacing its book`);continue}
+  value.currency=book.currency;value.prices=book.prices.map(price=>({...price}));updates.set(book.accountId,value)
+ }
  for(const doc of source.documents) {
   const account=accounts.get(doc.accountId);if(!account)continue
   const value=updates.get(account.id)??JSON.parse(account.value_json)
@@ -51,13 +61,13 @@ async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|Nuorde
  }
  for(const [id,value] of updates)updates.set(id,validateAccountValue(value))
  const documents=source.documents.map(doc=>{
-  const id=docKey(source,doc.id,doc.type),contentHash=hash(source.system==='wizcommerce'?normalizedHistory(doc):doc),prior=native.history.find(row=>row.id===id)
-  if(prior&&prior.content_hash!==contentHash)errors.push(`Source ${doc.type} ${doc.id} changed after import; preserve history and review a distinct source revision`)
+  const id=docKey(source,doc.id,doc.type),contentHash=hash(['wizcommerce','nuorder'].includes(source.system)?normalizedHistory(doc):doc),prior=native.history.find(row=>row.id===id)
+  if(prior&&prior.content_hash!==contentHash&&!(source.system==='nuorder'&&hash(normalizedHistory(JSON.parse(prior.value_json)))===contentHash))errors.push(`Source ${doc.type} ${doc.id} changed after import; preserve history and review a distinct source revision`)
   return {id,value:doc,contentHash,exists:Boolean(prior)}
  })
  const plannedLists=source.lists.map(list=>{
   const id=docKey(source,list.id,'list'),contentHash=hash(list),prior=native.links.find(row=>row.system===source.system&&row.tenant===source.tenant&&row.source_id===list.id)
-  if(prior&&prior.content_hash!==contentHash)errors.push(`Source list ${list.id} changed after import; preserve native edits and use a distinct source ID`)
+  if(prior&&prior.content_hash!==contentHash&&!(source.system==='nuorder'&&hash(normalizedHistory(JSON.parse(prior.value_json)))===contentHash))errors.push(`Source list ${list.id} changed after import; preserve native edits and use a distinct source ID`)
   if(!prior&&native.lists.some(row=>row.account_id===list.accountId&&row.created_by===actor.id&&row.name.toLowerCase()===list.name.toLowerCase()))errors.push(`A private list named ${list.name} already exists; choose another source name`)
   const value={name:list.name,shared:false,createdBy:actor.id,createdAt:'',updatedBy:actor.id,updatedAt:'',lines:list.lines}
   return {id,sourceId:list.id,accountId:list.accountId,contentHash,value,exists:Boolean(prior)}
@@ -68,8 +78,9 @@ async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|Nuorde
  const counts={documents:documents.length,lines:source.documents.reduce((n,doc)=>n+doc.lines.length,0),lists:plannedLists.length,listLines:source.lists.reduce((n,list)=>n+list.lines.length,0)}
  const byStatus=[...new Set(source.documents.map(doc=>JSON.stringify([doc.currency,doc.type,doc.status])))].sort().map(key=>{const [currency,type,status]=JSON.parse(key),docs=source.documents.filter(doc=>doc.currency===currency&&doc.type===type&&doc.status===status);return {currency,type,status,count:docs.length,totalCents:docs.reduce((n,doc)=>n+doc.totalCents,0)}})
  const entityCounts=source.entities?{customers:source.entities.customers.length,addresses:source.entities.addresses.length,...(source.entities.contacts?.length?{contacts:source.entities.contacts.length}:{}),websiteUsers:source.entities.users.length}:undefined
- const quantityRules=[...updates].flatMap(([accountId,value])=>value.prices.flatMap((price:any)=>{const before=JSON.parse(accounts.get(accountId)!.value_json).prices.find((p:any)=>p.sku===price.sku);const previous={casePack:before.casePack??null,increment:before.increment??null},planned={casePack:price.casePack??null,increment:price.increment??null};return JSON.stringify(previous)===JSON.stringify(planned)?[]:[{accountId,sku:price.sku,previous,planned}]}))
- const report={...(catalog?{catalog:catalog.report}:{}),...(activation?{nativeEntities:activation.report}:{}),quantityRules,...(source.invitationCandidates?{invitationCandidates:source.invitationCandidates}:{}),...(entityCounts?{entities:entityCounts}:{}),byStatus,source:counts,planned:{...counts,newDocuments:documents.filter(doc=>!doc.exists).length,newLists:plannedLists.filter(list=>!list.exists).length},totals,plannedTotals:totals,matches:!errors.length,scope:source.scope,incomplete:source.incomplete,missing:source.missing,rejectedFields:source.rejectedFields??[] as string[],errors,label:system==='nuorder'?'Reviewed native catalog metadata and quantity rules; orders remain retained source history; no stock reservation, invoice, payment, invitation or outreach':activation?'Reviewed native customers and locations; retained document history; no stock reservation, invoice, payment, invitation or outreach':'Retained source history only; no stock reservation, invoice, payment, invitation or outreach'}
+ const quantityRules=[...updates].flatMap(([accountId,value])=>value.prices.flatMap((price:any)=>{const before=JSON.parse(accounts.get(accountId)!.value_json).prices.find((p:any)=>p.sku===price.sku);const previous={casePack:before?.casePack??null,increment:before?.increment??null},planned={casePack:price.casePack??null,increment:price.increment??null};return JSON.stringify(previous)===JSON.stringify(planned)?[]:[{accountId,sku:price.sku,previous,planned}]}))
+ const priceBooks=source.catalog?.priceBooks.map(book=>{const planned=updates.get(book.accountId);return {accountId:book.accountId,currency:book.currency,sourceRows:book.prices.length,plannedRows:planned?.prices.length??0,sourceUnitCents:book.prices.reduce((sum,price)=>sum+price.unitCents,0),plannedUnitCents:planned?.prices.reduce((sum:number,price:any)=>sum+price.unitCents,0)??0}})
+ const report={...(catalog?{catalog:catalog.report,priceBooks}:{}),...(activation?{nativeEntities:activation.report}:{}),quantityRules,...(source.invitationCandidates?{invitationCandidates:source.invitationCandidates}:{}),...(entityCounts?{entities:entityCounts}:{}),byStatus,source:counts,planned:{...counts,newDocuments:documents.filter(doc=>!doc.exists).length,newLists:plannedLists.filter(list=>!list.exists).length},totals,plannedTotals:totals,matches:!errors.length,scope:source.scope,incomplete:source.incomplete,missing:source.missing,rejectedFields:source.rejectedFields??[] as string[],errors,label:system==='nuorder'?'Reviewed native catalog metadata, supplied current price books and quantity rules; orders remain retained source history; no stock reservation, invoice, payment, invitation or outreach':activation?'Reviewed native customers and locations; retained document history; no stock reservation, invoice, payment, invitation or outreach':'Retained source history only; no stock reservation, invoice, payment, invitation or outreach'}
  const {fingerprint:ignoredFingerprint,reason:ignoredReason,...reviewInput}=input as SparkInput&{fingerprint?:string;reason?:string}
  const fingerprint=hash({input:reviewInput,native,source,report})
  return {source,native,queries,scope,documents,plannedLists,updates,activation,catalog,report,fingerprint}
@@ -110,7 +121,7 @@ export async function applyPlatform(env:Bindings,actor:Actor,input:(SparkInput|W
   statements.push(db.prepare('INSERT INTO bw_lists VALUES(?,?,?,?,?,?)').bind(row.id,row.accountId,value.name,actor.id,JSON.stringify(value),fingerprint),db.prepare('INSERT INTO bw_import_lists VALUES(?,?,?,?,?,?)').bind(source.system,source.tenant,row.sourceId,row.id,row.contentHash,row.accountId))
  }
  for(const [accountId,value] of updates)if(native.accounts.some(row=>row.id===accountId)&&JSON.stringify(value)!==accountsValue(native.accounts,accountId))statements.push(db.prepare('UPDATE bw_accounts SET value_json=?,revision=? WHERE id=?').bind(JSON.stringify(value),fingerprint,accountId))
- statements.push(db.prepare('INSERT INTO bw_platform_imports VALUES(?,?,?,?,?,?,?,?,?)').bind(id,fingerprint,source.system,source.tenant,JSON.stringify(scope),JSON.stringify(source),JSON.stringify(report),actor.id,at),audit(db,actor,id,'import.approved',{revision:fingerprint,source:`${source.system}.apply`,reason}))
+ statements.push(db.prepare('INSERT INTO bw_platform_imports VALUES(?,?,?,?,?,?,?,?,?)').bind(id,fingerprint,source.system,source.tenant,JSON.stringify(scope),JSON.stringify(source.catalog?{...source,catalog:{...source.catalog,images:source.catalog.images.map(({image,...file})=>{const {base64,...reference}=image;return {...file,image:reference}}),heldImages:source.catalog.heldImages.map(({image,...file})=>{const {base64,...reference}=image;return {...file,image:reference}})}}:source),JSON.stringify(report),actor.id,at),audit(db,actor,id,'import.approved',{revision:fingerprint,source:`${source.system}.apply`,reason}))
  try {await commit(db,actor,statements)}catch(error) {
   if((error as Error).message.includes('CHECK constraint'))fail('IMPORT_CHANGED','Native records changed during apply; preview again.')
   if((error as Error).message.includes('UNIQUE constraint')){const winner=await db.prepare('SELECT id FROM bw_platform_imports WHERE fingerprint=?').bind(fingerprint).first();if(winner)return {replayed:true,fingerprint}}

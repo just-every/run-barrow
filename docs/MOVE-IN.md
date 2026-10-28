@@ -185,22 +185,58 @@ null in `from` and `to`, `filters` and `fullTenant`. Optional `lists` use the
 existing supplied list CSV shape: desired quantities only, initially private,
 repriced through the current cart preview, included in reconciliation and export.
 
-Downloaded JPEGs use `images: [{name,base64}]`; the supported primary filename is
-`STYLE_COLOR_1.jpg`, matched exactly against source style and color. It attaches
-to all supplied sizes of that style and color. Existing ORD-014 sanitization,
-200 KiB limit, installation-only custody and content deduplication apply. Other
-slots and unmatched files are reported without automatic attachment. Remote URLs,
-held unmatched media and full CAT-010 naming rules are still pending; no remote
-media fetch or malware verdict is claimed. Missing remote images cannot yet be
-reported as successfully attempted retrievals.
+Downloaded JPEGs use `images: [{name,base64}]`. The default `imageRule` is
+`{style}_{color}_{slot}.jpg`; a supplied rule may also use `{size}` or `{upc}`.
+It must include a style or UPC key and a slot. Slots 1 through 9 match exact
+filenames to supplied product variants; omitting size attaches to all matching
+sizes. A later upload replaces its exact variant slot without adding a duplicate.
+Slot 1 feeds the existing primary document image. Other slots remain private
+catalog references. Existing ORD-014 JPEG sanitization, the 200 KiB limit and
+installation-only custody apply; identical sanitized bytes share one media row.
+
+An unmatched downloaded JPEG is held privately in the retained source batch,
+separately from retrieval failures. A later approved import for the same tenant
+rechecks held names against the new products and rule. The source batch and its
+held bytes travel in owner archives. Each batch accepts fifty files or URLs and
+a tenant retains at most five hundred held filenames through this door; full
+CAT-010 archive batches are still separate work.
+
+For an export-supplied URL, use `{name,url,style}` instead of base64 and explicitly
+set `retrieveImages: true` and `imageHosts: ["media.example.test"]`. Each URL must
+name an exact declared public HTTPS host, with no credentials, query, fragment or
+custom port. Redirects are refused, retrieval is bounded by five seconds and the
+JPEG byte limit, and both preview and apply retrieve the current bytes. Changed
+bytes invalidate the old approval. Only images that fail retrieval or JPEG
+validation appear in `missingImages`, by source style, filename and safe reason;
+nonmatching downloaded files appear in `heldImages`. A failed URL cannot silently
+reuse older held bytes. No image is served on a new public download door and no
+malware verdict is claimed. This broader private slot and retrieval default awaits
+ct approval; MOVE-001 remains partial.
+
+Optional `priceBooks` entries each name a mapped `customerId` and a separately
+supplied `file` in the same CSV or XLSX table shape. Logical fields `productId`,
+`currency`, `unitPrice` and `minQty` default to `Product ID`, `Currency`,
+`Wholesale Price` and `Minimum Quantity`; explicit `columns` map brand headers.
+Each account receives one current USD or CAD book of active mapped products,
+with exact decimal source prices and whole minimum quantities. The preview
+compares source and planned row counts and sums of unit cents per book; only
+fingerprint approval replaces the current account book. Product packs and
+increments still apply. Configured selling units or pricing rules require review
+through the native account door before replacement. Historical order prices never
+activate a current book and remain unchanged when a supplied current book changes.
+
+After applying, use the native Line sheets publishing door to rebuild a CAT-003
+recipient document from the imported SKU assortment, current book, season and ship
+window. Its PDF retains that recipient snapshot. CAT-004 presentations are not yet
+rebuilt by this adapter.
 
 Preview writes nothing. It names original columns, product and archived counts,
-primary image targets, retained-only fields, missing entities, line and list counts,
+image-slot targets, held filenames, retrieval failures by style, supplied current books, retained-only fields, missing entities, line and list counts,
 per-currency order value and open quantities. Apply requires the exact fingerprint
 and a nonempty owner reason; stale source or native data refuses. Approval is
 recorded as `import.approved`. All order records are labeled retained source
 history, including open ones. Replay creates no second history record or list,
 and imports never reserve stock, issue an invoice, collect payment or send mail.
 NuORDER retailer-network orders stop arriving at cutover. Companies and buyers
-remain MOVE-009's, while document rebuilding through CAT-003 and CAT-004, broader
-image-slot custody and a complete receivable rehearsal remain unfinished.
+remain MOVE-009's. CAT-004 presentation rebuilding and a complete receivable
+rehearsal remain unfinished; the broader private media default awaits ct approval.
