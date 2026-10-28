@@ -85,6 +85,7 @@ export function AccountForm({ account, run, busy, onClose }: { account?: Account
       <label>Territory<input name="territory" defaultValue={account?.value.territory} maxLength={80} /></label>
       <label>Assigned rep reference<input name="assignedRep" defaultValue={account?.value.assignedRep} maxLength={160} /></label>
       <label>Promise stock from these Pier warehouses<textarea name="warehouses" rows={2} defaultValue={account?.value.warehouses?.join('\n')} /><small>One Pier warehouse name per line; leave empty for every warehouse. Barrow promises only this stock to the account; Pier still chooses the bins when it reserves an approved order.</small></label>
+      <label>Campaign tags<textarea name="tags" rows={2} defaultValue={account?.value.tags?.join('\n')}/><small>One audience tag per line.</small></label>
       <label>Catalog references<textarea name="catalogs" rows={3} defaultValue={account?.value.catalogs?.join('\n')} /><small>One reference per line. Rep and catalog references record existing assignments; portal access still follows agreed SKUs.</small></label>
       <label>Provider references<textarea name="providerReferences" rows={3} defaultValue={Object.entries(account?.value.providerReferences ?? {}).map(([provider, reference]) => `${provider}=${reference}`).join('\n')} /><small>One provider=reference per line. Pier uses the separate Pier customer ID.</small></label>
       <label>Payment terms (days)<input name="termsDays" type="number" min="0" max="365" step="1" required defaultValue={account?.value.termsDays ?? 30} /></label>

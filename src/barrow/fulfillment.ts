@@ -1,3 +1,4 @@
+import { trackingMeasures } from './shipment-tracking'
 import { prebookRows } from './prebook-view'
 import { faireFulfillment } from './faire'
 import { requireStaffReport } from './staff-policy'
@@ -30,6 +31,11 @@ export async function fulfillmentReport(env: Bindings, actor: Actor, params: URL
  const selected = lines.filter(line => !warehouse || line.warehouses.some(row => row.warehouse === warehouse) || (warehouse === 'Unassigned backorder' && line.unassignedBackorder !== '0'))
  const warehouses = actor.staff?.warehouses
  if (warehouses && warehouses !== 'all' && (exceptions.length || selected.some(line => line.warehouses.some(row => !warehouses.includes(row.warehouse)) || (line.unassignedBackorder !== '0' && !warehouses.includes('Unassigned backorder'))))) fail('FORBIDDEN','The whole fulfillment report cannot be confirmed within your warehouse scope.',403)
+ for (const line of selected) {
+  const order = orders.find(order => order.id === line.orderId)!
+  const measures = await trackingMeasures(env, actor, order, line.sku, line.promisedDate, timeZone, state)
+  Object.assign(line, measures, { delivery: measures.deliveredQuantity === line.shipped && line.shipped !== '0' ? 'verified' : measures.delivery })
+ }
  return { checkedAt, today, timeZone, source: 'Pier', status: 'read' as const, channelLines, prebooks, lines: selected, lateLines: selected.filter(line => line.overdue || (line.dispatchedLate !== null && line.dispatchedLate !== '0')), exceptions,
-  note: 'Quantities are per SKU in base units. Fill = shipped / (ordered − cancelled). Warehouse filters select whole order lines with confirmed warehouse activity; backorders are unassigned. Dispatch by requested date uses inclusive days in the stated installation reporting time zone; delivery and complete promise history are not recorded.' }
+  note: 'Quantities are per SKU in base units. Fill = shipped / (ordered − cancelled). Warehouse filters select whole order lines with confirmed warehouse activity; backorders are unassigned. Dispatch by requested date uses inclusive days in the stated installation reporting time zone; carrier delivery is counted only from authenticated observations on source-linked packages. Untracked quantities and complete promise history remain unknown.' }
 }

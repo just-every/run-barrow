@@ -1,3 +1,4 @@
+import {proveShipmentTracking} from './shipment-tracking-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
@@ -5,7 +6,7 @@ import { once } from 'node:events';
 import { installation, stock, accountValue } from './harness.mjs';
 
 const date = delta => new Date(Date.now() + delta * 86400000).toISOString().slice(0, 10);
-test('RPT-003: live Pier line fill, dispatch timeliness, open/aging backorders, warehouse evidence and late-line actions stay exact; missing tracking is unknown', async t => {
+test('RPT-003: live Pier line fill, dispatch timeliness, open and aging backorders, warehouse evidence and late-line actions stay exact; missing tracking is unknown', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());
  const products = await stock(pier, '24');
  let down = false;
@@ -94,4 +95,5 @@ test('RPT-003: live Pier line fill, dispatch timeliness, open/aging backorders, 
  down = true;
  const unavailable = await h.api('/api/barrow/reports/fulfillment');
  assert.equal(unavailable.status, 'unavailable'); assert.deepEqual(unavailable.lines, []); assert.match(unavailable.note, /unknown/);
+ await proveShipmentTracking(t);
 });

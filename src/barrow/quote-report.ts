@@ -1,3 +1,4 @@
+import { campaignSummary } from './campaigns'
 import { promotionRule } from './promotions'
 import { requireStaffReport } from './staff-policy'
 // RPT-002: quote conversion, carts and reorders by rep, cohort and product, over today's records. Quotes count in the
@@ -110,7 +111,10 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
  for (const order of records.filter(row => placedStatuses.includes(row.status))) { const month = calendarDate(new Date(order.preparedAt), zone).slice(0, 7); if (!firsts.has(order.accountId) || month < firsts.get(order.accountId)!) firsts.set(order.accountId, month) }
  const cohort = (accountId: string) => firsts.get(accountId) ?? 'No placed order'
  const skus = [...new Set([...periodQuotes.flatMap(quote => (quote.revisions.at(-1)?.lines ?? quote.request).map(line => line.sku)), ...periodOrders.flatMap(order => order.lines.map(line => line.sku))])].sort()
+ const campaigns=[]
+ for(const row of (await env.DB.prepare('SELECT id FROM bw_campaigns ORDER BY rowid').all<any>()).results){try{const campaign=await campaignSummary(env,actor,row.id);const deliveries=campaign.deliveries.filter((d:any)=>(!accountId||d.account_id===accountId)&&inPeriod(d.updated_at));if(!deliveries.length)continue;const ids=new Set(deliveries.map((d:any)=>d.id));const linked=periodOrders.filter(o=>o.submittedBy&&o.status!=='cancelled'&&o.campaign?.id===campaign.id&&ids.has(o.campaign!.deliveryId));campaigns.push({id:campaign.id,name:campaign.name,delivered:deliveries.filter((d:any)=>d.status==='delivered').length,opened:deliveries.reduce((n:number,d:any)=>n+d.opens,0),viewed:deliveries.reduce((n:number,d:any)=>n+d.views,0),ordered:linked.length,orderValueCents:linked.reduce((n,o)=>n+o.totalCents,0),currency,recipients:deliveries.map((d:any)=>({accountId:d.account_id,buyerId:d.recipient_id,status:d.status,opened:d.opens,viewed:d.views,orders:linked.filter(o=>o.campaign?.deliveryId===d.id).map(o=>({id:o.id,totalCents:o.totalCents}))}))})}catch{}}
  return {
+  campaigns,
   promotionOffers:[...new Set(periodOrders.flatMap(o=>o.lines.flatMap(l=>l.promotion?.offers.map(p=>p.id)??[])))].map(id=>{
    const orders=periodOrders.filter(o=>placedStatuses.includes(o.status)&&o.status!=='cancelled'&&o.lines.some(l=>l.promotion?.offers.some(p=>p.id===id)))
    const attributed=orders.map(o=>({...o,lines:o.lines.filter(l=>l.promotion?.offers.some(p=>p.id===id))}))
@@ -136,7 +140,6 @@ export async function quoteReport(env: Bindings, actor: Actor, params: URLSearch
   },
   notRecorded: [
    { measure: 'Presentation engagement', note: 'CAT-004 adds presentation opens, views and items viewed per buyer.' },
-   { measure: 'Campaign results', note: 'Barrow sends no campaigns yet; CAT-011 adds delivered, opened, viewed, ordered and order value per send, attributing only orders placed from its link or form.' },
   ],
  }
 }

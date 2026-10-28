@@ -1,5 +1,7 @@
+import { trackingExceptionSources } from './shipment-tracking'
 import { financialGuard } from './credit-ledger'
 import { orderExceptionSources } from './order-followthrough'
+import { reconcilePaymentPromises } from './payment-promises'
 import { planResponseResolution, type FollowupPlan } from './account-followup'
 import { applicationReviewers } from './application-reviewers'
 import { staffTaskAllowed } from './staff-access'
@@ -14,7 +16,7 @@ import { calendarDate, reportZone } from './report-zone'
 import type { CardPayment } from './card-model'
 
 export type FollowupContact = { outcome: 'failed' | 'reached'; note: string; by: string; at: string }
-export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; resolution?: string; contacts: FollowupContact[]; resolvedBy?: string; resolvedAt?: string; nextActionDraft?: { body: string; reviewedBy: string; reviewedAt: string }; plan?: FollowupPlan }
+export type FollowupValue = FollowupSource & { createdAt: string; ownerId: string; nextContactDate: string; status: 'open' | 'closed'; escalated?: { since: string; toId: string }; resolution?: string; contacts: FollowupContact[]; resolvedBy?: string; resolvedAt?: string; nextActionDraft?: { body: string; reviewedBy: string; reviewedAt: string }; plan?: FollowupPlan }
 export type FollowupTask = FollowupValue & { revision: string }
 type Stored = { value_json: string; revision: string }
 const parse = (row: Stored): FollowupTask => ({ ...JSON.parse(row.value_json), revision: row.revision })
@@ -35,9 +37,9 @@ const installationOwner=async(env:Bindings)=>(await env.DB.prepare("SELECT id FR
 const allTasks = async (db: D1Database) => (await db.prepare('SELECT value_json,revision FROM bw_followups ORDER BY id').all<Stored>()).results.map(parse)
 const notes = {
  scope: 'Your role and current account access determine which follow-ups you can read, assign and resolve. Refresh reconciles current wholesale records; recorded quote email failures create owned tasks automatically.',
- sources: 'Verified card payment exceptions, quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days. Missing sources or unknown ages do not prove resolution.',
+ sources: 'Verified card payment exceptions, quote email failures, unanswered quotes, drafts older than seven elapsed days, approvals older than 24 elapsed hours and active accounts dormant for 90 elapsed days, plus source-linked missing tracking and carrier exceptions. Missing sources or unknown ages do not prove resolution.',
  contact: 'Contact attempts are manually recorded and do not send outreach; quote email delivery is recorded separately. Failed contact leaves work open unless a person explicitly records a separate resolution.',
- exceptions: 'Verified card payment exceptions remain assigned until a recorded provider resolution. Inventory acknowledgment and source-confirmed shortfall tasks are reconciled on refresh; carrier delivery and other payment exceptions are not recorded.',
+ exceptions: 'Verified card payment exceptions remain assigned until a recorded provider resolution. Inventory acknowledgment and source-confirmed shortfall tasks are reconciled on refresh; tracking exceptions and buyer disputes retain their own source-linked tasks; labels and contact attempts never establish carrier delivery. Other payment exceptions are not recorded.',
 }
 export async function readFollowups(env: Bindings, actor: Actor, params: URLSearchParams) {
  authorize(actor)
@@ -58,8 +60,12 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  authorize(actor)
  const at = (await now()).toISOString()
  if (type === 'followup.refresh') {
+  if(!actor.staff||actor.staff.role==='finance')await reconcilePaymentPromises(env,actor)
   const financial=await financialGuard(env.DB)
   const [sources, existing] = await Promise.all([followupSources(env.DB, new Date(at)), allTasks(env.DB)])
+  const trackingSources=await trackingExceptionSources(env)
+  sources.candidates.push(...trackingSources.candidates)
+  for(const [id,resolution] of trackingSources.resolved)sources.resolved.set(id,resolution)
   const orderSources = await orderExceptionSources(env, new Date(at))
   sources.candidates.push(...orderSources.candidates)
   for (const [id, resolution] of orderSources.resolved) sources.resolved.set(id, resolution)
@@ -69,7 +75,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
    if(!staffTaskAllowed(actor,source))continue
    const existingTask = known.get(source.id)
    if (existingTask) {
-    if (existingTask.status === 'open' && (Object.keys(source) as (keyof FollowupSource)[]).some(key => existingTask[key] !== source[key])) {
+    if (existingTask.status === 'open' && (Object.keys(source) as (keyof FollowupSource)[]).some(key => JSON.stringify(existingTask[key]) !== JSON.stringify(source[key]))) {
      const { revision: previous, ...value } = existingTask
      statements.push(updateStatement(env.DB, existingTask, { ...value, ...source }, crypto.randomUUID()), changed(env.DB))
      updated.push(source.id)
@@ -127,6 +133,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
   value.nextActionDraft = { body: text(p.nextActionDraft.body, 'Next-action draft', 2000), reviewedBy: actor.id, reviewedAt: at }
  }
  if (p.close === true) {
+  if(before.kind==='payment-promise')fail('PROMISE_RESOLUTION','Resolve or withdraw the promise through its finance decision door; contact records cannot close it.',409)
   if(before.kind==='credit'&&before.id.startsWith('deposit-allocation:')) {
    const financial=await financialGuard(env.DB),sources=await followupSources(env.DB,await now()),resolution=sources.resolved.get(before.id)
    if(!resolution)fail('DEPOSIT_UNRESOLVED','This deposit requires recorded principal allocations or refund evidence before it can close.',409)
