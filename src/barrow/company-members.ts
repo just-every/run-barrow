@@ -1,3 +1,4 @@
+import { campaignErasureStatements } from './campaign-custody'
 import { prepareLegacyErasure } from './legacy-erasure-journal'
 import { applicationAccess } from './application-access'
 import { readStaffGrant, staffGuard } from './staff-policy'
@@ -254,7 +255,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   withdrawMemberMail(env.DB, member.userId, member.accountId),
   env.DB.prepare(`DELETE FROM bw_import_history WHERE import_id IN (${sourceCustody})`).bind(companyEmail(member.email)),
   env.DB.prepare(`UPDATE bw_platform_imports SET source_json='{}',report_json='{}' WHERE id IN (${sourceCustody})`).bind(companyEmail(member.email)),
-  env.DB.prepare('DELETE FROM bw_campaign_deliveries WHERE recipient_id=?').bind(member.userId),
+  ...campaignErasureStatements('recipient_id',member.userId).map(row=>env.DB.prepare(row.sql).bind(...row.params)),
   env.DB.prepare('DELETE FROM bw_usage_acceptances WHERE user_id=?').bind(member.userId),env.DB.prepare('DELETE FROM bw_profile_approvals WHERE user_id=?').bind(member.userId),
   env.DB.prepare('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?').bind(member.userId, member.userId),
  ]

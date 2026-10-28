@@ -77,7 +77,7 @@ test('campaign sends resolve thirty accounts, preserve private prices and normal
   const pdf=await(await h.request('/api/barrow/line-sheets/'+sheet.id+'.pdf',who[i])).text();assert.ok(pdf.includes('USD '+(prices[i]/100).toFixed(2)));assert.ok(!pdf.includes('USD '+(prices[1-i]/100).toFixed(2)));
   await h.command('sheet.view',{sheetId:sheet.id,revision:sheet.revision,kind:'open',skus:[]},who[i]);await h.command('sheet.view',{sheetId:sheet.id,revision:sheet.revision,kind:'view',skus:[f.skus[0]]},who[i]);
   const p=await h.command('sheet.preview',{sheetId:sheet.id,revision:sheet.revision,mode:'replace',lines:[{sku:f.skus[0],quantity:3}]},who[i]);assert.equal(p.totalCents,3*prices[i]);
-  const order=await h.command('order.prepare',{accountId:d.account_id,lineSheetId:sheet.id,lineSheetRevision:sheet.revision,campaignDeliveryId:d.id,reference:'synthetic-barrow-campaign-'+i,lines:p.cart},who[i]);
+  const order=await h.command('order.prepare',{accountId:d.account_id,lineSheetId:sheet.id,lineSheetRevision:sheet.revision,...(i===0?{campaignDeliveryId:d.id}:{}),reference:'synthetic-barrow-campaign-'+i,lines:p.cart},who[i]);
   await h.command('order.submit',{orderId:order.id,revision:order.revision},who[i]);
  }
  await h.api('/api/barrow/campaign-deliveries/'+recipients[0].id,undefined,{...f.buyers.wren,status:404});
@@ -146,6 +146,8 @@ test('scheduled campaigns resolve new buyers once, respect current rep authority
  const editorial=await h.command('campaign.save',{name:'Lookbook campaign',subject:'Private seasonal presentation',message:'Review the live collection and your own book.',source:{kind:'sheet',id:lookbook.id},filters:{accountIds:['cedar']}}),editorialSent=await h.command('campaign.send',{id:editorial.id,revision:editorial.revision});
  assert.equal((await h.api('/api/barrow/campaign-deliveries/'+editorialSent.deliveries[0].id,undefined,f.buyers.cedar)).presentation.title,'Synthetic spring story');
  await approve('wren',false);assert.ok(!(await h.api('/api/barrow/line-sheets?accountId=wren',undefined,f.buyers.wren)).sheets.some(s=>s.id===brandedSheet.id));assert.equal((await h.request('/api/barrow/campaign-deliveries/'+brandedRecipient.id+'.pdf',f.buyers.wren)).status,404);
+ const {createHmac}=await import('node:crypto'),eventId='synthetic-barrow-erasure-event',eventTimestamp=String(Math.floor(Date.now()/1000)),eventBody=JSON.stringify({type:'email.delivered',created_at:new Date(Date.now()-1000).toISOString(),data:{email_id:recipient.provider_message_id,to:[f.wren.value.email]}}),eventSignature=createHmac('sha256',key).update(`${eventId}.${eventTimestamp}.${eventBody}`).digest('base64');
+ assert.equal((await h.raw('/api/barrow/campaign-mail/webhook',{method:'POST',headers:{'svix-id':eventId,'svix-timestamp':eventTimestamp,'svix-signature':'v1,'+eventSignature},body:eventBody})).status,200);
  const before=await archive(h),copy=await installation({https:true,bindings:{PIER_ORIGIN:f.pier.origin,PIER_SESSION:f.pier.cookie}});t.after(()=>copy.close());await restore(copy,before);
  await copy.command('campaign.send',{id:draft.id,revision:draft.revision},{status:409});await (await copy.mf.getWorker()).scheduled();assert.equal(copy.mail.deliveries.filter(d=>d.message.subject===draft.subject).length,0);
  const backupEmail=email(43),backup={as:await h.signIn(backupEmail)};
@@ -154,8 +156,16 @@ test('scheduled campaigns resolve new buyers once, respect current rep authority
  await h.command('company.accept',{invitationId:acceptance.searchParams.get('companyInvitation'),token:acceptance.searchParams.get('companyToken')},backup);
  const buyerId=(await h.api('/api/barrow/state',undefined,f.buyers.wren)).actor.id;
  const member=(await h.api('/api/barrow/company/members?accountId=wren')).members.find(m=>m.userId===buyerId);
- await h.command('company.erase',{memberId:member.id,revision:member.revision,confirm:'ERASE',reason:'Owner reviewed the company buyer erasure.'});
+ const erasure=await h.command('company.erase',{memberId:member.id,revision:member.revision,confirm:'ERASE',reason:'Owner reviewed the company buyer erasure.'});
  await h.api('/api/barrow/campaign-deliveries/'+recipient.id,undefined,{...f.buyers.wren,status:401});
  assert.ok(!(await h.api('/api/barrow/campaigns/'+draft.id)).deliveries.some(d=>d.id===recipient.id));
- const after=await archive(h),fenced=await installation();t.after(()=>fenced.close());const refused=await restore(fenced,before,{laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal},status:400});assert.notEqual(refused.error,'later_journal');assert.equal((await fenced.api('/api/barrow/state')).accounts.length,0);
+ const after=await archive(h);
+ const campaignPayloads=after.flatMap(part=>part.items??[]).filter(item=>item.table==='rer_mail_event_receipts'&&item.row.event_namespace==='campaigns');assert.ok(!campaignPayloads.some(item=>item.row.event_json.includes(f.wren.value.email)));
+ // Rewinding D1 cannot resurrect a recipient or the provider payload: the independent journal re-applies first.
+ const original=before.flatMap(part=>part.items??[]),deliveryRows=original.filter(item=>item.table==='bw_campaign_deliveries'&&item.row.recipient_id===buyerId),receiptRows=original.filter(item=>['rer_mail_event_receipts','rer_mail_event_states'].includes(item.table)&&item.row.event_namespace==='campaigns');
+ for(const item of [...deliveryRows,...receiptRows]){const keys=Object.keys(item.row);await h.db.prepare(`INSERT OR REPLACE INTO ${item.table}(${keys.join(',')}) VALUES(${keys.map(()=>'?').join(',')})`).bind(...keys.map(key=>item.row[key])).run()}
+ await h.db.prepare('DELETE FROM bw_account_erasure_journal WHERE id=?').bind(erasure.revision).run();
+ await h.api('/api/barrow/state');assert.ok(!(await h.api('/api/barrow/campaigns/'+draft.id)).deliveries.some(d=>d.id===recipient.id));
+ const rewound=await archive(h);assert.ok(!rewound.flatMap(part=>part.items??[]).some(item=>item.table==='rer_mail_event_receipts'&&item.row.event_namespace==='campaigns'&&item.row.event_json.includes(f.wren.value.email)));
+ const fenced=await installation();t.after(()=>fenced.close());const refused=await restore(fenced,before,{laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal},status:400});assert.notEqual(refused.error,'later_journal');assert.equal((await fenced.api('/api/barrow/state')).accounts.length,0);
 });
