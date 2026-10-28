@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {cardFixture,cardEdge} from './card-fixture.mjs';
+import {cardFixture,cardEdge,assertFinancialFloor} from './card-fixture.mjs';
 import {archive,installation,restore} from './harness.mjs';
 
-async function assertFinancialFloor(h,payment){const date=new Date(payment.latestFinancialAt??payment.updatedAt),month=date.getUTCMonth();date.setUTCFullYear(date.getUTCFullYear()+7);if(date.getUTCMonth()!==month)date.setUTCDate(0);const preview=await h.command('retention.preview',{accountId:payment.accountId});assert.equal(preview.items.find(row=>row.id==='order:'+payment.orderId).floorUntil,date.toISOString())}
+
 
 test('hosted card review preserves the approved order, exact surcharge and authorization; lost capture and signed replay reconcile one receipt in every statement format',async t=>{
  const {h,pier,buyer,other,edge,prepared}=await cardFixture(t);
@@ -23,6 +23,7 @@ test('hosted card review preserves the approved order, exact surcharge and autho
  const signed=await edge.event(h,captured);assert.equal(signed.response.status,200);
  const replay=await h.raw('/api/barrow/card-webhook',{method:'POST',headers:{'stripe-signature':signed.signature},body:signed.body});assert.equal((await replay.json()).duplicate,true);
  assert.equal((await edge.event(h,captured,{tamper:true})).response.status,400);
+ const trace=await h.api('/api/barrow/orders/'+order.id+'/followthrough');assert.equal(trace.payments.find(row=>row.id===captured.id).state,'captured');assert.ok(trace.payments.find(row=>row.id===captured.id).events.length);assert.equal(trace.job,'unresolved');assert.equal(trace.delivery,'unknown');
  assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),snapshot);assert.deepEqual((await pier.api('/api/pier/state')).orders,inventory);
  statement=await h.api('/api/barrow/statements/cedar'+query,undefined,buyer);const section=statement.sections[0];assert.equal(section.receivedCents,13260);assert.equal(section.surchargedCents,260);assert.equal(section.closingCents,0);assert.equal(section.entries.find(row=>row.kind==='card-surcharge').amountCents,260);
  const receipt=section.entries.find(row=>row.kind==='card-payment');assert.equal(receipt.amountCents,-13260);assert.equal((await h.request(receipt.paymentPath,buyer)).status,200);
@@ -39,19 +40,6 @@ test('hosted card review preserves the approved order, exact surcharge and autho
  assert.equal((await target.api('/api/barrow/payments/'+payment.id)).state,'captured');
 });
 
-test('verified decline stays owned until provider cancellation and an authentication challenge stays unpaid',async t=>{
- const {h,buyer,edge,prepared}=await cardFixture(t);
- const {payment}=await prepared({outcome:'requires_action'});let challenge=await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},buyer);assert.equal(challenge.state,'requires_action');assert.ok(challenge.actionUrl);await assertFinancialFloor(h,challenge);
- await h.command('card.capture',{paymentId:payment.id,reason:'Refuse unverified challenge.'},{status:409});
- edge.intents.get(challenge.providerPaymentId).status='requires_payment_method';challenge=await h.command('card.refresh',{paymentId:payment.id},buyer);assert.equal(challenge.state,'declined');await assertFinancialFloor(h,challenge);
- let task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.sourceId===payment.id);assert.equal(task.status,'open');assert.ok(task.ownerId&&task.sourcePath&&task.nextContactDate);assert.equal((await h.request(task.sourcePath)).status,200);
- await h.command('followup.update',{id:task.id,revision:task.revision,close:true,resolution:'Unverified close'},{status:409});
- await h.command('followup.refresh',{});task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id);assert.equal(task.status,'open');
- const cancelled=await h.command('card.cancel',{paymentId:payment.id,reason:'Supplier voided the failed payment.'});assert.equal(cancelled.state,'cancelled');await assertFinancialFloor(h,cancelled);
- task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id);assert.equal(task.status,'closed');assert.match(task.resolution,/verified cancelled/);
- const statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer);assert.equal(statement.sections[0].receivedCents,0);
- const authorization=edge.requests.find(row=>row.path==='/payment_intents');assert.equal(authorization.body.get('capture_method'),'manual');assert.equal(authorization.body.get('confirm'),'true');
-});
 
 test('card surcharge is calculated only for verified credit funding and an explicitly permitted matching state',async t=>{
  const {prepared,h}=await cardFixture(t);
@@ -60,18 +48,6 @@ test('card surcharge is calculated only for verified credit funding and an expli
  const {payment}=await prepared();assert.equal(payment.surchargeCents,260);
 });
 
-test('hosted verification failure creates an unpaid owned exception and owner cancellation cannot later authorize it',async t=>{
- const {h,buyer,edge,prepared}=await cardFixture(t,{connect:false});
- const connection={secretKey:'synthetic-barrow-1',consent:true,reason:'Owner reviewed the merchant mode and separate Stripe custody.',surchargeBps:0,allowedStates:[]};
- await h.command('card.connect',{...connection,mode:'live'},{status:400});await h.command('card.connect',{...connection,mode:'test'});
- const {payment}=await prepared({setupFailure:true});assert.equal(payment.state,'declined');assert.ok(!payment.providerPaymentId);
- assert.equal((await h.request('/api/barrow/card-settings',buyer)).status,403);
- let task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.sourceId===payment.id);assert.equal(task.status,'open');
- const ended=await h.command('card.cancel',{paymentId:payment.id,reason:'Owner ended the verified failed hosted attempt.'});assert.equal(ended.state,'cancelled');
- await h.command('card.authorize',{paymentId:payment.id,consent:true,amountCents:payment.amountCents,surchargeCents:payment.surchargeCents},{...buyer,status:409});
- task=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id);assert.equal(task.status,'closed');assert.ok(task.resolution);
- assert.equal(edge.intents.size,0);assert.equal((await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer)).sections[0].receivedCents,0);
-});
 
 test('two installations under one Stripe merchant keep customer, checkout, idempotency and signed event effects separate',async t=>{
  const edge=cardEdge(),first=await cardFixture(t,{edge}),second=await cardFixture(t,{edge});

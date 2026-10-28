@@ -66,6 +66,20 @@ test('finance records and revises buyer promises; supplier-calendar misses stay 
  const grant=(await h.api('/api/barrow/staff/members')).members.find(row=>row.userId===financeId);await h.command('staff.update',{userId:financeId,revision:grant.revision,policy:{...policy,accounts:[]},reason:'Owner removes the account grant.'});await h.command('promise.withdraw',{accountId:'cedar',orderId:invoice.id,revision:promise.revision,reason:'Revoked finance cannot withdraw.'},{...finance,status:404});assert.equal((await h.request('/api/barrow/payment-promises?accountId=cedar',finance)).status,404);
  const narrowed=(await h.api('/api/barrow/staff/members')).members.find(row=>row.userId===financeId);await h.command('staff.revoke',{userId:financeId,revision:narrowed.revision,reason:'Owner revokes the finance grant completely.'});await h.command('promise.refresh',{accountId:'cedar'},{...finance,status:403});assert.equal((await h.request('/api/barrow/payment-promises?accountId=cedar',finance)).status,403);
  await h.command('promise.refresh',{accountId:'cedar'});const owned=(await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.sourceId===promise.id);assert.notEqual(owned.ownerId,financeId);assert.equal(owned.status,'open');
+ // A legal hold permits access revocation, while the promise and its decision history remain unchanged.
+ const heldPromises=(await h.api('/api/barrow/payment-promises?accountId=cedar')).promises;
+ assert.ok(heldPromises.some(row=>row.state==='open'&&row.pause&&row.history.some(event=>event.pause)));
+ const beforeRevoke=await archive(h);
+ await verifiedRequest(h,'cedar',true);const heldPreview=await erasurePreview(h);
+ const refusal=await h.command('retention.erase-account',erasurePayload(heldPreview),{status:409});assert.equal(refusal.error.code,'LEGAL_HOLD');
+ assert.deepEqual((await h.api('/api/barrow/payment-promises?accountId=cedar')).promises,heldPromises);
+ const revoke=await h.command('retention.revoke-access',erasurePayload(heldPreview));
+ assert.equal(revoke.mode,'revoke');assert.equal(revoke.items.find(row=>row.id==='bw_payment_promises:'+promise.id).action,'keep (access-only request)');
+ assert.equal((await h.request('/api/barrow/payment-promises?accountId=cedar',buyer)).status,401);
+ assert.deepEqual((await h.api('/api/barrow/payment-promises?accountId=cedar')).promises,heldPromises,'Revoke access only must preserve the complete held promise, its revision, notes and collection pause');
+ const heldRestore=await installation({networkEdge:edge.networkEdge});t.after(()=>heldRestore.close());await restore(heldRestore,beforeRevoke);
+ assert.deepEqual((await heldRestore.api('/api/barrow/payment-promises?accountId=cedar')).promises,heldPromises.map(row=>({...row,restored:true})),'Replaying access revocation preserves held decisions and pause metadata; archive restore remains inert');
+ await verifiedRequest(h,'cedar',false);
  promise=(await h.api('/api/barrow/payment-promises?accountId=cedar')).promises.find(row=>row.id===promise.id);promise=await h.command('promise.withdraw',{accountId:'cedar',orderId:invoice.id,revision:promise.revision,reason:'Buyer withdrew; finance records the attributed withdrawal.'});assert.equal(promise.state,'withdrawn');assert.equal(promise.history[0].amountCents,10000);
  const beforeErase=await archive(h);await verifiedRequest(h);const preview=await erasurePreview(h);
  const kept=preview.items.find(row=>row.id==='bw_payment_promises:'+promise.id);assert.equal(kept.action,'keep financial history');assert.ok(kept.floorUntil>='2033-11-02');
