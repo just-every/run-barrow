@@ -120,7 +120,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "a2f06e7f993e8a2e301578776870e639cceebcc8af553179274ad8f4163d2483",
+      "sha256": "9a38c0f83cf78123f0eada2ccb5f02f1899405fad8ad44cb6a8d22ed6cdb7a61",
       "executable": false
     },
     "AGENTS.md": {
@@ -144,7 +144,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "5b23b8be474d0d67219e26dd3780407c46aec90e8e10a49b101be754f29e451f",
+      "sha256": "f89fc3c040438a3674126e86dac87680d6f4d6274862acb5de32cf66786e20a3",
       "executable": false
     },
     "DEMO.md": {
@@ -184,7 +184,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "408fb4ade9fb8485969bfe6df556929830992a99c4c8ccd546c302e42ca306bf",
+      "sha256": "3f1d88ebc3cb155e634ec892dcd8cfc9b7ce75e73a0c088c1560e6bfae9fbb6e",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -220,7 +220,7 @@
       "executable": false
     },
     "docs/MOVE-IN.md": {
-      "sha256": "8e31f05b3a888ae563618982c9cc4c3f2a5a35b0d15e446d021ff9f0e530a8cf",
+      "sha256": "393067ad441d8de5f278bb26736461351a1d5bb568f749acfa1cceafc11d6bf3",
       "executable": false
     },
     "docs/ORDER-CONFIRMATIONS.md": {
@@ -1580,7 +1580,7 @@
       "executable": false
     },
     "src/barrow/imports/platform-history.ts": {
-      "sha256": "0f7aba1586c55cc51ea3d1b559a676c220a14bf552e4e3ab4c7739c38c356f6c",
+      "sha256": "75cfcf48e985b753ecbb0c4d5892517ee4a6329ae66639cda31cd20bcbc787c8",
       "executable": false
     },
     "src/barrow/imports/reconcile.ts": {
@@ -4452,7 +4452,7 @@
       "executable": false
     },
     "tests/api/move-nuorder.test.mjs": {
-      "sha256": "2141241a0485a911da250c3fae5050a522148b3171c9b75a3d0279f2b12c2bb2",
+      "sha256": "e78db20bbeaa449ae43f161ade8ebc44e93d526ea3ea91c7cdfd1ef22d253085",
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {

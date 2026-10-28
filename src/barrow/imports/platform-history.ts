@@ -35,7 +35,7 @@ async function prepare(env:Bindings,actor:Actor,input:SparkInput|WizInput|Nuorde
  for(const book of source.catalog?.priceBooks??[]) {
   const account=accounts.get(book.accountId);if(!account)continue
   const value=JSON.parse(account.value_json)
-  if(value.prices.some((price:any)=>price.units?.length||price.pricing)){errors.push(`Account ${book.accountId} has configured selling units or pricing rules; review these through the native account door before replacing its book`);continue}
+  if(value.priceRevisions?.length||value.prices.some((price:any)=>price.units?.length||price.pricing)){errors.push(`Account ${book.accountId} has dated book revisions, configured selling units or pricing rules; review these through the native account door before replacing its book`);continue}
   value.currency=book.currency;value.prices=book.prices.map(price=>({...price}));updates.set(book.accountId,value)
  }
  for(const doc of source.documents) {

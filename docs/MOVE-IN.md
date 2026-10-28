@@ -218,7 +218,7 @@ Each account receives one current USD or CAD book of active mapped products,
 with exact decimal source prices and whole minimum quantities. The preview
 compares source and planned row counts and sums of unit cents per book; only
 fingerprint approval replaces the current account book. Product packs and
-increments still apply. Configured selling units or pricing rules require review
+increments still apply. Dated book revisions, configured selling units or pricing rules require review
 through the native account door before replacement. Historical order prices never
 activate a current book and remain unchanged when a supplied current book changes.
 
