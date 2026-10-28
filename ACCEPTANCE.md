@@ -304,7 +304,7 @@ Core · target · **partial** · Cites BASE-DATA-001, BASE-DATA-003, BASE-DATA-0
 **Acceptance.**
 1. Configure a style_color_position rule and drag in a batch that includes a misspelled filename and an image for a style not yet imported, then import that style and re-upload one image.
 2. Matched files attach to the right variant and position, the misspelling is listed with its reason, the held file attaches after the import, and the re-upload replaces its slot without a duplicate.
-3. Under the stated image-custody boundary: owner or admin only; baseline or progressive RGB or grayscale JPEG only, at most 200 KiB; metadata removed before hashing; bytes stay in this installation’s D1 and archives, no independent media download and no external processor.
+3. Under RL-2’s image-custody boundary: owner or admin only; baseline or progressive RGB or grayscale JPEG only, at most 200 KiB; metadata removed before hashing; bytes stay in this installation’s D1 and archives, no independent media download and no external processor.
 4. Unknown valid JPEGs retain bytes; malformed, unsupported and oversize files retain only filename and reason.
 5. Later imports fill empty slots only; occupied slots require explicit re-upload.
 6. Batches accept up to 1,000 files within 30 MiB, with ZIP input bounded to 20 MiB; larger aggregate batches remain unproved.

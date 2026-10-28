@@ -1,4 +1,4 @@
-// ACC-006: ORD-005's supplier-side quote notices reach the account's assigned or covering reps instead of every owner and
+// ACC-008: ORD-005's supplier-side quote notices reach the account's assigned or covering reps instead of every owner and
 // admin. An account with no current rep keeps the owner/admin audience (null), and so does a discount waiting for approval,
 // because the rep who proposed it cannot approve it.
 import { currentReps, supplierToday } from './rep-scope'

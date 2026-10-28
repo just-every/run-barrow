@@ -1,4 +1,4 @@
-# Saved monthly reports (RPT-006 partial)
+# Saved monthly reports (RPT-008, RPT-009 and RPT-015 partial)
 
 Open **Data → Saved monthly reports**. Name a sales or invoice-aging report,
 save an account filter (and optional sales SKU), and select active staff from

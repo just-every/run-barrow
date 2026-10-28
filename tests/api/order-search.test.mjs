@@ -117,7 +117,7 @@ test('RPT-006: original workspace, history and account drafts page the full auth
  const before=await h.api('/api/barrow/export.json');await history({page:'2'},buyer);const after=await h.api('/api/barrow/export.json');assert.deepEqual(after.orders,before.orders);assert.deepEqual(after.audit,before.audit);
 });
 
-test('RPT-006 / ACC-005 / ACC-006 / INT-015 / DATA-002: saved monthly reports freeze whole source-linked snapshots, email exact staff once, and revoke private downloads on recipient or authority changes',async t=>{
+test('RPT-008, RPT-009 and RPT-015 / ACC-005 / ACC-006 / INT-015 / DATA-002: saved monthly reports freeze whole source-linked snapshots, email exact staff once, and revoke private downloads on recipient or authority changes',async t=>{
  const {createHmac,randomBytes}=await import('node:crypto');
  const key=randomBytes(32),secret='whsec_'+key.toString('base64');
  const h=await installation({https:true,bindings:{MAIL_WEBHOOK_SECRET:secret,MAIL_EVENT_TENANT:'report-test'}});t.after(()=>h.close());

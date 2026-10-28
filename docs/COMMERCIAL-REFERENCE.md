@@ -1,6 +1,6 @@
 # Commercial behavior and implementation reference
 
-The contract defines the target. These notes retain the detailed formats, custody rules and implementation boundaries recorded before the contract rewrite. Historical completion statements describe that source revision; they do not change the current contract status.
+The contract defines the target. These notes retain the detailed formats, custody rules and implementation boundaries recorded before the contract rewrite. Historical completion statements describe that source revision; they do not change the current contract status. The contract's risk classes and company-policy rules govern agent actions; historical fixed approvals and refusals below do not set company policy. Recorded decisions are in [RULINGS.md](../RULINGS.md).
 
 <a id="ord-010"></a>
 
