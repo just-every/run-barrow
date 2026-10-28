@@ -27,7 +27,8 @@ and have `Cache-Control: no-store`.
 
 The signed-in owner can issue a separate integration credential, shown once and
 stored only as a digest. The grant names exactly one active account and one or
-both of `catalog:read` and `order:prepare`. Expiry is an integer Unix timestamp
+both of `catalog:read` and `order:prepare`, plus explicit entity preparation scopes
+described below. Expiry is an integer Unix timestamp
 in milliseconds, after now and at most seven days away. There is no automatic
 submission, approval, import, invoice read, fulfillment read, grant management,
 erasure or outbound authority. A legacy agent credential continues to use its
@@ -148,10 +149,79 @@ approve it through native commands; read its original invoice and source-confirm
 fulfillment as authorized people. `tests/api/integration-api.test.mjs` exercises
 this sequence without direct database access.
 
+### Prepared entity exchange
+
+BAR-003's preparation and human review boundary also applies to entity changes.
+An owner may explicitly grant `products:prepare`, `variants:prepare`,
+`accounts:prepare`, `locations:prepare`, `price-books:prepare` and
+`quotes:prepare`, independently. These scopes permit preparation only. They
+cannot apply changes, submit or approve orders, import, export invoices, erase,
+issue grants or send messages. The existing native person doors remain available
+under their existing permissions.
+
+`POST /api/barrow/v1/exchange/prepare` uses the integration Bearer credential.
+Its JSON contains `entity`, `accountId`, current `accountRevision`, current ISO
+`currency` and `payload`. The response contains the exact `proposal`, a server
+authenticated `fingerprint`, and `requiresPerson:true`. Preparation changes no
+entity and reserves no stock. It records an attributed audit event. A preparer
+receives its submitted data and opaque revision basis, never another account's
+profile, catalog maintenance report or quote history.
+
+Each payload uses the existing native format:
+
+| Entity | Payload and boundary |
+| --- | --- |
+| `products` | `{workbook:{name,base64}}`, using the documented catalog XLSX format. Every SKU must already belong to the grant account's assortment. Native source-owned field validation applies; item identity, name, barcode and inventory remain in Pier. The person reviews any listing removals and supplier-wide metadata effects before applying. |
+| `variants` | `{revision,variants:[{sku,style,color,size}]}`. The attributes revision comes from a versioned variant row; SKU scope is the existing account assortment. Existing media and recorded order snapshots remain intact. |
+| `accounts` | `{id,revision,value,duplicateReviews?}`, using the complete native account value. This edits the grant's existing company only. Its buyer identity cannot be reassigned; native duplicate review and commercial validation still apply. |
+| `locations` | `{accountId,kind,value,makeDefault?}` for creation, or `{accountId,id,revision,value,makeDefault?}` for an existing location. Native address validation, current location revision and account ownership apply. |
+| `price-books` | `{accountId,revision,csv}`, with `sku,currency,unitCents,msrpCents,minQty` headers. Native single-currency, integer minor-unit, minimum and configured selling-unit rules apply. |
+| `quotes` | `{type,accountId,lines,note?}` for `quote.request`; `quote.propose` also names `quoteId`, current `revision`, and ordinary `validUntil`, `termsDays` and `shipping` fields where needed. Native quote pricing and approval rules apply. Acceptance, discount approval and order submission remain separate human actions. |
+
+For example, save this input privately as `entity-change.json`, substituting the
+current revision returned by the person's account read:
+
+```json
+{"entity":"locations","accountId":"cedar","accountRevision":"CURRENT_ACCOUNT_REVISION","currency":"USD","payload":{"accountId":"cedar","kind":"ship-to","value":{"name":"Warehouse counter","line1":"102 Main Street","city":"Columbia","state":"SC","zip":"29201"}}}
+```
+
+Use a client that reads its Bearer credential from an owner-only private file;
+save the prepare response outside the checkout. The signed-in owner then posts
+that exact response to `/api/barrow/v1/exchange/review`, with the installation's
+Origin header, to recheck it without writes. After reviewing its complete input,
+the owner posts the same `proposal` and `fingerprint`, plus `confirm:true` and
+a specific `reason`, to `/api/barrow/v1/exchange/apply`:
+
+```sh
+curl --cookie /private/native-session.txt --header "Origin: $ORIGIN" \
+  --header 'Content-Type: application/json' --data @/private/approved-change.json \
+  "$ORIGIN/api/barrow/v1/exchange/apply"
+```
+
+Apply requires the current native owner session; the integration credential and
+buyer sessions are refused. It rechecks scope, expiry, issuer activation and
+version, account lifecycle and revision, the full proposal fingerprint and the
+native entity's current revision or source basis. A changed workbook, payload,
+grant or relevant source requires fresh preparation and review. The native effect,
+live grant guard, account revision guard and unique receipt are one atomic batch.
+Replaying the same approval returns HTTP 409 and makes no second change.
+Revocation, issuer removal, expiry and account erasure also close pending approvals;
+an old archive cannot restore grant authority. No proposal body is stored by this
+door. Retain private review files only under the operator's own custody policy.
+
+The response names the native result and a receipt with `id`, `grantId`,
+`preparedBy`, `appliedBy` and `entity`. Preparation is attributed to the agent;
+application and the ordinary native audit event are attributed to the person.
+The append-only `integration.applied` event retains the grant revision, exact
+fingerprint, source, time and owner's reason. Search by account or preparing
+identity and open the complete audit CSV to reconcile both sides. Applied quote
+changes use the existing human-authorized notification path.
+
 Grant creation and revocation are append-only DATA-002 events with the exact
 person, account, revision, source, time and human reason. Draft events retain
 `agent:<grant ID>`. Staff can find them through `/api/barrow/audit` and the
 complete filtered `/api/barrow/audit.csv`; neither contains token material.
-Buyers and agents cannot read internal audit decisions. Broader delegated
-integration write grants remain unimplemented; native writes above do not grant
-an integration credential permission to perform commercial effects.
+Buyers and agents cannot read internal audit decisions. The versioned sanity
+journeys in `tests/api/integration-api.test.mjs` exercise every prepared entity,
+human application, unchanged issued invoices, exact source fulfillment, replay,
+stale revisions and authority withdrawal through these public HTTP doors.

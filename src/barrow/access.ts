@@ -33,7 +33,8 @@ export function admission(db: D1Database, actor: Actor): D1PreparedStatement {
 }
 export async function commit(db: D1Database, actor: Actor, statements: D1PreparedStatement[]) {
  if(actor.integration)actor={...actor,integrationAt:(await now()).getTime()}
- await db.batch([admission(db,actor),...(actor.staff?[staffGuard(db,actor.staff)]:[]),...(actor.company?[companyRightsGuard(db,actor.company)]:[]),...statements,db.prepare('DELETE FROM bw_guard')])
+ const exchange=actor.exchange?await (await import('./integration-exchange')).exchangeAdmission(db,actor,actor.exchange):[]
+ await db.batch([admission(db,actor),...(actor.staff?[staffGuard(db,actor.staff)]:[]),...(actor.company?[companyRightsGuard(db,actor.company)]:[]),...exchange,...statements,db.prepare('DELETE FROM bw_guard')])
 }
 export const changed = (db: D1Database) => db.prepare('INSERT INTO bw_guard(value) VALUES(changes())')
 export const audit = (db:D1Database,actor:Actor,subject:string,action:string,context:AuditContext) => {

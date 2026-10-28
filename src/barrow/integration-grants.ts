@@ -5,7 +5,9 @@ import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
 import { fail, text, type Actor } from './model'
 
-export type IntegrationGrant = { id:string; accountId:string; issuerId:string; issuerVersion:number; scopes:('catalog:read'|'order:prepare')[]; expiresAt:number; revision:string; state:'active'|'revoked'; reason:string }
+export const integrationScopes = ['catalog:read','order:prepare','products:prepare','variants:prepare','accounts:prepare','locations:prepare','price-books:prepare','quotes:prepare'] as const
+export type IntegrationScope = typeof integrationScopes[number]
+export type IntegrationGrant = { id:string; accountId:string; issuerId:string; issuerVersion:number; scopes:IntegrationScope[]; expiresAt:number; revision:string; state:'active'|'revoked'; reason:string }
 const owner=(actor:Actor)=>{if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner manages integration grants.',403)}
 export function integrationId(value:unknown,label='Entity ID') {
  if(typeof value!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,99}$/.test(value))fail('INPUT',`Use an exact stable ${label.toLowerCase()}.`,400)
@@ -15,10 +17,17 @@ function grant(row:any):IntegrationGrant {
  return {id:row.id,accountId:row.account_id,issuerId:row.issuer_id,issuerVersion:row.issuer_version,scopes:JSON.parse(row.scopes_json),expiresAt:row.expires_at,revision:row.revision,state:row.state,reason:row.reason}
 }
 export async function integrationCredential(env:Bindings,token:string):Promise<Actor|null> {
+ return integrationActor(env,'g.digest',await digest(token))
+}
+/** Internal lookup for a person's review; never an authentication door. */
+export async function integrationGrantActor(env:Bindings,id:string):Promise<Actor|null> {
+ return integrationActor(env,'g.id',integrationId(id,'Grant ID'))
+}
+async function integrationActor(env:Bindings,column:'g.id'|'g.digest',value:string):Promise<Actor|null> {
  const at=(await now()).getTime()
  const row=await env.DB.prepare(`SELECT g.*,o.email,o.role,o.version FROM bw_integration_grants g JOIN oa_operators o ON o.id=g.issuer_id JOIN bw_accounts a ON a.id=g.account_id
-  WHERE g.digest=? AND g.state='active' AND g.expires_at>? AND o.status='active' AND o.role='owner' AND o.version=g.issuer_version
-  AND COALESCE(json_extract(a.value_json,'$.lifecycle'),'active')='active'`).bind(await digest(token),at).first<any>()
+  WHERE ${column}=? AND g.state='active' AND g.expires_at>? AND o.status='active' AND o.role='owner' AND o.version=g.issuer_version
+  AND COALESCE(json_extract(a.value_json,'$.lifecycle'),'active')='active'`).bind(value,at).first<any>()
  return row?{id:row.issuer_id,email:row.email,role:row.role,version:row.version,agent:true,grantId:row.id,agentScope:'integration',integration:grant(row),integrationAt:at}:null
 }
 /** Called again by the shared commit admission, in the draft's atomic batch. */
@@ -39,7 +48,7 @@ export async function createIntegrationGrant(env:Bindings,actor:Actor,p:any) {
  owner(actor)
  if(!p||p.consent!==true||Object.keys(p).some(key=>!['accountId','scopes','expiresAt','consent','reason'].includes(key)))fail('CONSENT','Explicitly consent to the exact account, scopes and expiry.',400)
  const selected=await account(env.DB,actor,integrationId(p.accountId,'Account ID'));requireActiveAccount(selected)
- if(!Array.isArray(p.scopes)||!p.scopes.length||p.scopes.length>2||new Set(p.scopes).size!==p.scopes.length||p.scopes.some((s:unknown)=>!['catalog:read','order:prepare'].includes(s as string)))fail('SCOPE','Choose catalog:read, order:prepare or both. No commercial effects are granted.',400)
+ if(!Array.isArray(p.scopes)||!p.scopes.length||p.scopes.length>integrationScopes.length||new Set(p.scopes).size!==p.scopes.length||p.scopes.some((s:unknown)=>!integrationScopes.includes(s as IntegrationScope)))fail('SCOPE','Choose explicit catalog read or entity preparation scopes. A person must apply every entity change.',400)
  const at=(await now()).getTime(),expiresAt=p.expiresAt
  if(!Number.isSafeInteger(expiresAt)||expiresAt<=at||expiresAt>at+7*86400000)fail('EXPIRY','Choose an expiry within the next seven days.',400)
  const reason=text(p.reason,'Consent reason',1000),id=crypto.randomUUID(),revision=crypto.randomUUID()
