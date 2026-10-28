@@ -198,6 +198,11 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   sql("UPDATE bw_quote_mail SET recipient=NULL,summary='[Erased notice]',submission_json=NULL,sender_result_json=NULL,reason='Personal fields erased by owner',restored=1,lease_until=0 WHERE id=?",row.id),
  ])
  for(const row of r.bw_quote_notices.filter(row=>row.account_id===accountId))add('notice summaries','notice:'+row.id,'neutralize','No personal details or restored outreach',[sql("UPDATE bw_quote_notices SET summary='[Erased notice]',mail_eligible=0 WHERE id=?",row.id)])
+ for(const row of r.bw_settings.filter(row=>row.key==='credit-policy:'+accountId)) {
+  const policy=JSON.parse(row.value_json),clean=(reason:string)=>replaceText(reason,people,op.accountEmail,personal)
+  const value={...policy,releases:[],accountRelease:undefined,...(policy.hold?{hold:{...policy.hold,reason:clean(policy.hold.reason)}}:{})}
+  add('commercial audit','credit-policy:'+accountId,'invalidate releases and redact exact personal reason values','Keep account credit settings and attributed audit history; no restored release authority',[sql('UPDATE bw_settings SET value_json=?,revision=? WHERE key=?',JSON.stringify(value),op.id,row.key)])
+ }
  for(const row of r.bw_audit) {
   if(!row.context_json)continue
   const context=JSON.parse(row.context_json),reason=typeof context.reason==='string'?replaceText(context.reason,people,op.accountEmail,personal):context.reason

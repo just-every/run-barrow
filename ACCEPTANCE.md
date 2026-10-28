@@ -8,10 +8,10 @@ The primary journey: Exercise the capabilities and acceptance journeys below.
 
 | Tier | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
-| Core | 68 | 28 | 43 | 139 |
+| Core | 68 | 29 | 42 | 139 |
 | Agent surface | 0 | 0 | 0 | 0 |
 | Later | 0 | 0 | 0 | 0 |
-| Full target | 68 | 28 | 43 | 139 |
+| Full target | 68 | 29 | 42 | 139 |
 
 Judged from the code and tests at commit `8d652780a7f6bc1f7cbdbf2230f9d5e61b370dba` (28 October 2026). INT-014 candidate evidence is the code and tests in this tree, subject to exact-candidate Verify and guarded landing; its broader scheduled-feed duties remain with INT-020. ORD-015 conforms to today’s per-account assignment, order submission and confirmation doors. REP-004 conforms to today’s acceptance, shipment and physical-return records; verified partial-payment and credit events remain receiving obligations of PAY-003, PAY-010 and SHIP-004. DATA-003 conforms to the ct scope-review-56 §E owner-erasure and independent restore-journal boundary; ORD-014 is complete under ct’s 22 October 2026 22:15Z approval of its landed product-image custody, with the separate DATA-001 media-manifest and DATA-004 malware-screening obligations for CAT-002 unchanged. CAT-010 is a partial implementation with current public-door evidence below; its candidate SHA and run receipts accompany the branch handoff. Field proof register: 0 rows; 0 passed, 0 failed, 0 not run.
 
@@ -915,12 +915,12 @@ Core · target · **partial**
 1. Give an account net 30 and a $10,000 limit, place an $8,000 order with $3,000 already owed, and block or route it for approval.
 2. Record a payment and observe recalculated available credit.
 
-**Evidence.** `src/barrow/model.ts`; `src/barrow/orders.ts`; `tests/api/flows.test.mjs`
-**Gap.** Agreed terms and due-date snapshots exist; credit exposure, balances and limit enforcement are missing.
+**Evidence.** `tests/api/purchase.test.mjs` — “credit terms and exposure block an exhausted draft and quote, then verified principal restores available credit without double counting invoices”: net 30, USD limit, exact 300000 owed plus 800000 order refusal after drafting and quote refusal; verified 200000 partial allocation restores availability, invoice transition is counted once, bounded audited exception, current source-linked finance JSON and CSV, separate CAD due-on-receipt snapshots. `tests/api/company-approvals.test.mjs` — “ACC-007: amount and location routes run sequential approvers with delegation, escalation, withdrawal and fresh approval after any material change”: a finance policy change voids a partly approved request. `tests/api/order-guarantee.test.mjs` — “BAR-002: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities”: snapshot, acknowledgment, replay and shortfall inheritance. `tests/api/purchase.test.mjs` — “finance hold and exact-order release refuse buyers and reps, audit decisions, invalidate on exposure changes and appear in the order timeline”: audit attribution, search and CSV, no edits or deletion, private buyer and agent refusals, archive history and inert releases. `tests/journeys/credit-policy.test.mjs` — “finance configures net terms, holds checkout and releases one reviewed order after partial payment with current source-linked credit at desktop and phone”: checkout availability, finance settings, remediation request, source-linked report and both widths; Verify shard 1.
+**Gap.** Completion judgment remains pending under the fleet DONE evidence rule. Seasonal deposit allocations still need PAY-003 reconciliation with the newer ORD-008 implementation.
 
 #### PAY-005 — Credit holds and controlled release
 
-Core · target · **missing**
+Core · target · **partial**
 
 **Requirement.** Finance can impose overdue, manual or provider credit holds with reason, expiry and named owner. Reps and buyers see a suitable explanation and remediation request. Only authorized finance can release or override within limits, recording the decision and rechecking current exposure before acceptance. This clause inherits BAR-002’s agreed currency/line/terms and human-approval snapshots before shipping; inventory handoffs retain one durable acknowledged identity and explicit shortfalls, and split invoices name only eligible allocated or shipped quantities. This clause inherits DATA-002 append-only, searchable and exportable attributed credit hold/release and override decisions, with actor/source/time/revision/reason, before shipping. A hold and its release add entries to ORD-012's order timeline. Before shipping, this clause inherits PRI-007 current credit-exposure revalidation and recorded exception authority, including refusal when credit is exhausted after drafting. Before it ships, a credit hold also refuses ORD-004 quote acceptance with its explanation.
 
@@ -928,8 +928,8 @@ Core · target · **missing**
 1. Hold an overdue account, attempt checkout as buyer and rep, collect a partial payment, then release within a finance limit.
 2. Refuse a rep override and invalidate a stale release if exposure changes.
 
-**Evidence.** None.
-**Gap.** Implement credit holds and controlled release and prove the stated journey.
+**Evidence.** `tests/api/purchase.test.mjs` — “finance hold and exact-order release refuse buyers and reps, audit decisions, invalidate on exposure changes and appear in the order timeline”: overdue, manual and provider-origin holds, named owner and expiry, buyer and rep checkout and quote refusal, owned remediation request, verified partial payment, bounded account and order release, current-exposure and revoked-authority refusals, timeline, private attributed audit search and CSV, append-only refusal and archive fencing. `tests/api/purchase.test.mjs` — “credit terms and exposure block an exhausted draft and quote, then verified principal restores available credit without double counting invoices”: exhaustion after drafting and exact exception bounds. `tests/api/company-approvals.test.mjs` — “ACC-007: amount and location routes run sequential approvers with delegation, escalation, withdrawal and fresh approval after any material change”: finance policy invalidation. `tests/api/order-guarantee.test.mjs` — “BAR-002: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities”: unchanged commercial and inventory guarantees. `tests/journeys/credit-policy.test.mjs` — “finance configures net terms, holds checkout and releases one reviewed order after partial payment with current source-linked credit at desktop and phone”: finance hold, buyer explanation and request, partial-payment release review and result at both widths; Verify shard 1.
+**Gap.** Completion judgment remains pending under the fleet DONE evidence rule. Seasonal deposit allocations still need PAY-003 reconciliation with the newer ORD-008 implementation.
 
 #### PAY-006 — B2B pay later through Resolve
 
