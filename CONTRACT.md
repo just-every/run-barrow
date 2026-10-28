@@ -1948,7 +1948,6 @@ Native iOS/Android offline rep applications are part of REP-002 and REP-003, inc
 | 28 | Take native orders after the reviewed cutover. | MOVE-008, ORD-006 |
 | 29 | Orders out, money in. | ORD-006, SHIP-003, PAY-003 |
 | 30 | MIT licensed. | BASE-001, BAR-006 |
-
 | 31 | NetSuite: acknowledged sales orders, prebook releases and stock by warehouse. | INT-004, STK-002, STK-003 |
 | 32 | QuickBooks Online invoices sync; returned ACH reverses and a card payment posts. | INT-002, PAY-001, PAY-002 |
 | 33 | Faire orders retain their Faire IDs and are never charged again. | INT-011 |

@@ -36,5 +36,15 @@ A claim is done when every clause behind it is done, missing when every one is m
 | 28 | Take native orders after the reviewed cutover. | `MOVE-008` partial; `ORD-006` partial | partial |
 | 29 | Orders out, money in. | `ORD-006` partial; `SHIP-003` missing; `PAY-003` missing | partial |
 | 30 | MIT licensed. | `BASE-001` done; `BAR-006` partial | partial |
+| 31 | NetSuite: acknowledged sales orders, prebook releases and stock by warehouse. | `INT-004` missing; `STK-002` done; `STK-003` done | partial |
+| 32 | QuickBooks Online invoices sync; returned ACH reverses and a card payment posts. | `INT-002` missing; `PAY-001` partial; `PAY-002` missing | partial |
+| 33 | Faire orders retain their Faire IDs and are never charged again. | `INT-011` done | done |
+| 34 | Shopify variants and wholesale orders match while retail store prices stay untouched. | `INT-005` missing | missing |
+| 35 | A nightly stock file comes in and order files go out and are acknowledged. | `INT-020` partial; `STK-002` done; `STK-003` done | partial |
+| 36 | A photographed PO is region-cited, maps the buyer’s aliases, flags case packs and asks about an ambiguous color. | `AGT-001` partial; `PRI-003` partial | partial |
+| 37 | The checked draft uses its price book, stock source, net terms and resale-certificate tax treatment. | `AGT-001` partial; `PRI-007` partial; `TAX-001` missing; `TAX-003` missing | partial |
+| 38 | NuORDER images match by style, color and position; unmatched images wait for their styles. | `MOVE-001` partial; `CAT-010` partial | partial |
+| 39 | NuORDER companies, ship-tos, reviewed buyer invitations, price lists and reps move while logins stay behind. | `MOVE-009` partial; `ACC-002` done; `ACC-003` done; `ACC-006` done | partial |
+| 40 | Also moves in from Pepperi, Brandboom, SparkLayer and WizCommerce. | `MOVE-002` missing; `MOVE-003` missing; `MOVE-004` done; `MOVE-005` done | partial |
 
-Claims: 30; 3 done, 22 partial, 5 missing.
+Claims: 40; 4 done, 30 partial, 6 missing.
