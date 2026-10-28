@@ -35,7 +35,7 @@ export async function planNuorderCatalog(env:Bindings,catalog:NuorderCatalog,err
 export function nuorderCatalogStatements(db:D1Database,plan:Awaited<ReturnType<typeof planNuorderCatalog>>,by:string,at:string,revision:string) {
  return [
   ...[['catalog-maintenance',plan.context.store.revision],['variant-attributes',plan.context.attributes.revision]].map(([key,prior])=>db.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN COALESCE((SELECT revision FROM bw_settings WHERE key=?),'')=? THEN 1 ELSE 0 END").bind(key,prior??'')),
-  ...[...plan.catalog.images,...plan.catalog.heldImages].map(({image})=>storeImage(db,{...image,bytes:Uint8Array.from(atob(image.base64),char=>char.charCodeAt(0))},by,at)),
+  ...[...plan.catalog.images,...plan.catalog.heldImages].flatMap(({image})=>image.base64?[storeImage(db,{...image,bytes:Uint8Array.from(atob(image.base64),char=>char.charCodeAt(0))},by,at)]:[]),
   db.prepare("INSERT INTO bw_settings VALUES('catalog-maintenance',?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision").bind(JSON.stringify(plan.listings.map(row=>({...row,revision}))),revision),
   db.prepare("INSERT INTO bw_settings VALUES('variant-attributes',?,?) ON CONFLICT(key) DO UPDATE SET value_json=excluded.value_json,revision=excluded.revision").bind(JSON.stringify(plan.variants),revision),
  ]

@@ -67,13 +67,15 @@ function imageBody(raw: Uint8Array) {
  return Buffer.from(body).toString('base64')
 }
 /** Resolve before connecting, then pin the TLS socket to that public address with the original SNI. */
-export async function retrieveNuorderImage(url: URL) {
+export async function retrieveNuorderImage(url: URL, approved: Map<string, Promise<string[]>>) {
  const controller = new AbortController()
  let socket: ReturnType<typeof connect> | undefined, reader: ReadableStreamDefaultReader<Uint8Array> | undefined, timer: ReturnType<typeof setTimeout> | undefined
  const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); void socket?.close().catch(() => {}); reject(new Error('Image retrieval exceeded five seconds')) }, 5000) })
  try {
   return await Promise.race([timeout, (async () => {
-   const addresses = await destinations(url.hostname, controller.signal)
+   let resolution=approved.get(url.hostname)
+   if(!resolution){resolution=destinations(url.hostname,controller.signal);approved.set(url.hostname,resolution)}
+   const addresses = await resolution
    if (controller.signal.aborted) problem('exceeded five seconds')
    socket = connect({ hostname: addresses[0], port: 443 }, { secureTransport: 'starttls', allowHalfOpen: false })
    void socket.closed.catch(() => {}); await socket.opened

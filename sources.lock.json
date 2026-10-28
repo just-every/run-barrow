@@ -1552,15 +1552,15 @@
       "executable": false
     },
     "src/barrow/imports/nuorder-catalog.ts": {
-      "sha256": "26d9b60837556fb040ab617a0fc10a599d73e7644a3404dabdc61778241cb045",
+      "sha256": "8a205b4af709347a3d3f7998407f701806c4748f55bdc9609c77e6511c9836eb",
       "executable": false
     },
     "src/barrow/imports/nuorder-https.ts": {
-      "sha256": "c184036c906e74a4ed9c75a2e628ce9c41741d00750b9c6f5ae126d616f04aab",
+      "sha256": "7d560e681153c6f34eef1319761665f023eb027ffd5f2fb1c8a616eb2e610ef3",
       "executable": false
     },
     "src/barrow/imports/nuorder-media.ts": {
-      "sha256": "243dc07d33e5730d58808e5ce0225fa1dd04b8d228d235af850aa449a2e88218",
+      "sha256": "7cfdc99b2b494cf4660f7834dc1680863f5e380376cd7ed477c784a779f63e53",
       "executable": false
     },
     "src/barrow/imports/nuorder-receivables.ts": {
@@ -1580,7 +1580,7 @@
       "executable": false
     },
     "src/barrow/imports/platform-history.ts": {
-      "sha256": "75cfcf48e985b753ecbb0c4d5892517ee4a6329ae66639cda31cd20bcbc787c8",
+      "sha256": "6a222029d3fd7f01384cfdf84e81d224c79bddbc24fd596cd4c6cad679decc7e",
       "executable": false
     },
     "src/barrow/imports/reconcile.ts": {
@@ -4452,7 +4452,7 @@
       "executable": false
     },
     "tests/api/move-nuorder.test.mjs": {
-      "sha256": "e78db20bbeaa449ae43f161ade8ebc44e93d526ea3ea91c7cdfd1ef22d253085",
+      "sha256": "06ce138b0287dd9e82519510a59c0dcb911fe7737d16aa44aa0cc82dc297c81e",
       "executable": false
     },
     "tests/api/move-rehearsal.test.mjs": {

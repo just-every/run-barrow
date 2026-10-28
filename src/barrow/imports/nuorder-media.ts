@@ -5,7 +5,7 @@ import { retrieveNuorderImage } from './nuorder-https'
 import type { NuorderInput, NuorderProduct } from './nuorder'
 
 export type NuorderMediaInput = {name:string;base64?:string;url?:string;style?:string}
-export type HeldNuorderImage = {name:string;image:{sha256:string;width:number;height:number;size:number;components:1|3;base64:string}}
+export type HeldNuorderImage = {name:string;image:{sha256:string;width:number;height:number;size:number;components:1|3;base64?:string}}
 function publicHost(host:string) {
  return host.length<=253&&host.includes('.')&&/^[a-z0-9.-]+$/.test(host)&&!host.endsWith('.')&&!host.endsWith('.localhost')&&!host.endsWith('.local')&&!host.endsWith('.internal')&&!/^[\d.]+$/.test(host)&&host.split('.').every(part=>/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(part))
 }
@@ -21,6 +21,7 @@ export async function nuorderMedia(input:NuorderInput,products:NuorderProduct[],
  if(input.images!==undefined&&(!Array.isArray(input.images)||input.images.length>50))fail('IMPORT_IMAGES','Supply at most fifty JPEG files or URLs per batch.',400)
  const hosts=input.imageHosts??[]
  if(!Array.isArray(hosts)||hosts.length>10||hosts.some(host=>typeof host!=='string'||!publicHost(host)))fail('IMPORT_IMAGES','Declare up to ten exact public image hostnames.',400)
+ const destinations=new Map<string,Promise<string[]>>()
  const files=new Map(held.map(file=>[file.name,file])),names=new Set<string>(),missingImages:Array<{style:string;name:string;reason:string}>=[]
  for(const file of input.images??[]) {
   const name=text(file?.name,'Image filename',200)
@@ -32,7 +33,7 @@ export async function nuorderMedia(input:NuorderInput,products:NuorderProduct[],
    if(input.retrieveImages!==true)fail('IMPORT_IMAGES','Explicitly consent to retrieving images from the declared hosts.',400)
    const url=remoteUrl(file.url,hosts),style=text(file.style,'Source image style',100)
    if(!products.some(product=>product.style===style))fail('IMPORT_IMAGES','Remote images must name a supplied source style.',400)
-   try {content=await retrieveNuorderImage(url);await decodedImage(content)} catch(error) {
+   try {content=await retrieveNuorderImage(url,destinations);await decodedImage(content)} catch(error) {
     // A failed replacement must never silently attach an older held file.
     files.delete(name);missingImages.push({style,name,reason:error instanceof Error&&error.message.startsWith('Image retrieval')?error.message:'Image could not be retrieved as a supported JPEG'});continue
    }
