@@ -1,3 +1,4 @@
+import { trackingExceptionSources } from './shipment-tracking'
 import { financialGuard } from './credit-ledger'
 import { orderExceptionSources } from './order-followthrough'
 import { planResponseResolution, type FollowupPlan } from './account-followup'
@@ -60,6 +61,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  if (type === 'followup.refresh') {
   const financial=await financialGuard(env.DB)
   const [sources, existing] = await Promise.all([followupSources(env.DB, new Date(at)), allTasks(env.DB)])
+  sources.candidates.push(...(await trackingExceptionSources(env)).candidates)
   const orderSources = await orderExceptionSources(env, new Date(at))
   sources.candidates.push(...orderSources.candidates)
   for (const [id, resolution] of orderSources.resolved) sources.resolved.set(id, resolution)

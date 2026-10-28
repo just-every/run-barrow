@@ -17,7 +17,7 @@ export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string}
  if(!grant)return true
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
- if(task.kind==='fulfillment'&&grant.warehouses!=='all')return false
+ if((task.kind==='fulfillment'||task.kind==='tracking')&&grant.warehouses!=='all')return false
  return selling.includes(grant.role)||grant.role==='operations'&&['fulfillment','delivery','return','approval'].includes(task.kind)||grant.role==='finance'&&['payment','card-payment','reconciliation','credit','refund'].includes(task.kind)
 }
 async function denied(env:Bindings,actor:Actor,source:string):Promise<never> {
@@ -74,7 +74,7 @@ const commandRoles:Record<string,string[]>={
  'cart.preview':selling,'cart.form':selling,'list.save':selling,'list.duplicate':selling,'list.delete':selling,
  'quote.request':selling,'quote.propose':selling,'quote.approve':['sales-manager'],'quote.message':selling,'quote.read':selling,
  'shipping.select':selling,'shipping.quote':['sales-manager'],
- 'prebook.release':operating,'prebook.delay':operating,'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
+ 'prebook.release':operating,'prebook.delay':operating,'tracking.bind':operating,'tracking.refresh':operating,'tracking.dispute':['sales-manager','rep','operations'],'order.approve':operating,'order.refresh':operating,'order.cancel':operating,'order.stock-exception':['sales-manager'],
  'substitution.preview':['sales-manager'],'substitution.propose':['sales-manager'],'substitution.execute':operating,
  'location.save':['sales-manager'],'location.archive':['sales-manager'],
  'rep.assign':['sales-manager'],'rep.cover':['sales-manager'],'rep.end':['sales-manager'],'rep.transfer':['sales-manager'],
