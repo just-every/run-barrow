@@ -1,4 +1,5 @@
 import { eraseReturnNarrative, eraseReturnAudit } from './return-claim-custody'
+import { campaignErasureStatements } from './campaign-custody'
 import { deltaErasure } from './imports/delta-custody'
 import { cutoverErasure } from './imports/cutover-custody'
 /** Outside-D1 protection for the erasure doors that predate account redaction. */
@@ -27,6 +28,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put('DELETE FROM bw_applications WHERE id=?',p.id)
  }
  if(kind==='company-user') {
+  statements.push(...campaignErasureStatements('recipient_id',p.userId))
   const current=await env.DB.prepare('SELECT email,display_name FROM oa_operators WHERE id=?').bind(p.userId).first<any>(),membership=await env.DB.prepare('SELECT email,display_name FROM bw_company_members WHERE user_id=? LIMIT 1').bind(p.userId).first<any>(),subjects=(await env.DB.prepare('SELECT subject FROM oa_external_identities WHERE operator_id=?').bind(p.userId).all<any>()).results.map(row=>row.subject)
   const id=p.userId,email=`former-${id.replace(/[^A-Za-z0-9-]/g,'')}@invalid.invalid`
   for(const table of ['oa_provider_sessions','oa_provider_session_pins'])put(`DELETE FROM ${table} WHERE session_id IN (SELECT id FROM oa_sessions WHERE operator_id=?)`,id)
@@ -52,7 +54,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
    if(Array.isArray(value))return value.map(item=>redact(item,key))
    return value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,redact(item,key)])):value
   }
-  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_return_claims'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const redacted=redact(JSON.parse(row.value_json));const value=JSON.stringify(table==='bw_return_claims'?eraseReturnNarrative(redacted,id):redacted);if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
+  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_return_claims','bw_campaigns','bw_campaign_segments'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const redacted=redact(JSON.parse(row.value_json));const value=JSON.stringify(table==='bw_return_claims'?eraseReturnNarrative(redacted,id):redacted);if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
   for(const row of (await env.DB.prepare('SELECT * FROM bw_confirmations').all<any>()).results){const value=JSON.stringify(redact(JSON.parse(row.value_json)));if(value!==row.value_json)put('UPDATE bw_confirmations SET value_json=? WHERE order_id=? AND number=?',value,row.order_id,row.number)}
   for(const [table,column] of [['bw_quote_notices','summary'],['bw_audit','context_json'],['oa_auth_audit','value']])for(const row of (await env.DB.prepare(`SELECT id,${column} AS value${table==='bw_audit'?',actor_id,action':''} FROM ${table}`).all<any>()).results){
    if(!row.value)continue
@@ -63,6 +65,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put('UPDATE bw_quote_entries SET author_email=?,body=replace(body,?,?) WHERE author_id=?',email,p.email,email,id)
  }
  if(kind==='unused-account') {
+  statements.push(...campaignErasureStatements('account_id',accountId))
   statements.push(...deltaErasure(accountId),cutoverErasure(accountId))
   // Retire the source originals and provenance as well as the native account.
   const {retireAccountImportCustody}=await import('./imports/erasure')

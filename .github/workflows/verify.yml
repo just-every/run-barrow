@@ -88,3 +88,8 @@ jobs:
         env:
           BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promise-screens
         run: timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs
+      - name: Campaign compose, personal ordering and attribution screens
+        if: matrix.shard == 2
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-campaign-screens
+        run: timeout 1200 node --test --test-concurrency=1 --test-name-pattern='supplier resumes a campaign draft' tests/journeys/line-sheets.test.mjs

@@ -64,13 +64,14 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(selling.includes(role)&&method==='GET'&&/^statements\/[-a-zA-Z0-9._:]+?(?:\.(csv|pdf))?$/.test(relative))return // REP-001: balances of accounts held today; account() scopes the read
  if(method==='GET'&&/^sales-terms\/[^/]+\/[1-9]\d*\/document$/.test(relative))return
  if(method==='GET'&&(/^(invoices|statements)\//.test(relative)||/^export(?:\.json|\/[^/]+\.csv)$/.test(relative))&&(role==='finance'||selling.includes(role)&&relative==='export/followups.csv'))return
- if(selling.includes(role)&&method==='GET'&&(relative==='line-sheets'||/^line-sheets\/[a-f0-9-]+(\.(pdf|csv))?$/.test(relative)||relative==='catalogue'||relative==='buying-profiles'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
+ if(selling.includes(role)&&method==='GET'&&(relative==='campaigns'||/^campaigns\/[a-f0-9-]+$/.test(relative)||relative==='line-sheets'||/^line-sheets\/[a-f0-9-]+(\.(pdf|csv))?$/.test(relative)||relative==='catalogue'||relative==='buying-profiles'||relative==='lists'||relative==='rep-assignments'||/^quotes(?:\/|$)/.test(relative)||relative==='shipping/options'||relative==='confirmation-layouts'||relative==='accounts/duplicates'))return
  return denied(env,actor,path)
 }
 
 const commandRoles:Record<string,string[]>={
  'promise.record':['finance'],'promise.revise':['finance'],'promise.withdraw':['finance'],'promise.resolve':['finance'],'promise.pause':['finance'],'promise.refresh':['finance'],
  'return.request':['operations'],'return.revise':['operations'],'return.decide':['operations'],'return.reconcile':['operations'],
+ 'segment.save':selling,'campaign.save':selling,'campaign.test':selling,'campaign.schedule':selling,'campaign.send':selling,
  'credit-policy.request':selling,'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
  'credit.issue':['finance'],'credit.apply':['finance'],'card.allocate':['finance'],'refund.request':['finance'],'refund.refresh':['finance'],
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],

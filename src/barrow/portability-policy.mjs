@@ -17,6 +17,8 @@ export const portabilityPolicy = {
   if(table==='bw_cutover_imports'&&row.state==='active')return {...row,state:'undone'}; // Restored cutover evidence is retained history, never an activation.
   if(table==='bw_agent_proposals'){const value=JSON.parse(row.value_json);return {...row,state:'superseded',value_json:JSON.stringify({...value,state:'superseded'})}};
   if(table==='bw_webhook_deliveries')return {...row,lease_until:0,...(['queued','retrying','sending'].includes(row.state)?{state:'dead-letter',last_result:'Restored history is inactive; external acceptance not acknowledged'}:{})};
+  if(table==='bw_campaigns')return {...row,restored:1,state:'inactive',due_at:null};
+  if(table==='bw_campaign_deliveries'&&['queued','not configured','uncertain'].includes(row.status))return {...row,status:'withdrawn',reason:'Restored campaigns cannot initiate outreach'};
   if(table==='bw_line_sheets')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),state:'revoked'})};
   if(table==='bw_staff_members')return {...row,state:'revoked'};
   if(table==='bw_rep_assignments'||table==='bw_company_delegations')return {...row,state:'ended'};
