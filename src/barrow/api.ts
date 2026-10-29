@@ -1,3 +1,4 @@
+import { agentHttp } from './agent-door/http.ts'
 import { trackingCommand, trackingView } from './shipment-tracking'
 import { orderFollowthrough } from './order-followthrough'
 import { paymentPromiseCommand, readPaymentPromises } from './payment-promises'
@@ -27,7 +28,7 @@ import {previewPlatform,applyPlatform,readPlatform} from './imports/platform-his
 import {createDelta,compareDelta,signoffDelta,readDelta,listDeltas,rollbackDelta} from './imports/delta-session'
 import {runDeltaFeed} from './feeds/session'
 import {agentProposalCommand,listAgentProposals} from './agent-proposals'
-import {createProposalGrant,readProposalGrant,revokeProposalGrant,grantGuard} from './proposal-grants'
+import {createProposalGrant,readProposalGrant,revokeProposalGrant} from './proposal-grants'
 import { readWebhooks,webhookCommand,webhookHistory } from './webhooks'
 import { importPriceBook, priceBookCsv } from './price-books'
 import { listSheets, readSheet, sheetDownload, sheetCommand } from './line-sheets'
@@ -136,15 +137,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    throw error
   })
   if(actor.integration&&!path.startsWith('/api/barrow/v1/'))fail('FORBIDDEN','Use the versioned integration API within the granted scopes.',403)
-  const proposalScope=actor.agent&&actor.grantId?await readProposalGrant(env.DB,actor.grantId):null
-  if(actor.agentScope==='proposal'&&!proposalScope)fail('AUTH','The scoped proposal grant is unavailable. A new explicit owner grant is required.',401)
-  if(proposalScope) {
-   try{await env.DB.batch([grantGuard(env.DB,proposalScope),env.DB.prepare('DELETE FROM bw_guard')])}catch{fail('AUTH','This account-scoped proposal grant is no longer current.',401)}
-   const scopedOrder=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
-   if(request.method==='GET'&&path==='/api/barrow/catalogue') {if(url.searchParams.get('accountId')!==proposalScope.accountId)fail('FORBIDDEN','This credential covers one account only.',403)}
-   else if(request.method==='GET'&&scopedOrder) {if((await readOrder(env.DB,actor,scopedOrder[1])).accountId!==proposalScope.accountId)fail('NOT_FOUND','Order not found.',404)}
-   else if(!(request.method==='POST'&&path==='/api/barrow/commands'))fail('FORBIDDEN','This credential may read its account catalogue/orders and submit structured proposals only.',403)
-  }
+  if(actor.agent&&!actor.integration)return await agentHttp(request,env,actor)
   actor.staff=await readStaffGrant(env.DB,actor)
   if(!path.startsWith('/api/barrow/v1/'))await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
@@ -367,7 +360,6 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    // A command carries at most one 1 MB PO document as base64.
    const body=await boundedJson(request,1500000) as any
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
-   if(proposalScope&&body.type!=='proposal.submit')fail('PERSON_REQUIRED','This scoped credential can submit proposals only; people approve every effect.',403)
    if(actor.agent && !['order.prepare','cart.preview','cart.form','proposal.submit'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)

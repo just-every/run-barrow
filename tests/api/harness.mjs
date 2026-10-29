@@ -67,9 +67,12 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
     });response.on('error',reject);
    });req.on('error',error=>reject(new Error(`${init.method??'GET'} ${path.split('?')[0]}: ${error.code??'transport failure'}`)));if(init.body!==undefined)req.write(init.body);req.end();
   });
-  const request=(path,{method='GET',body,as=cookie,headers={}}={})=>raw(path,{method,redirect:'manual',headers:{origin,'content-type':'application/json',...(as?{cookie:as}:{}),...headers},...(body!==undefined?{body:JSON.stringify(body)}:{})});
+  const request=(path,{method='GET',body,as=cookie,headers={}}={})=>raw(path,{method,redirect:'manual',headers:{origin,'content-type':'application/json',...(as?{cookie:as}:{}),...headers},...(body!==undefined?{body:JSON.stringify(!pier&&path==='/api/barrow/commands'&&headers.authorization?.startsWith('Bearer ')&&['order.prepare','proposal.submit'].includes(body.type)?{...body,payload:{idempotency_key:randomUUID(),...body.payload}}:body)}:{})});
   const boot=await request('/auth/bootstrap',{method:'POST',body:{token:setup,displayName:'Supplier'}});assert.equal(boot.status,303,await boot.text());
   cookie=boot.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
+  // Existing commercial journeys now start with the owner's explicit standalone policy.
+  // The production conformance journey separately proves unset/held/blocked policy.
+  if(!pier){const policy=await request('/agents/api/policy',{method:'PUT',body:{document:{schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[{id:'native-fixture',class:'*',do:'autonomous'}],spend:{none:true}}}});assert.equal(policy.status,200,await policy.text());}
   const api=async(path,body,opts={})=>{
    const response=await request(path,{...(body===undefined?{}:{method:'POST',body}),...opts});const value=await response.json();
    if(opts.status!==undefined) assert.equal(response.status,opts.status,JSON.stringify(value)); else assert.ok(response.ok,JSON.stringify(value));

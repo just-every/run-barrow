@@ -7,11 +7,12 @@ import { readOrder } from '../orders.ts'
 import { readLists, readList } from '../lists.ts'
 import { catalogue } from '../pier.ts'
 import { requireCompanyRight } from '../company-policy.ts'
+import { requireUsageTerms } from '../usage-terms.ts'
 import { nativeActor, native, restrictAccount } from './native.ts'
 
 export type Context = Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'>
 export async function readAccount(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);const value=await account(env.DB,actor,id);await retainAgentAccount(env.DB,id,value.revision);return value})
+ return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision);return value})
 }
 export async function readCatalog(env:Bindings,id:string,ctx:Context) {
  return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);await requireCompanyRight(env.DB,actor,id,'purchasing');const selected=await readAccount(env,id,ctx);return catalogue(env,selected)})

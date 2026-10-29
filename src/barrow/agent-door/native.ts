@@ -61,7 +61,7 @@ export async function nativeActor(env:Bindings,ctx:Pick<ToolContext|ResourceCont
     THEN 1 ELSE 0 END`).bind(person.id,row!.version,state?.envelope??null,state?.local_document??null,state?.local_revision??0,Date.now(),ctx.agent.id,person.id,local?.id??null,local?.id??null,person.id,row!.version,Date.now())}}
 }
 export async function native<T>(run:()=>Promise<T>):Promise<T> {
- try{return await run()}catch(error){if(error instanceof Problem)throw new ToolRefusal(error.code,error.message);throw error}
+ try{return await run()}catch(error){if(error instanceof Problem)throw new ToolRefusal(error.code,error.message,{native_status:error.status,message:error.message});throw error}
 }
 export async function restrictAccount(env:Bindings,actor:Actor,id:string) {
  if(actor.agentScope!=='proposal')return

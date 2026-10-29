@@ -33,8 +33,8 @@ scopes from `catalog:read`, `order:prepare` and the entity preparation scopes
 described below. Expiry is an integer Unix timestamp
 in milliseconds, after now and at most seven days away. There is no automatic
 submission, approval, import, invoice read, fulfillment read, grant management,
-erasure or outbound authority. A legacy agent credential continues to use its
-existing doors; it is not a versioned integration grant.
+erasure or outbound authority. A legacy agent credential uses the shared policy door through MCP or the
+legacy HTTP compatibility transport; it is not a versioned integration grant.
 
 These requests use a private native session file obtained through normal native
 sign-in, not a copied browser profile. Keep session and token files outside the
@@ -238,3 +238,5 @@ Buyers and agents cannot read internal audit decisions. The versioned sanity
 journeys in `tests/api/integration-api.test.mjs` exercise every prepared entity,
 human application, unchanged issued invoices, exact source fulfillment, replay,
 stale revisions and authority withdrawal through these public HTTP doors.
+
+Legacy `prepare-order` input must include a stable `idempotency_key`. The owner must first answer the shared agent policy; unset policy and Pause refuse catalogue reads and preparation. Native draft and proposal attribution names `Barrow scoped agent for <person>`. Keep the exact input file and key when retrying.
