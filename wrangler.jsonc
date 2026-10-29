@@ -29,8 +29,6 @@
     "AUTH_LOCAL": "false",
     "MAIL_PROVIDER": "",
     "MAIL_FROM": "",
-    "MAIL_RELAY_URL": "",
-    "OWNER_EMAIL": "",
-    "PIER_ORIGIN": ""
+    "MAIL_RELAY_URL": ""
   }
 }
