@@ -7,6 +7,7 @@ export type ProposalCandidate = {
  taxNote: string; rank: number
 }
 export type AgentProposal = {
+ preparedBy?: {agent:string;person:string;label:string};
  id: string; number: number; revision: string; accountId: string; orderId: string; grantId: string;
  state: 'proposed' | 'offered' | 'executing' | 'completed' | 'blocked' | 'superseded';
  model: string; runId: string; reportedCostCents: number; createdAt: string;

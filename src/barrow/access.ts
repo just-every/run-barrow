@@ -24,6 +24,7 @@ export async function current(request: Request, env: Bindings): Promise<Actor> {
  return {id:session.operator.id,email:session.operator.email,role:session.operator.role,version:session.operator.version,sessionId:session.id,agent:false}
 }
 export function admission(db: D1Database, actor: Actor): D1PreparedStatement {
+ if(actor.door)return actor.door.admission()
  if(actor.integration)return integrationAdmission(db,actor)
  const sql = actor.agent
   ? `EXISTS(SELECT 1 FROM bw_agent_tokens t JOIN oa_operators o ON o.id=t.actor_id WHERE t.id=? AND o.id=? AND o.version=? AND o.status='active' AND o.role IN ('owner','admin') AND t.expires_at>?)`
@@ -38,6 +39,6 @@ export async function commit(db: D1Database, actor: Actor, statements: D1Prepare
 }
 export const changed = (db: D1Database) => db.prepare('INSERT INTO bw_guard(value) VALUES(changes())')
 export const audit = (db:D1Database,actor:Actor,subject:string,action:string,context:AuditContext) => {
- const event=commercialAuditEvent(actor.agent?`agent:${actor.grantId}`:actor.id,subject,action,context)
+ const event=commercialAuditEvent(actor.door?`agent:${actor.door.agentId}`:(actor.agent?`agent:${actor.grantId}`:actor.id),subject,action,{...context,...(actor.door?{preparedBy:{agent:actor.door.agentId,person:actor.door.sponsorId,label:actor.door.label},operationId:actor.door.operationId,approvers:actor.door.approvers}: {})})
  return db.prepare(event.sql).bind(...event.params)
 }

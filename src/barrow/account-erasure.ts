@@ -1,3 +1,4 @@
+import { assertNoAgentCustody } from './agent-door/custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
 import { deltaErasure } from './imports/delta-custody'
 /** ct scope-review-56 §E: account erasure keeps the commercial account and
@@ -261,6 +262,7 @@ export async function applyAccountErasure(env:Bindings,operation:ErasureOperatio
 }
 export async function executeAccountErasure(env:Bindings,actor:Actor,p:any,mode:'erase'|'revoke') {
  owner(actor)
+ if(mode==='erase')await assertNoAgentCustody(env.DB,String(p.accountId))
  if(p.confirm!=='ERASE')fail('CONFIRM','Type ERASE to authorize this reviewed action.',400)
  const reason=text(p.reason,'Erasure reason',1000),state=await facts(env,text(p.accountId,'Account ID'))
  if(!state.request)fail('REQUEST','Record and verify a current erasure request before execution.')

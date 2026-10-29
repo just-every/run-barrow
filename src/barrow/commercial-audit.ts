@@ -33,7 +33,7 @@ function event(row: AuditRow): CommercialAuditEvent {
   return {
     id: row.id, subjectId: row.subject_id, actorId: row.actor_id,
     actorKind: row.actor_id.startsWith('system:') ? 'system' : row.actor_id.startsWith('agent:') ? 'agent' : 'human',
-    actorName: row.actor_name || null, actorEmail: row.actor_email || null,
+    actorName: stringValue(context?.preparedBy?.label) ?? row.actor_name ?? null, actorEmail: row.actor_email || null,
     action: row.action, createdAt: row.created_at,
     accountId: recordedAccount ?? row.related_account, orderId: recordedOrder ?? row.related_order,
     accountOrigin: recordedAccount ? 'recorded' : row.related_account ? 'current-relation' : null,

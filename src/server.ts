@@ -1,3 +1,5 @@
+import { agentDoor } from './barrow/agent-door/index.ts'
+import { businessSettings } from './barrow/agent-door/business.ts'
 import { reconcilePaymentPromises } from './barrow/payment-promises'
 import { dispatchCampaigns } from './barrow/campaigns'
 import { runStockSync } from './barrow/stock-sync'
@@ -36,6 +38,11 @@ function noTransform(response: Response): Response {
 export default withDemo({
   async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await reconcileErasureJournal(runtimeBindings(env));await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await dispatchCampaigns(runtimeBindings(env));await escalateApprovals(runtimeBindings(env));await reconcilePaymentPromises(runtimeBindings(env));await dispatchWebhooks(runtimeBindings(env));await runStockSync(runtimeBindings(env))})()) },
   async fetch(request, env, execution) {
+    const bindings = runtimeBindings(env)
+    const business = await businessSettings(bindings).handle(request)
+    if (business) return business
+    const agent = await agentDoor(bindings).handle(request)
+    if (agent) return agent
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset
     const barrow = await barrowResponse(request, env)

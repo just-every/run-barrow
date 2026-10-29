@@ -1,5 +1,7 @@
 # Agent prepares; person approves
 
+Company-policy MCP access and its current native limits are documented in [Company agents](AGENT-DOOR.md). The HTTP credentials below retain their existing narrow authority.
+
 In the supplier Data page, create a seven-day agent credential. Save it in a private `0600` file outside the checkout. It is shown once, stored only as a SHA-256 digest and revoked when its issuing operator loses authority or when that operator revokes agent credentials.
 
 ```sh

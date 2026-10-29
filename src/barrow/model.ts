@@ -2,7 +2,7 @@ export class Problem extends Error {
  constructor(public code: string, message: string, public status = 409) { super(message) }
 }
 export function fail(code: string, message: string, status = 409): never { throw new Problem(code, message, status) }
-export type Actor = { id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string; agentScope?: 'draft'|'proposal'|'integration'; integration?: import('./integration-grants').IntegrationGrant; integrationAt?: number; exchange?: import('./integration-exchange').ExchangeAdmission; staff?: import('./staff-policy').StaffGrant|null; company?: import('./company-policy').CompanyMembership|null }
+export type Actor = { door?: { admission(): D1PreparedStatement; label: string; operationId: string; agentId: string; sponsorId: string; approvers: readonly {id:string;name:string}[] }; id: string; email: string; role: string; version: number; sessionId?: string; agent: boolean; grantId?: string; agentScope?: 'draft'|'proposal'|'integration'; integration?: import('./integration-grants').IntegrationGrant; integrationAt?: number; exchange?: import('./integration-exchange').ExchangeAdmission; staff?: import('./staff-policy').StaffGrant|null; company?: import('./company-policy').CompanyMembership|null }
 export type Price = { sku: string; msrpCents?: number; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('./units').UnitDefinition[]; pricing?: import('./pricing').Pricing }
 export type { AccountValue } from './imports/validation'
 import type { AccountValue } from './imports/validation'
@@ -18,7 +18,7 @@ export const integer = (v: unknown, name: string, min = 0, max = 1000000000): nu
 export const supplier = (actor: Actor) => (['owner','admin'].includes(actor.role)||Boolean(actor.staff))
 export const requireSupplier = (actor: Actor) => { if (actor.agent || !supplier(actor)) fail('FORBIDDEN','A signed-in supplier must approve this action.',403) }
 export const requirePerson = (actor: Actor) => { if(actor.agent) fail('PERSON_REQUIRED','An agent can prepare a draft; a person must review and submit it.',403) }
-export const actorLabel = (actor: Actor) => actor.agent ? `agent:${actor.grantId}` : actor.id
+export const actorLabel = (actor: Actor) => actor.door?.label ?? (actor.agent ? `agent:${actor.grantId}` : actor.id)
 /** The supplier's zone: every date Barrow writes or shows is a date in Eastern time unless a brand says otherwise. */
 export const supplierZone = 'America/New_York'
 /** A moment's calendar date in the supplier's zone, as YYYY-MM-DD. */

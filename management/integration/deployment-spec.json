@@ -412,6 +412,30 @@
       "name": "0063_campaigns.sql",
       "sha256": "258406050f7fba65bf53df9e0600c1b4ce74010fe8f4f491ede4db2b754ff5eb",
       "sql": "CREATE TABLE bw_campaign_segments(id TEXT PRIMARY KEY,created_by TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nCREATE TABLE bw_campaigns(id TEXT PRIMARY KEY,created_by TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'draft',due_at TEXT,restored INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE bw_campaign_deliveries(id TEXT PRIMARY KEY,campaign_id TEXT NOT NULL,account_id TEXT NOT NULL,recipient_id TEXT NOT NULL,recipient_version INTEGER NOT NULL,sheet_id TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'queued',reason TEXT,provider_message_id TEXT,first_attempt_at TEXT,updated_at TEXT NOT NULL,UNIQUE(campaign_id,recipient_id));\nCREATE INDEX bw_campaign_deliveries_campaign ON bw_campaign_deliveries(campaign_id);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0064_agent_door.sql",
+      "sha256": "016d8a98b964385f5c4a13447361c3c783910a76aaf4606b0e0081482bc819cc",
+      "sql": "CREATE TABLE IF NOT EXISTS agent_door_state (\n  id INTEGER PRIMARY KEY CHECK(id=1), envelope TEXT, local_document TEXT,\n  local_revision INTEGER NOT NULL DEFAULT 0, local_paused INTEGER NOT NULL DEFAULT 0,\n  decision_lock TEXT, decision_until INTEGER\n);\nCREATE TABLE IF NOT EXISTS agent_door_agents (\n  id TEXT PRIMARY KEY, name TEXT NOT NULL, specialist TEXT, sponsor TEXT NOT NULL,\n  sponsor_name TEXT NOT NULL, revoked INTEGER NOT NULL DEFAULT 0,\n  window INTEGER NOT NULL DEFAULT 0, requests INTEGER NOT NULL DEFAULT 0\n);\nCREATE TABLE IF NOT EXISTS agent_door_audit (\n  sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, at TEXT NOT NULL,\n  agent TEXT NOT NULL, classes TEXT NOT NULL, row TEXT NOT NULL, evidence TEXT\n);\nCREATE INDEX IF NOT EXISTS agent_door_audit_agent ON agent_door_audit(agent,sequence);\nCREATE TABLE IF NOT EXISTS agent_door_calls (\n  agent TEXT NOT NULL, key TEXT NOT NULL, digest TEXT NOT NULL, decision_id TEXT NOT NULL,\n  created_at INTEGER NOT NULL, state TEXT NOT NULL, outcome TEXT, PRIMARY KEY(agent,key)\n);\nCREATE TABLE IF NOT EXISTS agent_door_approvals (\n  id TEXT PRIMARY KEY, state TEXT NOT NULL, saved TEXT NOT NULL, approvals TEXT NOT NULL DEFAULT '[]',\n  result TEXT, version INTEGER NOT NULL DEFAULT 0\n);\nCREATE TABLE IF NOT EXISTS agent_door_reviews (\n  id TEXT PRIMARY KEY, state TEXT NOT NULL, saved TEXT NOT NULL, marked_by TEXT, marked_at TEXT\n);\nCREATE TABLE IF NOT EXISTS agent_door_events (\n  sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, uri TEXT NOT NULL, event TEXT NOT NULL\n);\nCREATE INDEX IF NOT EXISTS agent_door_events_uri ON agent_door_events(uri,sequence);\nCREATE TABLE IF NOT EXISTS agent_door_usage (\n  decision_id TEXT PRIMARY KEY, at INTEGER NOT NULL, seed TEXT NOT NULL, specialist TEXT, agent TEXT NOT NULL,\n  classes TEXT NOT NULL\n);\nCREATE INDEX IF NOT EXISTS agent_door_usage_day ON agent_door_usage(at);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0065_business_settings.sql",
+      "sha256": "a16f736a781aa3fe02a2e090c993f8c360c904f9fb6d86126acdab6e1f24e773",
+      "sql": "CREATE TABLE bs_settings (\n  singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n  rev INTEGER NOT NULL DEFAULT 0,\n  document TEXT,\n  applied_at TEXT,\n  stopped INTEGER NOT NULL DEFAULT 0 CHECK(stopped IN(0,1)),\n  token TEXT NOT NULL DEFAULT ''\n);\nCREATE TABLE bs_overrides (\n  field TEXT PRIMARY KEY CHECK(field IN('display_name','owner_name','brand_color','logo','timezone')),\n  value TEXT NOT NULL,\n  actor TEXT NOT NULL,\n  changed_at TEXT NOT NULL\n);\nCREATE TABLE bs_logo (\n  singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n  sha256 TEXT NOT NULL,\n  type TEXT NOT NULL,\n  bytes BLOB NOT NULL\n);\nCREATE TABLE bs_team (\n  email TEXT PRIMARY KEY,\n  operator_id TEXT,\n  invite INTEGER NOT NULL,\n  state TEXT NOT NULL CHECK(state IN('invited','active','inactive','conflict'))\n);\nCREATE TABLE bs_audit (\n  id INTEGER PRIMARY KEY,\n  actor TEXT NOT NULL,\n  action TEXT NOT NULL,\n  field TEXT,\n  changed_at TEXT NOT NULL\n);\n-- An INSERT of NULL fails the transaction if a concurrent write invalidated its fence.\nCREATE TABLE bs_assert (value INTEGER NOT NULL);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0066_business_people.sql",
+      "sha256": "51aa39622d866b987d71b6e37c9a8300e7f24c54a55611edaab669ed051b01cd",
+      "sql": "ALTER TABLE bs_settings ADD COLUMN owner_id TEXT CHECK(owner_id IS NULL OR owner_id <> '');\nALTER TABLE bs_team ADD COLUMN business_id TEXT CHECK(business_id IS NULL OR business_id <> '');\nALTER TABLE bs_team ADD COLUMN business_role TEXT CHECK(business_role IS NULL OR business_role IN('admin','member'));\nCREATE UNIQUE INDEX bs_team_business_id ON bs_team(business_id) WHERE business_id IS NOT NULL;\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0067_agent_custody.sql",
+      "sha256": "ee2f426692b998227d0a6a30ca8dc1ec46d44c63f5ba82141978b26a95ddc87a",
+      "sql": "-- A native account cannot be erased while retained door evidence can expose it.\n-- This is an explicit closed custody boundary, not an erasure claim.\nCREATE TABLE bw_agent_custody (account_id TEXT PRIMARY KEY);\nCREATE TRIGGER bw_agent_custody_before_erasure\nBEFORE INSERT ON bw_account_erasure_journal\nWHEN EXISTS(SELECT 1 FROM bw_agent_custody WHERE account_id=NEW.account_id) AND coalesce(json_extract(NEW.receipt_json,'$.mode'),'erase')<>'revoke'\nBEGIN SELECT RAISE(ABORT,'AGENT_CUSTODY'); END;\nCREATE TRIGGER bw_agent_custody_before_capture\nBEFORE INSERT ON bw_agent_custody\nWHEN EXISTS(SELECT 1 FROM bw_account_erasure_journal WHERE account_id=NEW.account_id)\nBEGIN SELECT RAISE(ABORT,'AGENT_CUSTODY'); END;\nCREATE TRIGGER bw_agent_custody_before_account_delete\nBEFORE DELETE ON bw_accounts\nWHEN EXISTS(SELECT 1 FROM bw_agent_custody WHERE account_id=OLD.id)\nBEGIN SELECT RAISE(ABORT,'AGENT_CUSTODY'); END;\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
@@ -424,9 +448,7 @@
     "AUTH_LOCAL": "false",
     "MAIL_PROVIDER": "",
     "MAIL_FROM": "",
-    "MAIL_RELAY_URL": "",
-    "OWNER_EMAIL": "",
-    "PIER_ORIGIN": ""
+    "MAIL_RELAY_URL": ""
   },
   "secretNames": [
     "SESSION_SECRET",

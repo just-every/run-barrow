@@ -1,3 +1,4 @@
+import { assertNoAgentCustody } from './agent-door/custody'
 import { campaignErasureStatements } from './campaign-custody'
 import { deltaErasure } from './imports/delta-custody'
 import { cutoverErasure } from './imports/cutover-custody'
@@ -12,6 +13,7 @@ import { portabilityPolicy } from './portability-policy.mjs'
 export type LegacyErasure={version:1;kind:'unused-account'|'company-user'|'po-document'|'application';sourceIdentity:string;id:string;accountId:string;actorId:string;at:string;reason:string;payload:any;receipt:any}
 export async function prepareLegacyErasure(env:Bindings,actor:Actor,kind:LegacyErasure['kind'],accountId:string,payload:any,receipt:any) {
  if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may erase personal data.',403)
+ await assertNoAgentCustody(env.DB,accountId)
  const operation:LegacyErasure={version:1,kind,sourceIdentity:await journalSource(env),id:receipt.id??crypto.randomUUID(),accountId,actorId:actor.id,at:receipt.erasedAt??new Date().toISOString(),reason:payload.reason??'Owner confirmed erasure of an unused account.',payload,receipt}
  const fingerprint=await writeErasureIntent(env,operation),statement={sql:'INSERT INTO bw_account_erasure_journal VALUES(?,?,?,?)',params:[operation.id,accountId,fingerprint,JSON.stringify({...receipt,kind,accountId,actorId:actor.id,reason:operation.reason,at:operation.at})]}
  return {statement,async run<T>(apply:()=>Promise<T>) {
