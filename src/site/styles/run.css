@@ -16,6 +16,9 @@ body.br-base-page { background: #fff; color: var(--br-ink); font-family: var(--r
 .br-run .timeline { display: block; }
 .br-run .timeline::before { content: none; }
 .br-run .timeline li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 12px; min-height: 0; padding: 0; }
+/* Expanded local alternatives stay fully readable on a phone. */
+.br-run .other-ways pre { white-space: pre-wrap; overflow-x: visible; }
+.br-run .chooser .self .other-ways pre code { white-space: pre-wrap; overflow-wrap: anywhere; }
 @container self (min-width: 720px) {
   .br-run .timeline { display: grid; gap: 20px; }
   .br-run .timeline li { display: flex; gap: 0; }
