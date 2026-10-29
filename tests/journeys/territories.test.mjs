@@ -1,3 +1,4 @@
+import { easternDay } from '../eastern-day.mjs';
 // Manual ACC-006 journey: built HTTPS Worker, real D1/Pier, only Resend's edge faked.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -84,7 +85,7 @@ test('manager assigns, covers and transfers rep territories; the rep, the buyer 
  await cover.getByLabel('Rep', { exact: true }).selectOption({ label: 'blake-rep' });
  await cover.getByLabel('Scope', { exact: true }).selectOption('rep');
  await cover.getByLabel('Rep being covered', { exact: true }).selectOption({ label: 'avery-rep' });
- const nextWeek = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + 7 * 86400000));
+ const nextWeek = easternDay(7);
  await cover.getByLabel('Covers through (required)', { exact: true }).fill(nextWeek);
  await cover.getByLabel('Reason', { exact: true }).fill('Avery is on vacation this week.');
  await captureWidths(manager, 'territories-manager-coverage-form');

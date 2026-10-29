@@ -1,3 +1,4 @@
+import { easternDay } from '../eastern-day.mjs';
 // Manual ACC-007 journey: built HTTPS Worker, real D1/Pier, only Resend's edge faked.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -63,7 +64,7 @@ test('a company administrator sets a two-step route and delegation; a $6,000 car
  const delegate = routes.getByRole('form', { name: 'Delegate approval', exact: true });
  await delegate.getByLabel('Absent approver', { exact: true }).selectOption({ label: 'Operations Manager' });
  await delegate.getByLabel('Delegate', { exact: true }).selectOption({ label: 'Deputy Approver' });
- const nextWeek = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + 7 * 86400000));
+ const nextWeek = easternDay(7);
  await delegate.getByLabel('Through (Eastern time, at most 90 days)', { exact: true }).fill(nextWeek);
  await delegate.getByLabel('Reason', { exact: true }).fill('Operations manager is away this week.');
  await delegate.getByRole('button', { name: 'Delegate approval', exact: true }).click();

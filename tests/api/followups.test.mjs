@@ -1,3 +1,4 @@
+import { easternDay } from '../eastern-day.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation, stock, accountValue, archive, restore } from './harness.mjs';
@@ -17,7 +18,7 @@ test('AUTO-005: source-linked next actions retain failed contacts, ownership and
  const adminId = (await h.api('/api/barrow/state', undefined, admin)).actor.id;
  let quote = await h.command('quote.request', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 2 }] }, buyer);
  const unanswered = await h.command('quote.request', { accountId: 'cedar', lines: [{ sku: 'OAT-1', quantity: 3 }] }, buyer);
- const validity = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York' }).format(new Date(Date.now()+10*86400000));
+ const validity = easternDay(10);
  quote = await h.command('quote.propose', { quoteId: quote.id, revision: quote.revision, validUntil: validity, lines: [{ sku:'OAT-1', quantity:2 }] });
  const draft = await h.command('order.prepare', { accountId:'cedar', reference:'ABANDONED', lines:[{sku:'OAT-1',quantity:2}] }, buyer);
  const pending = await h.command('order.prepare', { accountId:'cedar', reference:'AWAITING', lines:[{sku:'OAT-1',quantity:2}] }, buyer);

@@ -1,3 +1,4 @@
+import { easternDay } from '../eastern-day.mjs';
 // Manual REP-001 journey: built HTTPS Worker, real D1/Pier, only Resend's edge faked.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -78,7 +79,7 @@ test('a rep plans a showroom visit, records buyer notes and samples, turns the s
   const context = await signedContext(browser, h, cookie); t.after(() => context.close());
   const page = await context.newPage(); await page.goto(h.origin + '/app'); return page;
  };
- const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + 2 * 86400000));
+ const day = easternDay(2);
  const avery = await open(rep.who.as);
  await avery.getByRole('button', { name: 'Order pad', exact: true }).waitFor();
  const visits = avery.getByRole('region', { name: 'Visits and samples', exact: true });

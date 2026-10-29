@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHmac, randomBytes } from 'node:crypto';
 import { installation, stock, accountValue, activateStaff } from './harness.mjs';
 
-const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
+import { easternDay } from '../eastern-day.mjs';
 const policy = (role, extra = {}) => ({ role, accounts: [], warehouses: [], reports: [], discountLimitCents: 0, stockExceptionLimitCents: 0, ...extra });
 
 test('ACC-006: managers assign reps to territories and accounts with dated coverage; access, quote routing, reports, tasks, commissions and sends follow the current assignment and no history is rewritten', async t => {

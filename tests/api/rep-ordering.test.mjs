@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { installation, stock, accountValue, activateStaff } from './harness.mjs';
 
 const policy = (role, extra = {}) => ({ role, accounts: [], warehouses: [], reports: [], discountLimitCents: 0, stockExceptionLimitCents: 0, ...extra });
-const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
+import { easternDay } from '../eastern-day.mjs';
 
 test('REP-001: a rep switches only among assigned accounts, sees prices, stock, history and balances, prepares for the buyer, and the accepted order names rep and buyer', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());

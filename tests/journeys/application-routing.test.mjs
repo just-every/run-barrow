@@ -1,3 +1,4 @@
+import { easternDay } from '../eastern-day.mjs';
 // Manual AUTO-001 journey: built HTTPS Worker, real D1/Pier, only Resend's edge faked.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -81,7 +82,7 @@ test('applications route by territory to a reviewer with a prepared request, the
 
  // Past its deadline the task escalates to the named escalation person.
  const taskId = `application:${application.id}`, stored = JSON.parse((await h.db.prepare('SELECT value_json FROM bw_followups WHERE id=?').bind(taskId).first()).value_json);
- stored.application.deadline = stored.nextContactDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() - 86400000));
+ stored.application.deadline = stored.nextContactDate = easternDay(-1);
  await h.db.prepare('UPDATE bw_followups SET value_json=? WHERE id=?').bind(JSON.stringify(stored), taskId).run(); // stands in for the passing days
  await queue();
  await task.getByText(new RegExp(`Escalated since .* to ${people.find(row => row.role === 'owner').name}`)).first().waitFor();

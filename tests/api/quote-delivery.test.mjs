@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac,randomBytes } from 'node:crypto';
 import { installation,stock,accountValue,archive,restore } from './harness.mjs';
-const easternDay=offset=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date(Date.now()+offset*86400000));
+import { easternDay } from '../eastern-day.mjs';
 async function quoting(t,bindings,https) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier,'80');
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,...bindings},https});t.after(()=>h.close());

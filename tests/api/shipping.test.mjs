@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation,stock,accountValue,archive,restore } from './harness.mjs';
-const day=offset=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date(Date.now()+offset*86400000));
+import { easternDay as day } from '../eastern-day.mjs';
 const method=(id,patch={})=>({id,name:id,kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1500,handlingCents:250,freeOverCents:26000,transitMinDays:2,transitMaxDays:5,quoteRequired:false,...patch});
 async function fixture(t) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const product=await stock(pier,'200');

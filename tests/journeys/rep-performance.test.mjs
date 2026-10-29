@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
 import {installation,stock,accountValue,activateStaff} from '../api/harness.mjs';
 import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
-const day=offset=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date(Date.now()+offset*86400000));
+import { easternDay as day } from '../eastern-day.mjs';
 const policy=(role,more={})=>({role,accounts:[],warehouses:[],reports:['commissions'],discountLimitCents:0,stockExceptionLimitCents:0,...more});
 
 test('owner sets activity goals, manager reconciles transferred shipment and return statements, and each rep sees only current private work at desktop and phone',async t=>{
