@@ -1,3 +1,4 @@
+import { returnCreditAdmission } from './return-credit'
 import { allocateDeposit,depositReceipts } from './deposits'
 import { creditBasis } from './credit-basis'
 import { companyOrderScope } from './company-access'
@@ -56,10 +57,11 @@ export async function issueCredit(env:Bindings,actor:Actor,p:any) {
  if(existing){creditAuthority(actor,order.accountId,existing.amountCents,order.currency??'AUD');return publicCredit(existing)}
  const basis=await creditBasis(env,order,p,records.credits),returnId=basis.sourceId
  creditAuthority(actor,order.accountId,basis.amountCents,order.currency??'AUD')
+ const admission=await returnCreditAdmission(env,order,p,basis)
  const {id,lines,amountCents,freightCents,taxCents,kind,sourceId}=basis,revision=crypto.randomUUID(),at=new Date().toISOString(),commission=await env.DB.prepare('SELECT value_json FROM bw_order_commissions WHERE order_id=?').bind(order.id).first<{value_json:string}>()
- const credit:CreditNote={id,kind,sourceId,freightCents,taxCents,taxBasis:'not recorded',...(order.delivery?{freightBasis:order.delivery}:{}),accountId:order.accountId,orderId:order.id,orderRevision:order.revision,currency:order.currency??'AUD',amountCents,returnId,createdAt:at,actorId:actor.id,reason,revision,lines,...(commission?{commissionSnapshot:JSON.parse(commission.value_json)}:{})}
+ const credit:CreditNote={...(admission.authorization?{returnAuthorization:admission.authorization}:{}),id,kind,sourceId,freightCents,taxCents,taxBasis:'not recorded',...(order.delivery?{freightBasis:order.delivery}:{}),accountId:order.accountId,orderId:order.id,orderRevision:order.revision,currency:order.currency??'AUD',amountCents,returnId,createdAt:at,actorId:actor.id,reason,revision,lines,...(commission?{commissionSnapshot:JSON.parse(commission.value_json)}:{})}
  const autoApplied=Math.min(amountCents,invoiceOutstanding(order.id,order.totalCents,records)),application:CreditApplication={id:`application-${id}-${order.id}`,creditId:id,accountId:order.accountId,orderId:order.id,currency:credit.currency,amountCents:autoApplied,createdAt:at,actorId:actor.id,reason:'Credit first reduces the original unpaid invoice principal.',revision:crypto.randomUUID()}
- await commit(env.DB,actor,[...guards,env.DB.prepare('INSERT INTO bw_credit_notes VALUES(?,?,?,?,?,?)').bind(id,order.accountId,order.id,returnId,JSON.stringify(credit),revision),...(autoApplied?[env.DB.prepare('INSERT INTO bw_credit_applications VALUES(?,?,?,?,?,?)').bind(application.id,order.accountId,order.id,id,JSON.stringify(application),application.revision)]:[]),audit(env.DB,actor,id,'credit.issued',{accountId:order.accountId,orderId:order.id,revision,source:returnId,reason})])
+ await commit(env.DB,actor,[...guards,...admission.guards,env.DB.prepare('INSERT INTO bw_credit_notes VALUES(?,?,?,?,?,?)').bind(id,order.accountId,order.id,returnId,JSON.stringify(credit),revision),...(autoApplied?[env.DB.prepare('INSERT INTO bw_credit_applications VALUES(?,?,?,?,?,?)').bind(application.id,order.accountId,order.id,id,JSON.stringify(application),application.revision)]:[]),audit(env.DB,actor,id,'credit.issued',{accountId:order.accountId,orderId:order.id,revision,source:returnId,reason})])
  return publicCredit(credit)
 }
 export async function applyCredit(env:Bindings,actor:Actor,p:any) {

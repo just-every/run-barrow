@@ -37,7 +37,7 @@ const filters = [['All','all'], ['Drafts','draft'], ['Company approval','awaitin
 type HistoryPage = {accountRevisions:Record<string,string>;orders:Order[];people:Record<string,string>;page:number;hasNext:boolean;counts:Record<string,number>;duplicatePOs:string[];completedReplacements:string[]}
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
-export function Orders({ orders: all, accounts, people, viewer, supplier, stockExceptionLimitCents,canOperate=supplier,canExcept=supplier,canQuote=supplier, companyApprover=false, companyManager=false, canPurchase=true, finance=true, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean;stockExceptionLimitCents?:number;canOperate?:boolean;canExcept?:boolean;canQuote?:boolean;companyApprover?:boolean;companyManager?:boolean;canPurchase?:boolean;finance?:boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
+export function Orders({ orders: all, accounts, people, viewer, supplier, stockExceptionLimitCents,canReturn=false,canOperate=supplier,canExcept=supplier,canQuote=supplier, companyApprover=false, companyManager=false, canPurchase=true, finance=true, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean;stockExceptionLimitCents?:number;canReturn?:boolean;canOperate?:boolean;canExcept?:boolean;canQuote?:boolean;companyApprover?:boolean;companyManager?:boolean;canPurchase?:boolean;finance?:boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
   const [openPlans,setOpenPlans]=useState<Record<string,boolean>>({})
   const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
   const [termsFor,setTermsFor]=useState<Record<string,TermsChoice>>({})
@@ -111,7 +111,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
           {order.prebookRelease&&<p>Release of seasonal commitment {order.prebookRelease.orderId} · window {order.prebookRelease.windowId}</p>}
           {order.status==='approved'&&(!order.prebook||order.prebook.depositCents>0)&&finance&&<CardPaymentPanel orderId={order.id} deposit={Boolean(order.prebook)} merchant={supplier} canAct={canOperate}/>}
           {!!order.invoice&&!supplier&&canPurchase&&<ReturnClaims order={order}/>}
-          {!!order.invoice&&supplier&&canQuote&&<ReturnClaims order={order}/>}
+          {!!order.invoice&&supplier&&canReturn&&<ReturnClaims order={order}/>}
           {['approved','cancelled'].includes(order.status)&&!!order.invoice&&finance&&<CreditPanel order={order}/>}
           <OrderShipping order={order} supplier={canQuote} canSelect={canPurchase} busy={busy} run={run} />
           <p className="br-order-explain">{order.prebook?'Seasonal commitment recorded; stock allocation is confirmed on each linked release.':order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' :order.status==='approved'&&!finance?'Stock is reserved in full.':explanations[order.status]}</p>

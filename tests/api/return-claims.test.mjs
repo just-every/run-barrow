@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {returnClaimsFixture} from './return-claims-fixture.mjs';
+import {proveReturnCredit} from './return-credit-proof.mjs';
 import {activateStaff,archive,installation,restore} from './harness.mjs';
 const stockFacts=state=>Object.fromEntries(['orders','movements','returns','shipments','commands','positions','stockPositions','warehouseStocks','companyStocks'].map(key=>[key,state[key]]));
 
@@ -75,6 +76,7 @@ test('return requests bind partial authorization to current revisions, reconcile
   assert.ok(csv.includes(original.id));assert.ok(!csv.includes(privateText));
   assert.ok(!JSON.stringify(await target.api('/api/barrow/export.json')).includes(privateText));
  }
+ await proveReturnCredit(f,claim,received);
  const saved=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,saved);
  const restoredExport=await restored.api('/api/barrow/export.json');assert.equal(restoredExport.returnclaims.find(row=>row.id===claim.id).restored,true);
  await restored.command('return.decide',{id:second.id,revision:second.revision,orderRevision:order.revision,quantity:2,instructions:'No restored action.',reason:'No restored action.'},{status:409});

@@ -1,3 +1,5 @@
+import { returnInspection } from './return-inspection'
+import { creditAuthority } from './credit-access'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { account } from './accounts'
@@ -45,8 +47,8 @@ async function observation(env: Bindings, order: Order, claim: ReturnClaim) {
    if(!received || !linked.returnIds.includes(entry.returnId) || decimal(received.quantity)<decimal(entry.baseQuantity))throw Error('Receipt unavailable')
   }
   const quantity=claim.receipts.reduce((sum,entry)=>sum+entry.quantity,0)
-  return {available:true,quantity,reason:quantity?'Connected Pier receipts verified.':'Awaiting physical receipt in the connected Pier installation.'}
- } catch { return {available:false,quantity:0,reason:'Connected return evidence is unavailable or does not reconcile. Receipt and credit remain unresolved.'} }
+  return {available:true,quantity,inspections:claim.receipts.map(entry=>returnInspection(evidence.state.returns.find((row:any)=>row.id===entry.returnId))),reason:quantity?'Connected Pier receipts verified.':'Awaiting physical receipt in the connected Pier installation.'}
+ } catch { return {available:false,quantity:0,inspections:[],reason:'Connected return evidence is unavailable or does not reconcile. Receipt and credit remain unresolved.'} }
 }
 async function proposal(env: Bindings, order: Order, claim: ReturnClaim, evidence: Awaited<ReturnType<typeof observation>>) {
  if(!evidence.available || !claim.decision?.quantity || evidence.quantity!==claim.decision.quantity)return null
@@ -55,23 +57,26 @@ async function proposal(env: Bindings, order: Order, claim: ReturnClaim, evidenc
   for(const receipt of claim.receipts) {
    if(previous.some(note=>(note.kind??'return')==='return'&&note.returnId===receipt.returnId))return null
    const basis=await creditBasis(env,order,{returnId:receipt.returnId,lines:[{line:claim.line,quantity:receipt.quantity}]},previous)
-   lines.push({returnId:receipt.returnId,quantity:receipt.quantity,amountCents:basis.amountCents})
+   lines.push({returnId:receipt.returnId,quantity:receipt.quantity,amountCents:basis.amountCents,inspection:returnInspection(basis.received)})
    previous.push({orderId:order.id,kind:'return',lines:basis.lines} as any)
   }
-  return {currency:claim.currency,amountCents:lines.reduce((sum,line)=>sum+line.amountCents,0),lines,note:'Proposal only. Inspection and a separate authorized credit decision are still required. No credit, refund or stock command has been issued.'}
+  return {currency:claim.currency,amountCents:lines.reduce((sum,line)=>sum+line.amountCents,0),lines,note:'Proposal only. A current Pier inspection and a separate authorized credit decision are required. No refund or stock command is issued by Barrow.'}
  } catch { return null }
 }
 export async function readReturnClaims(env: Bindings, actor: Actor, orderId: string) {
  requirePerson(actor)
- if(actor.staff)review(actor)
+ if(actor.staff&&actor.staff.role!=='finance')review(actor)
  const order=await readOrder(env.DB,actor,orderId),claims=(await returnRecords(env.DB)).filter(row=>row.orderId===order.id)
  const people=reviewer(actor)?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators').all<{id:string;display_name:string}>()).results.map(row=>[row.id,row.display_name])):{}
  const shown=await Promise.all(claims.map(async claim=>{
   const evidence=await observation(env,order,claim),creditProposal=await proposal(env,order,claim,evidence)
+  let canCredit=false
+  if(!claim.restored&&creditProposal&&creditProposal.lines.every(line=>line.inspection)){try{creditAuthority(actor,claim.accountId,creditProposal.amountCents,claim.currency??'AUD');canCredit=true}catch{}}
+  const credits=(await creditRecords(env.DB)).credits.filter(note=>note.returnAuthorization?.claimId===claim.id).map(note=>({id:note.id,amountCents:note.amountCents,currency:note.currency,createdAt:note.createdAt,returnId:note.returnId}))
   const disputedQuantity=claim.decision?claim.quantity-claim.decision.quantity:0
   const tasks=reviewer(actor)?(await env.DB.prepare("SELECT value_json,revision FROM bw_followups WHERE id IN (?,?) ORDER BY id").bind(`return:${claim.id}`,`return-dispute:${claim.id}`).all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})):[]
   const visible=reviewer(actor)?claim:{...claim,history:claim.history.map(event=>({...event,by:event.by===actor.id?actor.id:'supplier'})),createdBy:claim.createdBy===actor.id?actor.id:'company buyer',decision:claim.decision?{...claim.decision,by:'supplier'}:undefined,receipts:claim.receipts.map(receipt=>({...receipt,by:'supplier'}))}
-  return {...visible,evidence,creditProposal,disputedQuantity,tasks}
+  return {...visible,evidence:{...evidence,inspections:evidence.inspections.map(row=>row?{...row,inspectedBy:reviewer(actor)?row.inspectedBy:'warehouse reviewer'}:null)},creditProposal:creditProposal?{...creditProposal,lines:creditProposal.lines.map(line=>({...line,inspection:line.inspection?{...line.inspection,inspectedBy:reviewer(actor)?line.inspection.inspectedBy:'warehouse reviewer'}:null}))}:null,canCredit,credits,disputedQuantity,tasks}
  }))
  return {orderId,canReview:reviewer(actor),canRequest:reviewer(actor)||!!actor.company?.rights.some(right=>right==='purchaser'||right==='approver'),claims:shown,people}
 }

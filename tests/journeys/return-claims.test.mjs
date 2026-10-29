@@ -29,6 +29,17 @@ test('buyer requests three damaged units and the supplier authorizes two, matche
  await captureRegionWidths(ownerPage,panel,'return-reconciled-proposal');
  assert.equal((await h.api('/api/barrow/credits?orderId='+order.id)).credits.length,0);
  await buyerPage.reload();panel=await open(buyerPage);await expect(panel).toContainText('Approved 2 of 3 · disputed 1');await expect(panel).toContainText('Bring two units');await expect(panel).toContainText('USD 130.00');
+ const inspected=await f.inspect(received,'restock');assert.equal(inspected.status,'restocked');
+ panel=await open(ownerPage);await panel.getByRole('button',{name:'Reload return evidence',exact:true}).click();
+ await expect(panel).toContainText('Pier inspection · sellable · restock');
+ await panel.getByText('Issue inspected return credit',{exact:true}).click();await panel.getByLabel('Credit decision reason',{exact:true}).fill('Credit the two inspected returned units; retain the disputed remainder.');
+ await panel.getByRole('button',{name:'Issue USD 130.00 credit for 2 inspected units',exact:true}).click();
+ await expect(panel).toContainText('Issued return credit: USD 130.00');await expect(panel).toContainText('Disputed return remainder: open');
+ await captureRegionWidths(ownerPage,panel,'return-inspected-credit');
+ const credits=(await h.api('/api/barrow/credits?orderId='+order.id)).credits;assert.equal(credits.length,1);assert.equal(credits[0].amountCents,13000);
+ await buyerPage.reload();panel=await open(buyerPage);await expect(panel).toContainText('Issued return credit: USD 130.00');await expect(panel.getByText('Issue inspected return credit',{exact:true})).toHaveCount(0);
+ await captureRegionWidths(buyerPage,panel,'return-buyer-credit');
+ const statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer);assert.equal(statement.sections[0].closingCents,26000);
  assert.equal(await panel.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
  assert.equal(await panel.locator('p,label,button,a').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&parseFloat(getComputedStyle(element).fontSize)<13).length),0);
 });

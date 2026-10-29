@@ -7,7 +7,7 @@ import type { readReturnClaims } from '../return-claims'
 type Report=Awaited<ReturnType<typeof readReturnClaims>>
 type Claim=Report['claims'][number]
 function ClaimReview({claim,report,busy,act}:{claim:Claim;report:Report;busy:boolean;act:(type:string,payload:Record<string,unknown>)=>Promise<void>}) {
- const [approved,setApproved]=useState(String(claim.quantity)),[instructions,setInstructions]=useState(''),[reason,setReason]=useState(''),[receipt,setReceipt]=useState(''),[quantity,setQuantity]=useState('1')
+ const [approved,setApproved]=useState(String(claim.quantity)),[instructions,setInstructions]=useState(''),[reason,setReason]=useState(''),[receipt,setReceipt]=useState(''),[quantity,setQuantity]=useState('1'),[creditReason,setCreditReason]=useState('')
  return <article className="br-card br-stack" aria-label={`Return case ${claim.id}`}>
   <h4>Return case · {claim.basis.sku}</h4><p>Case {claim.id}</p>
   <p>Original line {claim.line} · requested {claim.quantity} {claim.basis.unit??'units'} · {claim.reason} · condition: {claim.condition}</p>
@@ -15,7 +15,14 @@ function ClaimReview({claim,report,busy,act}:{claim:Claim;report:Report;busy:boo
   <p>{claim.evidence.reason}</p>
   {claim.decision?<><p>Approved {claim.decision.quantity} of {claim.quantity} · disputed {claim.disputedQuantity}</p><p>Instructions: {claim.decision.instructions}</p><p>Decision: {claim.decision.reason} · {report.people[claim.decision.by]??'Supplier reviewer'} · {claim.decision.at}</p></>:<p>Awaiting supplier authorization. The request changes no stock or money.</p>}
   {claim.receipts.map(row=><p key={row.returnId}>Pier receipt {row.returnId} · {row.quantity} selling units · {row.baseQuantity} physical units</p>)}
+  {claim.evidence.inspections.map((row,index)=>row?<p key={row.returnId}>Pier inspection · {row.condition} · {row.disposition} · {row.inspectedAt} · source revision {row.version}</p>:<p key={index}>Warehouse inspection is not yet verified.</p>)}
+  {claim.credits.map(credit=><p key={credit.id}>Issued return credit: {money(credit.amountCents,credit.currency as Claim['currency'])} · {credit.id} · {credit.createdAt}</p>)}
   {claim.creditProposal?<p>Original-priced credit proposal: {money(claim.creditProposal.amountCents,claim.creditProposal.currency??'AUD')}. {claim.creditProposal.note}</p>:<p>Credit proposal unresolved. Approved physical receipts and the original credit basis must reconcile.</p>}
+  {claim.canCredit&&claim.creditProposal&&<details><summary>Issue inspected return credit</summary><div className="br-stack">
+   <p>This separate financial decision reduces the invoice balance. The disputed remainder stays open. No card refund or inventory command is sent.</p>
+   <label>Credit decision reason<textarea value={creditReason} maxLength={1000} onChange={e=>setCreditReason(e.target.value)}/></label>
+   {claim.creditProposal.lines.map(row=><button key={row.returnId} disabled={busy||!creditReason.trim()} onClick={()=>void act('credit.issue',{orderId:claim.orderId,returnId:row.returnId,claimId:claim.id,claimRevision:claim.revision,inspectionVersion:row.inspection?.version,expectedCents:row.amountCents,lines:[{line:claim.line,quantity:row.quantity}],reason:creditReason})}>Issue {money(row.amountCents,claim.currency??'AUD')} credit for {row.quantity} inspected units</button>)}
+  </div></details>}
   {claim.restored&&<p>Restored history only. No return authority is restored.</p>}
   {report.canReview&&!claim.restored&&!claim.decision&&<details><summary>Review return quantities</summary><div className="br-stack">
    <label>Approved units<input type="number" min="0" max={claim.quantity} value={approved} onChange={e=>setApproved(e.target.value)}/></label>
@@ -43,7 +50,7 @@ export function ReturnClaims({order}:{order:Order}) {
  return <details className="br-details" onToggle={e=>{if(e.target===e.currentTarget&&e.currentTarget.open)void load().catch(cause=>setError(errorMessage(cause)))}}>
   <summary>Returns and claims</summary><section className="br-stack" aria-label={`Returns for ${order.id}`}>
    <h3>Return requests</h3>{error&&<Notice error>{error}</Notice>}
-   {report&&<><p>Text-only return review. Photos, labels, inspection and disposition require separate handling. A return decision never issues credit, refunds or stock commands.</p>
+   {report&&<><p>Text-only return review. Record inspection and stock disposition in Pier. Authorization and receipt matching grant no credit; issuing inspected credit is a separate financial decision. Photos and labels require separate handling.</p>
     {report.canRequest&&<details><summary>Request a return</summary><div className="br-stack">
      <label>Original order line<select value={line} onChange={e=>setLine(e.target.value)}>{order.lines.map((row,index)=><option key={index} value={index+1}>{index+1} · {row.sku} · {row.quantity} {row.unit??'units'}</option>)}</select></label>
      <label>Requested units<input type="number" min="1" max={order.lines[Number(line)-1].quantity} value={quantity} onChange={e=>setQuantity(e.target.value)}/></label>

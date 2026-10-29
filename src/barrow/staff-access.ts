@@ -47,6 +47,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
+ if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/return-claims$/.test(relative)&&role==='finance')return
  if(method==='GET'&&relative==='payment-promises'&&role==='finance')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
