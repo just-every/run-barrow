@@ -11,7 +11,6 @@ import branding from './branding.json'
 const theme = { href: '/rer-theme.css', productName: branding.name, accentColor: branding.primaryColor }
 
 export interface Bindings {
- RER_BUSINESS_TRUST?: string
  AUTH_ALLOW_LIST?: string
  EASYPOST_API_KEY?: string
  RER_DEMO?: string

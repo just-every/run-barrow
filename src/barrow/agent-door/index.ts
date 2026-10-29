@@ -1,6 +1,6 @@
 import { proposalTools } from './proposals.ts'
 import { createAgentDoor } from '../../modules/agent-door/index.ts'
-import type { Trust } from '../../modules/agent-door/types.ts'
+import { installationTrust } from './trust.ts'
 import type { Bindings } from '../../auth.server.ts'
 import { people,localCredential,currentScopes } from './native.ts'
 import { tools } from './tools.ts'
@@ -14,7 +14,7 @@ export const notTools=[
  {clauses:['BASE-001'],reason:'installation' as const}
 ]
 export function agentDoor(env:Bindings) {
- const trust:Trust|null=env.RER_OWNER_CLAIM_PUBLIC_KEYS?{issuer:env.RER_OWNER_CLAIM_ISSUER??'',installationId:env.RER_OWNER_CLAIM_INSTALLATION_ID??'',appOrigin:env.AUTH_ORIGIN,publicKeys:JSON.parse(env.RER_OWNER_CLAIM_PUBLIC_KEYS)}:null
+ const trust=installationTrust(env)
  return createAgentDoor({seed:'barrow',name:'Barrow',specialist:'wholesale account operator',db:env.DB,origin:env.AUTH_ORIGIN,trust,
   people:people(env),tools:[...tools(env),...proposalTools(env)],resources:resources(env),notTools,
   localCredentials:request=>localCredential(env,request),currentScopes:principal=>currentScopes(env,principal),

@@ -1147,7 +1147,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "0b6bbb49f0addd821ef1fab4a0682ef657eb8de22363c14f31a56d2cd83d4f93",
+      "sha256": "f74a7d26ec276ba3227f6604235882420192418db601c12c22ddee90fa691cca",
       "executable": false
     },
     "src/barrow/access.ts": {
@@ -1183,7 +1183,7 @@
       "executable": false
     },
     "src/barrow/agent-door/business.ts": {
-      "sha256": "4367e6249bfe585bd825bcbaea54366750d6a3f11afb95be278b7b9f6b146dd5",
+      "sha256": "5167f8f67af0a15369cde7fa3e142d40e009d76a31cca4412f99b115a3814ca4",
       "executable": false
     },
     "src/barrow/agent-door/custody.ts": {
@@ -1191,7 +1191,7 @@
       "executable": false
     },
     "src/barrow/agent-door/index.ts": {
-      "sha256": "533fd2f388f5ee5c6363637d13159d6153dd63318ffd5ada34467a34ef80c9eb",
+      "sha256": "175785b5ce6ae1d2236839754d2ccaace8a2e5770fca6ebfda25be96fb77e770",
       "executable": false
     },
     "src/barrow/agent-door/native.ts": {
@@ -1208,6 +1208,10 @@
     },
     "src/barrow/agent-door/tools.ts": {
       "sha256": "23d56bb5c285bd8089c8db2f4f4adc33325478cd7228eed4183c1b6bce986399",
+      "executable": false
+    },
+    "src/barrow/agent-door/trust.ts": {
+      "sha256": "e0a1a5551980282679378fdbe629c5edb2d516b3ba397c280112fae38c4aa4ad",
       "executable": false
     },
     "src/barrow/agent-proposal-model.ts": {
