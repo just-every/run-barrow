@@ -1,5 +1,6 @@
 import { agentHttp } from './agent-door/http.ts'
 import { trackingCommand, trackingView } from './shipment-tracking'
+import { readReturnClaims,returnClaimCommand } from './return-claims'
 import { orderFollowthrough } from './order-followthrough'
 import { paymentPromiseCommand, readPaymentPromises } from './payment-promises'
 import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
@@ -295,6 +296,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
   const tracking=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/tracking$/.exec(path)
   if(tracking && request.method==='GET') return json(await trackingView(env,actor,tracking[1]))
+  const returnClaims=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/return-claims$/.exec(path)
+  if(returnClaims&&request.method==='GET')return json(await readReturnClaims(env,actor,returnClaims[1]))
   const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
   if(followthrough && request.method==='GET') return json(await orderFollowthrough(env,actor,followthrough[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
@@ -365,6 +368,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await staffCommandGate(env,actor,body.type,body.payload)
    if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
+   if(['return.request','return.revise','return.decide','return.reconcile'].includes(body.type))return json({result:await returnClaimCommand(env,actor,body.type,body.payload)})
    if(['prebook.publish','prebook.close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
    if(['prebook.release','prebook.delay'].includes(body.type))return json({result:await orderCommand(env,actor,body.type,body.payload)})
    if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})

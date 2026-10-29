@@ -170,7 +170,14 @@ test('STK-005: buyer declines then accepts a current-price split substitution; o
  const inventoryOrder=(await pier.api('/api/pier/state')).orders.find(row=>row.id===executed.pierOrderId),physicalLine=inventoryOrder.lines.find(row=>row.itemId===executed.lines[0].itemId);
  const returnedShipment=await pier.command('dispatch.create',{orderId:inventoryOrder.id,shipmentReference:'Replacement credit shipment',lines:[{orderLineId:physicalLine.id,quantity:'1'}]});
  const receivedReturn=await pier.command('return.create',{shipmentId:returnedShipment.id,shipmentLineId:returnedShipment.lines[0].id,locationId:products.location.id,quantity:'1',reason:'Received one accepted replacement unit.'});
+ let returnClaim=await h.command('return.request',{orderId:executed.id,line:1,quantity:1,reason:'Damaged replacement unit.',condition:'Held for supplier review.'},buyer);
+ assert.deepEqual(returnClaim.original,{orderId:original.id,line:1,sku:'OAT-1',unit:'case'});assert.deepEqual(returnClaim.basis,executed.lines[0]);
+ returnClaim=await h.command('return.decide',{id:returnClaim.id,revision:returnClaim.revision,orderRevision:executed.revision,quantity:1,instructions:'Bring the accepted replacement unit.',reason:'Retain the original replacement linkage.'});
+ returnClaim=await h.command('return.reconcile',{id:returnClaim.id,revision:returnClaim.revision,receipts:[{returnId:receivedReturn.id,quantity:1}]});
+ assert.equal(returnClaim.creditProposal.amountCents,4200);assert.deepEqual(returnClaim.basis,executed.lines[0]);
+ const returnExport=(await h.api('/api/barrow/export.json',undefined,buyer)).returnclaims.find(row=>row.id===returnClaim.id);assert.deepEqual(JSON.parse(returnExport.original),executed.lines[0].substitutedFrom);assert.equal(returnExport.orderId,executed.id);
  const credit=await h.command('credit.issue',{orderId:executed.id,returnId:receivedReturn.id,lines:[{line:1,quantity:1}],reason:'Credit the exact buyer-accepted replacement basis.'});
+ assert.equal((await h.api(`/api/barrow/orders/${executed.id}/return-claims`)).claims[0].creditProposal,null);
  assert.equal(credit.amountCents,4200);assert.deepEqual(credit.lines[0].original,executed.lines[0].substitutedFrom);assert.deepEqual(credit.lines[0].basis,executed.lines[0]);
  const creditExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(JSON.parse(creditExport.creditlines.find(row=>row.creditId===credit.id).original).orderId,original.id);assert.ok((await(await h.request('/api/barrow/export/creditlines.csv',buyer)).text()).includes(original.id));
 });
