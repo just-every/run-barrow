@@ -127,7 +127,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "61c187a6005ccda871c9f280a54f5e7d3b14c826110ccd062958db596653af83",
+      "sha256": "ea4b80bb59f6e8402ac6e709c585a95f0b035c867bcdc56f5a267cef0dcaa377",
       "executable": false
     },
     "AGENTS.md": {
@@ -175,7 +175,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "56b6aeb8650d92d75c04b5b677eb85f757b17cc068821ff4766832bfb8a6fca5",
+      "sha256": "2a191d2ac23ef3549b9ef01212756e66ee313c4a1cce56d7254e311ff6028386",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -183,7 +183,7 @@
       "executable": false
     },
     "docs/AGENTS-API.md": {
-      "sha256": "664b520ca8487e56ed876cbc41c77b66a5fafb1f018874df977b0d13ae326d7a",
+      "sha256": "e3247b642f4b06667620f35ab4c6ab65d4c14a88aab6c32e7d32323f1524c1d9",
       "executable": false
     },
     "docs/BACKUP-RESTORE.md": {
@@ -1195,7 +1195,7 @@
       "executable": false
     },
     "src/barrow/agent-door/index.ts": {
-      "sha256": "175785b5ce6ae1d2236839754d2ccaace8a2e5770fca6ebfda25be96fb77e770",
+      "sha256": "637ef02f88d8011728dd8585c9aa4c405ccb037d253e891d2151fd7e04b58a7f",
       "executable": false
     },
     "src/barrow/agent-door/native.ts": {
@@ -5263,7 +5263,7 @@
       "executable": false
     },
     "tests/api/shipping.test.mjs": {
-      "sha256": "e5a2ce98ceda8722ce2d4e0c465e3d16821dc27b1e0068a861b6c2161cb925cd",
+      "sha256": "90733e99e0491e85d13ffc586939f23ca56986e9db4cf4b45da81109710c2562",
       "executable": false
     },
     "tests/api/socket-edge.ts": {
@@ -5291,7 +5291,7 @@
       "executable": false
     },
     "tests/api/substitutions.test.mjs": {
-      "sha256": "6021f41532aa1cba3bb8f97a2b356e0a4d77be985375e8dc6a6e6011a5a63e09",
+      "sha256": "76923498b48b730a0ca707b4a13e446a97114c476e0b834aca2d60ab7e273306",
       "executable": false
     },
     "tests/api/timeline.test.mjs": {

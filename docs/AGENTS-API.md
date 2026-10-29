@@ -9,10 +9,10 @@ node scripts/barrow.mjs catalogue --origin http://127.0.0.1:BARROW_PORT --token-
 node scripts/barrow.mjs prepare-order --origin http://127.0.0.1:BARROW_PORT --token-file /private/barrow-token.txt --input /private/order.json
 ```
 
-`order.json` contains an existing account ID, an optional customer reference and SKU quantities:
+`order.json` contains an existing account ID, an optional customer reference, SKU quantities and a stable retry key:
 
 ```json
-{"accountId":"cedar","reference":"PO-October","lines":[{"sku":"OAT-1","quantity":2}]}
+{"accountId":"cedar","reference":"PO-October","lines":[{"sku":"OAT-1","quantity":2}],"idempotency_key":"cedar-po-october-draft-1"}
 ```
 
 Prices, minimums, terms and Pier IDs come from current server records. The agent may read supplier-visible accounts and stock and prepare a draft. There is no agent approval command. A customer or supplier reviews and submits the draft in Orders; a supplier then approves. The server records `preparedBy`, `submittedBy`, `approvedBy`, `approvedAt`, the commercial snapshot and the returned Pier reservation.

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation,stock,accountValue,archive,restore } from './harness.mjs';
-const day=offset=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date(Date.now()+offset*86400000));
+// Transit windows count supplier calendar days, including the DST transition.
+const day=offset=>{const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York'}).format(new Date()),[year,month,date]=today.split('-').map(Number);return new Date(Date.UTC(year,month-1,date+offset)).toISOString().slice(0,10)};
 const method=(id,patch={})=>({id,name:id,kind:'parcel',accountIds:[],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:1500,handlingCents:250,freeOverCents:26000,transitMinDays:2,transitMaxDays:5,quoteRequired:false,...patch});
 async function fixture(t) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const product=await stock(pier,'200');

@@ -9,7 +9,7 @@ import { resources } from './records.ts'
 export const notTools=[
  {clauses:['BAR-006','MOB-001'],reason:'screen' as const},
  {clauses:['REP-002','REP-003','REP-006'],reason:'device' as const},
- {clauses:Array.from({length:20},(_,i)=>`INT-${String(i+1).padStart(3,'0')}`),reason:'connector' as const},
+ {clauses:Array.from({length:21},(_,i)=>`INT-${String(i+1).padStart(3,'0')}`),reason:'connector' as const},
  {clauses:Array.from({length:9},(_,i)=>`MOVE-${String(i+1).padStart(3,'0')}`),reason:'import-door' as const},
  {clauses:['BASE-001'],reason:'installation' as const}
 ]

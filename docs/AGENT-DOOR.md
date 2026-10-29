@@ -21,3 +21,5 @@ Legacy bearer HTTP is a compatibility transport into that same MCP handler. Its 
 Portability retains native attribution, door audit/events and account custody history. It excludes Business settings/bindings, adopted policy, live agent admission, idempotency replay and executable approval/review handles. Restoring commercial history never grants an old agent authority or revives queued approval execution; the destination owner establishes its own policy.
 
 The conformance fixture also invites Avery through the native email-confirmation lifecycle. Avery retains native scoped commercial reads, receives no Business policy/audit administration from the local admin role, and loses the next agent call immediately after native deactivation. No shadow person or direct database writer prepares this proof.
+
+The connector exclusion includes the current-main INT-021 quote and price-book exchange split. Its existing scoped integration credential remains a connector door with native person application; it does not grant a company agent additional tools.
