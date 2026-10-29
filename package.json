@@ -16,7 +16,7 @@
     "deploy": "rer deploy",
     "onboard": "node scripts/install.mjs",
     "build:app": "rer queue build:app -- sh -c \"vite build\"",
-    "verify:app": "rer queue verify:app -- sh -c \"pnpm run build && pnpm run typecheck && pnpm check:deployment-spec && node scripts/edition-authoring/cli.mjs check && node scripts/edition-authoring/cli.mjs verify-base --offline && pnpm run test:api && rer build --site && node --test tests/site.test.mjs\"",
+    "verify:app": "node scripts/verify-app.mjs",
     "reset": "rer reset",
     "export": "rer export",
     "import": "rer import",
