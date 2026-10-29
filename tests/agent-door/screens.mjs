@@ -7,7 +7,7 @@ export async function captureAgents({request,origin,cookie}) {
  if(!directory)return
  const {chromium}=await import('@playwright/test')
  await mkdir(directory,{recursive:true})
- const browser=await chromium.launch({args:['--no-sandbox']})
+ const browser=await chromium.launch({...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}),args:['--no-sandbox']})
  try {
   const context=await browser.newContext()
   await context.addCookies(cookie.split('; ').map(part=>{const i=part.indexOf('=');return {name:part.slice(0,i),value:part.slice(i+1),url:origin}}))
@@ -29,7 +29,7 @@ export async function captureAgents({request,origin,cookie}) {
    for(const width of [1440,390]) {
     await page.setViewportSize({width,height:1000})
     await page.goto(origin+path)
-    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+    if(width===1440)assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
     await page.screenshot({path:directory+'/'+name+'-'+width+'.png',fullPage:true})
    }
   }

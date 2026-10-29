@@ -22,7 +22,7 @@ jobs:
         with:
           node-version-file: .node-version
       - name: Install locked dependencies
-        run: corepack enable && pnpm install --frozen-lockfile
+        run: corepack enable && pnpm config set store-dir "$RUNNER_TEMP/pnpm-store" && pnpm install --frozen-lockfile
         env:
           COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
       - name: Deploy run-barrow.com

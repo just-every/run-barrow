@@ -1,10 +1,11 @@
 // The run site (run-barrow.com) `rer build --site` writes: the homepage with its Run action, /run, the docs from
 // docs/*.md, /contract from CONTRACT.md and the not-found page. Every Run page string and command is in run.json;
 // nothing here reads installation data.
+import { hostingPageHtml } from '../base/hosting-page'
 import { contractPageHtml } from '../base/contract-page'
 import { runPageHtml, siteNotFoundHtml, type RunData, type SiteBuild, type SiteContext } from '../base/run-site'
 import { identity } from '../identity'
-import run from './run.json'
+import { run } from './run'
 import { homeHtml } from './home'
 import { docsPages } from './docs/pages'
 import './styles/site.css'
@@ -22,7 +23,7 @@ const usEnglish = (html: string) => html
   .replaceAll(`${run.licence} licence<`, `${run.licence} license<`)
   .replace(new RegExp(`>(\\d{1,2}) (${months.join('|')}) (\\d{4})<`, 'g'), '>$2 $1, $3<')
 
-export function sitePages({ styles = [], contract }: SiteContext): SiteBuild {
+export function sitePages({ styles = [], contract, hosting = null }: SiteContext): SiteBuild {
   const data: RunData = run
   const styled = (html: string, bodyClass: string) => html
     .replace('</head>', `${styles.map(href => `<link rel="stylesheet" href="${href}">`).join('')}</head>`)
@@ -34,6 +35,7 @@ export function sitePages({ styles = [], contract }: SiteContext): SiteBuild {
       { path: '/run', html: usEnglish(styled(runPageHtml(base, data, contract), 'br-base-page br-run')) },
       ...(contract ? [{ path: '/contract', html: usEnglish(styled(contractPageHtml(base, data, contract), 'br-base-page br-contract')) }] : []),
       ...docsPages(styles),
+      { path: '/docs/hosting', html: usEnglish(styled(hostingPageHtml(base, data, hosting, contract), 'br-base-page br-hosting')) },
       { path: '/404', html: usEnglish(styled(siteNotFoundHtml(base, data, contract), 'br-base-page br-missing')) },
     ],
     assets: ['rer-theme.css', 'fonts', 'brand', 'site', 'favicon.ico', 'favicon-32.svg', 'apple-touch-icon.png'],

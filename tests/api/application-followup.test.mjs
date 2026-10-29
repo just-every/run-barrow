@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { installation, stock, activateStaff, supplierDay } from './harness.mjs';
+import { installation, stock, activateStaff } from './harness.mjs';
 
-const easternDay = supplierDay;
+import { easternDay } from '../eastern-day.mjs';
 const pdf = { name: 'resale certificate.pdf', contentBase64: Buffer.from('%PDF-1.4 synthetic-barrow-21').toString('base64') };
 
 test('AUTO-001: rules route verified applications by territory, requested terms and certificate to a reviewer with a deadline and a prepared request; applicants get generic status emails; escalation persists through requests, answers and emails until a decision or explicit closure', async t => {

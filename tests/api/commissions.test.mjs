@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { installation, stock, accountValue, archive, restore, activateStaff, supplierDay } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore, activateStaff } from './harness.mjs';
 
-const day = supplierDay;
+import { easternDay as day } from '../eastern-day.mjs';
 const rule = (more = {}) => ({ id: 'spring', rep: 'avery', from: day(-1), rateBps: 1000, basis: 'acceptance', splits: [{ rep: 'avery', shareBps: 6000 }, { rep: 'blair', shareBps: 4000 }], ...more });
 async function fixture(t, prices) {
  const pier = await installation({ pier: true }); t.after(() => pier.close());

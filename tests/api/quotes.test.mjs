@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { installation, archive, supplierDay } from './harness.mjs';
+import { installation, archive } from './harness.mjs';
 
-const easternDay = supplierDay;
+import { easternDay } from '../eastern-day.mjs';
 
 // Real pinned Pier with stock for two SKUs; Cedar has a PRI-002 volume break and account discount on OAT-1.
 async function quoting(t, bindings={}, publicOrigin) {

@@ -33,3 +33,7 @@ A matching company name (Unicode-normalized, case-insensitive, with repeated spa
 See [Seasonal line sheets and retail prices](LINE-SHEETS.md) for recipient shares, size runs, fixed assortments, price display preferences and buyer engagement.
 
 See [Dated books and currency](PRICING.md) for scheduled revisions and frozen USD reporting references.
+
+## Put Barrow online
+
+[Hosting](/docs/hosting) explains Assisted setup and deployment to your own Cloudflare account.

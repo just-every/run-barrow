@@ -1,21 +1,153 @@
 name: Verify
+
 on:
   push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tier:
+        type: string
+        default: push
+      timeout:
+        type: number
+        default: 12
+
 permissions:
   contents: read
+
+concurrency:
+  group: seed-verify-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
-  verify:
-    name: Verify (${{ matrix.shard }}/4)
+  plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 1
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      skip: ${{ steps.plan.outputs.skip }}
+      coverage: ${{ steps.plan.outputs.coverage }}
+      tier: ${{ steps.plan.outputs.tier }}
+      readers: ${{ steps.plan.outputs.readers }}
+      has_shards: ${{ steps.plan.outputs.has_shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Check reusable workflow permissions
+        run: node scripts/verify-ci.mjs --check-workflows
+      - name: Look up complete nightly marker
+        id: nightly
+        if: ${{ github.event_name == 'schedule' || inputs.tier == 'nightly' }}
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ${{ runner.temp }}/nightly-green
+          key: nightly-green-${{ github.sha }}
+          lookup-only: true
+      - id: plan
+        env:
+          TIER: ${{ inputs.tier || 'push' }}
+          GITHUB_TOKEN: ${{ github.token }}
+          NIGHTLY_CACHE_HIT: ${{ steps.nightly.outputs.cache-hit }}
+        run: node scripts/verify-ci.mjs --plan
+
+  shards:
+    name: shards (${{ matrix.name }})
+    needs: plan
+    if: ${{ needs.plan.outputs.has_shards == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: ${{ inputs.timeout || 12 }}
     strategy:
       fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       CI: 'true'
       WRANGLER_SEND_METRICS: 'false'
-      BARROW_TEST_SHARD: '${{ matrix.shard }}/4'
+      PLAYWRIGHT_SKIP_BROWSER_GC: '1'
+    steps:
+      # Job env is evaluated before the runner context is available.
+      - name: Set runner-owned browser cache
+        run: printf 'PLAYWRIGHT_BROWSERS_PATH=%s/ms-playwright\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22.20.0'
+          package-manager-cache: false
+      - name: Check edition source lock freshness
+        if: ${{ hashFiles('edition.json', 'sources.lock.json') != '' }}
+        run: node scripts/edition-authoring/cli.mjs check
+      - run: npm install --global pnpm@10.12.4
+      - name: Set runner-owned pnpm store
+        run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
+      - name: Prepare runner-owned browser and apt caches
+        if: matrix.browser
+        run: |
+          set -euo pipefail
+          id
+          printf 'Runner HOME=%s\n' "$HOME"
+          if [ -e "$HOME/.cache" ]; then
+            stat -c 'Home cache: %n uid=%u gid=%g mode=%a' "$HOME/.cache"
+          else
+            printf 'Home cache: absent\n'
+          fi
+          mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
+      # Save completed packages; apt keeps partial downloads private to _apt.
+      - name: Cache frozen dependencies and Chromium
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: |
+            ${{ runner.temp }}/pnpm-store
+            ${{ runner.temp }}/ms-playwright
+            ${{ runner.temp }}/rer-apt/archives/*.deb
+          # Old snapshots contain absolute HOME paths; do not restore them here.
+          key: seed-ubuntu24-temp-store-${{ runner.arch }}-browser-${{ matrix.browser }}-${{ hashFiles('pnpm-lock.yaml', 'package.json') }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deps
+      - name: Install and probe Chromium before system dependencies
+        if: matrix.browser
+        run: |
+          set -euo pipefail
+          stat -c 'Before browser: %n uid=%u gid=%g mode=%a' "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
+          pnpm exec playwright install chromium
+          probe() { node --input-type=module -e "import { chromium } from '@playwright/test'; try { const browser = await chromium.launch({headless: true}); await browser.close(); } catch (error) { console.error(error); process.exit(/EACCES|permission denied/i.test(String(error)) ? 77 : 1); }"; }
+          if probe; then
+            :
+          else
+            status=$?
+            if [ "$status" -eq 77 ]; then exit "$status"; fi
+            sudo env "PATH=$PATH" "APT_ARCHIVES=$RUNNER_TEMP/rer-apt/archives" python3 scripts/install-chromium-deps.py
+            stat -c 'After apt: %n uid=%u gid=%g mode=%a' "$PLAYWRIGHT_BROWSERS_PATH" "$RUNNER_TEMP/rer-apt/archives"
+            probe
+          fi
+      - name: Reserve disk for native runtime journeys
+        if: matrix.browser
+        run: |
+          free_kib() { df -Pk "$GITHUB_WORKSPACE" | awk 'END { print $4 }'; }
+          for unused_tools in /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL; do
+            if [ "$(free_kib)" -ge "$((20 * 1024 * 1024))" ]; then break; fi
+            sudo rm -rf -- "$unused_tools"
+          done
+      - name: Run this shard
+        env:
+          SHARD: ${{ matrix.name }}
+        run: node scripts/verify-ci.mjs "$SHARD"
+
+  light:
+    needs: plan
+    if: ${{ needs.plan.outputs.coverage == 'light' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      CI: 'true'
+      WRANGLER_SEND_METRICS: 'false'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -25,76 +157,60 @@ jobs:
           node-version: '22.20.0'
           package-manager-cache: false
       - run: npm install --global pnpm@10.12.4
+      - run: pnpm config set store-dir "$RUNNER_TEMP/pnpm-store"
       - run: pnpm install --frozen-lockfile
-      # Azure mirror downloads exhausted the job budget before tests could finish.
-      - name: Use the official Ubuntu archive for browser dependencies
-        run: echo "https://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: node scripts/contract-docs.mjs check
-      - run: pnpm exec rer check --profile first-party
-      - run: pnpm exec rer verify --no-queue
-      - name: Credit notes, limits and finance allowance screens
-        if: matrix.shard == 1
+      - run: pnpm run deps
+      - name: Run the changed files' reviewed readers and build the run site
         env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-credit-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs tests/journeys/credit-policy.test.mjs tests/journeys/deposits.test.mjs
-      - name: Seasonal commitment and release screens
-        if: matrix.shard == 1
+          LIGHT_READERS: ${{ needs.plan.outputs.readers }}
+        run: node scripts/verify-ci.mjs --light
+
+  full-push-proof:
+    needs: [plan, shards]
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/') && needs.plan.outputs.tier == 'push' && needs.plan.outputs.coverage == 'full' && needs.shards.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - run: test '${{ needs.shards.result }}' = success
+
+  nightly-proof:
+    needs: [plan, shards]
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (needs.plan.outputs.tier == 'nightly' || needs.plan.outputs.tier == 'all') && needs.plan.outputs.coverage == 'full' && needs.shards.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Mark successful complete nightly coverage
+        run: mkdir -p "$RUNNER_TEMP/nightly-green" && printf '%s\n' '${{ github.sha }}' > "$RUNNER_TEMP/nightly-green/sha"
+      - uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684
+        with:
+          path: ${{ runner.temp }}/nightly-green
+          key: nightly-green-${{ github.sha }}
+
+  verify:
+    needs: [plan, shards, light, full-push-proof, nightly-proof]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Require the selected coverage and its proof
         env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-prebook-screens
-        run: timeout 1200 node --test --test-concurrency=1 --test-name-pattern='buyer books a spring season' tests/journeys/confirmations.test.mjs
-      - name: Promotion preview and return attribution screens
-        if: matrix.shard == 2
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promotion-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs
-      - name: Keyboard buyer error recovery and company approval
-        if: matrix.shard == 2
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-accessibility-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/buyer-accessibility.test.mjs
-      - name: Order follow-through screens
-        if: matrix.shard == 2
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-order-followthrough-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/order-followthrough.test.mjs tests/journeys/return-claims.test.mjs
-      - name: Faire fulfillment source screens
-        if: matrix.shard == 3
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-faire-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/faire.test.mjs
-      - name: Accepted sell-through plan screens
-        if: matrix.shard == 3
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-sellthrough-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/reorder.test.mjs
-      - name: Connector reconciliation screens
-        if: matrix.shard == 4
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-connector-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/connector-review.test.mjs tests/journeys/delta-cutover.test.mjs
-      - name: NuORDER reviewed source and history screens
-        if: matrix.shard == 4
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-nuorder-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/move-nuorder.test.mjs tests/journeys/move-nuorder-companies.test.mjs
-      - name: Catalog workbook and private image batch screens
-        if: matrix.shard == 4
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-catalog-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/catalog-maintenance.test.mjs
-      - name: Effective book and currency reporting screens
-        if: matrix.shard == 4
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-currency-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs
-      - name: Buyer promise lifecycle screens
-        if: matrix.shard == 2
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promise-screens
-        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs
-      - name: Campaign compose, personal ordering and attribution screens
-        if: matrix.shard == 2
-        env:
-          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-campaign-screens
-        run: timeout 1200 node --test --test-concurrency=1 --test-name-pattern='supplier resumes a campaign draft' tests/journeys/line-sheets.test.mjs
+          PLAN: ${{ needs.plan.result }}
+          SHARDS: ${{ needs.shards.result }}
+          LIGHT: ${{ needs.light.result }}
+          PUSH_PROOF: ${{ needs.full-push-proof.result }}
+          NIGHTLY_PROOF: ${{ needs.nightly-proof.result }}
+          COVERAGE: ${{ needs.plan.outputs.coverage }}
+          HAS_SHARDS: ${{ needs.plan.outputs.has_shards }}
+          SKIP: ${{ needs.plan.outputs.skip }}
+        run: |
+          set -euo pipefail
+          test "$PLAN" = success
+          case "$PUSH_PROOF:$NIGHTLY_PROOF" in
+            *failure*|*cancelled*) exit 1 ;;
+          esac
+          case "$COVERAGE" in
+            reuse) test "$SKIP" = true && test "$SHARDS" = skipped && test "$LIGHT" = skipped ;;
+            light) test "$SKIP" = false && test "$LIGHT" = success && test "$SHARDS" = skipped ;;
+            full) test "$LIGHT" = skipped && { test "$SHARDS" = success || { test "$HAS_SHARDS" = false && test "$SHARDS" = skipped; }; } ;;
+            *) exit 1 ;;
+          esac
