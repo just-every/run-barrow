@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { installation, archive } from './harness.mjs';
+import { installation, archive, supplierDay } from './harness.mjs';
 
-const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
+const easternDay = supplierDay;
 
 // Real pinned Pier with stock for two SKUs; Cedar has a PRI-002 volume break and account discount on OAT-1.
 async function quoting(t, bindings={}, publicOrigin) {

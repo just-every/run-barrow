@@ -5019,7 +5019,7 @@
       "executable": false
     },
     "tests/api/application-followup.test.mjs": {
-      "sha256": "c71b7a69a0d9e4d19ea7c9e3f07e36bcecba0258490f8b8e1e12048aed84dea2",
+      "sha256": "c87ace3141d919b2fb04c2ecaee930987782fdefa84a7b13e9a3b703efc34958",
       "executable": false
     },
     "tests/api/audit.test.mjs": {
@@ -5059,7 +5059,7 @@
       "executable": false
     },
     "tests/api/commissions.test.mjs": {
-      "sha256": "8d2dd6c120dbb53ce4748e7e2f77a15f9edf0271f3a1c3dc0a9fbcf53d7cf936",
+      "sha256": "677341acc47f0676f376475642b41c503fec05792e57d71188c4d36b8df77793",
       "executable": false
     },
     "tests/api/company-approvals.test.mjs": {
@@ -5127,7 +5127,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "098a2cfdf6d8e716d2866eb64da865a39a072b4b0a9dce98be771bbf614e1385",
+      "sha256": "6fc9fa8f7bf6b2d2e85d8ab66f933462c65d4c140fde2200babdf13a9a29c517",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
@@ -5147,7 +5147,7 @@
       "executable": false
     },
     "tests/api/locations.test.mjs": {
-      "sha256": "5a254f5c34acc0ffa87512f72d474105d716b3e54536d62e12371520b894ca83",
+      "sha256": "c8272aef112c892acb9d9c3886317e5cfbcae5361b205031c7ca8f896c3a7f83",
       "executable": false
     },
     "tests/api/move-nuorder-companies.test.mjs": {
@@ -5215,15 +5215,15 @@
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
-      "sha256": "7e9070b16af7ef0e150e605a44399cf606a8b4f02b29832cf0e93e36ebea22df",
+      "sha256": "5986c0f4f5ab7d8eba7608491a7cfbe9f42b1112b6ddf480b9d563332ef109f2",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {
-      "sha256": "2538ac3baa7eb65aac4b09ad0ce62075864ab8b28c6ba39e14fe453a6a654801",
+      "sha256": "2a82cbbcaf2c3372269756fb0f225c1c8f49ccb70cd7bb21523f40e583715b88",
       "executable": false
     },
     "tests/api/quotes.test.mjs": {
-      "sha256": "fb469390b0432b38b8d71425542b4a47894c445dd68a0e3b167dd9ad89ccf880",
+      "sha256": "b8a4af3252cdebea93c196f7b5f365645a3b2a56ae562b4856adaabd75688c7d",
       "executable": false
     },
     "tests/api/release.test.mjs": {
@@ -5239,11 +5239,11 @@
       "executable": false
     },
     "tests/api/rep-ordering.test.mjs": {
-      "sha256": "12c948b7bc967f657b3bf0e53d9f723893c95e8d9cf5eedc45d1e1cfa8f28b74",
+      "sha256": "ed9c0e78ad43cdd7ace8ea9ff630e41744cba0313e187d4550116ce8d0659b0b",
       "executable": false
     },
     "tests/api/rep-territories.test.mjs": {
-      "sha256": "23edb68e88466559b35d1df4d6e858fb23f429430ec097ef18dae552ce8560f6",
+      "sha256": "0e2a1b44343295b282808bbbc0d7afc76e5a15ce5eb17acfb82f103115855cd8",
       "executable": false
     },
     "tests/api/retention-fixture.mjs": {
@@ -5287,7 +5287,7 @@
       "executable": false
     },
     "tests/api/shipping.test.mjs": {
-      "sha256": "90733e99e0491e85d13ffc586939f23ca56986e9db4cf4b45da81109710c2562",
+      "sha256": "47a1ce0dcfa6ca6de3c7f8673bfbb541e91242deff2f3ff3660bc1e55af4ef28",
       "executable": false
     },
     "tests/api/socket-edge.ts": {

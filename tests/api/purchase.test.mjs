@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { installation, stock, accountValue, archive, restore } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore, supplierDay } from './harness.mjs';
 
-const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
+const easternDay = supplierDay;
 
 test('ORD-007: purchase dates, instructions and buyer SKU aliases reach the order and Pier; an accidental duplicate PO is refused until a numbered release is authorized', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());

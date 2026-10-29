@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { installation, stock, accountValue } from './harness.mjs';
+import { installation, stock, accountValue, supplierDay } from './harness.mjs';
 
-const easternDay = offset => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + offset * 86400000));
+const easternDay = supplierDay;
 
 test('ACC-003: a headquarters bill-to and two store ship-tos, orders to each store, a changed default and edits that never rewrite order addresses or tax jurisdictions', async t => {
  const pier = await installation({ pier: true }); t.after(() => pier.close());

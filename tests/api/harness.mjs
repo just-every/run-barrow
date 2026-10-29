@@ -9,6 +9,12 @@ import { resolve,join } from 'node:path';
 import assert from 'node:assert/strict';
 import { pierSource } from '../pier-source.mjs';
 import { localTls } from './tls.mjs';
+// Expected dates are supplier calendar days, independent of DST-length days.
+export function supplierDay(offset=0) {
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+ const value=type=>Number(parts.find(part=>part.type===type).value);
+ return new Date(Date.UTC(value('year'),value('month')-1,value('day')+offset)).toISOString().slice(0,10);
+}
 const nativePiers=new Map();
 export async function configurePierRouting(pier) {
  const state=await pier.api('/api/pier/state');
