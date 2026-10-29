@@ -1,3 +1,4 @@
+import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
 import { readReturnClaims,returnClaimCommand } from './return-claims'
 import { orderFollowthrough } from './order-followthrough'
@@ -152,6 +153,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   actor.company=await companyMembership(env.DB,actor)
   if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
+  if(path.startsWith('/api/barrow/prebooks/')&&request.method==='GET')return json(await readPrebook(env,actor,decodeURIComponent(path.slice('/api/barrow/prebooks/'.length))))
   if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
@@ -377,6 +379,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
    if(['return.request','return.revise','return.decide','return.reconcile'].includes(body.type))return json({result:await returnClaimCommand(env,actor,body.type,body.payload)})
+   if(['prebook.season','prebook.prepare','prebook.commit'].includes(body.type))return json({result:await prebookCommand(env,actor,body.type,body.payload)})
+   if(body.type==='prebook.close'&&typeof body.payload?.id==='string'&&typeof body.payload?.revision==='string'&&await env.DB.prepare('SELECT 1 FROM bw_prebook_seasons WHERE id=? AND revision=?').bind(body.payload.id,body.payload.revision).first())return json({result:await prebookCommand(env,actor,body.type,body.payload)})
    if(['prebook.publish','prebook.close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
    if(['prebook.release','prebook.delay'].includes(body.type))return json({result:await orderCommand(env,actor,body.type,body.payload)})
    if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})

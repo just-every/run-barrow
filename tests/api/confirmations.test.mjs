@@ -264,3 +264,172 @@ test('ORD-014: fifty recorded orders of one season export per line and as style,
  assert.deepEqual(new Set(totals.rows[0].sources.split(' ')),new Set(lines.rows.map(r=>r.confirmation)));
  await h.api('/api/barrow/confirmations/export.csv',{confirmations,shape:'pivot'},{status:400});
 });
+
+async function prebookFixture(t,networkEdge) {
+ const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier,'2');
+ const po=await pier.command('po.draft',{supplierId:inventory.supplier.id,destinationWarehouse:'New York',promiseDate:'2035-03-01',reason:'Synthetic seasonal supply',lines:[{itemId:inventory.item.id,quantity:'30',price:'20.00'}]});
+ await pier.command('po.approve',{poId:po.id,version:po.version});await pier.command('po.commit',{poId:po.id,version:po.version});
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie},networkEdge:networkEdge?.(pier)});t.after(()=>h.close());
+ const account=await h.command('account.save',{id:'cedar',value:{...accountValue(inventory.customer.id),minimumCents:0,warehouses:['New York'],prices:[{sku:'OAT-1',unitCents:101,minQty:1,units:[{code:'pair',baseQuantity:'2',unitCents:201,packContents:'Two base cases'}]}]}}),buyer={as:await h.signIn('buyer@example.test')};
+ const season=await h.command('prebook.season',{id:'spring-2035',name:'Spring 2035',opensAt:'2020-01-01T00:00:00Z',closesAt:'2034-12-31T23:59:59Z',depositBps:5000,reason:'Owner published seasonal intake.'});
+ const prepare=(lines,extra={},who=buyer)=>h.command('prebook.prepare',{accountId:'cedar',seasonId:season.id,lines,...extra},who);
+ const line=(quantity=10,unit='case',requestedDate='2035-03-02',cancelAfter='2035-03-20')=>({sku:'OAT-1',unit,quantity,requestedDate,cancelAfter});
+ const submit=(book,who=buyer)=>h.command('prebook.commit',{prebookId:book.id,revision:book.revision},who);
+ return {h,pier,inventory,account,buyer,season,prepare,line,submit};
+}
+
+test('seasonal prebook intake holds competing future demand atomically without reserving available stock or recording a payment',async t=>{
+ let synchronize=false,arrivals=0,releasePricing,releaseCapacity;
+ const pricingBarrier=new Promise(resolve=>releasePricing=resolve),capacityBarrier=new Promise(resolve=>releaseCapacity=resolve);
+ const f=await prebookFixture(t,pier=>async request=>{
+  if(synchronize&&new URL(request.url).pathname==='/api/pier/state'){
+   arrivals++;
+   if(arrivals<=2){if(arrivals===2)releasePricing();await pricingBarrier}
+   else{if(arrivals===4)releaseCapacity();await capacityBarrier}
+   return pier.raw('/api/pier/state',{headers:{cookie:pier.cookie}});
+  }
+ }),{h,pier,prepare,line,submit,buyer}=f;
+ await h.command('order.prepare',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:3}]},{...buyer,status:409});
+ const a=await prepare([line(10,'pair')]),b=await prepare([line(20)]);
+ assert.deepEqual(a.lines.map(l=>[l.unit,l.quantity,l.baseQuantity,l.unitCents,l.lineCents]),[['pair',10,'20',201,2010]]);
+ assert.deepEqual(a.deposit,{requiredCents:1005,currency:'USD',collectedCents:null});
+ assert.equal(a.state,'draft');assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+ const first=await submit(a);assert.equal(first.state,'committed');
+ await submit(b).then(()=>assert.fail('Competing demand must be refused'),error=>assert.match(error.message,/PREBOOK_CAPACITY/));
+ const c=await prepare([line(5)]),d=await prepare([line(6)]);
+ // 10 base units remain. The concurrent requests cannot both admit 11.
+ synchronize=true;
+ const outcomes=await Promise.all([c,d].map(book=>h.request('/api/barrow/commands',{...buyer,method:'POST',body:{type:'prebook.commit',payload:{prebookId:book.id,revision:book.revision}}})));
+ synchronize=false;
+ assert.equal(arrivals,4);assert.deepEqual(outcomes.map(r=>r.status).sort(),[200,409]);
+ const records=(await h.db.prepare("SELECT value_json FROM bw_prebooks WHERE json_extract(value_json,'$.state')='committed'").all()).results.map(r=>JSON.parse(r.value_json));
+ assert.equal(records.length,2);assert.ok(records.reduce((n,r)=>n+Number(r.lines[0].baseQuantity),0)<=30);
+ assert.deepEqual(await submit(a),first);
+ assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+ for(const type of ['order.submit','order.approve','order.cancel','order.revise','shipping.select'])await h.command(type,{orderId:a.id,reason:'Attempt ordinary mutation',changes:[{line:0,quantity:1}]},{...buyer,status:404});
+ assert.equal((await h.request(`/api/barrow/invoices/${a.id}.csv`,buyer)).status,404);
+ assert.equal((await h.request('/api/barrow/payments?orderId='+a.id,buyer)).status,404);
+ const exported=await h.api('/api/barrow/export.json',undefined,buyer);assert.deepEqual(exported.cardpayments,[]);assert.deepEqual(exported.invoices,[]);assert.equal(exported.prebooks.length,2+2);assert.equal(exported.manifest.counts.prebooks,4);
+ assert.equal((await h.api('/api/barrow/prebooks/'+a.id,undefined,buyer)).deposit.collectedCents,null);
+ const target=await installation();t.after(()=>target.close());await restore(target,await archive(h));
+ assert.deepEqual(await target.api('/api/barrow/prebooks/'+a.id),first);
+ await target.command('prebook.prepare',{accountId:'cedar',seasonId:'spring-2035',lines:[line(1)]},{status:409});
+ assert.equal((await target.api('/api/barrow/export.json')).prebooks.length,4);
+});
+
+test('seasonal prebook preparation enforces published opening and closing instants, required future windows, exact deposits and attributed closure',async t=>{
+ const f=await prebookFixture(t),{h,pier,inventory,account,buyer,season,prepare,line,submit}=f;
+ for(const invalid of [{...line(),requestedDate:undefined},{...line(),cancelAfter:undefined},line(1,'case','2020-01-01'),line(1,'case','2035-03-02','2035-03-01'),line(1,'undefined'),line(1,'pair','2035-02-28')])await h.command('prebook.prepare',{accountId:'cedar',seasonId:season.id,lines:[invalid]},{...buyer,status:invalid.requestedDate==='2035-02-28'?409:400});
+ const exact=await prepare([line(1)]);assert.deepEqual(exact.deposit,{requiredCents:51,currency:'USD',collectedCents:null});
+ const half=await prepare([line(1,'pair')]);assert.equal(half.deposit.requiredCents,101);
+ const other={as:await h.signIn('other@example.test')};assert.equal((await h.request('/api/barrow/prebooks/'+exact.id,other)).status,404);
+ const future=await h.command('prebook.season',{id:'future',name:'Future',opensAt:'2034-01-01T00:00:00Z',closesAt:'2034-12-31T00:00:00Z',depositBps:3000,reason:'Published future opening.'});
+ await h.command('prebook.prepare',{accountId:'cedar',seasonId:future.id,lines:[line()]},{...buyer,status:409});
+ const expired=await h.command('prebook.season',{id:'expired',name:'Expired',opensAt:'2020-01-01T00:00:00Z',closesAt:'2021-01-01T00:00:00Z',depositBps:3000,reason:'Past closing instant.'});
+ await h.command('prebook.prepare',{accountId:'cedar',seasonId:expired.id,lines:[line()]},{...buyer,status:409});
+ await h.command('prebook.close',{id:season.id,revision:season.revision,reason:'Buyer is not season owner.'},{...buyer,status:403});
+ const closed=await h.command('prebook.close',{id:season.id,revision:season.revision,reason:'Season intake finished.'});
+ const owner=(await h.db.prepare("SELECT id FROM oa_operators WHERE role='owner'").first()).id;
+ assert.deepEqual(closed.closed,{by:owner,at:closed.closed.at,reason:'Season intake finished.'});assert.ok(Number.isFinite(Date.parse(closed.closed.at)));
+ const event=await h.db.prepare("SELECT actor_id,created_at,context_json FROM bw_audit WHERE action='prebook.close'").first();assert.equal(event.actor_id,owner);assert.equal(JSON.parse(event.context_json).reason,'Season intake finished.');assert.ok(Math.abs(Date.parse(event.created_at)-Date.parse(closed.closed.at))<1000);
+ await submit(exact).then(()=>assert.fail('Closed intake must refuse commitment'),error=>assert.match(error.message,/PREBOOK_CLOSED/));
+ await h.command('prebook.prepare',{accountId:'cedar',seasonId:season.id,lines:[line()]},{...buyer,status:409});
+ assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+});
+
+test('seasonal prebook admission rechecks live commercial authority and preserves the accepted snapshot after later configuration changes',async t=>{
+ const {h,pier,inventory,account,buyer,prepare,line,submit}=await prebookFixture(t);
+ const original=await prepare([line(2)]);
+ const brand=await h.command('brand.save',{id:'spring-brand',value:{name:'Spring Brand',currency:'CAD',seller:{legalName:'Synthetic supplier',address:'12 Spring St'}}});
+ let profile=await h.command('profile.save',{id:'spring-profile',accountId:'cedar',value:{brandId:brand.id,name:'Spring CAD',prices:[{sku:'OAT-1',unitCents:151,minQty:2}],minimumCents:500,termsDays:15}});
+ await h.command('prebook.prepare',{accountId:'cedar',profileId:profile.id,seasonId:'spring-2035',lines:[line(4)]},{...buyer,status:404});
+ const member=(await h.api('/api/barrow/company/members?accountId=cedar',undefined,buyer)).members.find(m=>m.email==='buyer@example.test');
+ await h.command('profile.grant',{profileId:profile.id,userId:member.userId,approved:true,reason:'Explicit seasonal profile approval.'});
+ await h.command('prebook.prepare',{accountId:'cedar',profileId:profile.id,seasonId:'spring-2035',lines:[line(1)]},{...buyer,status:409});
+ await h.command('prebook.prepare',{accountId:'cedar',profileId:profile.id,seasonId:'spring-2035',lines:[line(2)]},{...buyer,status:409});
+ const branded=await prepare([line(4)],{profileId:profile.id});assert.equal(branded.currency,'CAD');assert.equal(branded.totalCents,604);assert.equal(branded.buyingProfile.seller.legalName,'Synthetic supplier');
+ await h.command('profile.grant',{profileId:profile.id,userId:member.userId,approved:false,reason:'Purchasing approval revoked before commitment.'});
+ await submit(branded).then(()=>assert.fail('Revoked profile must refuse'),error=>assert.match(error.message,/NOT_FOUND/));
+ const committed=await submit(original);assert.equal(committed.totalCents,202);
+ const changed=await h.command('account.save',{id:'cedar',revision:account.revision,value:{...account.value,termsDays:7,prices:[{sku:'OAT-1',unitCents:999,minQty:1}]}});
+ assert.deepEqual(await h.api('/api/barrow/prebooks/'+committed.id,undefined,buyer),committed);
+ await h.command('profile.grant',{profileId:profile.id,userId:member.userId,approved:true,reason:'Restored deliberate profile approval.'});
+ const stale=await prepare([line(4)],{profileId:profile.id});
+ await h.command('profile.save',{id:profile.id,accountId:'cedar',revision:profile.revision,value:{...profile.value,prices:[{sku:'OAT-1',unitCents:152,minQty:2}]}});
+ await submit(stale).then(()=>assert.fail('Changed profile must refuse'),error=>assert.match(error.message,/PROFILE_CHANGED/));
+ // Incoming supply in an unpermitted destination or without a known destination is never admitted.
+ const restricted=await h.command('account.save',{id:'cedar',revision:changed.revision,value:{...changed.value,warehouses:['Newark']}});
+ await h.command('prebook.prepare',{accountId:'cedar',seasonId:'spring-2035',lines:[line(1)]},{...buyer,status:409});
+ await h.command('account.save',{id:'cedar',revision:restricted.revision,value:{...restricted.value,warehouses:['New York']}});
+ const unknown=await pier.command('po.draft',{supplierId:inventory.supplier.id,promiseDate:'2035-03-01',reason:'Unknown receiving warehouse',lines:[{itemId:inventory.item.id,quantity:'100',price:'20.00'}]});
+ await pier.command('po.approve',{poId:unknown.id,version:unknown.version});await pier.command('po.commit',{poId:unknown.id,version:unknown.version});
+ await h.command('prebook.prepare',{accountId:'cedar',seasonId:'spring-2035',lines:[line(31)]},{...buyer,status:409});
+ assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+});
+
+test('seasonal prebook commitment refuses stale observations and company purchasing limits without losing the reviewed draft',async t=>{
+ const {h,buyer,prepare,line,submit}=await prebookFixture(t);
+ const book=await prepare([line(4)]);
+ const members=(await h.api('/api/barrow/company/members?accountId=cedar',undefined,buyer)).members,member=members.find(m=>m.email==='buyer@example.test');
+ const limited=await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy:{rights:member.rights,locations:'all',perOrderLimitCents:300,approvalLimitCents:null},reason:'Company reduced this purchaser allowance.'});
+ await submit(book).then(()=>assert.fail('Current purchasing limit must refuse'),error=>assert.match(error.message,/COMPANY_APPROVAL/));
+ assert.equal((await h.api('/api/barrow/prebooks/'+book.id,undefined,buyer)).state,'draft');
+ await h.command('company.update',{accountId:'cedar',memberId:limited.id,revision:limited.revision,policy:{rights:member.rights,locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Company restored this purchaser allowance.'});
+ await h.command('settings.save',{stockFreshnessMinutes:15});
+ // Move only the source-observation fixture back twenty minutes; assertions do not depend on a date boundary.
+ const older={...book,preparedAt:new Date(Date.now()-20*60000).toISOString()};await h.db.prepare('UPDATE bw_prebooks SET value_json=? WHERE id=?').bind(JSON.stringify(older),book.id).run();
+ await submit(book).then(()=>assert.fail('Stale observation must refuse'),error=>assert.match(error.message,/STOCK_STALE/));
+ const refreshed=await prepare([line(4)]),accepted=await submit(refreshed);assert.equal(accepted.state,'committed');assert.equal(accepted.totalCents,404);
+ const supplier={};await h.command('prebook.commit',{prebookId:book.id,revision:book.revision},{...supplier,status:403});
+ const {token}=await h.api('/api/barrow/agent-token',{});await h.command('prebook.prepare',{accountId:'cedar',seasonId:'spring-2035',lines:[line(1)]},{as:'',headers:{authorization:`Bearer ${token}`},status:403});
+});
+
+
+test('native seasonal orders and command-only intake share incoming capacity and preserve both closing doors',async t=>{
+ const {h,pier,buyer,season,prepare,line,submit}=await prebookFixture(t);
+ const intake=await submit(await prepare([line(20)]));
+ const native=await h.command('prebook.publish',{id:season.id,name:'Native seasonal order',revision:null,opensAt:season.opensAt,closesAt:season.closesAt,minimumCents:0,depositBps:5000,windows:[{id:'march',name:'March',shipDate:'2035-03-02',cancelAfter:'2035-03-20'}],reason:'Native and intake seasons may have the same public ID.'});
+ const input={accountId:'cedar',prebook:{seasonId:season.id,windowIds:['march']},lines:[line(11)]};
+ assert.equal((await h.command('order.prepare',input,{...buyer,status:409})).error.code,'PREBOOK_CAPACITY');
+ const nativeDraft=await h.command('order.prepare',{...input,lines:[line(6)]},buyer);
+ const nativeOrder=await h.command('order.submit',{orderId:nativeDraft.id},buyer);
+ assert.equal((await h.command('prebook.prepare',{accountId:'cedar',seasonId:season.id,lines:[line(5)]},{...buyer,status:409})).error.code,'PREBOOK_CAPACITY');
+ const a=await prepare([line(3)]),b=await h.command('order.prepare',{...input,lines:[line(3)]},buyer);
+ const outcomes=await Promise.all([
+  h.request('/api/barrow/commands',{...buyer,method:'POST',body:{type:'prebook.commit',payload:{prebookId:a.id,revision:a.revision}}}),
+  h.request('/api/barrow/commands',{...buyer,method:'POST',body:{type:'order.submit',payload:{orderId:b.id}}})
+ ]);
+ assert.deepEqual(outcomes.map(row=>row.status).sort(),[200,409]);
+ assert.equal((await pier.api('/api/pier/state')).orders.length,0);
+ const nativeClosed=await h.command('prebook.close',{id:season.id,revision:native.revision,reason:'Close the native order season.'});
+ assert.equal(nativeClosed.seasons[0].state,'closed');
+ assert.equal((await h.api('/api/barrow/prebooks/'+intake.id,undefined,buyer)).season.closed,undefined);
+ const intakeClosed=await h.command('prebook.close',{id:season.id,revision:season.revision,reason:'Close the separate intake season.'});
+ assert.equal(intakeClosed.closed.reason,'Close the separate intake season.');
+ assert.equal((await h.api('/api/barrow/orders/'+nativeOrder.id,undefined,buyer)).status,'submitted');
+});
+
+
+test('command-only intake participates in owner erasure review and independent restore fencing without losing commercial commitments',async t=>{
+ const {h,prepare,line,submit}=await prebookFixture(t);
+ const {erasurePreview,erasurePayload,verifiedRequest}=await import('./retention-fixture.mjs');
+ const draft=await prepare([line(1)]),committed=await submit(await prepare([line(2)]));
+ const personal={...draft,termsAcceptance:{printedName:'Trade buyer',email:'buyer@example.test'}};
+ await h.db.prepare('UPDATE bw_prebooks SET value_json=? WHERE id=?').bind(JSON.stringify(personal),draft.id).run();
+ const before=await archive(h);
+ await verifiedRequest(h);let preview=await erasurePreview(h);
+ assert.equal(preview.items.find(row=>row.id==='prebook:'+draft.id).action,'redact personal snapshot details');
+ assert.equal(preview.items.find(row=>row.id==='prebook:'+committed.id).action,'keep unchanged');
+ assert.ok(preview.items.find(row=>row.id==='prebook:'+committed.id).floorUntil);
+ const changed={...personal,termsAcceptance:{printedName:'Changed personal name',email:'buyer@example.test'}};
+ await h.db.prepare('UPDATE bw_prebooks SET value_json=? WHERE id=?').bind(JSON.stringify(changed),draft.id).run();
+ await h.command('retention.erase-account',erasurePayload(preview),{status:409});
+ preview=await erasurePreview(h);await h.command('retention.erase-account',erasurePayload(preview));
+ const redacted=JSON.parse((await h.db.prepare('SELECT value_json FROM bw_prebooks WHERE id=?').bind(draft.id).first()).value_json);
+ assert.equal(redacted.termsAcceptance.printedName,'[Erased personal details]');assert.notEqual(redacted.termsAcceptance.email,'buyer@example.test');assert.equal(redacted.totalCents,draft.totalCents);
+ assert.deepEqual(JSON.parse((await h.db.prepare('SELECT value_json FROM bw_prebooks WHERE id=?').bind(committed.id).first()).value_json),committed);
+ const target=await installation();t.after(()=>target.close());await restore(target,before);
+ await target.api('/api/barrow/state'); // The journal fence reapplies before the first product read.
+ const restored=JSON.parse((await target.db.prepare('SELECT value_json FROM bw_prebooks WHERE id=?').bind(draft.id).first()).value_json);
+ assert.equal(restored.termsAcceptance.printedName,'[Erased personal details]');assert.notEqual(restored.termsAcceptance.email,'buyer@example.test');
+});

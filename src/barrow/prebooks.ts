@@ -54,6 +54,7 @@ export async function prebookEpoch(db:D1Database) {
 export async function prebookCapacity(env:Bindings,selected:Account,lines:Line[],omitId='') {
  const available=await catalogue(env,selected)
  const peers=(await env.DB.prepare("SELECT value_json FROM bw_orders WHERE id<>? AND (json_extract(value_json,'$.prebook') IS NOT NULL OR json_extract(value_json,'$.prebookRelease') IS NOT NULL) AND json_extract(value_json,'$.status') NOT IN ('draft','superseded','cancelled')").bind(omitId).all<{value_json:string}>()).results.map(row=>JSON.parse(row.value_json) as Order)
+ const intake=(await env.DB.prepare("SELECT value_json FROM bw_prebooks WHERE json_extract(value_json,'$.state')='committed'").all<{value_json:string}>()).results.map(row=>JSON.parse(row.value_json));
  const supply:Prebook['supply']=[]
  for(const sku of new Set(lines.map(line=>line.sku))) {
   const offer=available.items.find(row=>row.sku===sku)
@@ -61,7 +62,7 @@ export async function prebookCapacity(env:Bindings,selected:Account,lines:Line[]
   const incoming=offer.prebookSupply
   supply.push(...incoming.map(row=>({sku,...row})))
   // Check every dated prefix, so a late PO cannot cover an earlier commitment.
-  const demands=[...lines.filter(line=>line.sku===sku).map(line=>({date:line.requestedDate!,quantity:decimal(line.baseQuantity??String(line.quantity))})),...peers.filter(peer=>peer.prebook&&peer.pierOrigin===env.PIER_ORIGIN).flatMap(peer=>peer.lines.flatMap((line,index)=>{
+  const demands=[...intake.filter(row=>row.pierOrigin===env.PIER_ORIGIN).flatMap(row=>row.lines.filter((line:Line)=>line.sku===sku).map((line:Line)=>({date:line.requestedDate!,quantity:decimal(line.baseQuantity??String(line.quantity))}))),...lines.filter(line=>line.sku===sku).map(line=>({date:line.requestedDate!,quantity:decimal(line.baseQuantity??String(line.quantity))})),...peers.filter(peer=>peer.prebook&&peer.pierOrigin===env.PIER_ORIGIN).flatMap(peer=>peer.lines.flatMap((line,index)=>{
    const window=peer.prebook!.windows.find(window=>window.lineIndexes.includes(index))
    const release=window?.releaseId?peers.find(row=>row.id===window.releaseId):undefined
    return line.sku===sku&&(!release?.pierOrderId)?[{date:line.requestedDate!,quantity:decimal(line.baseQuantity??String(line.quantity))}]:[]

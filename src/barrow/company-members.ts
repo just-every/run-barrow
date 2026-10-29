@@ -261,7 +261,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   env.DB.prepare('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?').bind(member.userId, member.userId),
  ]
  // Use snapshot revisions so an order edit racing the review cannot be lost.
- for (const table of ['bw_orders', 'bw_quotes', 'bw_lists', 'bw_return_claims','bw_campaigns','bw_campaign_segments']) {
+ for (const table of ['bw_prebooks','bw_orders', 'bw_quotes', 'bw_lists', 'bw_return_claims','bw_campaigns','bw_campaign_segments']) {
   const rows = (await env.DB.prepare(`SELECT id,value_json,revision FROM ${table}`).all<any>()).results
   for (const record of rows) {
    if (table === 'bw_lists' && JSON.parse(record.value_json).createdBy === member.userId && !JSON.parse(record.value_json).shared) continue

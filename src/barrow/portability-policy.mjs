@@ -2,6 +2,7 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_prebook_seasons')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
   if(table==='bw_settings'&&row.key.startsWith('credit-policy:'))return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),releases:[],accountRelease:undefined})};
   if(table==='bw_orders'){const value=JSON.parse(row.value_json);if(value.prebookRelease)return {...row,value_json:JSON.stringify({...value,prebookRelease:{...value.prebookRelease,restored:true}})};if(value.prebook)return {...row,value_json:JSON.stringify({...value,prebook:{...value.prebook,restored:true}})}}
   if(table==='bw_settings'&&row.key==='prebook-seasons')return {...row,value_json:JSON.stringify(JSON.parse(row.value_json).map(value=>({...value,state:'closed'})))}
@@ -32,7 +33,7 @@ export const portabilityPolicy = {
   return row;
  },
  // Catalog search rows are rebuildable observations, never the catalog or stock authority.
- excludeTables: ['bw_return_claim_epoch','bw_tracking_epoch','bw_integration_grants','bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
+ excludeTables: ['bw_prebook_frontier','bw_return_claim_epoch','bw_tracking_epoch','bw_integration_grants','bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
  requiredConfiguration: ['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
 };
 

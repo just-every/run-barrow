@@ -418,6 +418,12 @@
       "name": "0064_return_claims.sql",
       "sha256": "decd7e89a6fd38b8fc31ffeae6279bd118e1323b5f7817de6a1ee90d5c5a6129",
       "sql": "CREATE TABLE bw_return_claims (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL,\n order_id TEXT NOT NULL,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_return_claims_order ON bw_return_claims(order_id);\nCREATE TABLE bw_return_claim_epoch (id INTEGER PRIMARY KEY CHECK(id=1), revision INTEGER NOT NULL);\nINSERT INTO bw_return_claim_epoch VALUES(1,0);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0065_prebooks.sql",
+      "sha256": "5c9730c0dcab39ff6475b251f9d362df211ad07d4234d56fff5c821fc3d2d7cf",
+      "sql": "CREATE TABLE bw_prebook_seasons (\n id TEXT PRIMARY KEY,\n value_json TEXT NOT NULL CHECK(json_valid(value_json)),\n revision TEXT NOT NULL\n);\nCREATE TABLE bw_prebooks (\n id TEXT PRIMARY KEY,\n account_id TEXT NOT NULL REFERENCES bw_accounts(id),\n value_json TEXT NOT NULL CHECK(json_valid(value_json)),\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_prebook_account ON bw_prebooks(account_id);\nCREATE TABLE bw_prebook_frontier (singleton INTEGER PRIMARY KEY CHECK(singleton=1), revision INTEGER NOT NULL);\nINSERT INTO bw_prebook_frontier VALUES(1,0);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",

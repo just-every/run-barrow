@@ -78,6 +78,7 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
   if(await env.DB.prepare('SELECT id FROM bw_retention_requests WHERE account_id=? AND held=1').bind(selected.id).first()) fail('LEGAL_HOLD','This account has a held erasure request. Preserve its records pending attributed owner review.')
   if(p.confirm!=='ERASE') fail('CONFIRM','Type ERASE to confirm removal of this unused account.',400)
   if(await env.DB.prepare('SELECT source_id FROM bw_faire_orders WHERE account_id=? LIMIT 1').bind(selected.id).first())fail('ORDERS_EXIST','This account has Faire orders. Preserve its commercial history.')
+  if(await env.DB.prepare('SELECT id FROM bw_prebooks WHERE account_id=? LIMIT 1').bind(selected.id).first())fail('ORDERS_EXIST','This account has prebook history. Retain its commercial commitments.');
   if(await env.DB.prepare('SELECT id FROM bw_orders WHERE account_id=? LIMIT 1').bind(selected.id).first()) fail('ORDERS_EXIST','This account has orders. Keep the commercial history; erasure is limited to unused accounts.')
   if(await env.DB.prepare('SELECT id FROM bw_quotes WHERE account_id=? LIMIT 1').bind(selected.id).first()) fail('QUOTES_EXIST','This account has quotes. Keep the commercial history; erasure is limited to unused accounts.')
   const portability=await createPortability({db:env.DB,policy:portabilityPolicy})
