@@ -18,7 +18,10 @@
           "src/mail.server.mjs",
           "src/auth.server.ts",
           "src/server.dev.ts",
-          "src/server.ts"
+          "src/server.ts",
+          "src/modules/agent-door",
+          "src/modules/business-settings",
+          "src/foundation/runtime"
         ],
         "origin": {
           "repository": "https://github.com/runeditrun/base",
