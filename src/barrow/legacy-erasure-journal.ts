@@ -1,4 +1,5 @@
 import { campaignErasureStatements } from './campaign-custody'
+import { eraseReturnNarrative } from './return-claim-custody'
 import { deltaErasure } from './imports/delta-custody'
 import { cutoverErasure } from './imports/cutover-custody'
 /** Outside-D1 protection for the erasure doors that predate account redaction. */
@@ -53,7 +54,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
    if(Array.isArray(value))return value.map(item=>redact(item,key))
    return value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,redact(item,key)])):value
   }
-  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_campaigns','bw_campaign_segments'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const value=JSON.stringify(redact(JSON.parse(row.value_json)));if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
+  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_campaigns','bw_campaign_segments','bw_return_claims'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const redacted=redact(JSON.parse(row.value_json));const value=JSON.stringify(table==='bw_return_claims'?eraseReturnNarrative(redacted,id):redacted);if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
   for(const row of (await env.DB.prepare('SELECT * FROM bw_confirmations').all<any>()).results){const value=JSON.stringify(redact(JSON.parse(row.value_json)));if(value!==row.value_json)put('UPDATE bw_confirmations SET value_json=? WHERE order_id=? AND number=?',value,row.order_id,row.number)}
   for(const [table,column] of [['bw_quote_notices','summary'],['bw_audit','context_json'],['oa_auth_audit','value']])for(const row of (await env.DB.prepare(`SELECT id,${column} AS value FROM ${table}`).all<any>()).results){if(!row.value)continue;const value=originals.reduce((v,original)=>v.replaceAll(original,original.includes('@')?email:'Former company user'),row.value);if(value!==row.value)put(`UPDATE ${table} SET ${column}=? WHERE id=?`,value,row.id)}
   put('UPDATE bw_quote_entries SET author_email=?,body=replace(body,?,?) WHERE author_id=?',email,p.email,email,id)
