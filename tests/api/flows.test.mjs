@@ -43,7 +43,7 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
    const catalogue=JSON.parse((await exec(process.execPath,[command,'catalogue',...flags,'--account','cedar'])).stdout);assert.equal(catalogue.items[0].unitCents,6500);
    draft=JSON.parse((await exec(process.execPath,[command,'prepare-order',...flags,'--input',input])).stdout).result;
   }finally{await rm(directory,{recursive:true,force:true})}
-  assert.match(draft.preparedBy,/Barrow scoped agent for Supplier/);
+  assert.equal(draft.preparedBy,'Barrow scoped agent for Supplier');
   await h.command('order.submit',{orderId:draft.id},{...agent,status:403});
   await h.command('order.approve',{orderId:draft.id},{...agent,status:403});
   await h.api('/api/barrow/imports/preview',{csv:'bad'},{...agent,status:403});

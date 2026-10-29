@@ -5115,7 +5115,7 @@
       "executable": false
     },
     "tests/api/flows.test.mjs": {
-      "sha256": "0b59908efad5481e54e0ad375ab5c242ab43620e978b45bae5b3214bfccf5284",
+      "sha256": "618cefb79069f5d3ac2249e68ea48be2521058c3f025429e580a7ee087cd04ed",
       "executable": false
     },
     "tests/api/followups.test.mjs": {
@@ -5203,7 +5203,7 @@
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
-      "sha256": "f50c3df58a807802cedd4b6a6bd7cb8b6e8e158b871488c5fd2c08b278d52c54",
+      "sha256": "f96577555cb4972c86d49a26e5217ebded122caf7cc86a4e8a90831efc69b1e8",
       "executable": false
     },
     "tests/api/promotion-fixture.mjs": {
@@ -5331,7 +5331,7 @@
       "executable": false
     },
     "tests/api/validation.test.mjs": {
-      "sha256": "6fad5b69489dd13c96b3a615fd167ba59a1c10080c232fe092769e8883eb4627",
+      "sha256": "a0edf43d0fde817d23dd73834430716b6c2ab97647d3966ddb93ab9432ee9d98",
       "executable": false
     },
     "tests/api/webhook-fixture.mjs": {

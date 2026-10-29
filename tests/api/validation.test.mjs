@@ -21,7 +21,7 @@ test('PRI-007: server admission rejects hidden items, undefined units, minimums 
  const { token } = await h.api('/api/barrow/agent-token', {});
  const agent = { as: '', headers: { authorization: `Bearer ${token}` } };
  const proposed = await prepare([{ sku: 'OAT-1', quantity: 2, unitCents: 0 }], { totalCents: 0, accountRevision: 'invented' }, agent);
- assert.equal(proposed.totalCents, 13000); assert.match(proposed.preparedBy, /^agent:/);
+ assert.equal(proposed.totalCents, 13000); assert.equal(proposed.preparedBy, 'Barrow scoped agent for Supplier');
  assert.equal((await h.command('order.submit', { orderId: proposed.id }, { ...agent, status: 403 })).error.code, 'PERSON_REQUIRED');
  account = await h.command('account.save', { id: account.id, revision: account.revision, value: { ...account.value, prices: [{ ...account.value.prices[0], unitCents: 7500 }] } });
  const changed = await h.command('order.submit', { orderId: draft.id, totalCents: 13000, unitCents: 6500, override: true }, { as: buyer, status: 409 });
