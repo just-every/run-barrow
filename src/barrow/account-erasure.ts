@@ -1,4 +1,4 @@
-import { eraseReturnNarrative } from './return-claim-custody'
+import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
 import { deltaErasure } from './imports/delta-custody'
 /** ct scope-review-56 §E: account erasure keeps the commercial account and
@@ -219,7 +219,8 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
  }
  for(const row of r.bw_audit) {
   if(!row.context_json)continue
-  const context=JSON.parse(row.context_json),reason=typeof context.reason==='string'?replaceText(context.reason,people,op.accountEmail,personal):context.reason
+  const context=JSON.parse(row.context_json),clean=context.accountId===accountId?eraseReturnAudit(context,row.action):context
+  const reason=typeof clean.reason==='string'?replaceText(clean.reason,people,op.accountEmail,personal):clean.reason
   if(reason!==context.reason)add('commercial audit','audit:'+row.id,'replace exact personal values in free text','Preserve ID, subject, actor, action, time and revision',[sql("UPDATE bw_audit SET context_json=json_set(context_json,'$.reason',?) WHERE id=?",reason,row.id)])
  }
  for(const [table,match] of [['bw_application_history',(row:any)=>r.bw_applications.some(app=>app.id===row.application_id&&app.account_id===accountId)],['bw_company_route_versions',(row:any)=>row.account_id===accountId],['bw_company_delegations',(row:any)=>row.account_id===accountId]] as const)for(const row of r[table].filter(match)){const reason=replaceText(row.reason,people,op.accountEmail,personal);if(reason!==row.reason)add('commercial audit','history:'+table+':'+row.id,'replace exact personal values in free text','Keep the attributed history row and revision',[sql(`UPDATE ${table} SET reason=? WHERE id=?`,reason,row.id)])}

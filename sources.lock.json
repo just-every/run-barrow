@@ -1140,7 +1140,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "a3873bce2486e230e92b842fb867a7cbf30309a0752a32f097a516cd8e3b97b7",
+      "sha256": "3b124f109192ee82902f6b93f38f26bc4a0b7c283325292bdfae001585d78e9d",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1360,7 +1360,7 @@
       "executable": false
     },
     "src/barrow/company-members.ts": {
-      "sha256": "b298742a180b7fabdc83ec568f26df3dfa70604e1f8cec7d0a0023cac045cc12",
+      "sha256": "13050d9c974e11f5ded44a83ab15453854c57b88370e68e2267c2f858ec097b4",
       "executable": false
     },
     "src/barrow/company-policy.ts": {
@@ -1700,7 +1700,7 @@
       "executable": false
     },
     "src/barrow/legacy-erasure-journal.ts": {
-      "sha256": "f7412494b90223ac4f49efaeb4ca34046811e545919044e5950a1949d98dbf4c",
+      "sha256": "330e79a964a61ae7b2d29c6c90ec4e1606b662f70e7c2746c270ef8e7231177b",
       "executable": false
     },
     "src/barrow/line-sheets.ts": {
@@ -1912,7 +1912,7 @@
       "executable": false
     },
     "src/barrow/return-claim-custody.ts": {
-      "sha256": "8d7d086be4e88d3b9ab77c74a6d50b458f7e40fc00bf816a188c3adbe4de0ca2",
+      "sha256": "20639d8844ad14accafed56e0399f8f79fcbfa9349519588f1fcb5fc01705247",
       "executable": false
     },
     "src/barrow/return-claims.ts": {
@@ -4696,7 +4696,7 @@
       "executable": false
     },
     "tests/api/return-claims.test.mjs": {
-      "sha256": "327c2b8a203c8bb8359f46891dba4ca802a397d856f38b6db2cd6e2b629085bd",
+      "sha256": "68bdb7b425732f7397c04cb4af6e850637ef3c2b17a10b55d967257f08d9fa53",
       "executable": false
     },
     "tests/api/sales-report.test.mjs": {
