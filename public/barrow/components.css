@@ -95,3 +95,10 @@
  .br-actions>button,.br-actions>.br-button{flex:1 1 auto}
  .br-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.br-facts div+div{border-left:0;padding-left:0}.br-facts dd{font-size:14px}
 }
+
+/* Persistent descriptions and linked summaries stay readable beside the exact problem. */
+.br-field-error{display:block;min-width:56px;max-width:180px;margin-top:6px!important;color:var(--br-red);font-size:13px;line-height:1.4;white-space:normal}
+.br-error-summary ul{margin:0;padding-left:22px}
+.br-error-summary a{display:inline-block;min-height:44px;padding-block:10px}
+.barrow [id],.barrow [tabindex="-1"]{scroll-margin-block:110px}
+.br-order-explain:focus,.br-error-summary:focus{outline:2px solid var(--rer-focus);outline-offset:3px}

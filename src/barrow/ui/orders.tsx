@@ -6,7 +6,7 @@ import { AgentProposals } from './agent-proposals'
 import { OrderConfirmations } from './order-confirmations'
 import { OrderRevision } from './order-revision'
 import { BulkConfirmations } from './bulk-confirmations'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Account, Order, RunCommand } from './types'
 import { byAgent, day, money, orderNumber, terms, when } from './types'
 import { Empty } from './primitives'
@@ -36,7 +36,7 @@ const filters = [['All','all'], ['Drafts','draft'], ['Company approval','awaitin
 type HistoryPage = {accountRevisions:Record<string,string>;orders:Order[];people:Record<string,string>;page:number;hasNext:boolean;counts:Record<string,number>;duplicatePOs:string[];completedReplacements:string[]}
 
 // A superseded draft lives on only as the "Replaces" note of the order prepared from it.
-export function Orders({ orders: all, accounts, people, viewer, supplier, stockExceptionLimitCents,canOperate=supplier,canExcept=supplier,canQuote=supplier, companyApprover=false, companyManager=false, canPurchase=true, finance=true, busy, run, onOpen }: { orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean;stockExceptionLimitCents?:number;canOperate?:boolean;canExcept?:boolean;canQuote?:boolean;companyApprover?:boolean;companyManager?:boolean;canPurchase?:boolean;finance?:boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
+export function Orders({ focusOrderId='', onResultFocused, orders: all, accounts, people, viewer, supplier, stockExceptionLimitCents,canOperate=supplier,canExcept=supplier,canQuote=supplier, companyApprover=false, companyManager=false, canPurchase=true, finance=true, busy, run, onOpen }: { focusOrderId?: string; onResultFocused?: () => void; orders: Order[]; accounts: Account[]; people: Record<string, string>; viewer: string; supplier: boolean;stockExceptionLimitCents?:number;canOperate?:boolean;canExcept?:boolean;canQuote?:boolean;companyApprover?:boolean;companyManager?:boolean;canPurchase?:boolean;finance?:boolean; busy: boolean; run: RunCommand; onOpen: (order: Order) => void }) {
   const [openPlans,setOpenPlans]=useState<Record<string,boolean>>({})
   const [deliveryAccepted,setDeliveryAccepted]=useState<Record<string,boolean>>({})
   const [termsFor,setTermsFor]=useState<Record<string,TermsChoice>>({})
@@ -48,12 +48,22 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
   const [cancel,setCancel] = useState<Order|null>(null)
   const [query,setQuery] = useState({po:'',from:'',to:'',sku:'',location:''})
   const [searchError,setSearchError] = useState('')
+  const historyKey = useRef('')
+  const loadedOrders = useRef<Order[] | null>(null)
   useEffect(() => {
     let current=true
-    setLoading(true);setHistory(null);setSearchError('')
-    void request<HistoryPage>(`/api/barrow/orders/history?${new URLSearchParams({...query,status:filter,page:String(page)})}`).then(value => {if(current)setHistory(value)}).catch(error => {if(current)setSearchError(errorMessage(error))}).finally(()=>{if(current)setLoading(false)})
+    const nextKey = JSON.stringify([query,filter,page])
+    if (historyKey.current !== nextKey) setHistory(null)
+    historyKey.current = nextKey
+    setLoading(true);setSearchError('')
+    void request<HistoryPage>(`/api/barrow/orders/history?${new URLSearchParams({...query,status:filter,page:String(page)})}`).then(value => {if(current){loadedOrders.current = all;setHistory(value)}}).catch(error => {if(current)setSearchError(errorMessage(error))}).finally(()=>{if(current)setLoading(false)})
     return () => {current=false}
   },[query,filter,page,all])
+  useEffect(() => {
+    if (!focusOrderId || loading || busy || !history || loadedOrders.current !== all) return
+    const result = document.getElementById(`order-result-${focusOrderId}`)
+    if (result) { result.focus(); onResultFocused?.() }
+  }, [focusOrderId, loading, busy, history, all, onResultFocused])
   const orders = history?.orders ?? []
   const duplicate = (order: Order) => history?.duplicatePOs.includes(order.id) ?? false
   const counts=history?.counts ?? {}
@@ -66,7 +76,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
   }
   const person = (id: string) => id.startsWith('agent:') ? 'Your agent' : id === viewer ? 'You' : history?.people[id] ?? people[id] ?? 'A former user'
   const shown = orders
-  return <div className="br-stack br-orders">
+  return <div className="br-stack br-orders" aria-busy={loading || busy}>
     <div className="br-heading-row"><h2>{supplier ? 'All orders' : 'Your orders'}</h2>
       <div className="br-segments" role="group" aria-label="Show orders">{filters.map(([name, status]) => <button key={name} type="button" aria-pressed={filter === status} disabled={loading} onClick={() => {setPage(1);setFilter(status)}}>{name} <span>{count(status)}</span></button>)}</div>
     </div>
@@ -111,7 +121,7 @@ export function Orders({ orders: all, accounts, people, viewer, supplier, stockE
           {order.status==='approved'&&(!order.prebook||order.prebook.depositCents>0)&&finance&&<CardPaymentPanel orderId={order.id} deposit={Boolean(order.prebook)} merchant={supplier} canAct={canOperate}/>}
           {['approved','cancelled'].includes(order.status)&&!!order.invoice&&finance&&<CreditPanel order={order}/>}
           <OrderShipping order={order} supplier={canQuote} canSelect={canPurchase} busy={busy} run={run} />
-          <p className="br-order-explain">{order.prebook?'Seasonal commitment recorded; stock allocation is confirmed on each linked release.':order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' :order.status==='approved'&&!finance?'Stock is reserved in full.':explanations[order.status]}</p>
+          <p id={`order-result-${order.id}`} tabIndex={-1} role="status" className="br-order-explain">{order.prebook?'Seasonal commitment recorded; stock allocation is confirmed on each linked release.':order.status === 'reserving' && !order.pierOrderId ? 'Approval is recorded, but the reservation result is not confirmed. Retry the reservation for this same order.' :order.status==='approved'&&!finance?'Stock is reserved in full.':explanations[order.status]}</p>
         </div>
         <div className="br-order-side">
           <p className="br-order-amount">{money(order.totalCents, order.currency ?? 'AUD')}</p>

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { request, errorMessage } from './api'
 import { AccountPages, useAccountPage } from './account-pages'
 import type { Account } from './types'
@@ -34,4 +34,23 @@ export function AccountPicker({ accounts, value, onChange, empty='Choose an acco
 export function JsonDetail({ value, label = 'Details' }: { value: unknown; label?: string }) {
   if (value === undefined || value === null) return null
   return <details className="br-details"><summary>{label}</summary><pre>{JSON.stringify(value, null, 2)}</pre></details>
+}
+
+export interface FieldProblem { id: string; label: string; message: string }
+
+/** Keep typing in the field; move to the summary only after an explicit validation attempt. */
+export function ErrorSummary({ problems, attempt = 0, className = '' }: { problems: FieldProblem[]; attempt?: number; className?: string }) {
+  const summary = useRef<HTMLDivElement>(null)
+  useEffect(() => { if (attempt) summary.current?.focus() }, [attempt])
+  if (!problems.length) return null
+  return <div ref={summary} tabIndex={-1} className={`br-notice br-error br-error-summary ${className}`} role="region" aria-label="Review these problems">
+    <strong>Review these problems</strong>
+    <ul>{problems.map(problem => <li key={problem.id}><a href={`#${encodeURIComponent(problem.id)}`} onClick={event => {
+      event.preventDefault()
+      const field = document.getElementById(problem.id)
+      for (let parent = field?.parentElement; parent; parent = parent.parentElement) if (parent instanceof HTMLDetailsElement) parent.open = true
+      field?.focus()
+      field?.scrollIntoView({ block: 'center' })
+    }}>{problem.label}: {problem.message}</a></li>)}</ul>
+  </div>
 }
