@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {mkdir,writeFile} from 'node:fs/promises'
+import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool}) {
@@ -61,6 +62,19 @@ export default async function({request,origin,cookie,tool}) {
  const denied=await local('tools/call',{name:'barrow.proposals.grants',arguments:{accountId:'juniper'}});console.log('NATIVE local scope refusal HTTP '+denied.status);assert.equal(denied.status,403)
  const recognizable=Buffer.from(JSON.stringify({alg:'ES256',typ:'at+jwt',kid:'unknown'})).toString('base64url')+'.e30.invalid'
  const failedBusiness=await local('tools/list',{},recognizable);console.log('NATIVE recognizable Business refusal HTTP '+failedBusiness.status);assert.equal(failedBusiness.status,401)
+ const admin=takeLocalAdmin(),adminHeaders={Cookie:admin.cookie,Origin:origin,'Content-Type':'application/json'}
+ for(const path of ['/agents/api/state','/agents/api/audit']) {
+  const response=await request(origin+path,{headers:adminHeaders});assert.equal(response.status,403);await response.body?.cancel()
+ }
+ const adminGrantResponse=await request(origin+'/api/barrow/agent-token',{method:'POST',headers:adminHeaders,body:'{}'})
+ assert.equal(adminGrantResponse.status,200);const adminGrant=await adminGrantResponse.json()
+ const adminRead=await local('tools/call',{name:'barrow.accounts.read',arguments:{id:'juniper'}},adminGrant.token)
+ assert.equal(adminRead.status,200);assert.equal(adminRead.body.result.structuredContent.id,'juniper')
+ const operators=await(await request(origin+'/auth/operators',{headers})).json(),adminPerson=operators.find(person=>person.email===admin.email)
+ const inactive=await request(origin+'/auth/operator/status',{method:'POST',headers,body:JSON.stringify({operatorId:adminPerson.id,status:'inactive'})})
+ assert.ok(inactive.ok);await inactive.body?.cancel()
+ assert.equal((await local('tools/list',{},adminGrant.token)).status,401)
+ console.log('NATIVE PASS native admin keeps scoped commercial access without Business editor authority; native deactivation refuses the next call')
  const revoked=await request(origin+'/api/barrow/agent-token/revoke',{method:'POST',headers,body:'{}'});console.log('NATIVE local revoke HTTP '+revoked.status);assert.ok(revoked.ok);await revoked.body?.cancel()
  assert.equal((await local('tools/list')).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
@@ -78,7 +92,7 @@ export default async function({request,origin,cookie,tool}) {
     await page.setViewportSize({width,height:1000});await page.goto(origin+'/agents');await page.screenshot({path:directory+'/agents-'+width+'.png',fullPage:true})
     if(width===1440)assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
    }
-   await writeFile(directory+'/browser-proof.txt','Production Agents page with named owner and real completed/refused/pending/review records captured at 1440 and 390. Desktop overflow assertion passed.\n')
+   await writeFile(directory+'/browser-proof.txt','Production Agents page with named owner and real completed/refused/review records and the empty pending section captured at 1440 and 390. Desktop overflow assertion passed.\n')
    await context.close()
   }finally{await browser.close()}
  }

@@ -1,7 +1,7 @@
 import { authConfig, operatorAuth, type Bindings } from '../../auth.server.ts'
 import { operatorAuthPeople } from '../../modules/agent-door/operator-people.ts'
 import { ToolRefusal } from '../../modules/agent-door/index.ts'
-import type { PeopleAdapter, ToolContext, ResourceContext } from '../../modules/agent-door/types.ts'
+import type { PeopleAdapter, Person, ToolContext, ResourceContext } from '../../modules/agent-door/types.ts'
 import { current } from '../access.ts'
 import { Problem, type Actor } from '../model.ts'
 import { erasureRestoreResponse } from '../erasure-journal.ts'
@@ -11,10 +11,19 @@ export const scopes = ['accounts:read','catalog:read','orders:read','orders:prep
 const localId = (id: string) => `barrow-local:${id}`
 export function people(env: Bindings): PeopleAdapter {
  const native=operatorAuthPeople({db:env.DB,session:request=>operatorAuth(env).getSession(request),allowList:authConfig(env).allowList})
- return {...native,async sponsor(claims) {
+ type BoundPerson=Person & {policyRole:'owner'|'editor'|null}
+ const bind=async(person:Person|null):Promise<BoundPerson|null>=>person?{...person,policyRole:env.RER_OWNER_CLAIM_PUBLIC_KEYS
+  ? (await native.businessMember?.(person))?.role??null
+  : person.role==='owner'?'owner':person.role==='admin'?'editor':null}:null
+ return {...native,
+  // Shared person pages must use the signed Business mapping too; native admin
+  // promotion alone does not confer Business policy or audit administration.
+  businessRole:person=>(person as BoundPerson).policyRole??null,
+  person:async id=>bind(await native.person(id)),session:async request=>bind(await native.session(request)),
+  async sponsor(claims) {
   const person=await native.sponsor(claims)
   // Barrow's native bearer admission has always required an owner/admin sponsor.
-  return person?.active && ['owner','admin'].includes(person.role) ? person : null
+  return person?.active && ['owner','admin'].includes(person.role) ? bind(person) : null
  }}
 }
 export async function localCredential(env:Bindings,request:Request) {

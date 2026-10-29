@@ -1,11 +1,12 @@
 /** Disposable native lifecycle, not a production route or database writer. */
-export default async function({request,origin,email,claim,token,fixtures}) {
+export default async function({request,origin,email,claim,token,fixtures,reviewers}) {
  const bootstrap=await request(origin+claim.path,{method:'POST',redirect:'manual',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({token:claim.token,displayName:'Juniper wholesale owner',returnTo:'/setup'})})
  if(bootstrap.status!==303)throw new Error('Native owner claim failed')
  const cookie=bootstrap.headers.getSetCookie().map(value=>value.split(';',1)[0]).join('; ')
  const headers={Origin:origin,Cookie:cookie,'Content-Type':'application/json'}
  const setup=await request(origin+'/setup',{method:'POST',headers:{...headers,'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({confirm:'yes',displayName:'Juniper wholesale owner'}),redirect:'manual'})
  if(setup.status!==303)throw new Error('Native first run failed')
+ await reviewers.initialize('local-admin',{cookie})
  await fixtures.set(origin,{cookie:token})
  async function command(type,payload) {
   const response=await request(origin+'/api/barrow/commands',{method:'POST',headers,body:JSON.stringify({type,payload})})

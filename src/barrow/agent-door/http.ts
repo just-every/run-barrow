@@ -20,7 +20,7 @@ export async function agentHttp(request: Request, env: Bindings, actor: Actor): 
    'cart.form': 'barrow.cart.form', 'proposal.submit': 'barrow.proposals.submit',
   }
   if (!body || typeof body.type !== 'string' || !body.payload || typeof body.payload !== 'object' || Array.isArray(body.payload)) return refuse('INPUT', 400)
-  if (!names[body.type] || actor.agentScope === 'proposal' && body.type !== 'proposal.submit') return refuse('PERSON_REQUIRED')
+  if (!Object.hasOwn(names,body.type) || actor.agentScope === 'proposal' && body.type !== 'proposal.submit') return refuse('PERSON_REQUIRED')
   name = names[body.type]!
   args = { ...body.payload, ...(body.type === 'proposal.submit' ? { grantId: actor.grantId } : {}) }
   command = true

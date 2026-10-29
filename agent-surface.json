@@ -500,6 +500,13 @@
         "prepare"
       ]
     },
-    "journey": "tests/agent-door/native-journey.mjs"
+    "journey": "tests/agent-door/native-journey.mjs",
+    "reviewers": [
+      {
+        "label": "local-admin",
+        "email": "synthetic-admin@example.invalid",
+        "initializer": "tests/agent-door/initialize-admin.mjs"
+      }
+    ]
   }
 }

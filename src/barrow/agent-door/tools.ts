@@ -30,7 +30,7 @@ export function tools(env:Bindings):ToolDefinition[] {
  ]
  records.push({name:'barrow.orders.prepare',title:'Prepare a current-price order draft',description:'Prepare a validated draft only. A person must submit and approve it; no reservation, message, payment or provider charge occurs.',
   scope:'orders:prepare',readOnly:false,classes:['standard'],clauses:['BAR-003','AGT-001','ORD-001'],
-  inputSchema:object({accountId:str,reference:{type:'string',maxLength:100},lines:{type:'array',minItems:1,maxItems:100,items:object({sku:str,unit:str,quantity:{type:'number',exclusiveMinimum:0}},['sku','quantity'])}},['accountId','lines']),outputSchema:{type:'object'},untrusted:true,revisionType:'string',
+  inputSchema:object({accountId:str,reference:{type:'string',maxLength:100},lines:{type:'array',minItems:1,maxItems:100,items:object({sku:str,unit:str,quantity:{type:'number',exclusiveMinimum:0},unitCents:{type:'number',description:'Advisory input only; native current prices always determine the draft.'},buyerSku:str,profileId:str,brandId:str,requestedDate:str,cancelAfter:str},['sku','quantity'])}},['accountId','lines']),outputSchema:{type:'object'},untrusted:true,revisionType:'string',
   revision:async(a,c)=>(await readAccount(env,String(a.accountId),c)).revision,
   target:async(a,c)=>({kind:'account',id:(await readAccount(env,String(a.accountId),c)).id}),
   classify:async(a,c)=>{await readAccount(env,String(a.accountId),c);return [{class:'standard',facts:{measure:Array.isArray(a.lines)?a.lines.length:0}}]},
