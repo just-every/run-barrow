@@ -12,11 +12,9 @@
         "pnpm check:deployment-spec",
         "node scripts/edition-authoring/cli.mjs check",
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
-        "BARROW_TEST_SHARD=1/4 pnpm run test:api",
+        "BARROW_TEST_SHARD=9/16 pnpm run test:api",
         "pnpm exec rer build --site",
-        "node --test tests/site.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-credit-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs tests/journeys/credit-policy.test.mjs tests/journeys/deposits.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-prebook-screens timeout 1200 node --test --test-concurrency=1 --test-name-pattern='buyer books a spring season' tests/journeys/confirmations.test.mjs"
+        "node --test tests/site.test.mjs"
       ]
     },
     {
@@ -33,11 +31,7 @@
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
         "BARROW_TEST_SHARD=2/4 pnpm run test:api",
         "pnpm exec rer build --site",
-        "node --test tests/site.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promotion-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-order-followthrough-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/order-followthrough.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promise-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-campaign-screens timeout 1200 node --test --test-concurrency=1 --test-name-pattern='supplier resumes a campaign draft' tests/journeys/line-sheets.test.mjs"
+        "node --test tests/site.test.mjs"
       ]
     },
     {
@@ -55,8 +49,13 @@
         "BARROW_TEST_SHARD=3/4 pnpm run test:api",
         "pnpm exec rer build --site",
         "node --test tests/site.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promotion-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-order-followthrough-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/order-followthrough.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promise-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-campaign-screens timeout 1200 node --test --test-concurrency=1 --test-name-pattern='supplier resumes a campaign draft' tests/journeys/line-sheets.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-faire-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/faire.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-sellthrough-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/reorder.test.mjs"
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-sellthrough-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/reorder.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-currency-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs"
       ]
     },
     {
@@ -73,11 +72,48 @@
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
         "BARROW_TEST_SHARD=4/4 pnpm run test:api",
         "pnpm exec rer build --site",
+        "node --test tests/site.test.mjs"
+      ]
+    },
+    {
+      "name": "barrow-5",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "node scripts/contract-docs.mjs check",
+        "pnpm exec rer check --profile first-party",
+        "pnpm run build",
+        "pnpm run typecheck",
+        "pnpm check:deployment-spec",
+        "node scripts/edition-authoring/cli.mjs check",
+        "node scripts/edition-authoring/cli.mjs verify-base --offline",
+        "BARROW_TEST_SHARD=1/16 pnpm run test:api",
+        "pnpm exec rer build --site",
+        "node --test tests/site.test.mjs"
+      ]
+    },
+    {
+      "name": "barrow-6",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "node scripts/contract-docs.mjs check",
+        "pnpm exec rer check --profile first-party",
+        "pnpm run build",
+        "pnpm run typecheck",
+        "pnpm check:deployment-spec",
+        "node scripts/edition-authoring/cli.mjs check",
+        "node scripts/edition-authoring/cli.mjs verify-base --offline",
+        "BARROW_TEST_SHARD=5/16 pnpm run test:api",
+        "BARROW_TEST_SHARD=13/16 pnpm run test:api",
+        "pnpm exec rer build --site",
         "node --test tests/site.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-credit-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs tests/journeys/credit-policy.test.mjs tests/journeys/deposits.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-prebook-screens timeout 1200 node --test --test-concurrency=1 --test-name-pattern='buyer books a spring season' tests/journeys/confirmations.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-accessibility-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/buyer-accessibility.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-connector-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/connector-review.test.mjs tests/journeys/delta-cutover.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-nuorder-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/move-nuorder.test.mjs tests/journeys/move-nuorder-companies.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-catalog-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/catalog-maintenance.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-currency-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs"
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-catalog-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/catalog-maintenance.test.mjs"
       ]
     }
   ],

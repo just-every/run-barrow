@@ -52,6 +52,8 @@ export function BarrowApp() {
   const [invitation,setInvitation]=useState<{id:string;token:string}|null>(null)
   const [invitationMessages,setInvitationMessages]=useState<string[]>([])
   const [notice, setNotice] = useState('')
+  const [focusOrderId, setFocusOrderId] = useState('')
+  const returnFocus = useRef<HTMLElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
@@ -106,14 +108,18 @@ export function BarrowApp() {
 
   async function run(type: string, payload: Record<string, unknown>) {
     if (lock.current) return false
+    returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setFocusOrderId('')
+    const orderAction = ['order.prepare', 'order.submit', 'order.company-approve', 'order.approve', 'order.refresh'].includes(type)
     lock.current = true; setBusy(true); setError(''); setNotice('')
     try {
-      const response=await request<{result?:{status?:string;order?:{status?:string}}}>('/api/barrow/commands', { type, payload })
+      const response=await request<{result?:{id?:string;status?:string;order?:{id?:string;status?:string}}}>('/api/barrow/commands', { type, payload })
       if(type==='account.erase'&&payload.accountId===accountId)setAccountId('')
       try { await reload() } catch (error) {
         setError(`The action completed, but the latest records could not be loaded. Refresh before taking another action. ${errorMessage(error)}`)
-        return true
+        return !['order.prepare', 'order.reorder'].includes(type)
       }
+      if (orderAction) setFocusOrderId(response.result?.order?.id ?? response.result?.id ?? String(payload.orderId ?? ''))
       const messages: Record<string, string> = {
         'account.save': 'Trade account saved.', 'account.invite': 'Invitation requested. Check the account email for the sign-in message.',
         'account.erase': 'Account erasure completed.', 'order.prepare': 'Draft prepared. Review it in Orders before submitting.',
@@ -124,13 +130,45 @@ export function BarrowApp() {
       setNotice(response.result?.status==='awaiting-company-approval'||response.result?.order?.status==='awaiting-company-approval'?'Order awaits company approval. A different authorized approver must release it before supplier review.':type==='order.company-approve'?'Company purchase approved and submitted for supplier review.':messages[type] ?? 'Action completed.')
       return true
     } catch (error) {
-      setError(errorMessage(error))
+      setError(orderAction ? `${errorMessage(error)} The request is not confirmed here. Review refreshed orders before retrying; your entered work is retained.` : errorMessage(error))
       // A failed provider step may still have recorded a pending state (reserving, releasing): show it.
       try { await reload() } catch {}
       return false
     }
     finally { lock.current = false; setBusy(false) }
   }
+
+  useEffect(() => {
+    if (busy || focusOrderId || !returnFocus.current) return
+    const target = returnFocus.current
+    const finish = () => {
+      observer.disconnect()
+      document.removeEventListener('focusin', moved)
+      if (returnFocus.current === target) returnFocus.current = null
+    }
+    const moved = (event: FocusEvent) => {
+      if (event.target !== target && event.target !== document.body) finish()
+    }
+    const restore = () => {
+      if (document.activeElement !== document.body && document.activeElement !== target) { finish(); return }
+      if (document.getElementById('main-content')?.querySelector('[aria-busy="true"]')) return
+      if (!target.isConnected) {
+        document.getElementById('command-error')?.focus()
+        finish()
+        return
+      }
+      if (target.matches(':disabled')) return
+      target.focus()
+      // A failed request can trigger several later workspace refreshes. Keep
+      // following its action until the user moves on or recovery takes focus.
+      if (!error) finish()
+    }
+    const observer = new MutationObserver(restore)
+    observer.observe(document.getElementById('main-content')!, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'aria-busy'] })
+    document.addEventListener('focusin', moved)
+    const frame = requestAnimationFrame(restore)
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); document.removeEventListener('focusin', moved) }
+  }, [busy, focusOrderId, state, error])
 
   async function signOut() {
     setSigningOut(true); setError('')
@@ -153,7 +191,7 @@ export function BarrowApp() {
     </header></HydrationUnit>
     <main id="main-content" className={`br-main${activeTab === pad && selected ? ' br-main-pad' : ''}`} aria-busy={loading || busy}>
       <HydrationUnit><section>
-        {error && <Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice>}
+        {error && <div id="command-error" tabIndex={-1}><Notice error>{error}<div><button className="br-quiet" onClick={() => void load()} disabled={busy || loading}>Refresh records</button></div></Notice></div>}
         {notice && <Notice>{notice}</Notice>}{invitationMessages.map(message=><Notice key={message}>{message}</Notice>)}
         {!state && loading && <p role="status" className="br-loading">Loading your wholesale workspace…</p>}
         {invitation&&<CompanyInvitation {...invitation} onAccepted={()=>{setInvitation(null);void load()}}/>}
@@ -193,7 +231,7 @@ export function BarrowApp() {
           {activeTab === pad && selected && (legacySupplier || staffSelling) && <Visits key={`visits:${selected.id}`} accountId={selected.id} version={state} canSell canHandOff={legacySupplier || staff?.role === 'sales-manager' && staff.warehouses === 'all'} busy={busy} run={run} />}
           {activeTab === 'Orders' && staff?.role === 'operations' && staff.warehouses === 'all' && <Visits version={state} canSell={false} canHandOff busy={busy} run={run} />}
           {activeTab === 'Orders' && !supplier && rights.includes('approver') && <ApprovalNotices version={state} />}
-          {activeTab === 'Orders' && <Orders orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} canOperate={legacySupplier||Boolean(staff&&['sales-manager','operations'].includes(staff.role)&&staff.warehouses==='all')} stockExceptionLimitCents={staff?.stockExceptionLimitCents} canExcept={legacySupplier||staff?.role==='sales-manager'&&staff.stockExceptionLimitCents>0} canQuote={legacySupplier||staff?.role==='sales-manager'} companyApprover={legacySupplier||rights.includes('approver')} companyManager={!staff&&rights.includes('administrator')} canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+          {activeTab === 'Orders' && <Orders focusOrderId={focusOrderId} onResultFocused={() => { setFocusOrderId(''); returnFocus.current = null }} orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} canOperate={legacySupplier||Boolean(staff&&['sales-manager','operations'].includes(staff.role)&&staff.warehouses==='all')} stockExceptionLimitCents={staff?.stockExceptionLimitCents} canExcept={legacySupplier||staff?.role==='sales-manager'&&staff.stockExceptionLimitCents>0} canQuote={legacySupplier||staff?.role==='sales-manager'} companyApprover={legacySupplier||rights.includes('approver')} companyManager={!staff&&rights.includes('administrator')} canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Orders' && (legacySupplier||staffSelling||!staff&&purchasing) && <Quotes canApproveDiscount={legacySupplier||staff?.role==='sales-manager'} discountLimitCents={staff?.discountLimitCents} canQuoteDelivery={legacySupplier||staff?.role==='sales-manager'} canPurchase={legacySupplier||staffSelling||Boolean(state.actor.company?.rights.includes('purchaser'))} supplier={supplier} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}

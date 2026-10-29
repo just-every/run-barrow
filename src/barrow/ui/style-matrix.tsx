@@ -18,14 +18,17 @@ export function cellProblem(item: CatalogueItem, value: string | undefined) {
   return ''
 }
 
+export const quantityId = (prefix: string, sku: string) => `${prefix}-quantity-${encodeURIComponent(sku)}`
+
 interface Props {
+  prefix: string
   rows: StyleRow[]; columns: string[]; quantities: Record<string, string>; busy: boolean; selected: string; customer: string
   pricingReasons?:Record<string,string>; lineCents?:Record<string,number>; changes: Record<string, PriceChange>; kept: Set<string>; writtenAt?: string; cells: RefObject<Map<string, HTMLInputElement>>
   onQuantity: (sku: string, value: string) => void; onSelect: (key: string) => void; onKeep: (key: string) => void; onRemove: (row: StyleRow) => void
 }
 
 // Styles down, sizes across, then Units and Line $. A price that moved since the draft is settled inside its own row.
-export function StyleMatrix({ rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
+export function StyleMatrix({ prefix, rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
   const money=(cents:number,code:'USD'|'AUD'|'CAD'|'EUR'|'GBP'=rows[0]?.currency??'USD')=>formatMoney(cents,code)
   return <div className="br-matrix-wrap"><table className="br-matrix" style={{ ['--br-sizes' as string]: columns.length }}>
     <caption className="br-sr-only">Order quantities by style and size</caption>
@@ -48,10 +51,10 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
             const item = row.cells[size]
             if (!item) return <td key={size} className="br-col-size"><span className="br-cell br-cell-none" title={`${size} is not offered`}>–</span></td>
             const value = quantities[item.sku] ?? '', problem = cellProblem(item, value)
-            return <td key={size} className="br-col-size"><input ref={element => { if (element) cells.current?.set(item.sku, element); else cells.current?.delete(item.sku) }}
-              className={`br-cell${quantityOf(value) > 0 ? ' br-cell-filled' : ''}`} type="number" inputMode="numeric" min="0" step="1" placeholder="–" value={value} disabled={busy}
-              aria-label={`${size} quantity for ${row.name}`} aria-invalid={problem ? true : undefined} title={problem || `${item.sku} · ${item.available} available${item.awaitingRelease ? ` · ${item.awaitingRelease} held until Pier confirms a cancelled order’s release` : ''}`}
-              onFocus={() => onSelect(row.key)} onChange={event => onQuantity(item.sku, event.target.value)} /></td>
+            return <td key={size} className="br-col-size"><input id={quantityId(prefix, item.sku)} ref={element => { if (element) cells.current?.set(item.sku, element); else cells.current?.delete(item.sku) }}
+              className={`br-cell${quantityOf(value) > 0 ? ' br-cell-filled' : ''}`} type="number" inputMode="numeric" min="0" step="1" placeholder="–" value={value} readOnly={busy}
+              aria-label={`${size} quantity for ${row.name}`} aria-invalid={problem ? true : undefined} aria-describedby={problem ? `${quantityId(prefix, item.sku)}-error` : undefined} title={problem || `${item.sku} · ${item.available} available${item.awaitingRelease ? ` · ${item.awaitingRelease} held until Pier confirms a cancelled order’s release` : ''}`}
+              onFocus={() => onSelect(row.key)} onChange={event => onQuantity(item.sku, event.target.value)} />{problem && <p id={`${quantityId(prefix, item.sku)}-error`} className="br-field-error">{problem}</p>}</td>
           })}
           <td className="br-col-units">{rowUnits(row, quantities) || '–'}</td>
           <td className="br-col-line">{now ? money(now) : <span className="br-none">–</span>}</td>
@@ -60,7 +63,7 @@ export function StyleMatrix({ rows, columns, quantities, busy, selected, custome
           <p className="br-change-note"><span className="br-warn" aria-hidden="true">!</span>Price changed since this draft was written: {prices.join(', ')}{writtenAt && ` (written ${when(writtenAt)})`} · line {money(was, changes[moved[0]].currency)} → {money(now)}</p>
           <div className="br-change-actions">
             <p className="br-agent-line"><span className="br-rivet" aria-hidden="true" />Barrow prepares a new draft at today’s price to replace this one; {customer} re-confirms it.</p>
-            <button type="button" onClick={() => onKeep(row.key)} disabled={busy}>Keep {newPrices.length === 1 ? newPrices[0] : 'the new prices'}, buyer re-confirms</button>
+            <button type="button" id={`${prefix}-price-${encodeURIComponent(row.key)}`} onClick={() => onKeep(row.key)} disabled={busy}>Keep {newPrices.length === 1 ? newPrices[0] : 'the new prices'}, buyer re-confirms</button>
             <button type="button" className="br-secondary" onClick={() => onRemove(row)} disabled={busy}>Remove {row.key.replace(/^[A-Z]+-/, '')} from this order</button>
           </div>
         </td></tr>}

@@ -1,14 +1,14 @@
 import { priceLine } from '../pricing'
 import { supplierDate } from '../model'
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { request, errorMessage } from './api'
-import { AccountPicker, Empty, Notice } from './primitives'
+import { AccountPicker, Empty, ErrorSummary, Notice, type FieldProblem } from './primitives'
 import { UnitDraft } from './unit-draft'
 import { UnitOrder } from './unit-order'
 import { CartImport, type CartLine } from './cart-import'
 import { SavedLists, type SavedList } from './saved-lists'
 import { StyleCard } from './style-card'
-import { StyleMatrix, cellProblem, type PriceChange } from './style-matrix'
+import { StyleMatrix, cellProblem, quantityId, type PriceChange } from './style-matrix'
 import { quantityProblem } from '../quantity-rules'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
 import type { Account, Catalogue, Order, RunCommand } from './types'
@@ -22,6 +22,8 @@ interface Props {
 
 // The rep's order pad: one account, a large style card beside the size matrix, and the running total always in view.
 export function OrderPad({ account, accounts, supplier, canPurchase=true, draft, draftCount, commandError='', run, busy, onAccount, onDraft, onPrepared }: Props) {
+  const prefix = useId()
+  const [validationAttempt, setValidationAttempt] = useState(0)
   const currency=account.value.currency??'USD'
   const money=(cents:number,code=currency as 'USD'|'AUD'|'CAD'|'EUR'|'GBP')=>formatMoney(cents,code)
   const unitDraft=Boolean(draft?.lines.some(line=>line.unit && line.unit!==line.baseUnit))
@@ -61,6 +63,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   }, [account.id, refresh])
   // Opening a draft fills the pad with its quantities; a new order starts empty.
   useEffect(() => {
+    setValidationAttempt(0)
     setQuantities(Object.fromEntries((draft?.lines ?? []).map(line => [line.sku, String(line.quantity)])))
     setUnitOrder(false);setUnitLines(undefined);setAliases(Object.fromEntries((draft?.lines ?? []).filter(line => line.buyerSku).map(line => [line.sku, line.buyerSku!])));setReference(draft?.reference ?? ''); setDeliveryLocation(draft?.deliveryLocation ?? ''); setDetails({ requestedDate: draft?.requestedDate ?? '', cancelAfter: draft?.cancelAfter ?? '', instructions: draft?.instructions ?? '' }); setKept(new Set()); setSelected('')
   }, [draft?.id, account.id])
@@ -90,9 +93,25 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   const hint = !catalogue ? '' : !chosen.length ? 'Enter quantities to prepare a draft.' : pricingProblem ? pricingProblem : invalid ? 'Fix the highlighted quantities.' : belowMinimum ? `Add ${money(minimum - total)} to meet the minimum.` : unsettled.length ? 'Settle the price change first.' : ''
   const shown = rows.find(row => row.key === selected) ?? rows.find(row => row.sizes.some(size => quantityOf(quantities[row.cells[size].sku]) > 0)) ?? rows[0]
 
+  const today = catalogue ? supplierDate(new Date(catalogue.observedAt)) : ''
+  const requestedDateProblem = details.requestedDate && details.requestedDate < today ? 'Choose today or a future delivery date.' : ''
+  const dateProblem = details.cancelAfter && details.cancelAfter < today ? 'Choose today or a future cancel date.' : details.requestedDate && details.cancelAfter && details.cancelAfter < details.requestedDate ? 'Choose a date on or after the requested delivery date.' : ''
+  const problems: FieldProblem[] = items.flatMap(item => {
+    const message = cellProblem(item, quantities[item.sku])
+    return message ? [{ id: quantityId(prefix, item.sku), label: item.sku, message }] : []
+  })
+  if (requestedDateProblem) problems.push({ id: `${prefix}-requested`, label: 'Requested delivery date', message: requestedDateProblem })
+  if (dateProblem) problems.push({ id: `${prefix}-cancel`, label: 'Cancel after date', message: dateProblem })
+  if (validationAttempt) {
+    if (!chosen.length && items[0]) problems.push({ id: quantityId(prefix, items[0].sku), label: 'Order quantities', message: 'Enter at least one quantity.' })
+    if (belowMinimum || pricingProblem) problems.push({ id: quantityId(prefix, chosen[0].sku), label: 'Order quantities', message: pricingProblem || `Add ${money(minimum - total)} to meet the minimum.` })
+    for (const row of unsettled) problems.push({ id: `${prefix}-price-${encodeURIComponent(row.key)}`, label: row.name, message: 'Review and settle the changed price.' })
+  }
+
   async function prepare(event: FormEvent) {
     event.preventDefault()
-    if (!canPurchase || blocked || unitOrder || unitDraft) return
+    if (!canPurchase || busy || unitOrder || unitDraft) return
+    if (blocked || requestedDateProblem || dateProblem) { setValidationAttempt(value => value + 1); return }
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
     const prepared = await run('order.prepare', { accountId: account.id, ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
@@ -132,7 +151,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
 
   if(unitDraft && draft) return <UnitDraft key={draft.id} account={account} draft={draft} catalogue={catalogue} loading={loading} error={error || commandError} busy={busy} run={run} onNew={()=>onDraft('')} onPrepared={onPrepared} />
 
-  return <form className="br-pad" onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
+  return <form noValidate className={`br-pad${problems.length ? ' br-pad-has-errors' : ''}`} onSubmit={event => void prepare(event)} aria-busy={loading || busy}>
     {account.buyingProfile&&<section aria-label="Buying seller and permissions"><h2>{account.buyingProfile.brandName}</h2><p>Seller: {account.buyingProfile.seller.legalName} · {account.buyingProfile.seller.address}</p><p>Profile: {account.buyingProfile.name} · {account.buyingProfile.currency} · {canPurchase?'Purchasing permitted':'Read only'} · Account owner: {account.value.name}</p></section>}
     {inactive && <Notice error>This account is {account.value.lifecycle === 'closed' ? 'closed' : 'on hold'}. Contact the supplier before placing a new order. Existing order history remains available in Orders.</Notice>}
     <div className="br-pad-head">
@@ -150,9 +169,9 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
         {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
       </div>
       <div className="br-pad-find" role="search">
-        <label className="br-sku"><span className="br-sr-only">Scan or type SKU</span><input value={sku} placeholder="Scan or type SKU" autoComplete="off" spellCheck={false} disabled={!catalogue}
+        <label className="br-sku"><span className="br-sr-only">Scan or type SKU</span><input id={`${prefix}-sku`} aria-invalid={skuMessage ? true : undefined} aria-describedby={skuMessage ? `${prefix}-sku-error` : undefined} value={sku} placeholder="Scan or type SKU" autoComplete="off" spellCheck={false} disabled={!catalogue}
           onChange={event => { setSku(event.target.value); setSkuMessage('') }} onKeyDown={event => { if (event.key === 'Enter') find(event) }} /></label>
-        {skuMessage && <p className="br-sku-message" role="status">{skuMessage}</p>}
+        {skuMessage && <p id={`${prefix}-sku-error`} className="br-sku-message" role="status">{skuMessage}</p>}
       </div>
     </div>
     <div className="br-pad-send">
@@ -160,10 +179,11 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setListing(true)}>Saved lists</button>}
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={!canPurchase || busy || inactive || !chosen.length || invalid} onClick={() => void requestQuote()}>Request quote</button>}
       {canPurchase&&catalogue?.items.some(item=>item.units?.length) && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={()=>{setUnitLines(undefined);setUnitOrder(true)}}>Order by selling unit</button>}
-      <button disabled={!canPurchase || busy || blocked || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
+      <button disabled={!canPurchase || busy || !catalogue || inactive || unitDraft}>{busy ? 'Preparing…' : 'Prepare draft'}</button>
       {hint && <p className="br-quiet-text">{hint}</p>}
-      {corrections.length > 0 && <div className="br-actions">{corrections.map(({ sku, value }) => <button key={`${sku}-${value}`} type="button" className="br-secondary" disabled={busy} onClick={() => setQuantities(current => ({ ...current, [sku]: value }))}>Use {value} for {sku}</button>)}</div>}
+      {corrections.length > 0 && <div className="br-actions">{corrections.map(({ sku, value }) => <button key={`${sku}-${value}`} type="button" className="br-secondary" disabled={busy} onClick={() => { setQuantities(current => ({ ...current, [sku]: value })); cells.current.get(sku)?.focus() }}>Use {value} for {sku}</button>)}</div>}
     </div>
+    <ErrorSummary className="br-pad-errors" problems={problems} attempt={validationAttempt} />
     {loading && <p role="status" className="br-pad-status br-card">Fetching live stock and agreed prices from Pier…</p>}
     {error && <div className="br-pad-status"><Notice error><strong>Catalog unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p><div><button type="button" className="br-secondary" onClick={() => setRefresh(value => value + 1)} disabled={busy}>Refresh stock</button></div></Notice></div>}
     {catalogue && items.length === 0 && <div className="br-pad-status"><Empty title="No agreed products yet">Your supplier needs to add agreed SKU prices to this trade account before you can order.</Empty></div>}
@@ -171,14 +191,14 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       <StyleCard row={shown} observedAt={catalogue.observedAt} />
       <section className="br-matrix-card br-card" aria-label="Size matrix">
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}
-        <StyleMatrix rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
+        <StyleMatrix prefix={prefix} rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
           onQuantity={(key, value) => setQuantities(current => ({ ...current, [key]: value }))} onSelect={setSelected} onKeep={key => setKept(current => new Set(current).add(key))} onRemove={remove} />
         <p className="br-quiet-text br-matrix-foot">{canPurchase?'Preparing creates a draft for review. Submit it from Orders when you are ready.':'Your approver rights allow company review in Orders; preparing purchases requires purchaser rights.'}<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
       </section>
       <label className="br-pad-ref">Your purchase order / reference<input value={reference} maxLength={100} onChange={event => setReference(event.target.value)} disabled={busy} placeholder="Purchase order or reference" /></label>
       <details className="br-details"><summary>Delivery dates & instructions</summary>
-        <label>Requested delivery date (Eastern time)<input type="date" value={details.requestedDate} disabled={busy} onChange={event => setDetails(current => ({ ...current, requestedDate: event.target.value }))} /></label>
-        <label>Cancel if not shipped after (Eastern time)<input type="date" value={details.cancelAfter} min={details.requestedDate || undefined} disabled={busy} onChange={event => setDetails(current => ({ ...current, cancelAfter: event.target.value }))} /></label>
+        <label>Requested delivery date (Eastern time)<input id={`${prefix}-requested`} aria-invalid={requestedDateProblem ? true : undefined} aria-describedby={requestedDateProblem ? `${prefix}-requested-error` : undefined} type="date" value={details.requestedDate} disabled={busy} onChange={event => setDetails(current => ({ ...current, requestedDate: event.target.value }))} /></label>{requestedDateProblem && <p id={`${prefix}-requested-error`} className="br-field-error">{requestedDateProblem}</p>}
+        <label>Cancel if not shipped after (Eastern time)<input id={`${prefix}-cancel`} aria-invalid={dateProblem ? true : undefined} aria-describedby={dateProblem ? `${prefix}-cancel-error` : undefined} type="date" value={details.cancelAfter} min={details.requestedDate || undefined} disabled={busy} onChange={event => setDetails(current => ({ ...current, cancelAfter: event.target.value }))} /></label>{dateProblem && <p id={`${prefix}-cancel-error`} className="br-field-error">{dateProblem}</p>}
         <label>Instructions for the supplier<textarea value={details.instructions} maxLength={1000} disabled={busy} onChange={event => setDetails(current => ({ ...current, instructions: event.target.value }))} /></label>
       </details>
       <div className="br-pad-foot" role="status" aria-live="polite">
