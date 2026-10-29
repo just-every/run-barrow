@@ -36,7 +36,8 @@
         "node --test tests/site.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promotion-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-order-followthrough-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/order-followthrough.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promise-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs"
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promise-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-campaign-screens timeout 1200 node --test --test-concurrency=1 --test-name-pattern='supplier resumes a campaign draft' tests/journeys/line-sheets.test.mjs"
       ]
     },
     {

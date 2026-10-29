@@ -1,4 +1,5 @@
 import { reconcilePaymentPromises } from './barrow/payment-promises'
+import { dispatchCampaigns } from './barrow/campaigns'
 import { runStockSync } from './barrow/stock-sync'
 import { dispatchWebhooks } from './barrow/webhook-delivery'
 import { reconcileErasureJournal } from './barrow/erasure-journal'
@@ -33,7 +34,7 @@ function noTransform(response: Response): Response {
 }
 
 export default withDemo({
-  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await reconcileErasureJournal(runtimeBindings(env));await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await escalateApprovals(runtimeBindings(env));await reconcilePaymentPromises(runtimeBindings(env));await dispatchWebhooks(runtimeBindings(env));await runStockSync(runtimeBindings(env))})()) },
+  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await reconcileErasureJournal(runtimeBindings(env));await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await dispatchCampaigns(runtimeBindings(env));await escalateApprovals(runtimeBindings(env));await reconcilePaymentPromises(runtimeBindings(env));await dispatchWebhooks(runtimeBindings(env));await runStockSync(runtimeBindings(env))})()) },
   async fetch(request, env, execution) {
     const asset = await staticAssetResponse(request, env)
     if (asset) return asset

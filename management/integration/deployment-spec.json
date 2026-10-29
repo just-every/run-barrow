@@ -406,6 +406,12 @@
       "name": "0062_shipment_tracking.sql",
       "sha256": "0016f3a41bf424813a816e0fe635c885ef1afbcdc4b42543c507a311e3628beb",
       "sql": "CREATE TABLE bw_tracking_packages (\n id TEXT PRIMARY KEY,\n order_id TEXT NOT NULL REFERENCES bw_orders(id),\n account_id TEXT NOT NULL,\n tracker_id TEXT NOT NULL UNIQUE,\n value_json TEXT NOT NULL,\n revision TEXT NOT NULL\n);\nCREATE INDEX bw_tracking_order ON bw_tracking_packages(order_id);\nCREATE TABLE bw_tracking_epoch (singleton INTEGER PRIMARY KEY CHECK(singleton=1), value INTEGER NOT NULL);\nINSERT INTO bw_tracking_epoch VALUES(1,0);\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0063_campaigns.sql",
+      "sha256": "258406050f7fba65bf53df9e0600c1b4ce74010fe8f4f491ede4db2b754ff5eb",
+      "sql": "CREATE TABLE bw_campaign_segments(id TEXT PRIMARY KEY,created_by TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL);\nCREATE TABLE bw_campaigns(id TEXT PRIMARY KEY,created_by TEXT NOT NULL,value_json TEXT NOT NULL,revision TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'draft',due_at TEXT,restored INTEGER NOT NULL DEFAULT 0);\nCREATE TABLE bw_campaign_deliveries(id TEXT PRIMARY KEY,campaign_id TEXT NOT NULL,account_id TEXT NOT NULL,recipient_id TEXT NOT NULL,recipient_version INTEGER NOT NULL,sheet_id TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'queued',reason TEXT,provider_message_id TEXT,first_attempt_at TEXT,updated_at TEXT NOT NULL,UNIQUE(campaign_id,recipient_id));\nCREATE INDEX bw_campaign_deliveries_campaign ON bw_campaign_deliveries(campaign_id);\n"
     }
   ],
   "compatibilityDate": "2026-09-08",
