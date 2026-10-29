@@ -74,3 +74,43 @@ test('owner records seller and variant details, a buyer revises a two-window sea
  assert.equal(matrix.rows.reduce((sum,row)=>sum+['S','M','3XL'].reduce((qty,size)=>qty+Number(row[size]||0),0),0),11);
  await shot(page,bulk,'confirmation-matrix-layout');
 });
+
+test('buyer books a spring season with a deposit and two windows; supplier closes intake, releases once and records a delayed style visible to buyer and operations',async t=>{
+ const {prebookFixture}=await import('../api/prebook-fixture.mjs');
+ const f=await prebookFixture(t,{built:true}),{h,pier,product,po,buyer,publication}=f;
+ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM_PATH?{executablePath:process.env.BARROW_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const owner=await signedContext(browser,h);t.after(()=>owner.close());const page=await owner.newPage();await app(page,h);
+ await page.getByRole('button',{name:'Data',exact:true}).click();await page.getByText('Settings: seasonal prebooks',{exact:true}).click();
+ const settings=page.getByRole('region',{name:'Seasonal prebook settings',exact:true});
+ for(const[label,value]of [['Season ID',publication.id],['Season name',publication.name],['Opens at with timezone',publication.opensAt],['Closes at with timezone',publication.closesAt],['Season minimum in minor units','20000'],['Deposit in basis points','3000'],['Season decision reason','Supplier approved these spring terms.']])await settings.getByLabel(label,{exact:true}).fill(value);
+ for(let index=0;index<2;index++){
+  const group=settings.getByRole('group',{name:`Ship window ${index+1}`,exact:true}),window=publication.windows[index];
+  for(const[label,key]of [['Window ID','id'],['Window name','name'],['Ship date','shipDate'],['Cancel after','cancelAfter']])await group.getByLabel(label,{exact:true}).fill(window[key]);
+ }
+ await settings.getByRole('button',{name:'Publish season',exact:true}).click();await expect(settings.getByRole('heading',{name:'Spring 2027',exact:true})).toBeVisible();
+ const buyerContext=await signedContext(browser,h,buyer.as);t.after(()=>buyerContext.close());const buy=await buyerContext.newPage();await app(buy,h);
+ const orderForm=buy.getByRole('region',{name:'Seasonal prebook order',exact:true});await orderForm.getByLabel('Buying season',{exact:true}).selectOption(publication.id);
+ await expect(orderForm).toContainText('Available now: 4 case. Incoming: 30 on 2027-03-01.');await expect(orderForm).toContainText('deposit requirement 30%');
+ await orderForm.getByLabel('Prebook PO reference',{exact:true}).fill('SPRING-2027');
+ for(const[sku,quantity,window]of [['OAT-1','8','first'],['RYE-1','6','second']]){await orderForm.getByLabel(`${sku} prebook quantity`,{exact:true}).fill(quantity);await orderForm.getByLabel(`${sku} ship window`,{exact:true}).selectOption(window)}
+ await captureRegionWidths(buy,orderForm,'prebook-order');
+ await orderForm.getByRole('button',{name:'Prepare seasonal prebook',exact:true}).click();await buy.getByRole('heading',{name:'Your orders',exact:true}).waitFor();
+ let order=(await h.api('/api/barrow/orders/history',undefined,buyer)).orders.find(row=>row.prebook);assert.ok(order);
+ const buyerCommitment=buy.getByRole('region',{name:`Seasonal commitment ${order.id}`,exact:true});await expect(buyerCommitment).toContainText('USD 210.00');await expect(buyerCommitment).toContainText('Committed 8 · released 0 · outstanding 8');
+ await buy.locator('article.br-order').filter({has:buyerCommitment}).getByRole('button',{name:'Submit for supplier review',exact:true}).click();await expect(buy.locator('article.br-order').filter({has:buyerCommitment}).getByText('submitted',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Orders',exact:true}).click();
+ const parent=page.locator('article.br-order').filter({has:page.getByRole('region',{name:`Seasonal commitment ${order.id}`,exact:true})});
+ await parent.getByRole('button',{name:'Accept seasonal commitment',exact:true}).click();await expect(parent.getByRole('heading',{name:'Prebook deposit by card',exact:true})).toBeVisible();
+ order=await h.api('/api/barrow/orders/'+order.id);const payment=await f.deposit(order);assert.equal(payment.amountCents,21000);
+ await page.getByRole('button',{name:'Data',exact:true}).click();await page.getByText('Settings: seasonal prebooks',{exact:true}).click();await settings.getByLabel('Season decision reason',{exact:true}).fill('Season intake complete; retain accepted commitments.');await settings.getByRole('button',{name:'Close Spring 2027',exact:true}).click();await expect(settings).toContainText('closed');await captureRegionWidths(page,settings,'prebook-closed-season');assert.equal(await settings.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
+ await pier.command('receipt.create',{poId:po.id,supplierReference:'First spring stock arrived',lines:[{poLineId:po.lines[0].id,locationId:product.location.id,quantity:'12',cost:'20.00'}]});
+ await page.getByRole('button',{name:'Orders',exact:true}).click();
+ const commitment=page.getByRole('region',{name:`Seasonal commitment ${order.id}`,exact:true});await commitment.getByLabel('Commitment window',{exact:true}).selectOption('first');await commitment.getByLabel('Release or delay reason',{exact:true}).fill('First window stock is ready.');await commitment.getByRole('button',{name:'Release selected window',exact:true}).click();await expect(commitment).toContainText('Committed 8 · released 8 · outstanding 0');
+ const releaseOrder=page.locator('article.br-order').filter({hasText:`Release of seasonal commitment ${order.id}`});await releaseOrder.getByRole('button',{name:'Approve & reserve stock',exact:true}).click();await expect(releaseOrder.getByText('approved',{exact:true})).toBeVisible();
+ await commitment.getByLabel('Commitment window',{exact:true}).selectOption('second');await commitment.getByLabel('Release or delay reason',{exact:true}).fill('Source supplier delayed the rye style.');await commitment.getByLabel('New estimated ship date',{exact:true}).fill('2027-03-15');await commitment.getByRole('button',{name:'Record delayed style',exact:true}).click();await expect(commitment).toContainText('2027-03-15 · backordered');await expect(commitment).toContainText('Committed 6 · released 0 · outstanding 6');await captureRegionWidths(page,parent,'prebook-supplier-commitment');
+ await parent.getByText('Order follow-through',{exact:true}).click();const orderTrace=parent.getByRole('region',{name:'Order follow-through '+order.id,exact:true});await expect(orderTrace).toContainText('Late spring shipment · current promised date 2027-03-15');await expect(orderTrace).toContainText('Linked commitment and releases');await expect(orderTrace).toContainText('BAR-'+order.id+'-W1');await expect(orderTrace).toContainText('Captured');await expect(orderTrace).toContainText('Job unresolved');await captureRegionWidths(page,orderTrace,'order-followthrough-prebook');
+ await buy.reload();await buy.getByRole('button',{name:'Orders',exact:true}).click();await expect(buyerCommitment).toContainText('2027-03-15 · backordered');await expect(buyerCommitment).toContainText('Committed 8 · released 8 · outstanding 0');await captureRegionWidths(buy,buy.locator('article.br-order').filter({has:buyerCommitment}),'prebook-buyer-commitment');
+ await page.getByRole('button',{name:'Data',exact:true}).click();const report=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).first();await report.getByRole('button',{name:'Refresh fulfillment',exact:true}).click();await expect(report).toContainText('First spring shipment: committed 8 · released 8 · outstanding 0');await expect(report).toContainText('Late spring shipment: committed 6 · released 0 · outstanding 6');await expect(report).toContainText('2027-03-15 · backordered');await captureRegionWidths(page,report,'prebook-fulfillment');
+ for(const region of [report])assert.equal(await region.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
+ const sales=await h.api('/api/barrow/reports/sales?from=2027-01-01&to=2027-12-31');assert.equal(sales.totals[0].bookedCents,70000);assert.equal(sales.rows.filter(row=>row.bookingType==='prebook').length,2);assert.equal(sales.rows.filter(row=>row.bookingType==='prebook-release').length,1);
+});

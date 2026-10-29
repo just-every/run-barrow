@@ -34,3 +34,7 @@ On a phone, enter variant quantities or pack counts, then **Preview sheet cart**
 CAD vertical cart forms label their `unitPrice` with an explicit `currency` column; USD forms retain the existing `unitPriceUsd` column. Both upload through the same exact-quantity preview. Existing USD delivery methods are refused for CAD quotes and orders; they are never relabeled or converted implicitly.
 
 For orders with recorded PRI-008 display preferences, monetary CSV exports retain an explicit ISO `currency` column even when a named layout omits it. This also applies to bulk price handoffs; chosen metadata columns keep their order.
+
+## Rebuild a migration presentation
+
+A recipient sheet may include **Presentation collections**, a JSON object with a `title`, `introduction` and `sections`. Each section has `title`, `text` and exact `skus` from the sheet. The existing account share displays those collections with product links and a private PDF with its recorded primary JPEGs. Every link leads to the native variant quantities; unavailable products are labeled and cannot bypass current ordering checks. A source migration preserves the assortment and rebuilds these documents rather than transferring an incumbent's private layout. Video and richer editorial lookbooks remain CAT-004 work.

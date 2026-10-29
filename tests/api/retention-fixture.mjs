@@ -1,9 +1,10 @@
+import assert from 'node:assert/strict';
 // Historical archive fixture: public commands cannot backdate financial events.
 // The assertions and all erasure decisions use authenticated HTTP doors.
 import {createHash} from 'node:crypto';
 import {accountValue} from './harness.mjs';
 export async function historicalCard(h,{id,accountId,orderId,at,eventAt=at,state='captured'}) {
- const payment={id,accountId,orderId,currency:'USD',amountCents:13000,surchargeCents:0,state,createdAt:at,updatedAt:at,latestFinancialAt:at,providerPaymentId:'pi_'+id,card:{brand:'visa',last4:'4242',funding:'credit',state:'NY'},paymentMethodId:'pm_'+id,setupSessionId:'cs_'+id,checkoutUrl:'https://checkout.stripe.com/c/pay/'+id,actionUrl:'https://hooks.stripe.com/3d_secure/'+id,...(state==='captured'?{capturedAt:at}:{})};
+ const payment={id,accountId,orderId,currency:'USD',amountCents:13000,surchargeCents:0,state,createdAt:at,updatedAt:at,latestFinancialAt:at,providerPaymentId:'synthetic-barrow-payment-'+id,card:{brand:'visa',last4:'4242',funding:'credit',state:'NY'},paymentMethodId:'synthetic-barrow-method-'+id,setupSessionId:'synthetic-barrow-checkout-'+id,checkoutUrl:'https://checkout.stripe.com/c/pay/'+id,actionUrl:'https://hooks.stripe.com/3d_secure/'+id,...(state==='captured'?{capturedAt:at}:{})};
  const event={id:'evt_'+id,type:state==='captured'?'payment_intent.succeeded':'payment_intent.canceled',providerPaymentId:payment.providerPaymentId,state,amountCents:payment.amountCents,currency:payment.currency,verifiedAt:eventAt};
  await h.db.prepare('INSERT INTO bw_card_payments(id,account_id,order_id,value_json,revision) VALUES(?,?,?,?,?)').bind(id,accountId,orderId,JSON.stringify(payment),id).run();
  await h.db.prepare('INSERT INTO bw_card_events(id,payment_id,created_at,value_json) VALUES(?,?,?,?)').bind(event.id,id,eventAt,JSON.stringify(event)).run();
@@ -62,3 +63,34 @@ export async function orderedAccountFixture(h,{accountId='cedar',email='syntheti
 export async function erasurePreview(h,accountId='cedar') {return h.command('retention.preview',{accountId})}
 export const erasurePayload=preview=>({accountId:preview.accountId,accountRevision:preview.accountRevision,requestRevision:preview.requestRevision,policyRevision:preview.policyRevision,reviewHash:preview.reviewHash,confirm:'ERASE',reason:'Owner verified this erasure request and reviewed every retained class.'});
 export async function verifiedRequest(h,accountId='cedar',held=false) {const requests=(await h.api('/api/barrow/retention')).requests;return h.command('retention.request',{accountId,revision:requests.find(row=>row.account_id===accountId)?.revision??null,requester:'Verified account representative',channel:'In-app owner review',verificationNote:'Owner independently verified the representative and scope.',reason:held?'Preserve pending legal review':'Verified request; owner explicitly released the hold',held})}
+
+
+export async function historicalCreditEvents(h,orderId='commercial',accountId='cedar') {
+ const rows=[['bw_credit_notes','synthetic-barrow-601','2024-02-29T12:35:56.789Z'],['bw_credit_applications','synthetic-barrow-602','2024-02-29T12:36:56.789Z'],['bw_card_allocations','synthetic-barrow-603','2024-02-29T12:37:56.789Z'],['bw_credit_refunds','synthetic-barrow-604','2024-02-29T12:38:56.789Z']];
+ for(const [table,id,at] of rows){
+  const value={id,accountId,orderId,orderRevision:'synthetic-barrow-605',currency:'USD',amountCents:100,returnId:'synthetic-barrow-606',createdAt:at,updatedAt:at,latestFinancialAt:at,completedAt:at,actorId:'synthetic-barrow-607',reason:'Recorded historical commercial event',revision:id,lines:[],creditId:rows[0][1],paymentId:'synthetic-barrow-608',providerPaymentId:'synthetic-barrow-609',providerRefundId:'synthetic-barrow-610',providerAccountId:'synthetic-barrow-611',installationId:'synthetic-barrow-612',livemode:false,status:'succeeded'};
+  const source=table==='bw_credit_notes'?value.returnId:table==='bw_card_allocations'?value.paymentId:value.creditId;
+  await h.db.prepare(`INSERT INTO ${table} VALUES(?,?,?,?,?,?)`).bind(id,accountId,orderId,source,JSON.stringify(value),id).run();
+  const preview=await h.command('retention.preview',{accountId});assert.equal(preview.items.find(row=>row.id==='order:'+orderId).floorUntil,at.replace('2024-02-29','2031-02-28'));
+ }
+ const event={id:'synthetic-barrow-613',type:'refund.updated',status:'succeeded',amountCents:100,currency:'USD',providerRefundId:'synthetic-barrow-610',verifiedAt:'2024-02-29T12:39:56.789Z'};
+ await h.db.prepare('INSERT INTO bw_refund_events VALUES(?,?,?,?)').bind(event.id,rows[3][1],event.verifiedAt,JSON.stringify(event)).run();
+ assert.equal((await h.command('retention.preview',{accountId})).items.find(row=>row.id==='order:'+orderId).floorUntil,'2031-02-28T12:39:56.789Z');
+ // Historical native release provenance makes a later source event protect both documents.
+ const original=JSON.parse((await h.db.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(orderId).first()).value_json),releaseId=orderId+'-deposit-release';
+ const release={...original,id:releaseId,prebookRelease:{orderId,windowId:'historical-window',seasonId:'historical-season'},revision:releaseId,invoice:{...original.invoice,number:'INV-'+releaseId}};
+ await h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(releaseId,accountId,JSON.stringify(release),releaseId).run();
+ const receipt=await h.db.prepare('SELECT id FROM bw_card_payments WHERE order_id=?').bind(orderId).first();
+ const allocation={id:'synthetic-barrow-614',accountId,orderId:releaseId,sourceOrderId:orderId,paymentId:receipt.id,currency:'USD',amountCents:100,createdAt:'2024-02-29T12:40:56.789Z',actorId:'synthetic-barrow-607',reason:'Historical finance-reviewed seasonal deposit allocation',revision:'synthetic-barrow-614'};
+ await h.db.prepare('INSERT INTO bw_card_allocations VALUES(?,?,?,?,?,?)').bind(allocation.id,accountId,releaseId,allocation.paymentId,JSON.stringify(allocation),allocation.revision).run();
+ await h.db.prepare('INSERT INTO bw_card_events VALUES(?,?,?,?)').bind('synthetic-barrow-615',allocation.paymentId,'2024-02-29T12:41:56.789Z',JSON.stringify({id:'synthetic-barrow-615',type:'payment_intent.succeeded',state:'captured',amountCents:100,currency:'usd',verifiedAt:'2024-02-29T12:41:56.789Z'})).run();
+ const preview=await h.command('retention.preview',{accountId});
+ for(const id of [orderId,releaseId])assert.equal(preview.items.find(row=>row.id==='order:'+id).floorUntil,'2031-02-28T12:41:56.789Z');
+ const credit={id:'synthetic-barrow-617',accountId,orderId:releaseId,currency:'USD',amountCents:100,returnId:'synthetic-barrow-618',createdAt:'2024-02-29T12:41:57.789Z',actorId:'synthetic-barrow-607',reason:'Historical release credit',revision:'synthetic-barrow-617',lines:[]};
+ await h.db.prepare('INSERT INTO bw_credit_notes VALUES(?,?,?,?,?,?)').bind(credit.id,accountId,releaseId,credit.returnId,JSON.stringify(credit),credit.revision).run();
+ const refund={id:'synthetic-barrow-616',creditId:credit.id,accountId,orderId:releaseId,paymentId:receipt.id,currency:'USD',amountCents:100,status:'succeeded',createdAt:'2024-02-29T12:41:58.789Z',completedAt:'2024-02-29T12:41:59.789Z',latestFinancialAt:'2024-02-29T12:41:59.789Z',actorId:'synthetic-barrow-607',reason:'Historical deposit refund',revision:'synthetic-barrow-616'};
+ await h.db.prepare('INSERT INTO bw_credit_refunds VALUES(?,?,?,?,?,?)').bind(refund.id,accountId,releaseId,credit.id,JSON.stringify(refund),refund.revision).run();
+ await h.db.prepare('INSERT INTO bw_refund_events VALUES(?,?,?,?)').bind('synthetic-barrow-619',refund.id,'2024-02-29T12:42:56.789Z',JSON.stringify({id:'synthetic-barrow-619',status:'succeeded',verifiedAt:'2024-02-29T12:42:56.789Z'})).run();
+ const refunded=await h.command('retention.preview',{accountId});for(const id of [orderId,releaseId])assert.equal(refunded.items.find(row=>row.id==='order:'+id).floorUntil,'2031-02-28T12:42:56.789Z');
+ return [...rows.map(([table,id])=>({table,id})),{table:'bw_card_allocations',id:allocation.id},{table:'bw_credit_notes',id:credit.id},{table:'bw_credit_refunds',id:refund.id}];
+}

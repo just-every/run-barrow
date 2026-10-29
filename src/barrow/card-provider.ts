@@ -14,6 +14,7 @@ export async function stripe(key:string,path:string,values?:Record<string,string
  let data:any
  try {data=await response!.json()}catch{fail('STRIPE_UNCERTAIN','Stripe returned an unreadable result. Refresh this same payment.',409)}
  if(!response!.ok) {
+  if(response!.status>=500)fail('STRIPE_UNCERTAIN','Stripe did not confirm whether this request completed. Reconcile the same durable request before taking another action.',409)
   if(data?.error?.payment_intent)return data.error.payment_intent
   fail('STRIPE_REFUSED','Stripe refused this request. Check the connection or payment state; no success is assumed.',409)
  }

@@ -30,5 +30,61 @@ jobs:
       - name: Use the official Ubuntu archive for browser dependencies
         run: echo "https://archive.ubuntu.com/ubuntu/" | sudo tee /etc/apt/apt-mirrors.txt > /dev/null
       - run: pnpm exec playwright install --with-deps chromium
+      - run: node scripts/contract-docs.mjs check
       - run: pnpm exec rer check --profile first-party
       - run: pnpm exec rer verify --no-queue
+      - name: Credit notes, limits and finance allowance screens
+        if: matrix.shard == 1
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-credit-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/credit-payments.test.mjs tests/journeys/credit-policy.test.mjs tests/journeys/deposits.test.mjs
+      - name: Seasonal commitment and release screens
+        if: matrix.shard == 1
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-prebook-screens
+        run: timeout 1200 node --test --test-concurrency=1 --test-name-pattern='buyer books a spring season' tests/journeys/confirmations.test.mjs
+      - name: Promotion preview and return attribution screens
+        if: matrix.shard == 2
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promotion-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs
+      - name: Order follow-through screens
+        if: matrix.shard == 2
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-order-followthrough-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/order-followthrough.test.mjs
+      - name: Faire fulfillment source screens
+        if: matrix.shard == 3
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-faire-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/faire.test.mjs
+      - name: Accepted sell-through plan screens
+        if: matrix.shard == 3
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-sellthrough-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/reorder.test.mjs
+      - name: Connector reconciliation screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-connector-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/connector-review.test.mjs tests/journeys/delta-cutover.test.mjs
+      - name: NuORDER reviewed source and history screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-nuorder-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/move-nuorder.test.mjs tests/journeys/move-nuorder-companies.test.mjs
+      - name: Catalog workbook and private image batch screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-catalog-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/catalog-maintenance.test.mjs
+      - name: Effective book and currency reporting screens
+        if: matrix.shard == 4
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-currency-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs
+      - name: Buyer promise lifecycle screens
+        if: matrix.shard == 2
+        env:
+          BARROW_JOURNEY_EVIDENCE: /tmp/barrow-promise-screens
+        run: timeout 1200 node --test --test-concurrency=1 tests/journeys/payment-promises.test.mjs

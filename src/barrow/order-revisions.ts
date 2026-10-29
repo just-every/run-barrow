@@ -1,3 +1,4 @@
+import { applyPromotions,promotionSettings } from './promotions'
 import { orderBuyingProfile } from './buying-profiles'
 // ORD-011 slice for ORD-014: the account buyer changes line quantities on a submitted order before the supplier
 // accepts it. No stock is reserved yet, so nothing is handed to Pier; the result is one new confirmation revision
@@ -34,17 +35,20 @@ export async function revisedOrder(env: Bindings, actor: Actor, order: Order, p:
  const input = order.lines.map((line, index) => ({ sku: line.sku, unit: line.unit, quantity: quantities.has(index) ? quantities.get(index) : line.quantity }))
  // Promiseable stock is checked only when a revision asks for more; a reduction never needs new stock.
  const increases = order.lines.some((line, index) => quantities.has(index) && Number(quantities.get(index)) > line.quantity)
- const priced = prepareLines(input, offers.items, today, increases)
+ const raw = prepareLines(input, offers.items, today, increases)
+ const priced=applyPromotions(raw.map((l,i)=>({...l,...(order.lines[i].quote?{quote:order.lines[i].quote}:{})})),(await promotionSettings(env.DB)).offers,selected.id,today)
  const changes: LineChange[] = []
  const lines: Line[] = order.lines.map((line, index) => {
   const next = priced[index], lineCents = line.lineCents ?? line.quantity * line.unitCents
   if (!quantities.has(index)) {
-   if (next.unitCents !== line.unitCents || next.lineCents !== lineCents) fail('PRICE_CHANGED', 'The effective pricing rule changed. Prepare a new draft for review.')
-   return line
+   if (next.unitCents !== line.unitCents || raw[index].lineCents !== (line.pricing?.lineCents??line.promotion?.basisCents??lineCents)) fail('PRICE_CHANGED', 'The effective pricing rule changed. Prepare a new draft for review.')
+   if(next.lineCents===lineCents&&JSON.stringify(next.promotion)===JSON.stringify(line.promotion))return line
+   changes.push({line:index,sku:line.sku,...(line.unit?{unit:line.unit}:{}),before:{quantity:line.quantity,lineCents},after:{quantity:line.quantity,lineCents:next.lineCents!}})
+   const {promotion,...kept}=line;return {...kept,lineCents:next.lineCents,...(next.promotion?{promotion:next.promotion}:{})}
   }
   if (next.quantity === line.quantity) fail('INPUT', `Line ${index + 1} already has quantity ${line.quantity}.`, 400)
-  const { pricing, ...kept } = line
-  const revised: Line = { ...kept, quantity: next.quantity, unitCents: next.unitCents, lineCents: next.lineCents, baseQuantity: next.baseQuantity, ...(next.pricing ? { pricing: next.pricing } : {}) }
+  const { pricing, promotion, ...kept } = line
+  const revised: Line = { ...kept, quantity: next.quantity, unitCents: next.unitCents, lineCents: next.lineCents, baseQuantity: next.baseQuantity, ...(next.pricing ? { pricing: next.pricing } : {}),...(next.promotion?{promotion:next.promotion}:{}) }
   changes.push({ line: index, sku: line.sku, ...(line.unit ? { unit: line.unit } : {}), before: { quantity: line.quantity, lineCents }, after: { quantity: next.quantity, lineCents: next.lineCents! } })
   return revised
  })

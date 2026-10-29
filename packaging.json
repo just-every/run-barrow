@@ -59,10 +59,12 @@
         "SETUP_TOKEN"
       ],
       "optionalSecretNames": [
+        "EASYPOST_API_KEY",
         "MAIL_API_KEY",
         "MAIL_WEBHOOK_SECRET",
         "PIER_SESSION",
-        "BARROW_SFTP_SECRETS"
+        "BARROW_SFTP_SECRETS",
+        "FAIRE_CONNECTIONS"
       ],
       "healthPath": "/health",
       "recovery": "Follow OPERATIONS.md and docs/RETENTION.md: stop this installation, retain its exact source and private configuration, export through rer export, preserve the independent ERASURE_JOURNAL outside D1, attach the complete current journal to a fresh empty installation before rer import, then re-export and compare commercial records. Re-establish owner access and reconnect Pier before resuming. Never edit applied migration names or bytes.",

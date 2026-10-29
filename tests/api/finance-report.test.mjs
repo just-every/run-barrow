@@ -65,9 +65,10 @@ test('RPT-004: invoice aging reconciles frozen source cents and due dates at eve
   assert.deepEqual([entry.invoiceNumber, entry.accountId, entry.currency, Number(entry.amountCents), entry.dueAt, entry.bucket, Number(entry.overdueDays)], [row.invoiceNumber, row.accountId, row.currency, row.amountCents, row.dueAt, row.bucket, row.overdueDays]);
  }
  for (const total of report.totals) assert.equal(exported.filter(row => row.currency === total.currency).reduce((sum, row) => sum + Number(row.amountCents), 0), total.totalCents);
- assert.match(report.notes.amounts, /not.*confirmed unpaid/i); assert.match(csv, /not.*confirmed unpaid/i);
- assert.match(report.notes.unrecorded, /not recorded/i);
- for (const key of ['availableCredit', 'exposure', 'deposits', 'failedPayments', 'disputedBalances', 'refundStatus', 'ledgerReconciliation']) assert.equal(report[key], null);
+ assert.deepEqual(report.refundStatus, []);
+ const creditAccounts=new Map(report.creditAccounts.map(row=>[row.accountId,row]));
+ assert.equal(creditAccounts.get('cedar').limitCents,null);assert.equal(creditAccounts.get('cedar').availableCents,null);
+ assert.equal(creditAccounts.get('cedar').exposureCents,143000);assert.equal(creditAccounts.get('wren').exposureCents,13000);
  const scoped = await h.api(path + '&assignedRep=Jo'); assert.deepEqual(scoped.rows.map(row => row.orderId), [wren.id]);
  assert.equal((await h.api(path + '&accountId=cedar')).rows.length, report.rows.length - 1);
  assert.deepEqual((await h.api(path + '&accountId=absent')).rows, []);

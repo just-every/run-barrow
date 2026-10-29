@@ -1,3 +1,4 @@
+import { reconciledPierGuards } from './pier-review'
 import { prebookNoticeStatements, saveStockWindow } from './stock-windows'
 import type { Bindings } from '../auth.server'
 import { audit, commit } from './access'
@@ -6,15 +7,16 @@ import { fail, text, integer, type Actor } from './model'
 import { pierStockPage, acknowledgePierStock } from './pier'
 import { stockNoticeStatements } from './stock-watch'
 const authorize=(actor:Actor)=>{if(actor.agent||!['owner','admin'].includes(actor.role))fail('FORBIDDEN','Only a signed-in owner or admin can operate stock synchronization.',403)}
-export async function stockSyncState(env:Bindings,actor:Actor) {authorize(actor);return {sync:await env.DB.prepare('SELECT (SELECT display_name FROM oa_operators WHERE id=task_owner) AS task_owner_name,consumer,origin,enabled,page_limit,checkpoint,pending,failures,next_at,observed_at,processed,has_more,task_owner,task_status,task_reason,resolution FROM bw_stock_sync WHERE singleton=1').first()}}
+export async function stockSyncState(env:Bindings,actor:Actor) {authorize(actor);return {sync:await env.DB.prepare('SELECT (SELECT display_name FROM oa_operators WHERE id=task_owner) AS task_owner_name,consumer,origin,enabled,page_limit,checkpoint,pending,failures,next_at,observed_at,completed_at,processed,has_more,task_owner,task_status,task_reason,resolution FROM bw_stock_sync WHERE singleton=1').first()}}
 export async function stockSyncCommand(env:Bindings,actor:Actor,type:string,p:any) {
  authorize(actor)
  if(type==='stock.window') { await saveStockWindow(env,actor,p) }
  else if(type==='stock.sync-settings') {
   if(typeof p.enabled!=='boolean')fail('INPUT','Choose whether scheduled synchronization is enabled.',400)
   if(!env.PIER_ORIGIN||!env.PIER_SESSION)fail('PIER_UNAVAILABLE','Connect a real Pier installation first.',503)
+  const reconciliationGuards=p.enabled?await reconciledPierGuards(env,actor.id):[]
   const id=crypto.randomUUID(),limit=integer(p.pageSize??100,'Events per page',1,100)
-  await commit(env.DB,actor,[env.DB.prepare(`INSERT INTO bw_stock_sync(singleton,consumer,origin,enabled,page_limit) VALUES(1,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET enabled=excluded.enabled,page_limit=excluded.page_limit,consumer=CASE WHEN bw_stock_sync.restored=1 THEN excluded.consumer ELSE bw_stock_sync.consumer END,restored=0 WHERE origin=excluded.origin`).bind('barrow-'+id,env.PIER_ORIGIN,p.enabled?1:0,limit),audit(env.DB,actor,'stock-sync','stock.sync-settings',{revision:id,source:type,reason:p.enabled?'Owner enabled scheduled Pier stock observations.':'Owner disabled scheduled Pier stock observations.'})])
+  await commit(env.DB,actor,[...reconciliationGuards,env.DB.prepare(`INSERT INTO bw_stock_sync(singleton,consumer,origin,enabled,page_limit) VALUES(1,?,?,?,?) ON CONFLICT(singleton) DO UPDATE SET enabled=excluded.enabled,page_limit=excluded.page_limit,consumer=CASE WHEN bw_stock_sync.restored=1 THEN excluded.consumer ELSE bw_stock_sync.consumer END,restored=0 WHERE origin=excluded.origin`).bind('barrow-'+id,env.PIER_ORIGIN,p.enabled?1:0,limit),audit(env.DB,actor,'stock-sync','stock.sync-settings',{revision:id,source:type,reason:p.enabled?'Owner enabled scheduled Pier stock observations.':'Owner disabled scheduled Pier stock observations.'})])
  } else if(type==='stock.sync-reset') {
   if(p.confirm!=='RESET')fail('CONFIRM','Type RESET to restart source reconciliation.',400)
   const reason=text(p.reason,'Restart reason',1000)
@@ -38,7 +40,7 @@ export async function runStockSync(env:Bindings,pages=10,manual=false) {
   for(let count=0;count<pages;count++) {
    if(pending) {
     await acknowledgePierStock(env,claimed.consumer,pending)
-    await db.prepare('UPDATE bw_stock_sync SET checkpoint=?,pending=NULL WHERE singleton=1 AND lease_until=?').bind(pending,lease).run()
+    await db.prepare('UPDATE bw_stock_sync SET checkpoint=?,pending=NULL,completed_at=CASE WHEN has_more=0 THEN observed_at ELSE completed_at END WHERE singleton=1 AND lease_until=?').bind(pending,lease).run()
     checkpoint=pending;pending=null
    }
    const page=await pierStockPage(env,claimed.consumer,checkpoint,claimed.page_limit)
@@ -56,7 +58,7 @@ export async function runStockSync(env:Bindings,pages=10,manual=false) {
    ])
    pending=page.pageToken
    await acknowledgePierStock(env,claimed.consumer,pending)
-   await db.prepare('UPDATE bw_stock_sync SET checkpoint=?,pending=NULL,failures=0 WHERE singleton=1 AND lease_until=?').bind(pending,lease).run()
+   await db.prepare('UPDATE bw_stock_sync SET checkpoint=?,pending=NULL,failures=0,completed_at=CASE WHEN has_more=0 THEN observed_at ELSE completed_at END WHERE singleton=1 AND lease_until=?').bind(pending,lease).run()
    checkpoint=pending;pending=null
    if(!page.hasMore){const notices=await prebookNoticeStatements(env);if(notices.length)await db.batch(notices);break}
   }

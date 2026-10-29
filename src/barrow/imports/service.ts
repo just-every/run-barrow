@@ -36,8 +36,8 @@ async function preparePlan(db: D1Database, actor: ImportActor, input: AccountImp
     const current = previous?.value as Record<string, Json> | undefined;
     // CSV does not own the native commercial profile. Omitted columns must not
     // reopen a held account or erase staff-maintained metadata.
-    const preserved = Object.fromEntries(['lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'currency', 'priceDisplay'].filter(key => current?.[key] !== undefined).map(key => [key, current![key]]));
-    if(current?.currency==='CAD')importError('ACCOUNT_CURRENCY','The legacy account CSV has no currency column. Use the explicit recipient price-book import for a CAD account.');
+    const preserved = Object.fromEntries(['lifecycle', 'channel', 'territory', 'assignedRep', 'catalogs', 'providerReferences', 'currency', 'priceDisplay', 'priceRevisions', 'usdConversion'].filter(key => current?.[key] !== undefined).map(key => [key, current![key]]));
+    if(current?.currency && current.currency!=='USD')importError('ACCOUNT_CURRENCY','The legacy account CSV has no currency column. Use the explicit recipient price-book import for a non-USD account.');
     const supplied = incoming.get(record.sourceId)!;
     const priorPrices = (current?.prices ?? []) as unknown as {sku:string;units?:unknown;pricing?:unknown;msrpCents?:number}[];
     const account = validateAccountValue({ ...preserved, ...supplied, prices:supplied.prices.map(price=>{

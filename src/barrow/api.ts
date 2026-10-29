@@ -1,7 +1,20 @@
+import { trackingCommand, trackingView } from './shipment-tracking'
+import { orderFollowthrough } from './order-followthrough'
+import { paymentPromiseCommand, readPaymentPromises } from './payment-promises'
+import {previewNuorderCompanies,applyNuorderCompanies} from './imports/nuorder-company-targets'
+import { integrationResponse } from './integration-api'
+import { requireActiveAccount } from './account-profile'
+import { seasons, seasonCommand } from './prebooks'
+import { faireState, faireConfigure, fairePoll, faireMatch, fairePreview } from './faire'
+import { promotionAdmin, promotionSettings, savePromotions, promotionPreview } from './promotions'
+import { readAccountCredit, creditPolicyCommand } from './credit-policy'
+import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
+import { readRefund,refundCommand } from './credit-refunds'
+import { savedCardCommand,readSavedCards } from './saved-cards'
 import { catalogMaintenanceResponse } from './catalog-maintenance-http'
 import { stockSyncState, stockSyncCommand } from './stock-sync'
 import { stockWatchCommand, readStockWatches } from './stock-watch'
-import { cardCommand,readCard,readCards } from './card-payments'
+import { cardCommand,readCard,readCards,publicCard } from './card-payments'
 import { cardSettings,cardConfiguration } from './card-settings'
 import { cardWebhook } from './card-webhook'
 import { buyingProfileCommand, readBuyingProfiles, resolveBuyingProfile } from './buying-profiles'
@@ -75,11 +88,12 @@ import { freshnessLimit, saveFreshness } from './freshness'
 import { documentResponse } from './documents'
 import { orderTimeline } from './timeline'
 import { diagnostics } from './diagnostics'
+import { connectorReview, inspectConnectors } from './connector-review'
 import { saveReportZone } from './report-zone'
 import { fulfillmentReport } from './fulfillment'
 import { catalogue, pierConfigured, pierState } from './pier'
 import { invoiceCsv } from './invoice'
-import { Problem,fail,requireSupplier,supplier,text } from './model'
+import { Problem,fail,requirePerson,requireSupplier,supplier,text } from './model'
 import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport,type PierSkus } from './imports'
 import { previewCutover,applyCutover,listCutovers,readCutover,undoCutover } from './imports/cutover-service'
 import { probeSftp } from './feeds/probe'
@@ -118,6 +132,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(path.startsWith('/api/barrow/report-runs/') && error instanceof Problem && error.status===401) fail('FORBIDDEN','Use the exact recipient’s active, entitled sign-in to download this report.',403)
    throw error
   })
+  if(actor.integration&&!path.startsWith('/api/barrow/v1/'))fail('FORBIDDEN','Use the versioned integration API within the granted scopes.',403)
   const proposalScope=actor.agent&&actor.grantId?await readProposalGrant(env.DB,actor.grantId):null
   if(actor.agentScope==='proposal'&&!proposalScope)fail('AUTH','The scoped proposal grant is unavailable. A new explicit owner grant is required.',401)
   if(proposalScope) {
@@ -128,12 +143,21 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(!(request.method==='POST'&&path==='/api/barrow/commands'))fail('FORBIDDEN','This credential may read its account catalogue/orders and submit structured proposals only.',403)
   }
   actor.staff=await readStaffGrant(env.DB,actor)
-  await staffRequestGate(env,actor,path,request.method)
+  if(!path.startsWith('/api/barrow/v1/'))await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
+  if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
+  if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
   if(path==='/api/barrow/stock-sync'&&request.method==='GET')return json(await stockSyncState(env,actor))
   if(path==='/api/barrow/stock-watches'&&request.method==='GET')return json(await readStockWatches(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/payment-promises'&&request.method==='GET')return json(await readPaymentPromises(env,actor,url.searchParams))
+  if(path==='/api/barrow/account-credit'&&request.method==='GET')return json(await readAccountCredit(env,actor,url.searchParams.get('accountId')??''))
+  if(path==='/api/barrow/credits'&&request.method==='GET')return json(await readCredits(env,actor,url.searchParams.get('orderId')??''))
+  const creditPath=/^\/api\/barrow\/credits\/([-a-zA-Z0-9_]+)$/.exec(path),refundPath=/^\/api\/barrow\/refunds\/([-a-zA-Z0-9_]+)$/.exec(path)
+  if(creditPath&&request.method==='GET')return json(await readCredit(env,actor,creditPath[1]))
+  if(refundPath&&request.method==='GET')return json(await readRefund(env,actor,refundPath[1]))
+  if(path==='/api/barrow/saved-cards'&&request.method==='GET')return json(await readSavedCards(env,actor,url.searchParams.get('orderId')??''))
   if(path==='/api/barrow/card-settings'&&request.method==='GET')return json(await cardSettings(env,actor))
   if(path==='/api/barrow/payments'&&request.method==='GET')return json(await readCards(env,actor,url.searchParams.get('orderId')??''))
   const cardPath=/^\/api\/barrow\/payments\/([-a-zA-Z0-9_]+)$/.exec(path)
@@ -149,6 +173,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const usagePdf=/^\/api\/barrow\/usage-terms\/([1-9]\d*)\/document$/.exec(path)
   if(usagePdf&&request.method==='GET')return await usageDocument(env,actor,Number(usagePdf[1]))
   if(path!=='/api/barrow/commands')await requireUsageTerms(env,actor,url.searchParams.get('accountId')??undefined)
+  if(path==='/api/barrow/faire'&&request.method==='GET')return json(await faireState(env,actor))
+  if(path==='/api/barrow/faire/configure'&&request.method==='POST')return json(await faireConfigure(env,actor,await boundedJson(request,20000)))
+  if(path==='/api/barrow/faire/preview'&&request.method==='POST')return json(await fairePreview(env,actor,await boundedJson(request,20000)))
+  if(path==='/api/barrow/faire/poll'&&request.method==='POST')return json(await fairePoll(env,actor,await boundedJson(request,20000)))
+  if(path==='/api/barrow/faire/match'&&request.method==='POST')return json(await faireMatch(env,actor,await boundedJson(request,200000)))
   if(path.startsWith('/api/barrow/portability/')) {
    requireSupplier(actor)
    if(actor.role!=='owner') fail('FORBIDDEN','Only the owner may export or restore the full installation.',403)
@@ -219,6 +248,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
   if(path==='/api/barrow/webhooks.json' && request.method==='GET')return new Response(JSON.stringify(await webhookHistory(env,actor)),{headers:{'content-type':'application/json','content-disposition':'attachment; filename="barrow-webhooks.json"','cache-control':'no-store','x-content-type-options':'nosniff'}})
   if(path==='/api/barrow/webhooks' && request.method==='GET')return json(await readWebhooks(env,actor))
+  if(path==='/api/barrow/connectors' && request.method==='GET') return json(await connectorReview(env,actor))
+  if(path==='/api/barrow/connectors/inspect' && request.method==='POST') return json(await inspectConnectors(env,actor,await boundedJson(request,10000)))
   if(path==='/api/barrow/diagnostics' && request.method==='GET') return json(await diagnostics(env,actor))
   if(path==='/api/barrow/diagnostics.json' && request.method==='GET') return new Response(JSON.stringify(await diagnostics(env,actor),null,2),{headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':'attachment; filename="barrow-diagnostics.json"'}})
   if(path==='/api/barrow/audit' && request.method==='GET') return json(await listCommercialAudit(env.DB,actor,url.searchParams))
@@ -247,7 +278,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(invoice && request.method==='GET') {
    if(actor.agent) fail('FORBIDDEN','A person must download invoice exports.',403)
    const order=await readOrder(env.DB,actor,invoice[1]);await requireCompanyRight(env.DB,actor,order.accountId,'finance')
-   return new Response(invoiceCsv(order),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','content-disposition':`attachment; filename="barrow-${order.id}.csv"`}})
+   return new Response(invoiceCsv(order,!!await env.DB.prepare('SELECT 1 FROM bw_credit_notes WHERE order_id=? LIMIT 1').bind(order.id).first()),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','content-disposition':`attachment; filename="barrow-${order.id}.csv"`}})
   }
   const confirmation=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/confirmations(?:\/([1-9]\d*)\.(csv|pdf))?$/.exec(path)
   if(confirmation && request.method==='GET') {
@@ -261,8 +292,12 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   // RPT-001 drill-down: one order as its reader may see it.
   const one=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
+  const tracking=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/tracking$/.exec(path)
+  if(tracking && request.method==='GET') return json(await trackingView(env,actor,tracking[1]))
+  const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
+  if(followthrough && request.method==='GET') return json(await orderFollowthrough(env,actor,followthrough[1]))
   const timeline=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/timeline$/.exec(path)
-  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1])))
+  if(timeline && request.method==='GET') return json(await orderTimeline(env,await readOrder(env.DB,actor,timeline[1]),actor))
   if(path==='/api/barrow/feeds/probe'&&request.method==='POST')return json(await probeSftp(env,actor,await boundedJson(request,10000)))
   if(path==='/api/barrow/cutover/deltas') {
    if(request.method==='GET')return json(await listDeltas(env,actor))
@@ -287,6 +322,11 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(match&&request.method==='GET'&&!match[2])return json(await readCutover(env,actor,match[1]))
    if(match&&request.method==='POST'&&match[2])return json(await undoCutover(env,actor,match[1]))
   }
+  if(path==='/api/barrow/imports/nuorder-companies/preview'&&request.method==='POST')return json(await previewNuorderCompanies(env,actor,await boundedJson(request,5000000)))
+  if(path==='/api/barrow/imports/nuorder-companies/apply'&&request.method==='POST')return json(await applyNuorderCompanies(request,env,actor,await boundedJson(request,5000000)))
+  if(path==='/api/barrow/imports/nuorder'&&request.method==='GET')return json(await readPlatform(env,actor))
+  if(path==='/api/barrow/imports/nuorder/preview'&&request.method==='POST')return json(await previewPlatform(env,actor,await boundedJson(request,18*1024*1024),'nuorder'))
+  if(path==='/api/barrow/imports/nuorder/apply'&&request.method==='POST')return json(await applyPlatform(env,actor,await boundedJson(request,18*1024*1024),'nuorder'))
   if(path==='/api/barrow/imports/wizcommerce/invite'&&request.method==='POST')return json(await inviteWizUser(request,env,actor,await boundedJson(request,10000)))
   if(path==='/api/barrow/imports/wizcommerce'&&request.method==='GET')return json(await readPlatform(env,actor))
   if(path==='/api/barrow/imports/wizcommerce/preview'&&request.method==='POST')return json(await previewPlatform(env,actor,await boundedJson(request,2000000),'wizcommerce'))
@@ -314,6 +354,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await commit(env.DB,actor,[env.DB.prepare('DELETE FROM bw_agent_tokens WHERE actor_id=?').bind(actor.id),audit(env.DB,actor,actor.id,'agent.revoked',{revision:`operator:${actor.version}`,source:'agent-token.revoke',reason:'Supplier revoked every agent grant issued under this identity.'})])
    return json({revoked:true})
   }
+  if(path==='/api/barrow/promotions' && request.method==='GET'){promotionAdmin(actor);return json(await promotionSettings(env.DB))}
   if(path==='/api/barrow/commands' && request.method==='POST') {
    // A command carries at most one 1 MB PO document as base64.
    const body=await boundedJson(request,1500000) as any
@@ -322,9 +363,21 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(actor.agent && !['order.prepare','cart.preview','cart.form','proposal.submit'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
    await staffCommandGate(env,actor,body.type,body.payload)
+   if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
+   if(['prebook.publish','prebook.close'].includes(body.type))return json({result:await seasonCommand(env,actor,body.type,body.payload)})
+   if(['prebook.release','prebook.delay'].includes(body.type))return json({result:await orderCommand(env,actor,body.type,body.payload)})
+   if(body.type==='promotion.save')return json({result:await savePromotions(env,actor,body.payload)})
+   if(body.type==='promotion.preview')return json({result:await promotionPreview(env,actor,body.payload)})
    if(['stock.sync','stock.sync-settings','stock.sync-resolve','stock.sync-reset','stock.window'].includes(body.type))return json({result:await stockSyncCommand(env,actor,body.type,body.payload)})
    if(['stock.watch','stock.unwatch'].includes(body.type))return json({result:await stockWatchCommand(env,actor,body.type,body.payload)})
+   if(body.type.startsWith('promise.'))return json({result:await paymentPromiseCommand(env,actor,body.type,body.payload)})
+   if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
+   if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
+   if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
+   if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})
+   if(['refund.request','refund.refresh'].includes(body.type))return json({result:await refundCommand(env,actor,body.type,body.payload)})
+   if(['saved-card.save','saved-card.revoke','saved-card.prepare'].includes(body.type)){const result=await savedCardCommand(env,actor,body.type,body.payload);return json({result:body.type==='saved-card.prepare'?publicCard(result as import('./card-model').CardPayment):result})}
    if(['card.connect','card.disconnect'].includes(body.type))return json({result:await cardConfiguration(env,actor,body.type,body.payload)})
    if(['card.prepare','card.refresh','card.authorize','card.capture','card.cancel'].includes(body.type))return json({result:await cardCommand(env,actor,body.type,body.payload)})
    if(body.type.startsWith('proposal.'))return json({result:await agentProposalCommand(env,actor,body.type,body.payload)})
@@ -354,7 +407,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.sellthrough-contact','order.sellthrough-preview','order.sellthrough','order.sellthrough-outcomes','order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)

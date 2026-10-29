@@ -1,3 +1,4 @@
+import {checkFeedPermissions} from '../feeds/permissions'
 import {prepareDeltaUnits} from './delta-units'
 import { Buffer } from 'node:buffer'
 import type { Bindings } from '../../auth.server'
@@ -86,6 +87,7 @@ export async function signoffDelta(env:Bindings,actor:Actor,id:string,input:Delt
  if(typeof input.cutoffAt!=='string'||!Number.isFinite(cutoff.getTime())||cutoff.toISOString()!==input.cutoffAt||cutoff.getTime()<Date.parse(row.created_at)||cutoff.getTime()>Date.parse(at)+300000)fail('DELTA_CUTOFF','Use an exact UTC cutoff after rehearsal creation and no more than five minutes ahead.',400)
  const source=JSON.parse(row.source_json),feed=JSON.parse(row.feed_json),report=JSON.parse(row.report_json)
  if(!feed.config||feed.consent!==true||!feed.rehearsal||!(feed.rehearsal.products>0)||!(feed.rehearsal.ats>0)||!Array.isArray(feed.rehearsal.files)||!feed.rehearsal.files.length||feed.rehearsal.unresolvedErrors!==0)fail('DELTA_FEED','Run and review product and ATS feed files without unresolved errors before sign-off.')
+ if(!feed.permissions?.read||!feed.permissions?.write||!feed.permissions?.removed||feed.permissions.configHash!==sha256(canonicalJson(feed.config)))fail('FEED_PERMISSION','Test the exact feed connection permissions before sign-off.')
  if(!report.comparison.canApply)fail('DELTA_UNRESOLVED','Resolve source mappings and supply all seven source categories before sign-off.')
  const expected=source.records.filter((r:{kind:string})=>r.kind==='orders'||r.kind==='receivables').map((r:{kind:string;id:string})=>`${r.kind}:${r.id}`).sort()
  if(!input.authorities||typeof input.authorities!=='object'||Array.isArray(input.authorities)||canonicalJson(Object.keys(input.authorities).sort())!==canonicalJson(expected))fail('DELTA_AUTHORITY','Declare one responsible system for every source order and receivable, with no extra records.',400)
@@ -99,9 +101,14 @@ export async function signoffDelta(env:Bindings,actor:Actor,id:string,input:Delt
  const allOrdersFence=env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN (SELECT json_group_array(json_array(id,account_id,revision,value_json)) FROM (SELECT id,account_id,revision,value_json FROM bw_orders ORDER BY id))=? THEN 1 ELSE 0 END').bind(orderSnapshot)
  const units=await prepareDeltaUnits(env,JSON.parse(row.scope_json),feed)
  const excludedOrderIds=orders.map(order=>order.id),watermark={unitChanges:units.changes,capturedAt:at,accounts:native.targets.filter(target=>target.kind==='accounts').map(target=>({id:target.id,revision:units.changes.find(change=>change[0]===target.id)?.[3]??target.revision})),orders:orders.map(order=>({id:order.id,accountId:order.account_id,revision:order.revision,hash:sha256(order.value_json),preparedAt:JSON.parse(order.value_json).preparedAt})),nativeFingerprint:native.nativeFingerprint}
+ try {await checkFeedPermissions(feed.config,env.BARROW_SFTP_SECRETS,at)}
+ catch(error) {
+  await deltaCommit(env,actor,[deltaFence(env,row),env.DB.prepare("UPDATE bw_delta_cutovers SET last_io_error='Feed permission testing failed; repair the retained destination before sign-off.' WHERE id=?").bind(id),deltaAudit(env,actor,id,'delta.permission-refused',row.revision,reason)])
+  throw error
+ }
  const revision=crypto.randomUUID()
  await deltaCommit(env,actor,[deltaFence(env,row),...native.guards,allOrdersFence,...units.guards,...units.statements,
-  env.DB.prepare("UPDATE bw_delta_cutovers SET state='signedoff',revision=?,authorities_json=?,cutoff_at=?,excluded_order_ids_json=?,native_watermark_json=?,signedoff_by=?,signedoff_at=?,updated_at=?,reason=? WHERE id=?").bind(revision,JSON.stringify(authorities),input.cutoffAt,JSON.stringify(excludedOrderIds),JSON.stringify(watermark),actor.id,at,at,reason,id),
+  env.DB.prepare("UPDATE bw_delta_cutovers SET state='signedoff',last_io_error=NULL,revision=?,authorities_json=?,cutoff_at=?,excluded_order_ids_json=?,native_watermark_json=?,signedoff_by=?,signedoff_at=?,updated_at=?,reason=? WHERE id=?").bind(revision,JSON.stringify(authorities),input.cutoffAt,JSON.stringify(excludedOrderIds),JSON.stringify(watermark),actor.id,at,at,reason,id),
   ...deltaScopeAudits(env,actor,id,'delta.signedoff',revision,reason,JSON.parse(row.scope_json)),
   ...units.changes.map(change=>deltaAudit(env,actor,change[0],'delta.units-applied',change[3],`Owner approved source case packs and increments at cutoff ${id}: ${reason}`,change[0])),
  ])

@@ -1,3 +1,4 @@
+import { admitCredit, creditPolicy, creditSignature } from './credit-policy'
 import { resolveBuyingProfile, orderBuyingProfile } from './buying-profiles'
 import {deltaEntryGuard} from './imports/delta-entry'
 import { companySubmission } from './company-purchase'
@@ -16,6 +17,7 @@ import { account, accounts } from './accounts'
 import { audit, changed, commit } from './access'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
+import { conversionSnapshot } from './currency'
 import { fail, integer, requirePerson, requireSupplier, supplier, supplierDate, text, type Actor, type Line, type Order } from './model'
 import { nextNumber, readOrder } from './orders'
 import { catalogue, pierOrigin } from './pier'
@@ -30,7 +32,7 @@ import { approvalNoticeStatements } from './approval-notices'
 
 export type QuoteLine = Line & { basisUnitCents: number; basisLineCents: number; discountBps?: number; negotiatedUnitCents?: number }
 export type QuoteRevision = { delivery?:Delivery; freightQuotes?:FreightQuote[]; number: number; lines: QuoteLine[]; basisCents: number; totalCents: number; termsDays: number; shipping: string; validUntil: string; note: string; proposedBy: string; proposedByEmail?: string; proposedAt: string; changes?: string[]; discounted: boolean; approval?: { by: string; at: string; reason: string } }
-export type Quote = { buyingProfile?: import('./buying-profiles').BuyingProfileSnapshot; id: string; accountId: string; customerName: string; currency: 'USD'|'CAD'; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedBy: string; requestedAt: string; note: string; request: Line[]; revisions: QuoteRevision[]; accepted?: { revision: number; by: string; at: string; orderId: string }; revision: string }
+export type Quote = { buyingProfile?: import('./buying-profiles').BuyingProfileSnapshot; id: string; accountId: string; customerName: string; currency: 'USD'|'CAD'|'EUR'|'GBP'; status: 'requested' | 'awaiting-approval' | 'proposed' | 'accepted'; requestedBy: string; requestedAt: string; note: string; request: Line[]; revisions: QuoteRevision[]; accepted?: { revision: number; by: string; at: string; orderId: string }; revision: string }
 
 function missing(): never { return fail('NOT_FOUND', 'Quote not found.', 404) }
 const parse = (row: any): Quote => ({ ...JSON.parse(row.value_json), revision: row.revision })
@@ -79,11 +81,11 @@ export async function quoteAttachment(env: Bindings, actor: Actor, id: string, e
  return attachmentResponse(env, actor, id, entryId)
 }
 
-const usd = (cents: number,currency:'USD'|'CAD'='USD') => `${currency==='USD'?'':'CAD '}$${Math.floor(cents / 100).toLocaleString('en-US')}.${String(cents % 100).padStart(2, '0')}`
+const usd = (cents: number,currency:'USD'|'CAD'|'EUR'|'GBP'='USD') => `${currency==='USD'?'$':currency+' '}${Math.floor(cents / 100).toLocaleString('en-US')}.${String(cents % 100).padStart(2, '0')}`
 const lineKey = (line: Line) => `${line.sku}${line.unit ? ` (${line.unit})` : ''}`
 /** ORD-005: what a revision changed against the one before it (the request, for revision 1), in the buyer's terms. */
-function changesFrom(previous: { lines: Line[]; termsDays?: number; shipping?: string; validUntil?: string } | undefined, next: QuoteRevision,currency:'USD'|'CAD'='USD') {
- const usd=(cents:number)=>`${currency==='USD'?'':'CAD '}$${Math.floor(cents/100).toLocaleString('en-US')}.${String(cents%100).padStart(2,'0')}`
+function changesFrom(previous: { lines: Line[]; termsDays?: number; shipping?: string; validUntil?: string } | undefined, next: QuoteRevision,currency:'USD'|'CAD'|'EUR'|'GBP'='USD') {
+ const usd=(cents:number)=>`${currency==='USD'?'$':currency+' '}${Math.floor(cents/100).toLocaleString('en-US')}.${String(cents%100).padStart(2,'0')}`
  const before = new Map((previous?.lines ?? []).map(line => [lineKey(line), line])), after = new Set(next.lines.map(lineKey)), changes: string[] = []
  for (const line of next.lines) {
   const old = before.get(lineKey(line))
@@ -174,13 +176,13 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   const billTo = await locationSnapshot(env.DB, selected, 'bill-to', undefined), shipTo = await locationSnapshot(env.DB, selected, 'ship-to', undefined)
   const delivery=await acceptDelivery(env,actor,{account:selected,lines,shipTo,quotes:latest.freightQuotes},latest.delivery,p.deliveryAcknowledged)
   const id = await nextNumber(env.DB), orderRevision = crypto.randomUUID()
-  let order: Order = { ...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, delivery, totalCents: deliveryTotal(lines,delivery), ...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),currency: selected.value.currency??'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
+  let order: Order = { creditPolicySnapshot:creditSignature(await creditPolicy(env.DB,selected.id)), usdConversion:conversionSnapshot(selected,new Date(at)), ...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id, accountId: selected.id, accountRevision: selected.revision, customerName: selected.value.name, pierCustomerId: selected.value.pierCustomerId, pierOrigin: (await pierOrigin(env))!, reference: '', lines, delivery, totalCents: deliveryTotal(lines,delivery), ...(selected.value.priceDisplay?{priceDisplay:selected.value.priceDisplay}:{}),currency: selected.value.currency??'USD', termsDays: latest.termsDays, status: 'submitted', preparedBy: latest.proposedBy, preparedAt: at, submittedBy: actor.id, quote: { id: quote.id, revision: number, shipping: latest.shipping, validUntil: latest.validUntil }, ...(billTo ? { billTo } : {}), ...(shipTo ? { shipTo } : {}), revision: orderRevision }
   const terms=await termsAtSubmission(env,actor,selected,order.id,p.termsAcceptance,at)
   if(terms.acceptance)order.termsAcceptance=terms.acceptance
   const submission=await companySubmission(env,actor,order);order=submission.order
   const accepted = { ...quote, status: 'accepted' as const, accepted: { revision: number, by: actor.id, at, orderId: id } }
   try {
-   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [await deltaEntryGuard(env.DB,selected.id),submission.guard,terms.guard,...terms.statements,activeAccountGuard(env.DB, selected), shippingGuard(env.DB,delivery), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision),...(submission.waiting?await approvalNoticeStatements(env.DB,order,new Date(at),''):await confirmationStatements(env.DB,actor,order,'submitted')), audit(env.DB, actor, id, submission.waiting?'order.company-approval-requested':'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at, await supplierRoute(env.DB, quote.accountId, actor.id))], id)
+   const saved = await save(env.DB, actor, quote, accepted, 'quote.accepted', `Buyer accepted revision ${number} and converted it into order ${id}.`, [...await admitCredit(env,order),await deltaEntryGuard(env.DB,selected.id),submission.guard,terms.guard,...terms.statements,activeAccountGuard(env.DB, selected), shippingGuard(env.DB,delivery), env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(order), orderRevision),...(submission.waiting?await approvalNoticeStatements(env.DB,order,new Date(at),''):await confirmationStatements(env.DB,actor,order,'submitted')), audit(env.DB, actor, id, submission.waiting?'order.company-approval-requested':'order.submitted', { accountId: selected.id, orderId: id, revision: orderRevision, source: 'quote.accept', reason: `Buyer accepted quote ${quote.id} revision ${number}; submitted for supplier review with the quoted prices and terms.` }), notice(env.DB, actor, quote, 'supplier', 'accepted', `${quote.customerName} accepted ${quote.id} revision ${number}; order ${id} awaits supplier review.`, at, await supplierRoute(env.DB, quote.accountId, actor.id))], id)
    if (!submission.waiting) await emailLatestConfirmation(env, id)
    return { quote: view(actor, saved, today), order }
   } catch (error) {

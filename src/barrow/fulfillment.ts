@@ -1,3 +1,6 @@
+import { trackingMeasures } from './shipment-tracking'
+import { prebookRows } from './prebook-view'
+import { faireFulfillment } from './faire'
 import { requireStaffReport } from './staff-policy'
 import type { Bindings } from '../auth.server'
 import { fail, requireSupplier, type Actor, type Order } from './model'
@@ -11,12 +14,15 @@ export async function fulfillmentReport(env: Bindings, actor: Actor, params: URL
  requireStaffReport(actor, 'fulfillment', params); requireSupplier(actor)
  const checkedAt = (await now()).toISOString(), timeZone = await reportZone(env.DB), today = calendarDate(new Date(checkedAt), timeZone), origin = await pierOrigin(env)
  const accountId = params.get('accountId') ?? '', warehouse = params.get('warehouse') ?? ''
+ const channelLines = actor.staff || warehouse && warehouse !== 'Unknown warehouse' ? [] : await faireFulfillment(env,accountId)
  const records = (await env.DB.prepare("SELECT value_json FROM bw_orders WHERE (?='' OR json_extract(value_json,'$.accountId')=?) ORDER BY rowid DESC").bind(accountId,accountId).all<{ value_json: string }>()).results.map(row => JSON.parse(row.value_json) as Order)
  const orders = records.filter(order => order.approvedAt && (!accountId || order.accountId === accountId))
+ const prebooks=warehouse&&warehouse!=='Unassigned backorder'?[]:orders.flatMap(prebookRows)
+ if(actor.staff?.warehouses!=='all'&&actor.staff&&prebooks.length)fail('FORBIDDEN','Seasonal commitments require whole-warehouse fulfillment authority.',403)
  const lines: ReturnType<typeof fulfillmentLines> = [], exceptions: { orderId: string; reason: string; owner: string }[] = []
  let state: any
- try { state = await pierState(env) } catch { return { checkedAt, today, timeZone, source: 'Pier', status: 'unavailable' as const, lines, lateLines: lines, exceptions, note: 'Pier did not answer. Fulfillment quantities and delivery are unknown.' } }
- for (const order of orders) {
+ try { state = await pierState(env) } catch { return { checkedAt, today, timeZone, source: 'Pier', status: 'unavailable' as const, channelLines, prebooks, lines, lateLines: lines, exceptions, note: 'Pier did not answer. Fulfillment quantities and delivery are unknown.' } }
+ for (const order of orders.filter(order=>!order.prebook)) {
   const upstream = order.pierOrigin === origin && (state.orders ?? []).find((row: any) => row.id === order.pierOrderId)
   if (!upstream) { exceptions.push({ orderId: order.id, reason: 'Recorded source order unavailable or connected destination differs.', owner: 'Supplier' }); continue }
   try { lines.push(...fulfillmentLines(order, upstream, state, today, timeZone)) }
@@ -25,6 +31,11 @@ export async function fulfillmentReport(env: Bindings, actor: Actor, params: URL
  const selected = lines.filter(line => !warehouse || line.warehouses.some(row => row.warehouse === warehouse) || (warehouse === 'Unassigned backorder' && line.unassignedBackorder !== '0'))
  const warehouses = actor.staff?.warehouses
  if (warehouses && warehouses !== 'all' && (exceptions.length || selected.some(line => line.warehouses.some(row => !warehouses.includes(row.warehouse)) || (line.unassignedBackorder !== '0' && !warehouses.includes('Unassigned backorder'))))) fail('FORBIDDEN','The whole fulfillment report cannot be confirmed within your warehouse scope.',403)
- return { checkedAt, today, timeZone, source: 'Pier', status: 'read' as const, lines: selected, lateLines: selected.filter(line => line.overdue || (line.dispatchedLate !== null && line.dispatchedLate !== '0')), exceptions,
-  note: 'Quantities are per SKU in base units. Fill = shipped / (ordered − cancelled). Warehouse filters select whole order lines with confirmed warehouse activity; backorders are unassigned. Dispatch by requested date uses inclusive days in the stated installation reporting time zone; delivery and complete promise history are not recorded.' }
+ for (const line of selected) {
+  const order = orders.find(order => order.id === line.orderId)!
+  const measures = await trackingMeasures(env, actor, order, line.sku, line.promisedDate, timeZone, state)
+  Object.assign(line, measures, { delivery: measures.deliveredQuantity === line.shipped && line.shipped !== '0' ? 'verified' : measures.delivery })
+ }
+ return { checkedAt, today, timeZone, source: 'Pier', status: 'read' as const, channelLines, prebooks, lines: selected, lateLines: selected.filter(line => line.overdue || (line.dispatchedLate !== null && line.dispatchedLate !== '0')), exceptions,
+  note: 'Quantities are per SKU in base units. Fill = shipped / (ordered − cancelled). Warehouse filters select whole order lines with confirmed warehouse activity; backorders are unassigned. Dispatch by requested date uses inclusive days in the stated installation reporting time zone; carrier delivery is counted only from authenticated observations on source-linked packages. Untracked quantities and complete promise history remain unknown.' }
 }

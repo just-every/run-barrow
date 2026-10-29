@@ -1,5 +1,6 @@
 export type CardState = 'prepared' | 'requires_action' | 'authorized' | 'captured' | 'declined' | 'cancelled'
 export type CardPayment = {
+ savedCardId?:string; savedCardRevision?:string
  id:string; installationId?:string; accountId:string; orderId:string; orderRevision:string; currency:string; amountCents:number; surchargeCents:number
  state:CardState; createdAt:string; updatedAt:string; latestFinancialAt?:string; capturedAt?:string
  providerAccountId:string; providerCustomerId?:string; livemode?:boolean; providerPaymentId?:string; setupSessionId?:string; paymentMethodId?:string

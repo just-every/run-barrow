@@ -53,8 +53,11 @@ export function storeImage(db: D1Database, image: StoredImage & { sha256: string
 export const releaseImage = (db: D1Database, sha256: string) => db.prepare(`DELETE FROM bw_product_images WHERE sha256=?
  AND NOT EXISTS(SELECT 1 FROM bw_settings s,json_each(s.value_json) v WHERE s.key='variant-attributes' AND json_extract(v.value,'$.image.sha256')=?)
  AND NOT EXISTS(SELECT 1 FROM bw_settings s,json_each(s.value_json) v WHERE s.key='catalog-maintenance' AND json_extract(v.value,'$.mediaSha256')=?)
- AND NOT EXISTS(SELECT 1 FROM bw_orders o,json_each(o.value_json,'$.lines') l WHERE json_extract(l.value,'$.image.sha256')=?)
- AND NOT EXISTS(SELECT 1 FROM bw_confirmations c,json_each(c.value_json,'$.lines') l WHERE json_extract(l.value,'$.image.sha256')=?)`).bind(sha256, sha256, sha256, sha256, sha256)
+ AND NOT EXISTS(SELECT 1 FROM bw_settings s,json_tree(s.value_json) v WHERE s.key IN ('bulk-images','variant-attributes','catalog-maintenance') AND v.key='sha256' AND v.value=?)
+ AND NOT EXISTS(SELECT 1 FROM bw_orders o,json_tree(o.value_json,'$.lines') l WHERE l.key='sha256' AND l.value=?)
+ AND NOT EXISTS(SELECT 1 FROM bw_confirmations c,json_tree(c.value_json,'$.lines') l WHERE l.key='sha256' AND l.value=?)
+ AND NOT EXISTS(SELECT 1 FROM bw_line_sheets s,json_tree(s.value_json,'$.imageRefs') r WHERE r.key='sha256' AND r.value=?)
+ AND NOT EXISTS(SELECT 1 FROM bw_platform_imports p,json_tree(p.source_json,'$.catalog') r WHERE r.key='sha256' AND r.value=?)`).bind(sha256, sha256, sha256, sha256, sha256, sha256, sha256, sha256)
 export async function readImages(db: D1Database, refs: (ImageRef | undefined)[]) {
  const keys = [...new Set(refs.flatMap(ref => ref ? [ref.sha256] : []))]
  if (!keys.length) return new Map<string, StoredImage>()

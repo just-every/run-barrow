@@ -15,7 +15,7 @@ import { requireActiveAccount } from './account-profile'
 export type ReorderSelection = { sku: string; unit?: string; replacementSku?: string; replacementUnit?: string }
 export type ReorderReview = {
  orderId: string; accountId: string; sourceRevision: string; accountRevision: string
- selections: ReorderSelection[]; deliveryLocation: string; shipToId?: string; currency: 'USD'|'CAD'; originalCurrency: 'USD'|'AUD'|'CAD'
+ selections: ReorderSelection[]; deliveryLocation: string; shipToId?: string; currency: 'USD'|'CAD'|'EUR'|'GBP'; originalCurrency: 'USD'|'AUD'|'CAD'|'EUR'|'GBP'
  termsDays: number; originalTermsDays: number; minimumCents: number; totalCents: number
  lines: { originalSku: string; originalUnit?: string; originalBaseQuantity:string; originalConversion:string; baseUnit?:string; unit?: string; baseQuantity?: string; conversion?: string; sku: string; quantity: number; originalUnitCents: number; originalLineCents:number; lineCents:number|null; unitCents: number|null; originalMinQty: number; minQty: number|null; available: string|null; differences: string[]; pricing?:import('./pricing').PricingSnapshot }[]
  blockers: string[]; blockingCodes:string[]; fingerprint: string

@@ -166,6 +166,13 @@ test('STK-005: buyer declines then accepts a current-price split substitution; o
  const invoice = await (await h.request(`/api/barrow/invoices/${replacement.id}.csv`, buyer)).text();
  assert.match(invoice, /MAPLE-1/); assert.match(invoice, /4200/); assert.match(invoice, /28050/);
  assert.equal((await h.request(`/api/barrow/invoices/${original.id}.csv`, buyer)).status, 409);
+ // Credits keep the accepted replacement price and its original commercial line.
+ const inventoryOrder=(await pier.api('/api/pier/state')).orders.find(row=>row.id===executed.pierOrderId),physicalLine=inventoryOrder.lines.find(row=>row.itemId===executed.lines[0].itemId);
+ const returnedShipment=await pier.command('dispatch.create',{orderId:inventoryOrder.id,shipmentReference:'Replacement credit shipment',lines:[{orderLineId:physicalLine.id,quantity:'1'}]});
+ const receivedReturn=await pier.command('return.create',{shipmentId:returnedShipment.id,shipmentLineId:returnedShipment.lines[0].id,locationId:products.location.id,quantity:'1',reason:'Received one accepted replacement unit.'});
+ const credit=await h.command('credit.issue',{orderId:executed.id,returnId:receivedReturn.id,lines:[{line:1,quantity:1}],reason:'Credit the exact buyer-accepted replacement basis.'});
+ assert.equal(credit.amountCents,4200);assert.deepEqual(credit.lines[0].original,executed.lines[0].substitutedFrom);assert.deepEqual(credit.lines[0].basis,executed.lines[0]);
+ const creditExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(JSON.parse(creditExport.creditlines.find(row=>row.creditId===credit.id).original).orderId,original.id);assert.ok((await(await h.request('/api/barrow/export/creditlines.csv',buyer)).text()).includes(original.id));
 });
 
 test('STK-005: substitution scope, current account/units/stock, explicit basket and dispatched or legacy source guards refuse without inventory effects', async t => {

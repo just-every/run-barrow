@@ -6,7 +6,7 @@ import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
 
 test('owner reviews delta citations and scoped feed rehearsal, signs cutoff, delivers a new order and preserves shipment dependencies on rollback at desktop and phone',async t=>{
  const f=await deltaFixture(t,{built:true,https:true}),{h}=f;
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM_EXECUTABLE?{executablePath:process.env.BARROW_CHROMIUM_EXECUTABLE}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const context=await signedContext(browser,h);t.after(()=>context.close());const page=await context.newPage();await page.goto(h.origin+'/app');
  if(new URL(page.url()).pathname==='/setup'){await page.getByLabel('Your name').fill('Supplier owner');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Finish setup',exact:true}).click()}
  await page.getByRole('button',{name:'Move in',exact:true}).click();const region=page.getByRole('region',{name:'Delta cutover and feed rehearsal',exact:true});
@@ -53,5 +53,14 @@ test('owner reviews delta citations and scoped feed rehearsal, signs cutoff, del
  await reason.fill('Owner stops bridge exports and preserves the dependent shipment and later native edit.');await region.getByLabel('I explicitly resume native Pier-only order entry',{exact:false}).check();await region.getByRole('button',{name:'Roll back bridge and resume native order entry',exact:true}).click();await expect(reason).toHaveValue('');
  const rollback=card('Rollback and retained dispositions');await rollback.getByText('Read rollback dispositions and preserved dependencies',{exact:true}).click();await expect(rollback).toContainText('preserved-commercial-dependency');await expect(rollback.getByLabel('Native rollback dispositions')).toContainText('blocked');await captureRegionWidths(page,rollback,'delta-preserved-rollback');
  assert.equal((await h.api('/api/barrow/accounts/by-id/cedar')).value.termsDays,45);assert.equal((await h.api('/api/barrow/orders/'+order.id)).pierOrderId,order.pierOrderId);
+ await page.getByRole('button',{name:'Data',exact:true}).click();const health=page.getByRole('region',{name:'Connector reconciliation',exact:true});
+ await health.getByLabel('Connector review reason').fill('Owner reviews retained ERP balances, mappings and acknowledgment history after rollback.');await health.getByRole('button',{name:'Inspect connectors',exact:true}).click();await expect(health.getByLabel('Connector review reason')).toHaveValue('');
+ await health.getByText('Feed '+session.id+' · rolledback',{exact:true}).click();await expect(health).toContainText('source minor units 10000, native minor units 13000, difference -3000');await expect(health).toContainText('processed');
+ const pickedUp=health.getByRole('list',{name:'Picked-up files',exact:true}).locator(':scope > li');
+ await expect(pickedUp).toHaveCount(4);
+ for(const [index,value] of ['products.csv · 1 accepted · 1 quarantined','customers.csv · 2 accepted · 0 quarantined','ats.csv · 1 accepted · 0 quarantined','products.csv · 1 accepted · 0 quarantined'].entries())await expect(pickedUp.nth(index)).toContainText(value);
+ const written=health.getByRole('list',{name:'Written order files',exact:true}).locator(':scope > li');
+ await expect(written).toHaveCount(1);await expect(written).toContainText(delivery.filename+' · data rows: 1 · order '+order.id+' · processed');
+ await captureRegionWidths(page,health,'connector-feed-balances');
  assert.deepEqual(await page.locator('button').evaluateAll(buttons=>buttons.filter(button=>!button.textContent?.trim()).map(button=>button.getAttribute('aria-label'))),[]);
 });

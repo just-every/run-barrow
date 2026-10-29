@@ -164,6 +164,13 @@ test('ACC-007: amount and location routes run sequential approvers with delegati
  const reterm = await read(waiting.id);
  assert.equal(reterm.status, 'draft'); assert.equal(reterm.approvalRoute, undefined); assert.match(reterm.approvalVoided.reason, /account changed/);
 
+ // Finance policy changes void a partly approved request even when its exposure still fits.
+ ({ waiting } = await submit());
+ const creditApproved=await approve(waiting,ops);
+ await h.command('credit-policy.save',{accountId:'cedar',revision:null,currency:'USD',limitCents:100000000,termsDays:30,reason:'Finance configures a new limit after company step one.'});
+ const creditRefusal=await approve(creditApproved,finance,{status:409});assert.equal(creditRefusal.error.code,'CREDIT_CHANGED');
+ const creditVoided=await read(waiting.id);assert.equal(creditVoided.status,'draft');assert.equal(creditVoided.approvalRoute,undefined);assert.match(creditVoided.approvalVoided.reason,/credit policy changed/);
+
  // A location rule: a smaller order to the north store takes its own single-step route.
  const northOrder = await submit(2, north.id);
  assert.equal(northOrder.waiting.approvalRoute.ruleId, 'north'); assert.equal(northOrder.waiting.approvalRoute.steps.length, 1);

@@ -1,0 +1,1 @@
+ALTER TABLE bw_faire_sync ADD COLUMN generation INTEGER NOT NULL DEFAULT 0;

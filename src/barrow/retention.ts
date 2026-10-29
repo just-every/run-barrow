@@ -28,7 +28,7 @@ async function review(env:Bindings) {
   const days=policy.days.poDocuments,expiry=typeof days==='number'&&Number.isFinite(uploaded)?uploaded+days*86400000:null
   const held=requests.some(request=>request.account_id===order.accountId&&request.held===1)
   // A PO on a submitted commercial order is conservatively retained as commercial evidence.
-  const floorUntil=financialFloor(order,cardEvidence.payments.filter(payment=>payment.order_id===order.id),cardEvidence.events),floor=floorUntil===null?null:Date.parse(floorUntil)
+  const floorUntil=financialFloor(order,cardEvidence.payments.filter(payment=>payment.order_id===order.id),cardEvidence.events,cardEvidence.financialDates(order.id)),floor=floorUntil===null?null:Date.parse(floorUntil)
   const eligible=expiry!==null&&now>expiry&&!held&&(floor===null||now>=floor)
   return {orderId:order.id,accountId:order.accountId,revision:row.revision,sha256:row.sha256,expiresAt:expiry===null?null:new Date(expiry).toISOString(),commercialMinimumUntil:floor===null?null:new Date(floor).toISOString(),held,eligible,reason:held?'Legal hold':floor!==null&&now<floor?'Commercial evidence: seven-year minimum':expiry===null?'No recorded retention age':now<=expiry?'Within retention':'Owner review required'}
  })

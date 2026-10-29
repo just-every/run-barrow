@@ -25,7 +25,7 @@ async function fixture(t, prices) {
 }
 const cents = rows => rows.map(row => [row.rep, row.grossCents, row.reversedCents, row.netCents]);
 
-test('REP-004: dated split commissions keep approved discounts, original attribution and source-linked shipment/return cents through transfers, replay and restore; payment earnings are not recorded', async t => {
+test('REP-004: dated split commissions keep approved discounts, original attribution and source-linked shipment/return cents through transfers, replay and restore; payment earnings require allocated principal', async t => {
  const { h, pier, account, bindings, buyer, place, ship, receive } = await fixture(t, [{ sku: 'OAT-1', unitCents: 6500, minQty: 1, pricing: { effectiveFrom: day(-1), effectiveTo: day(1), accountDiscountBps: 1000 } }]);
  const policy = await h.command('commission.settings', { revision: null, rules: [rule({ id: 'broad', rateBps: 5000 }), rule({ accountId: 'cedar', sku: 'OAT-1', from: day(0), to: day(0) }), rule({ id: 'future', accountId: 'cedar', sku: 'OAT-1', from: day(1), rateBps: 9000 })], reason: 'Approve spring territory split on discounted merchandise' });
  const original = await place('PO-COMMISSION-1');
@@ -58,7 +58,7 @@ test('REP-004: dated split commissions keep approved discounts, original attribu
  current = await h.command('commission.settings', { revision: current.revision, rules: [rule({ id: 'nova-paid', rep: 'nova', basis: 'payment', splits: [{ rep: 'nova', shareBps: 10000 }] })], reason: 'Earn on payment only when verified payment records exist' });
  const unpaid = await place('PO-COMMISSION-PAYMENT');
  report = await h.api('/api/barrow/reports/commissions');
- assert.deepEqual(cents(report.rows.filter(row => row.orderId === unpaid.id)), [['nova', null, null, null]]);
+ assert.deepEqual(cents(report.rows.filter(row => row.orderId === unpaid.id)), [['nova', 0, 0, 0]]);
  assert.match(JSON.stringify(report.notes), /not recorded/i);
  const csv = await (await h.request('/api/barrow/reports/commissions.csv?rep=avery')).text();
  assert.ok(csv.includes(original.id) && csv.includes(returned.id) && csv.includes(policy.revision) && csv.includes('1053'));

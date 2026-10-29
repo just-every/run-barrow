@@ -46,11 +46,12 @@ test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floo
  await historicalCard(h,{id:'historical-capture',accountId:account.id,orderId:'old',at:'2016-02-29T12:34:56.789Z'});
  await historicalCard(h,{id:'historical-recent-po',accountId:account.id,orderId:'fresh',at:'2016-02-29T12:34:56.789Z'});
  await historicalCard(h,{id:'historical-cancellation',accountId:account.id,orderId:'commercial',at:'2016-02-29T12:34:56.789Z',eventAt:'2024-02-29T12:34:56.789Z',state:'cancelled'});
+ await historicalCreditEvents(h);
  const before=await archive(h),original=await h.api('/api/barrow/orders/old');
  let review=await h.api('/api/barrow/retention');
  assert.deepEqual(review.documents.filter(row=>row.eligible).map(row=>row.orderId),['expired-commercial','old']);
  assert.equal(review.documents.find(row=>row.orderId==='commercial').reason,'Commercial evidence: seven-year minimum');
- assert.equal(review.documents.find(row=>row.orderId==='commercial').commercialMinimumUntil,'2031-02-28T12:34:56.789Z');
+ assert.equal(review.documents.find(row=>row.orderId==='commercial').commercialMinimumUntil,'2031-02-28T12:42:56.789Z');
  assert.equal(review.documents.find(row=>row.orderId==='old').commercialMinimumUntil,'2023-02-28T12:34:56.789Z');
  assert.equal(review.documents.find(row=>row.orderId==='fresh').expiresAt,new Date(Date.parse((await h.api('/api/barrow/orders/fresh')).document.uploadedAt)+30*86400000).toISOString());
  const payload=row=>({orderId:row.orderId,sha256:row.sha256,revision:row.revision,policyRevision:policy.revision,confirm:'ERASE',reason:'Owner reviewed expired attachment'});
@@ -88,7 +89,7 @@ test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floo
  const audit=await h.api('/api/barrow/audit?search=retention');
  assert.ok(JSON.stringify(audit).includes('retention.document-erased'));
  const after=await archive(h),target=await installation();t.after(()=>target.close());
- const cardRows=bundle=>bundle.flatMap(part=>part.items??[]).filter(item=>['bw_card_payments','bw_card_events'].includes(item.table)).map(item=>item.table==='bw_card_payments'?{table:item.table,payment:financialCard(JSON.parse(item.row.value_json))}:item);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_payments').length,3);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_events').length,3);assert.deepEqual(cardRows(after),cardRows(before));
+ const cardRows=bundle=>bundle.flatMap(part=>part.items??[]).filter(item=>['bw_card_payments','bw_card_events'].includes(item.table)).map(item=>item.table==='bw_card_payments'?{table:item.table,payment:financialCard(JSON.parse(item.row.value_json))}:item);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_payments').length,3);assert.equal(cardRows(before).filter(item=>item.table==='bw_card_events').length,4);assert.deepEqual(cardRows(after),cardRows(before));
  await restore(target,after);
  assert.equal((await target.request('/api/barrow/orders/old/document')).status,404);
  assert.deepEqual((await target.api('/api/barrow/retention')).receipts,review.receipts);
@@ -101,16 +102,16 @@ test('DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floo
 // One ordered-account erasure behaviour, including its authorization, hold and
 // atomic snapshot guards. Historical records are fixture input, never an oracle.
 import {randomBytes,createHmac} from 'node:crypto';
-import {orderedAccountFixture,historicalCard,erasurePreview,erasurePayload,verifiedRequest} from './retention-fixture.mjs';
+import {orderedAccountFixture,historicalCard,historicalCreditEvents,erasurePreview,erasurePayload,verifiedRequest} from './retention-fixture.mjs';
 test('ordered-account owner erasure revokes access, redacts personal classes, preserves financial evidence and returns attributed custody',async t=>{
  const key=randomBytes(32),h=await installation({bindings:{MAIL_WEBHOOK_SECRET:'whsec_'+key.toString('base64'),MAIL_EVENT_TENANT:'synthetic-barrow-47'}});t.after(()=>h.close());
- const f=await orderedAccountFixture(h,{cardHistory:true}),admin={as:await h.signIn('synthetic-barrow-51@example.test','admin')};
+ const f=await orderedAccountFixture(h,{cardHistory:true}),creditHistory=await historicalCreditEvents(h,'cedar-expired'),admin={as:await h.signIn('synthetic-barrow-51@example.test','admin')};
  const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
  for(const actor of [f.buyer,admin,agent]){await h.command('retention.preview',{accountId:'cedar'},{...actor,status:403});await h.command('retention.erase-account',{accountId:'cedar',confirm:'ERASE',reason:'Unauthorized erasure'},{...actor,status:403})}
  await verifiedRequest(h,'cedar',true);let preview=await erasurePreview(h),payload=erasurePayload(preview);
  assert.equal(preview.held,true);assert.equal(preview.classes.find(row=>row.kind==='mail event payloads').count,2);assert.equal(preview.classes.find(row=>row.kind==='mail event payloads').action,'remove');assert.ok(preview.classes.every(row=>row.action));assert.ok(preview.items.every(row=>row.reason&&'floorUntil'in row));assert.equal(preview.items.find(row=>row.id==='order:cedar-recent').action,'keep unchanged');
  await h.command('retention.erase-account',payload,{status:409});
- assert.equal(preview.items.find(row=>row.id==='order:cedar-expired').floorUntil,'2031-02-28T12:34:56.789Z');assert.equal(preview.items.find(row=>row.id==='card-event:'+f.card.event.id).floorUntil,'2031-02-28T12:34:56.789Z');
+ assert.equal(preview.items.find(row=>row.id==='order:cedar-expired').floorUntil,'2031-02-28T12:42:56.789Z');assert.equal(preview.items.find(row=>row.id==='card-event:'+f.card.event.id).floorUntil,'2031-02-28T12:42:56.789Z');
  const original=await h.api('/api/barrow/orders/cedar-recent'),originalQuote=await h.db.prepare('SELECT value_json FROM bw_quotes WHERE id=?').bind(f.quotes[1].id).first(),originalCommission=await h.db.prepare('SELECT value_json FROM bw_order_commissions WHERE order_id=?').bind(original.id).first(),originalConfirmation=await h.db.prepare('SELECT value_json FROM bw_confirmations WHERE order_id=?').bind(original.id).first();
  const heldReceipt=await h.command('retention.revoke-access',payload);assert.equal(heldReceipt.mode,'revoke');
  assert.equal((await h.request('/api/barrow/state',f.buyer)).status,401);
@@ -139,6 +140,7 @@ test('ordered-account owner erasure revokes access, redacts personal classes, pr
  const thread=(await h.api('/api/barrow/quotes/'+f.quotes[0].id)).thread,erased=thread.find(row=>row.id===f.message.id);assert.equal(erased.body,'[Erased message]');assert.equal(erased.authorId,f.person.id);assert.equal(erased.at,f.message.at);assert.deepEqual(erased.erasedAttachment,{type:'application/pdf',size:f.bytes.length,sha256:f.sha256});assert.equal(thread.find(row=>row.id===f.note.id).body,'Internal personal note '+f.email);
  const application=(await h.api('/api/barrow/applications')).applications.find(row=>row.id===f.applicationId);assert.equal(application.value.contactName,'Erased buyer');assert.equal(application.value.phone,'');assert.deepEqual(application.value.locations,[]);assert.match(application.value.email,/@erased\.invalid$/);assert.equal((await h.request('/api/barrow/applications/'+f.applicationId+'/documents/synthetic-barrow-72')).status,503,'Retained certificates remain quarantined without a scanner');
  const retainedArchive=await archive(h),certificate=retainedArchive.flatMap(part=>part.items??[]).find(item=>item.table==='bw_application_documents'&&item.row.id==='synthetic-barrow-72')?.row;assert.ok(certificate,'Approved certificate stays in owner backup custody under the account financial floor');assert.equal(certificate.content_base64,f.bytes.toString('base64'));assert.equal(certificate.sha256,f.sha256);
+ for(const entry of creditHistory){const record=retainedArchive.flatMap(part=>part.items??[]).find(item=>item.table===entry.table&&item.row.id===entry.id);assert.ok(record);assert.equal(JSON.parse(record.row.value_json).amountCents,100);assert.equal(receipt.items.find(item=>item.id===entry.table+':'+entry.id).action,'keep financial history')}assert.ok(receipt.items.some(item=>item.id==='refund-event:synthetic-barrow-613'));
  erasedCardHistory(retainedArchive,f.card);assert.equal((await h.command('card.capture',{paymentId:f.card.payment.id,reason:'Erased payment authority must stay revoked'},{status:409})).error.code,'RESTORED');
  assert.equal((await h.request(f.message.attachment.path)).status,404);assert.equal((await h.request(f.retained.attachment.path)).status,200);assert.equal((await h.request('/api/barrow/orders/cedar-recent/document')).status,200);
  const ledger=await h.db.prepare('SELECT * FROM bw_quote_mail WHERE id=?').bind(f.ledger.id).first();assert.equal(ledger.provider_message_id,'synthetic-barrow-46');assert.equal(ledger.status,ledgerBefore.status);for(const field of ['recipient','submission_json','sender_result_json'])assert.equal(ledger[field],null);assert.equal(ledger.summary,'[Erased notice]');
@@ -158,6 +160,7 @@ test('independent erasure journal reapplies after D1 rewind and old archive impo
  // The old archive predates the card event. Replaying the erasure receipt must
  // retain the financial floor the owner actually reviewed, even on that copy.
  const laterCard=await historicalCard(h,{id:'later-financial-event',accountId:'cedar',orderId:'cedar-expired',at:'2024-02-29T12:34:56.789Z'});
+ await historicalCreditEvents(h,'cedar-expired');
  const preview=await erasurePreview(h),receipt=await h.command('retention.erase-account',erasurePayload(preview)),after=await archive(h);
  const missing=await installation();t.after(()=>missing.close());
  const refused=await missing.api('/api/barrow/portability/imports',{manifest:before[0],confirmed:true},{status:400});assert.equal(refused.error.code,'ERASURE_JOURNAL_REQUIRED');assert.equal((await missing.api('/api/barrow/state')).accounts.length,0);

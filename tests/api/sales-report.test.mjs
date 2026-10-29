@@ -23,7 +23,7 @@ test('RPT-001: booked, split-shipped, invoiced and outstanding sales by account,
 
  const report = await h.api('/api/barrow/reports/sales');
  assert.equal(report.shipments, 'read');
- assert.deepEqual(report.totals, [{ currency: 'USD', lines: 2, orders: 2, bookedCents: 91000, shippedCents: 65000 + 6500, invoicedCents: 91000, paidCents: null, creditedCents: null, outstandingCents: 91000, freightCents: 0, invoicedFreightCents: 0 }]);
+ assert.deepEqual(report.totals, [{ currency: 'USD', lines: 2, orders: 2, bookedCents: 91000, shippedCents: 65000 + 6500, invoicedCents: 91000, paidCents: 0, creditedCents: 0, appliedCreditCents:0, outstandingCents: 91000, freightCents: 0, invoicedFreightCents: 0, creditedFreightCents:0,paidFreightCents:0,appliedFreightCreditCents:0,outstandingFreightCents:0 }]);
  const line = report.rows.find(row => row.orderId === cedar.id);
  assert.deepEqual([line.shippedBaseQuantity, line.shippedCents, line.invoiceNumber, line.rep], ['10', 65000, cedar.invoice.number, 'rep-avery']);
  assert.deepEqual(report.byTerritory.map(group => [group.name, group.totals[0].bookedCents]), [['Northeast', 65000], ['West', 26000]]);
@@ -31,8 +31,6 @@ test('RPT-001: booked, split-shipped, invoiced and outstanding sales by account,
  assert.deepEqual(report.bySku.map(group => [group.name, group.totals[0].shippedCents]), [['OAT-1', 71500]]);
  assert.deepEqual(report.byAccount.map(group => group.name), ['Cedar Street Pantry', 'Wren & Co.']);
  assert.equal(report.byMonth.length, 1);
- // Labels say what is not recorded or not included, rather than reporting zero.
- assert.match(report.notes.payments, /PAY-003 and PAY-010/); assert.match(report.notes.season, /CAT-008 and ORD-008/); assert.match(report.notes.access, /ACC-006/);
 
  // Filter one territory and drill to its documents: the order and its invoice lines match the report line.
  const northeast = await h.api('/api/barrow/reports/sales?territory=Northeast');
@@ -45,7 +43,7 @@ test('RPT-001: booked, split-shipped, invoiced and outstanding sales by account,
  const column = name => csv.map(row => row[header.indexOf(name)]);
  assert.equal(column('bookedCents').reduce((sum, value) => sum + Number(value), 0), report.totals[0].bookedCents);
  assert.equal(column('shippedCents').reduce((sum, value) => sum + Number(value), 0), report.totals[0].shippedCents);
- assert.deepEqual([...new Set(column('paidCents'))], ['not recorded']);
+ assert.deepEqual([...new Set(column('paidCents'))], ['0']);
  // Periods are inclusive reporting-zone days; managers' figures are refused to buyers and agents.
  assert.equal((await h.api('/api/barrow/reports/sales?from=2000-01-01&to=2000-01-31')).rows.length, 0);
  assert.equal((await h.api('/api/barrow/reports/sales?from=2026-02-01&to=2026-01-01', undefined, { status: 400 })).error.code, 'INPUT');

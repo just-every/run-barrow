@@ -1,0 +1,19 @@
+# Shipment tracking
+
+Open Package tracking on an accepted order. Supplier sales managers and operations staff may link an existing EasyPost tracker to an acknowledged Pier shipment within their current account and warehouse grant. Buyers can read packages for orders they can already open and report a missing package. Agents cannot bind, refresh or dispute packages.
+
+The installation owner provisions `EASYPOST_API_KEY` as a private optional Worker secret. It is never a public variable, browser field, archive entry or export. The adapter makes an authenticated GET to the fixed EasyPost tracker endpoint, refuses redirects and bounds the response to five seconds and 256 KiB. This feature reads existing trackers; label purchase, carrier enrollment, label voiding and live provider qualification belong to SHIP-002.
+
+Use `GET /api/barrow/orders/<order-id>/tracking` to read packages and source availability. Submit these commands through `POST /api/barrow/commands`:
+
+- `tracking.bind`: `orderId`, `shipmentId`, `trackerId`, exact `carrier` and tracking `code`, and `lines` containing `itemId` and decimal base `quantity`. The authenticated response must match the tracker, carrier and code. A tracker belongs to one package. Aggregate packages cannot exceed the original shipment's dispatched units, including concurrent requests.
+- `tracking.refresh`: `orderId`, `packageId` and its current `revision`. The service reads EasyPost itself. Request-supplied delivery statuses or observations have no authority. Repeated scans have one retained identity; older scans cannot regress recorded delivery.
+- `tracking.dispute`: `orderId`, `packageId`, current `revision` and a missing-package `reason`. An active supplier owner receives a durable follow-up. A contact, label, estimate or delivery scan preceding the complaint cannot close it. A later authenticated delivery scan or an attributed supplier resolution can close the dispute. A later complaint reopens its stable task.
+
+Package quantities remain Pier facts. Carrier observations, observation times and estimates remain separate facts. Fulfillment reports show tracked units, verified delivered units and units delivered by the source promise date in the reporting time zone. Missing source facts remain unknown. Order timelines retain source and time and include linked substitution delivery observations; an offer retains its original delivery disclosure, while replacement delivery remains unknown until its own source confirms it. None of these commands changes an agreed order, invoice, reservation or approval snapshot.
+
+Missing tracking, carrier failures and delays create owned next actions. Closing a human exception does not manufacture a delivery observation. Supplier review of a missing-package report sends no message and moves no stock or money.
+
+Commercial JSON and the tracking CSV include stable package, order, source shipment and tracker references, exact quantities, revisions and observations within current account and warehouse access. Account erasure reviews native tracking as its own class and removes it alongside personal follow-up data; existing required financial snapshots remain intact. The independent erasure journal applies the same removal before an older archive can serve. EasyPost and Pier retain separate provider custody; no external deletion is claimed. Restored package rows are inert history and cannot retrieve carrier data or initiate effects automatically.
+
+The native integration journey uses the real pinned Pier Worker and a controlled external tracker boundary. This proves native behavior, authentication handling and source reconciliation. It establishes no actual carrier delivery, merchant authorization, sandbox label purchase or void receipt. The owner-provisioned EasyPost account is not held; live receipts remain outstanding under SHIP-002 and do not complete AGT-004, AGT-005 or RPT-006 prerequisites.

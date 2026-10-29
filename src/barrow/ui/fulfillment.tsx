@@ -15,7 +15,8 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
   void request<Report>(`/api/barrow/reports/fulfillment?${new URLSearchParams({ accountId })}`).then(value => { if (current) setReport(value) }).catch(cause => { if (current) setError(errorMessage(cause)) })
   return () => { current = false }
  }, [accountId, refresh])
- const warehouses = [...new Set(report?.lines.flatMap(line => line.warehouses.map(row => row.warehouse)) ?? [])].sort()
+ const warehouses = [...new Set([...(report?.lines.flatMap(line => line.warehouses.map(row => row.warehouse)) ?? []), ...(report?.channelLines.length ? ['Unknown warehouse'] : [])])].sort()
+ const channelLines = !late && (!warehouse || warehouse === 'Unknown warehouse') ? report?.channelLines : []
  const lines = (late ? report?.lateLines : report?.lines)?.filter(line => !warehouse || line.warehouses.some(row => row.warehouse === warehouse) || (warehouse === 'Unassigned backorder' && line.unassignedBackorder !== '0'))
  async function saveZone() {
   setSaving(true); setError('')
@@ -31,6 +32,8 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
   {error && <Notice error>{error}</Notice>}
   {!report && !error && <p role="status">Reading Pier…</p>}
   {report && <><p>Report days: {report.timeZone} · Pier observed {when(report.checkedAt)} · {report.status === 'read' ? 'Source answered' : 'Unavailable'}</p><p className="br-quiet-text">{report.note}</p>
+   {report.prebooks.filter(()=>!warehouse||warehouse==='Unassigned backorder').map(row=><article className="br-card br-stack" key={`${row.orderId}:${row.windowId}:${row.sku}`}><h3>{row.season} · {row.orderId} · {row.sku}</h3><p>{row.window}: committed {row.committed} · released {row.released} · outstanding {row.outstanding} {row.unit}</p><p>Agreed {row.shipDate} to {row.cancelAfter} · estimated {row.estimatedDate}{row.backordered?' · backordered':''}{row.releaseId?` · release ${row.releaseId}`:''}</p>{row.history.map((entry,index)=><p key={index}>{entry.at}: {entry.from} → {entry.to} · {entry.reason}</p>)}</article>)}
+   {channelLines?.map(line=><article className="br-card br-stack" key={`${line.brand}:${line.orderId}:${line.lineId}`}><h3>Faire · {line.orderId} · {line.sku}</h3><p>Ordered {line.ordered} · shipped {line.shipped} · warehouse {line.warehouse}</p><p>Delivery {line.delivery} · settlement owned by {line.settlementOwner}</p>{line.reviewRequired&&<Notice>Source changed. Owner review required.</Notice>}</article>)}
    {report.status === 'unavailable' && <Notice>Fulfillment unknown. Reconnect Pier and refresh.</Notice>}
    {report.status === 'read' && lines?.length === 0 && <p>No matching {late ? 'late ' : ''}lines.</p>}
    {lines?.map(line => <article className="br-card br-stack" key={`${line.orderId}:${line.sku}`}>
@@ -39,7 +42,7 @@ export function FulfillmentReport({ accounts }: { accounts: Account[] }) {
     <p>Fill {line.fillBasisPoints === null ? 'not applicable' : `${(line.fillBasisPoints / 100).toFixed(2)}%`} · age since approval {line.ageDays} days{line.overdue ? ' · past requested date' : ''}</p>
     <p>Agreed date {line.agreedDate ?? 'not recorded'} · Pier promise {line.promisedDate ?? 'not recorded'}{line.promiseChanged ? ' · differs from agreed date' : ''} · promise history: {line.promiseHistory}</p>
     <p>Dispatched by requested date: {line.dispatchedByDate ?? 'unknown'} · dispatched late: {line.dispatchedLate ?? 'unknown'}</p>
-    <p>Delivery: unknown · on-time delivery: unknown · {line.tracking}</p>
+    <p>Delivery: {line.delivery} · tracked {line.trackedQuantity} · verified delivered {line.deliveredQuantity} · delivered by promise {line.onTimeDeliveredQuantity??'unknown'} · {line.tracking}</p>
     <ul>{line.warehouses.map(row => <li key={row.warehouse}>{row.warehouse}: {row.allocated} allocated, {row.shipped} shipped</li>)}{line.unassignedBackorder !== '0' && <li>Unassigned backorder: {line.unassignedBackorder}</li>}</ul>
     <p>Source order <code>{line.sourceOrderId}</code></p>{line.action && <Notice>Owner: {line.owner}. {line.action}</Notice>}
    </article>)}

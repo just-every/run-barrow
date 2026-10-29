@@ -1,19 +1,21 @@
 import { CardConsent } from './card-consent'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { errorMessage, request } from './api'
 import { Notice } from './primitives'
+import { SavedCardsPanel } from './saved-cards'
 import { money, when } from './types'
 
-type CardPayment = {
+export type CardPayment = {
   id: string
   orderId: string
   accountId: string
-  currency: 'USD' | 'AUD' | 'CAD'
+  currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'
   amountCents: number
   surchargeCents: number
   state: 'prepared' | 'requires_action' | 'authorized' | 'captured' | 'declined' | 'cancelled'
   checkoutUrl?: string
   actionUrl?: string
+  savedCardId?: string
   card?: { brand: string; last4: string; funding: string; state: string }
   createdAt: string
   updatedAt: string
@@ -29,15 +31,16 @@ const stateNames: Record<CardPayment['state'], string> = {
   cancelled: 'Card payment cancelled',
 }
 
-export function CardPaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string; merchant: boolean; canAct?:boolean }) {
-  return <PaymentPanel key={orderId} orderId={orderId} merchant={merchant} canAct={canAct} />
+export function CardPaymentPanel({ orderId, merchant, canAct=merchant, deposit=false }: { orderId: string; merchant: boolean; canAct?:boolean; deposit?:boolean }) {
+  return <PaymentPanel key={orderId} orderId={orderId} merchant={merchant} canAct={canAct} deposit={deposit} />
 }
 
-function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string; merchant: boolean; canAct?:boolean }) {
+function PaymentPanel({ orderId, merchant, canAct=merchant, deposit=false }: { orderId: string; merchant: boolean; canAct?:boolean; deposit?:boolean }) {
   const [data, setData] = useState<PaymentList | null>(null)
   const [selectedId, setSelectedId] = useState('')
   const [error, setError] = useState(''), [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false), [consentKey, setConsentKey] = useState(''), [reason, setReason] = useState('')
+  const clearConsent = useCallback(() => setConsentKey(''), [])
   const path = `/api/barrow/payments?${new URLSearchParams({ orderId })}`
 
   useEffect(() => {
@@ -53,8 +56,15 @@ function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string;
 
   const payments = [...(data?.payments ?? [])].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   const payment = payments.find(row => row.id === selectedId) ?? payments[0]
-  const reviewKey = payment ? JSON.stringify([payment.id, payment.updatedAt, payment.amountCents, payment.surchargeCents, payment.card]) : ''
+  const reviewKey = payment ? JSON.stringify([payment.id, payment.updatedAt, payment.amountCents, payment.surchargeCents, payment.card, payment.savedCardId]) : ''
   const canPrepare = payments.length === 0
+
+  function preparedSavedCard(result: CardPayment) {
+    setSelectedId(result.id)
+    setData(current => ({ configured: current?.configured ?? true, payments: [result, ...(current?.payments.filter(row => row.id !== result.id) ?? [])] }))
+    setConsentKey(''); setReason(''); setError('')
+    setMessage('Review the saved card, amount and surcharge before authorizing this payment.')
+  }
 
   async function reload() {
     setBusy(true); setError(''); setConsentKey('')
@@ -79,7 +89,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string;
   }
 
   return <section className="br-card br-stack" aria-label="Card payment" aria-busy={busy}>
-    <h4>Card payment</h4>
+    <h4>{deposit?'Prebook deposit by card':'Card payment'}</h4>
     {error && <Notice error>{error}</Notice>}
     {message && <Notice>{message}</Notice>}
     {!data && !error && <p role="status">Loading card payment…</p>}
@@ -95,7 +105,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string;
         {payment.exception?.reason && <Notice error>{payment.exception.reason}</Notice>}
         {payment.card && <p>{payment.card.brand} ending {payment.card.last4} · {payment.card.funding} · billing state {payment.card.state}</p>}
         <dl>
-          <dt>Order amount</dt><dd>{money(payment.amountCents, payment.currency)}</dd>
+          <dt>{deposit?'Deposit requirement':'Order amount'}</dt><dd>{money(payment.amountCents, payment.currency)}</dd>
           <dt>Card surcharge</dt><dd>{money(payment.surchargeCents, payment.currency)}</dd>
           <dt>Total card payment</dt><dd><strong>{money(payment.amountCents + payment.surchargeCents, payment.currency)}</strong></dd>
         </dl>
@@ -126,6 +136,7 @@ function PaymentPanel({ orderId, merchant, canAct=merchant }: { orderId: string;
         </div>}
       </>}
       {!merchant && data.configured && canPrepare && <div className="br-actions"><button type="button" disabled={busy} onClick={() => void command('card.prepare', { orderId })}>Prepare card payment</button></div>}
+      <SavedCardsPanel orderId={orderId} payment={payment} canPrepare={data.configured && canPrepare} canRevoke={merchant && canAct} disabled={busy} onBusyChange={setBusy} onPrepared={preparedSavedCard} onConsentInvalidated={clearConsent} />
     </>}
     <div className="br-actions"><button type="button" className="br-secondary" disabled={busy} onClick={() => void reload()}>Reload payment records</button></div>
   </section>

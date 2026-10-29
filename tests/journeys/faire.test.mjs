@@ -1,0 +1,46 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {chromium,expect} from '@playwright/test';
+import {faireFixture,ingestFixture} from '../api/faire-fixture.mjs';
+import {signedContext,captureRegionWidths} from './browser-helpers.mjs';
+
+test('Faire source quantities and unknown fulfillment facts remain visible without a Pier connection',async t=>{
+ const f=await faireFixture(t,{built:true});await ingestFixture(f);
+ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM?{executablePath:process.env.BARROW_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const context=await signedContext(browser,f.h);t.after(()=>context.close());const page=await context.newPage();await page.goto(f.h.origin+'/app');
+ if(new URL(page.url()).pathname==='/setup'){await page.getByLabel('Your name').fill('Supplier owner');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Finish setup',exact:true}).click()}
+ await page.getByRole('button',{name:'Data',exact:true}).click();await page.getByText('Fulfillment & backorders',{exact:true}).click();
+ const panel=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).first();
+ await expect(panel.getByRole('heading',{name:'Faire · synthetic-barrow-order-1 · OAT-1',exact:true})).toBeVisible();await expect(panel.getByRole('heading',{name:'Faire · synthetic-barrow-order-2 · OAT-1',exact:true})).toBeVisible();
+ const first=panel.getByRole('article').filter({hasText:'synthetic-barrow-order-1'}),second=panel.getByRole('article').filter({hasText:'synthetic-barrow-order-2'});
+ await expect(first).toContainText('Ordered 3 · shipped unknown · warehouse unknown');await expect(second).toContainText('Ordered 2 · shipped unknown · warehouse unknown');await expect(first).toContainText('Delivery unknown · settlement owned by Faire');
+ assert.equal(await panel.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
+ await panel.getByRole('button',{name:'Open late-line queue',exact:true}).click();await expect(first).toHaveCount(0);await panel.getByRole('button',{name:'Show all lines',exact:true}).click();await expect(first).toBeVisible();
+ await captureRegionWidths(page,panel,'faire-fulfillment');
+ await panel.getByLabel('Warehouse evidence').selectOption('Unknown warehouse');await expect(first).toBeVisible();await expect(second).toBeVisible();
+ await captureRegionWidths(page,panel,'faire-warehouse-unknown');
+ await panel.getByLabel('Warehouse evidence').selectOption('Unassigned backorder');
+ await expect(first).toHaveCount(0);await expect(second).toHaveCount(0);
+ assert.deepEqual((await f.h.api('/api/barrow/reports/fulfillment?warehouse=Unassigned+backorder')).channelLines,[]);
+ await captureRegionWidths(page,panel,'faire-warehouse-excluded');
+ await panel.getByLabel('Warehouse evidence').selectOption('');await expect(first).toBeVisible();await expect(second).toBeVisible();
+ await f.configure(false);f.state.orders[1].items[0].sku='NEW-SKU';f.state.orders[1].items[0].quantity=3;
+ await f.preview({restart:true});await f.preview();
+ const region=page.getByRole('region',{name:'Connector reconciliation',exact:true});
+ const inspect=async()=>{await region.getByLabel('Connector review reason').fill('Owner reconciles the retained Faire source before go-live.');await region.getByRole('button',{name:'Inspect connectors',exact:true}).click();await expect(region.getByLabel('Connector review reason')).toHaveValue('')};
+ await inspect();
+ const brand=region.getByLabel('Faire brand1',{exact:true});
+ await expect(brand).toContainText('disabled');await expect(brand).toContainText('Permission: authorized order read');
+ await expect(brand).toContainText('USD: source 2 orders and 35100 minor units; native 2 orders and 29900 minor units; difference 5200.');
+ await expect(region).toContainText('Source SKU NEW-SKU needs a current reviewed account SKU.');await expect(region).toContainText('source-difference');
+ await expect(brand).toContainText('NEW-SKU · quantity 3 · unit minor units 5200');
+ await f.configure(true,{status:409});await captureRegionWidths(page,region,'faire-connector-missing');
+ const current=(await f.read()).orders.find(row=>row.source_id==='synthetic-barrow-order-2');await f.match(current,{'NEW-SKU':'OAT-1'});await f.configure();await inspect();
+ await expect(brand).toContainText('enabled');await expect(brand).toContainText('USD: source 2 orders and 35100 minor units; native 2 orders and 35100 minor units; difference 0.');await expect(region).not.toContainText('unmapped-item');await expect(region).not.toContainText('source-difference');
+ await captureRegionWidths(page,region,'faire-connector-repaired');
+ await f.h.configure({FAIRE_CONNECTIONS:undefined});await inspect();
+ await expect(brand).toContainText('Connection: unavailable. Permission: not verified');await expect(brand).toContainText('NEW-SKU · quantity 3 · unit minor units 5200');await expect(region).toContainText('Reconnect its authorized order-read credential and retry');
+ assert.equal((await f.read()).orders.length,2);
+ assert.equal(await region.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
+ await captureRegionWidths(page,region,'faire-connector-revoked');
+});
