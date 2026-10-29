@@ -1,3 +1,4 @@
+import { returnRecords } from './return-claims'
 import { creditRecords } from './credit-ledger'
 import { buyingProfileColumns, buyingProfileExport, orderProfileColumns, orderProfileExport } from './buying-profile-export'
 import { readLists } from './lists'
@@ -18,12 +19,13 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['tracking','companyusers','companyinvitations','repassignments','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['returnclaims','tracking','companyusers','companyinvitations','repassignments','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  tracking:['id','revision','orderId','accountId','shipmentId','trackerId','carrier','code','link','estimatedDate','lines','warehouses','events','checkedAt','restored'],
  ...buyingProfileColumns,
+ returnclaims:['id','revision','accountId','orderId','orderRevision','line','currency','basis','original','pierOrigin','pierOrderId','quantity','reason','condition','createdBy','createdAt','decision','receipts','history','restored'],
  companyusers:['id','account_id','user_id','email','display_name','policy_json','state','revision','created_at','updated_at','erased_at'],
  companyinvitations:['id','account_id','member_id','email','display_name','policy_json','status','expires_at','created_by','created_at','reason','revision','delivery_status'],
  repassignments:['id','user_id','kind','target','coverage','starts_on','ends_on','state','revision','reason','created_by','created_at','updated_at'],
@@ -127,6 +129,7 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const tracking=(await env.DB.prepare('SELECT value_json,revision FROM bw_tracking_packages').all<{value_json:string;revision:string}>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision})).filter(p=>orderIds.has(p.orderId)&&(!actor.staff||actor.staff.warehouses==='all'||p.warehouses.every((w:string)=>actor.staff!.warehouses.includes(w)))).map(p=>financialFields('tracking',{...p,lines:json(p.lines),warehouses:json(p.warehouses),events:json(p.events)}))
  const campaignRecords=actor.role==='owner'&&!actor.staff?{campaigns:(await env.DB.prepare('SELECT * FROM bw_campaigns ORDER BY id').all<any>()).results,campaignsegments:(await env.DB.prepare('SELECT * FROM bw_campaign_segments ORDER BY id').all<any>()).results,campaignrecipients:(await env.DB.prepare('SELECT * FROM bw_campaign_deliveries ORDER BY id').all<any>()).results}:{}
  const records = { ...stockRecords,tracking,...campaignRecords,
+  returnclaims:(await returnRecords(env.DB)).filter(row=>inScope(row)&&!actor.staff).map(row=>financialFields('returnclaims',{...row,basis:json(row.basis),original:json(row.original),decision:json(row.decision?{...row.decision,by:supplier(actor)?row.decision.by:'supplier'}:undefined),receipts:json(row.receipts.map(receipt=>({...receipt,by:supplier(actor)?receipt.by:'supplier'}))),history:supplier(actor)?json(row.history):'',createdBy:supplier(actor)?row.createdBy:'company buyer'})),
   creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit,freightBasis:json(credit.freightBasis), path: `/api/barrow/credits/${credit.id}` })),
   creditlines: credits.flatMap(credit => credit.lines.map((line, index) => ({ id: `${credit.id}:${index + 1}`, creditId: credit.id, revision: credit.revision, accountId: credit.accountId, orderId: credit.orderId, orderRevision: credit.orderRevision, returnId: credit.returnId, line: line.line, sku: line.sku, quantity: line.quantity, currency: credit.currency, amountCents: line.amountCents, basis: json(line.basis), original: json(line.original) }))),
   creditapplications: applications.map(application => financialFields('creditapplications', application)),
