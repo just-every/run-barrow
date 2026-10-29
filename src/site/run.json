@@ -5,6 +5,6 @@
   "licence": "MIT",
   "docs": true,
   "paths": {
-    "product": "run-barrow"
+    "product": "barrow"
   }
 }

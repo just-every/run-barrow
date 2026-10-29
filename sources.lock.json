@@ -5028,11 +5028,15 @@
       "executable": false
     },
     "src/site/pages.ts": {
-      "sha256": "bc5f5ed17678390b029d951a6bbd5451ca8ca53a672e6bc4fb9e67f9b60ab2ac",
+      "sha256": "7b269fbada25cc9a46c7064df89917070b4551112d0067c4c438660a0d536702",
       "executable": false
     },
     "src/site/run.json": {
-      "sha256": "53e142d3d9ee099bd4c22602a13ab8d44c5e34c3d5bf5926268834c268bad905",
+      "sha256": "7fd29f0d1da436d3c926b5f548004571be27b98d7650d4fac71443434d452de0",
+      "executable": false
+    },
+    "src/site/run.ts": {
+      "sha256": "99edf6893d3a06f7344985e779663a13f826ac81b82b2377febbbfe8ac6b2807",
       "executable": false
     },
     "src/site/shell/bind.ts": {
