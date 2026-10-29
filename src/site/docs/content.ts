@@ -1,4 +1,6 @@
 import { Marked } from 'marked'
+import { runRequirements, startLine } from '../../base/run-site'
+import { run } from '../run'
 
 export interface Guide {
   source: string
@@ -61,5 +63,12 @@ export function guideHtml(guide: Guide, repository: string, runSite: string): st
       },
     },
   })
-  return markdown.parse(guide.markdown, { async: false })
+  // Keep the repository guide readable on GitHub while deriving its launch recipe
+  // from the same Run data and shared requirements as the chooser and hosting page.
+  const source = guide.source === 'GETTING-STARTED.md' ? guide.markdown
+    .replace(/^curl -fsSL https:\/\/runeditrun\.com\/install\.sh \| sh -s -- dev [^\r\n]+$/m, startLine(run))
+    .replace(/^npx -y @runeditrun\/rer dev [^\r\n]+$/m, run.clone)
+    .replace(/^Git is required; rer brings Node and pnpm\./m, runRequirements)
+    : guide.markdown
+  return markdown.parse(source, { async: false })
 }
