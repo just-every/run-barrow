@@ -111,17 +111,6 @@
       ]
     },
     {
-      "name": "barrow.events.list",
-      "scope": "events:read",
-      "readOnly": true,
-      "classes": [
-        "standard"
-      ],
-      "clauses": [
-        "BASE-AGENT-010"
-      ]
-    },
-    {
       "name": "barrow.proposals.grants",
       "scope": "proposals:submit",
       "readOnly": true,
@@ -158,13 +147,7 @@
       ]
     }
   ],
-  "resources": [
-    "barrow://accounts/{id}",
-    "barrow://catalogs/{id}",
-    "barrow://orders/{id}",
-    "barrow://lists/{id}",
-    "barrow://proposals/{id}"
-  ],
+  "resources": [],
   "notTools": [
     {
       "clauses": [
@@ -394,21 +377,6 @@
       ]
     },
     {
-      "id": "events",
-      "tool": "barrow.events.list",
-      "args": {
-        "limit": 200
-      },
-      "expect": [
-        {
-          "class": "standard",
-          "facts": {
-            "measure": 1
-          }
-        }
-      ]
-    },
-    {
       "id": "grants",
       "tool": "barrow.proposals.grants",
       "args": {
@@ -509,5 +477,12 @@
         "initializer": "tests/agent-door/initialize-admin.mjs"
       }
     ]
-  }
+  },
+  "capabilities": [
+    "tools",
+    "policy",
+    "pause",
+    "audit",
+    "idempotency"
+  ]
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
-import {mkdir,writeFile} from 'node:fs/promises'
+import {captureAgents} from './screens.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
@@ -79,21 +79,5 @@ export default async function({request,origin,cookie,tool}) {
  assert.equal((await local('tools/list')).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
- if(process.env.BARROW_AGENT_EVIDENCE) {
-  const {chromium}=await import('@playwright/test'),directory=process.env.BARROW_AGENT_EVIDENCE
-  await mkdir(directory,{recursive:true})
-  const browser=await chromium.launch({executablePath:'/usr/bin/chromium',args:['--no-sandbox']})
-  try {
-   const context=await browser.newContext({viewport:{width:1440,height:1000}})
-   await context.addCookies(cookie.split('; ').map(part=>{const i=part.indexOf('=');return {name:part.slice(0,i),value:part.slice(i+1),url:origin}}))
-   await context.route(origin+'/**',async route=>{const incoming=route.request(),response=await request(incoming.url(),{method:incoming.method(),headers:incoming.headers(),...(incoming.postDataBuffer()?{body:incoming.postDataBuffer()}:{}),redirect:'manual'});await route.fulfill({status:response.status,headers:Object.fromEntries(response.headers),body:Buffer.from(await response.arrayBuffer())})})
-   const page=await context.newPage()
-   for(const width of [1440,390]) {
-    await page.setViewportSize({width,height:1000});await page.goto(origin+'/agents');await page.screenshot({path:directory+'/agents-'+width+'.png',fullPage:true})
-    if(width===1440)assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
-   }
-   await writeFile(directory+'/browser-proof.txt','Production Agents page with named owner and real completed/refused/review records and the empty pending section captured at 1440 and 390. Desktop overflow assertion passed.\n')
-   await context.close()
-  }finally{await browser.close()}
- }
+ await captureAgents({request,origin,cookie})
 }
