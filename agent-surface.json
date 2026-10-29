@@ -16,6 +16,19 @@
       ]
     },
     {
+      "name": "barrow.accounts.list",
+      "scope": "accounts:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BAR-001",
+        "DATA-002",
+        "RPT-006"
+      ]
+    },
+    {
       "name": "barrow.accounts.read",
       "scope": "accounts:read",
       "readOnly": true,
@@ -223,6 +236,19 @@
     {
       "id": "workspace",
       "tool": "barrow.workspace.read",
+      "args": {},
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "directory",
+      "tool": "barrow.accounts.list",
       "args": {},
       "expect": [
         {

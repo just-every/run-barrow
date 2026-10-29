@@ -30,6 +30,11 @@ export default async function({request,origin,cookie,tool}) {
   const response=await request(origin+path,{method:payload?'POST':'GET',headers:{Authorization:'Bearer '+grant.token,'Content-Type':'application/json'},...(payload?{body:JSON.stringify({type:'order.prepare',payload})}:{})})
   return {status:response.status,body:await response.json()}
  }
+ const directory=await legacy('/api/barrow/accounts')
+ assert.equal(directory.status,200);assert.equal(directory.body.accounts[0].id,'juniper')
+ for(const path of ['/api/barrow/orders/search','/api/barrow/orders/history']) {
+  const response=await legacy(path);assert.equal(response.status,403);assert.equal(response.body.code,'PERSON_REQUIRED')
+ }
  const legacyArgs={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Legacy transport through one door',idempotency_key:randomUUID()}
  const {idempotency_key,...withoutKey}=legacyArgs
  assert.equal((await legacy('/api/barrow/commands',withoutKey)).body.code,'idempotency_key_required')

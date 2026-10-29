@@ -3,6 +3,7 @@ import { retainAgentAccount } from './custody.ts'
 import type { Bindings } from '../../auth.server.ts'
 import type { ResourceDefinition, ToolContext, ResourceContext } from '../../modules/agent-door/types.ts'
 import { accounts, account } from '../accounts.ts'
+import { accountPage } from '../account-directory.ts'
 import { readOrder } from '../orders.ts'
 import { readLists, readList } from '../lists.ts'
 import { catalogue } from '../pier.ts'
@@ -13,6 +14,12 @@ import { nativeActor, native, restrictAccount } from './native.ts'
 export type Context = Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'>
 export async function readAccount(env:Bindings,id:string,ctx:Context) {
  return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision);return value})
+}
+export async function directory(env:Bindings,args:Record<string,string>,ctx:Context) {
+ return native(async()=>{const page=await accountPage(env.DB,await nativeActor(env,ctx),new URLSearchParams(args))
+  for(const row of page.accounts)await retainAgentAccount(env.DB,row.id,row.revision)
+  return page
+ })
 }
 export async function readCatalog(env:Bindings,id:string,ctx:Context) {
  return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);await requireCompanyRight(env.DB,actor,id,'purchasing');const selected=await readAccount(env,id,ctx);return catalogue(env,selected)})

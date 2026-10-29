@@ -28,8 +28,10 @@ export async function agentHttp(request: Request, env: Bindings, actor: Actor): 
   const account = /^\/api\/barrow\/accounts\/by-id\/([^/]+)$/.exec(path)
   const order = /^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
   if (path === '/api/barrow/state') { name = 'barrow.workspace.read'; args = {} }
+  else if (path === '/api/barrow/accounts') { name = 'barrow.accounts.list'; args = Object.fromEntries(['page','q','sort'].flatMap(key=>url.searchParams.has(key)?[[key,url.searchParams.get(key)]]:[])) }
   else if (account) { name = 'barrow.accounts.read'; args = { id: decodeURIComponent(account[1]!) } }
   else if (path === '/api/barrow/catalogue') { name = 'barrow.catalog.read'; args = { accountId: url.searchParams.get('accountId') ?? '', ...(url.searchParams.has('profileId') ? { profileId: url.searchParams.get('profileId') } : {}) } }
+  else if (['/api/barrow/orders/search','/api/barrow/orders/history'].includes(path)) return refuse('PERSON_REQUIRED')
   else if (order) { name = 'barrow.orders.read'; args = { id: order[1] } }
   else if (path === '/api/barrow/lists') { name = 'barrow.lists.list'; args = { accountId: url.searchParams.get('accountId') ?? '' } }
   else return refuse('PERSON_REQUIRED')
