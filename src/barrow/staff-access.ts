@@ -15,7 +15,7 @@ export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role=
 export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;warehouses?:string[]}) {
  const grant=actor.staff
  if(!grant)return true
- if(task.kind==='return')return false // Functional return admission remains owed by ACC-005.
+ if(task.kind==='return')return grant.role==='operations'&&(grant.returnLimitCents??0)>0&&staffAccountAllowed(grant,task.accountId)&&(grant.warehouses==='all'||!!task.warehouses?.length&&task.warehouses.every(w=>grant.warehouses.includes(w)))
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
  if(task.kind==='fulfillment'&&grant.warehouses!=='all')return false
@@ -47,7 +47,8 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
- if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/return-claims$/.test(relative)&&role==='finance')return
+ if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/return-claims$/.test(relative)&&(role==='finance'||role==='operations'&&(actor.staff.returnLimitCents??0)>0))return
+ if(method==='GET'&&relative==='export/returnclaims.csv'&&role==='operations'&&(actor.staff.returnLimitCents??0)>0)return
  if(method==='GET'&&relative==='payment-promises'&&role==='finance')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
@@ -69,6 +70,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 
 const commandRoles:Record<string,string[]>={
  'promise.record':['finance'],'promise.revise':['finance'],'promise.withdraw':['finance'],'promise.resolve':['finance'],'promise.pause':['finance'],'promise.refresh':['finance'],
+ 'return.request':['operations'],'return.revise':['operations'],'return.decide':['operations'],'return.reconcile':['operations'],
  'credit-policy.request':selling,'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
  'credit.issue':['finance'],'credit.apply':['finance'],'card.allocate':['finance'],'refund.request':['finance'],'refund.refresh':['finance'],
  'proposal.offer':['sales-manager'],'proposal.execute':['sales-manager'],'proposal.withdraw':['sales-manager'],
@@ -106,6 +108,7 @@ export async function staffCommandGate(env:Bindings,actor:Actor,type:string,p:an
   const row=await env.DB.prepare(`SELECT account_id FROM ${table} WHERE id=?`).bind(p[key]).first<{account_id:string}>()
   if(row){if(accountId&&accountId!==row.account_id)fail('NOT_FOUND','Resource not found.',404);accountId=row.account_id}
  }
+ if(type.startsWith('return.')&&typeof p.id==='string'){const row=await env.DB.prepare('SELECT account_id FROM bw_return_claims WHERE id=?').bind(p.id).first<{account_id:string}>();if(row)accountId=row.account_id}
  if(type==='account.save'&&typeof p.id==='string')accountId=p.id
  if(type==='followup.update'&&typeof p.id==='string') {
   const task=await env.DB.prepare('SELECT value_json FROM bw_followups WHERE id=?').bind(p.id).first<{value_json:string}>()

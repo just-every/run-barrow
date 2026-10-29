@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
+import {activateStaff} from '../api/harness.mjs';
 import {returnClaimsFixture} from '../api/return-claims-fixture.mjs';
 import {signedContext,captureRegionWidths} from './browser-helpers.mjs';
 
-test('buyer requests three damaged units and the supplier authorizes two, matches their Pier receipt and retains the disputed remainder without issuing credit',async t=>{
+test('buyer requests three damaged units and the supplier authorizes two, matches their Pier receipt and retains the disputed remainder, then separately issues inspected credit and grants scoped operations review',async t=>{
  const f=await returnClaimsFixture(t,{built:true}),{h,buyer,order}=f;
  const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM?{executablePath:process.env.BARROW_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const ownerContext=await signedContext(browser,h),buyerContext=await signedContext(browser,h,buyer.as);t.after(()=>ownerContext.close());t.after(()=>buyerContext.close());
@@ -40,6 +41,20 @@ test('buyer requests three damaged units and the supplier authorizes two, matche
  await buyerPage.reload();panel=await open(buyerPage);await expect(panel).toContainText('Issued return credit: USD 130.00');await expect(panel.getByText('Issue inspected return credit',{exact:true})).toHaveCount(0);
  await captureRegionWidths(buyerPage,panel,'return-buyer-credit');
  const statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer);assert.equal(statement.sections[0].closingCents,26000);
+ const operator=await activateStaff(h,['synthetic-barrow-949','example.test'].join('@'),{role:'operations',accounts:['cedar'],warehouses:['New York'],reports:['fulfillment'],discountLimitCents:0,stockExceptionLimitCents:0,returnLimitCents:0});
+ await ownerPage.getByRole('button',{name:'Team',exact:true}).click();
+ const roster=ownerPage.locator('article').filter({has:ownerPage.getByRole('button',{name:'Edit access for synthetic-barrow-949',exact:true})});
+ await roster.getByRole('button',{name:'Edit access for synthetic-barrow-949',exact:true}).click();
+ const grantForm=ownerPage.getByRole('form',{name:'Edit staff access',exact:true});
+ await grantForm.getByLabel('Return authorization allowance per case (USD cents)',{exact:true}).fill('13000');await grantForm.getByLabel('Reason for this access change',{exact:true}).fill('Allow two original-price units within Cedar and New York only.');
+ await captureRegionWidths(ownerPage,grantForm,'return-operations-settings');
+ await grantForm.getByRole('button',{name:'Save staff access',exact:true}).click();await expect(ownerPage.getByRole('form',{name:'Invite staff',exact:true})).toBeVisible();
+ const second=await f.request();
+ const operatorContext=await signedContext(browser,h,operator.who.as);t.after(()=>operatorContext.close());const operatorPage=await operatorContext.newPage();
+ panel=await open(operatorPage);const casePanel=panel.getByRole('article',{name:'Return case '+second.id,exact:true});
+ await casePanel.getByText('Review return quantities',{exact:true}).click();await casePanel.getByLabel('Approved units',{exact:true}).fill('2');await casePanel.getByLabel('Return instructions',{exact:true}).fill('Hold two units for an attributed warehouse inspection.');await casePanel.getByLabel('Decision reason',{exact:true}).fill('Operations approval within the owner-granted return allowance.');await casePanel.getByRole('button',{name:'Record return authorization',exact:true}).click();
+ await expect(casePanel).toContainText('Approved 2 of 3 · disputed 1');await expect(casePanel).toContainText('Disputed return remainder: open');await expect(casePanel.getByText('Issue inspected return credit',{exact:true})).toHaveCount(0);
+ await captureRegionWidths(operatorPage,panel,'return-operations-authorization');
  assert.equal(await panel.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
  assert.equal(await panel.locator('p,label,button,a').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&parseFloat(getComputedStyle(element).fontSize)<13).length),0);
 });

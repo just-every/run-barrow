@@ -17,7 +17,7 @@ function ClaimReview({claim,report,busy,act}:{claim:Claim;report:Report;busy:boo
   {claim.receipts.map(row=><p key={row.returnId}>Pier receipt {row.returnId} · {row.quantity} selling units · {row.baseQuantity} physical units</p>)}
   {claim.evidence.inspections.map((row,index)=>row?<p key={row.returnId}>Pier inspection · {row.condition} · {row.disposition} · {row.inspectedAt} · source revision {row.version}</p>:<p key={index}>Warehouse inspection is not yet verified.</p>)}
   {claim.credits.map(credit=><p key={credit.id}>Issued return credit: {money(credit.amountCents,credit.currency as Claim['currency'])} · {credit.id} · {credit.createdAt}</p>)}
-  {claim.creditProposal?<p>Original-priced credit proposal: {money(claim.creditProposal.amountCents,claim.creditProposal.currency??'AUD')}. {claim.creditProposal.note}</p>:<p>Credit proposal unresolved. Approved physical receipts and the original credit basis must reconcile.</p>}
+  {claim.creditProposal?<p>Original-priced credit proposal: {money(claim.creditProposal.amountCents,claim.creditProposal.currency??'AUD')}. {claim.creditProposal.note}</p>:claim.credits.length?<p>Credit issued for the matched receipts. Remaining requested units keep their own review.</p>:<p>Credit proposal unresolved. Approved physical receipts and the original credit basis must reconcile.</p>}
   {claim.canCredit&&claim.creditProposal&&<details><summary>Issue inspected return credit</summary><div className="br-stack">
    <p>This separate financial decision reduces the invoice balance. The disputed remainder stays open. No card refund or inventory command is sent.</p>
    <label>Credit decision reason<textarea value={creditReason} maxLength={1000} onChange={e=>setCreditReason(e.target.value)}/></label>

@@ -46,6 +46,7 @@ export function StaffMembers({ accounts, version, run, busy }: { accounts: Accou
             <dt>Applications</dt><dd>{member.entitlements?.map(right=>right==='applications'?'Review and documents':'Read-only documents').join(', ') || 'None'}</dd>
             <dt>Reports</dt><dd>{member.reports.map(report => staffReports[report]).join(', ') || 'None'}</dd>
             <dt>Discount approval allowance</dt><dd>{money(member.discountLimitCents)}</dd>
+            {member.role==='operations'&&<><dt>Return authorization allowance per case</dt><dd>{money(member.returnLimitCents??0)}</dd></>}
             <dt>Stock exception allowance</dt><dd>{money(member.stockExceptionLimitCents)}</dd>
             {member.role === 'finance' && <>
               <dt>Credit issue, application and receipt allocation allowance per decision</dt><dd>{money(member.creditLimitCents ?? 0)}</dd>

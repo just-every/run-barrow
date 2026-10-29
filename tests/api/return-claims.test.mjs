@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {returnClaimsFixture} from './return-claims-fixture.mjs';
+import {authorizeScopedReturn} from './return-operations-proof.mjs';
 import {proveReturnCredit} from './return-credit-proof.mjs';
 import {activateStaff,archive,installation,restore} from './harness.mjs';
 const stockFacts=state=>Object.fromEntries(['orders','movements','returns','shipments','commands','positions','stockPositions','warehouseStocks','companyStocks'].map(key=>[key,state[key]]));
 
-test('return requests bind partial authorization to current revisions, reconcile real receipts once and retain separately owned disputed quantities without moving stock or money',async t=>{
+test('return requests bind partial authorization to current revisions, reconcile real receipts once and retain disputed ownership, then issue only inspected approved credit',async t=>{
  const f=await returnClaimsFixture(t),{h,pier,buyer,other,order}=f;
  let claim=await f.request();
  assert.equal(claim.quantity,3);assert.equal(claim.creditProposal,null);assert.ok(claim.createdBy);assert.equal(claim.history[0].action,'return.request');
@@ -41,7 +42,7 @@ test('return requests bind partial authorization to current revisions, reconcile
  assert.equal(second.createdBy,claim.createdBy);
  const revisionAudit=(await h.api('/api/barrow/audit?search='+second.id)).events.find(row=>row.action==='return.revise'&&row.subjectId===second.id);
  assert.equal(revisionAudit.reason,reviserReason);
- second=await h.command('return.decide',{id:second.id,revision:second.revision,orderRevision:order.revision,quantity:2,instructions:'Keep this second case separate.',reason:'Authorize two separate units.'});
+ second=await authorizeScopedReturn(f,second);
  const received=await f.receive(2);
  await h.command('return.reconcile',{id:claim.id,revision:claim.revision,receipts:[{returnId:received.id,quantity:2}]},{...buyer,status:403});
  claim=await h.command('return.reconcile',{id:claim.id,revision:claim.revision,receipts:[{returnId:received.id,quantity:2}]});

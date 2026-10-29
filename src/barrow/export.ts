@@ -1,3 +1,7 @@
+import { returnReviewer, returnWarehouseAuthority, returnWarehouses } from './return-access'
+import { commissionSources } from './commission-source'
+import { pierState, pierOrigin } from './pier'
+import { readOrder } from './orders'
 import { returnRecords } from './return-claims'
 import { creditRecords } from './credit-ledger'
 import { buyingProfileColumns, buyingProfileExport, orderProfileColumns, orderProfileExport } from './buying-profile-export'
@@ -174,6 +178,13 @@ export async function commercialExport(env: Bindings, actor: Actor) {
 }
 
 export async function exportResponse(env: Bindings, actor: Actor, kind: Kind | 'json') {
+ if(kind==='returnclaims'&&actor.role==='member'&&!actor.staff&&!(await accounts(env.DB,actor)).length)fail('FORBIDDEN','A current buyer account or return grant is required.',403)
+ if(actor.staff?.role==='operations'&&kind==='returnclaims'){
+  if(!returnReviewer(actor))fail('FORBIDDEN','An explicit current return grant is required.',403)
+  const claims=(await returnRecords(env.DB)).filter(row=>actor.staff!.accounts==='all'||actor.staff!.accounts.includes(row.accountId)),state=await pierState(env),origin=await pierOrigin(env)
+  for(const claim of claims){const order=await readOrder(env.DB,actor,claim.orderId);try{commissionSources(order,state,origin)}catch{fail('RETURN_SOURCE','The current return source cannot be verified.',409)};returnWarehouseAuthority(actor,returnWarehouses(order,state,claim.basis.itemId))}
+  return new Response(csvText([columns.returnclaims,...claims.map(row=>columns.returnclaims.map(key=>typeof (row as any)[key]==='object'?json((row as any)[key]):(row as any)[key]??''))]),{headers:{'cache-control':'no-store','content-type':'text/csv; charset=utf-8','x-content-type-options':'nosniff'}})
+ }
  if (kind==='applications' || kind==='applicationdocuments') {
   const access=applicationAccess(actor)
   if(actor.staff && (access!=='review' && !(access==='documents' && kind==='applicationdocuments')) || !supplier(actor) && !(await accounts(env.DB,actor)).length) fail('FORBIDDEN','Your current sign-in is not entitled to this application export.',403)

@@ -12,23 +12,25 @@ export type StaffPolicy = {
   reports: (keyof typeof staffReports)[]
   discountLimitCents: number
   stockExceptionLimitCents: number
+  returnLimitCents?: number
   creditLimitCents?: number
   refundLimitCents?: number
   commissionRep?: string
 }
-export type StaffPolicyForm = Omit<StaffPolicy, 'role' | 'discountLimitCents' | 'stockExceptionLimitCents' | 'creditLimitCents' | 'refundLimitCents'> & {
-  role: StaffPolicy['role'] | ''; discountLimitCents: string; stockExceptionLimitCents: string; creditLimitCents: string; refundLimitCents: string
+export type StaffPolicyForm = Omit<StaffPolicy, 'role' | 'discountLimitCents' | 'stockExceptionLimitCents' | 'creditLimitCents' | 'refundLimitCents' | 'returnLimitCents'> & {
+  role: StaffPolicy['role'] | ''; discountLimitCents: string; stockExceptionLimitCents: string; creditLimitCents: string; refundLimitCents: string; returnLimitCents:string
 }
-export const emptyStaffPolicy = (): StaffPolicyForm => ({ role: '', accounts: [], warehouses: [], reports: [], discountLimitCents: '0', stockExceptionLimitCents: '0', creditLimitCents: '0', refundLimitCents: '0', commissionRep: '' })
-export const staffPolicyForm = (policy: StaffPolicy): StaffPolicyForm => ({ ...policy, discountLimitCents: String(policy.discountLimitCents), stockExceptionLimitCents: String(policy.stockExceptionLimitCents), creditLimitCents: String(policy.creditLimitCents ?? 0), refundLimitCents: String(policy.refundLimitCents ?? 0) })
+export const emptyStaffPolicy = (): StaffPolicyForm => ({ role: '', accounts: [], warehouses: [], reports: [], discountLimitCents: '0', stockExceptionLimitCents: '0', creditLimitCents: '0', refundLimitCents: '0', returnLimitCents:'0', commissionRep: '' })
+export const staffPolicyForm = (policy: StaffPolicy): StaffPolicyForm => ({ ...policy, discountLimitCents: String(policy.discountLimitCents), stockExceptionLimitCents: String(policy.stockExceptionLimitCents), creditLimitCents: String(policy.creditLimitCents ?? 0), refundLimitCents: String(policy.refundLimitCents ?? 0), returnLimitCents:String(policy.returnLimitCents??0) })
 export const staffPolicyValue = (form: StaffPolicyForm): StaffPolicy => ({
   ...(form.entitlements?.length ? {entitlements:form.entitlements} : {}),
   role: form.role as StaffPolicy['role'], accounts: form.accounts, warehouses: form.warehouses, reports: form.reports,
   discountLimitCents: Number(form.discountLimitCents), stockExceptionLimitCents: Number(form.stockExceptionLimitCents),
+  ...(form.role==='operations'?{returnLimitCents:Number(form.returnLimitCents)}:{}),
   ...(form.role === 'finance' ? { creditLimitCents: Number(form.creditLimitCents), refundLimitCents: Number(form.refundLimitCents) } : {}),
   ...(form.commissionRep?.trim() ? { commissionRep: form.commissionRep.trim() } : {}),
 })
-export const validStaffPolicy = (form: StaffPolicyForm) => Boolean(form.role) && [form.discountLimitCents, form.stockExceptionLimitCents, ...(form.role === 'finance' ? [form.creditLimitCents, form.refundLimitCents] : [])].every(value => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)))
+export const validStaffPolicy = (form: StaffPolicyForm) => Boolean(form.role) && [form.discountLimitCents, form.stockExceptionLimitCents,...(form.role==='operations'?[form.returnLimitCents]:[]), ...(form.role === 'finance' ? [form.creditLimitCents, form.refundLimitCents] : [])].every(value => /^\d+$/.test(value) && Number.isSafeInteger(Number(value)))
 
 export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPolicyForm; setForm: (form: StaffPolicyForm) => void; accounts: Account[] }) {
   const [accountId, setAccountId] = useState(''), [warehouse, setWarehouse] = useState('')
@@ -36,7 +38,7 @@ export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPoli
   const warehouses = [...new Set(accounts.flatMap(account => account.value.warehouses ?? []))].sort()
   return <fieldset className="br-stack"><legend>Functional staff access</legend>
     <p>Choose every scope explicitly. No selection means no access; zero allowances permit no exception. Functional roles do not grant installation settings or authority to grant access.</p>
-    <label>Functional role<select aria-label="Functional role" required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'], entitlements: [], creditLimitCents: '0', refundLimitCents: '0' })}>
+    <label>Functional role<select aria-label="Functional role" required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'], entitlements: [], creditLimitCents: '0', refundLimitCents: '0', returnLimitCents:'0' })}>
       <option value="">Choose a functional role</option>{Object.entries(staffRoles).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
     </select></label>
     <fieldset className="br-stack"><legend>Trade accounts</legend>
@@ -70,6 +72,7 @@ export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPoli
     <div className="br-form-grid">
       <label>Discount approval allowance (USD cents)<input required type="number" min={0} step={1} value={form.discountLimitCents} onChange={event => change({ discountLimitCents: event.target.value })} /></label>
       <label>Stock exception allowance (USD cents)<input required type="number" min={0} step={1} value={form.stockExceptionLimitCents} onChange={event => change({ stockExceptionLimitCents: event.target.value })} /></label>
+      {form.role==='operations'&&<label>Return authorization allowance per case (USD cents)<input required type="number" min={0} step={1} value={form.returnLimitCents} onChange={event=>change({returnLimitCents:event.target.value})}/></label>}
       {form.role === 'finance' && <>
         <label>Credit issue, application and receipt allocation allowance per decision (USD cents)<input required type="number" min={0} step={1} value={form.creditLimitCents} onChange={event => change({ creditLimitCents: event.target.value })} /></label>
         <label>Card refund allowance per decision (USD cents)<input required type="number" min={0} step={1} value={form.refundLimitCents} onChange={event => change({ refundLimitCents: event.target.value })} /></label>

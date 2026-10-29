@@ -176,7 +176,9 @@ test('STK-005: buyer declines then accepts a current-price split substitution; o
  returnClaim=await h.command('return.reconcile',{id:returnClaim.id,revision:returnClaim.revision,receipts:[{returnId:receivedReturn.id,quantity:1}]});
  assert.equal(returnClaim.creditProposal.amountCents,4200);assert.deepEqual(returnClaim.basis,executed.lines[0]);
  const returnExport=(await h.api('/api/barrow/export.json',undefined,buyer)).returnclaims.find(row=>row.id===returnClaim.id);assert.deepEqual(JSON.parse(returnExport.original),executed.lines[0].substitutedFrom);assert.equal(returnExport.orderId,executed.id);
- const credit=await h.command('credit.issue',{orderId:executed.id,returnId:receivedReturn.id,lines:[{line:1,quantity:1}],reason:'Credit the exact buyer-accepted replacement basis.'});
+ await h.command('credit.issue',{orderId:executed.id,returnId:receivedReturn.id,lines:[{line:1,quantity:1}],reason:'An uninspected replacement return cannot be credited.'},{status:409});
+ const inspectedReturn=await pier.command('return.inspect',{returnId:receivedReturn.id,version:receivedReturn.version,condition:'damaged',disposition:'quarantine',reason:'Warehouse inspected the accepted replacement return.'});
+ const credit=await h.command('credit.issue',{orderId:executed.id,returnId:receivedReturn.id,claimId:returnClaim.id,claimRevision:returnClaim.revision,inspectionVersion:inspectedReturn.version,expectedCents:4200,lines:[{line:1,quantity:1}],reason:'Credit the exact buyer-accepted replacement basis.'});
  assert.equal((await h.api(`/api/barrow/orders/${executed.id}/return-claims`)).claims[0].creditProposal,null);
  assert.equal(credit.amountCents,4200);assert.deepEqual(credit.lines[0].original,executed.lines[0].substitutedFrom);assert.deepEqual(credit.lines[0].basis,executed.lines[0]);
  const creditExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(JSON.parse(creditExport.creditlines.find(row=>row.creditId===credit.id).original).orderId,original.id);assert.ok((await(await h.request('/api/barrow/export/creditlines.csv',buyer)).text()).includes(original.id));

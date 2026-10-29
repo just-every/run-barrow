@@ -1,3 +1,4 @@
+import { returnReviewer as reviewer, reviewReturn as review, returnWarehouseAuthority, returnWarehouses, returnAmountAuthority } from './return-access'
 import { returnInspection } from './return-inspection'
 import { creditAuthority } from './credit-access'
 import type { Bindings } from '../auth.server'
@@ -17,13 +18,11 @@ type Receipt = { returnId: string; quantity: number; baseQuantity: string; by: s
 type Event = { action: string; by: string; at: string; reason: string; revision: string }
 export type ReturnClaim = {
  id: string; accountId: string; orderId: string; orderRevision: string; line: number; currency: Order['currency'];
- basis: Order['lines'][number]; original: unknown; pierOrigin: string; pierOrderId: string;
+ warehouses?:string[]; basis: Order['lines'][number]; original: unknown; pierOrigin: string; pierOrderId: string;
  quantity: number; reason: string; condition: string; createdBy: string; createdAt: string;
  decision?: { quantity: number; instructions: string; reason: string; by: string; at: string; requestRevision: string };
  receipts: Receipt[]; history: Event[]; revision: string; restored?: boolean
 }
-const reviewer = (actor: Actor) => !actor.agent && !actor.staff && ['owner','admin'].includes(actor.role)
-function review(actor: Actor) { if (!reviewer(actor)) fail('FORBIDDEN','A signed-in owner or admin must review returns. Functional return authority is not enabled.',403) }
 export async function returnRecords(db: D1Database): Promise<ReturnClaim[]> {
  const rows=await db.prepare('SELECT value_json,revision FROM bw_return_claims ORDER BY id').all<{value_json:string;revision:string}>()
  return rows.results.map(row=>({...JSON.parse(row.value_json),revision:row.revision}))
@@ -67,7 +66,8 @@ export async function readReturnClaims(env: Bindings, actor: Actor, orderId: str
  requirePerson(actor)
  if(actor.staff&&actor.staff.role!=='finance')review(actor)
  const order=await readOrder(env.DB,actor,orderId),claims=(await returnRecords(env.DB)).filter(row=>row.orderId===order.id)
- const people=reviewer(actor)?Object.fromEntries((await env.DB.prepare('SELECT id,display_name FROM oa_operators').all<{id:string;display_name:string}>()).results.map(row=>[row.id,row.display_name])):{}
+ if(actor.staff?.role==='operations'){const current=await source(env,order);returnWarehouseAuthority(actor,returnWarehouses(order,current.state))}
+ const names=reviewer(actor)?(await env.DB.prepare('SELECT id,display_name FROM oa_operators').all<{id:string;display_name:string}>()).results:[]
  const shown=await Promise.all(claims.map(async claim=>{
   const evidence=await observation(env,order,claim),creditProposal=await proposal(env,order,claim,evidence)
   let canCredit=false
@@ -78,6 +78,8 @@ export async function readReturnClaims(env: Bindings, actor: Actor, orderId: str
   const visible=reviewer(actor)?claim:{...claim,history:claim.history.map(event=>({...event,by:event.by===actor.id?actor.id:'supplier'})),createdBy:claim.createdBy===actor.id?actor.id:'company buyer',decision:claim.decision?{...claim.decision,by:'supplier'}:undefined,receipts:claim.receipts.map(receipt=>({...receipt,by:'supplier'}))}
   return {...visible,evidence:{...evidence,inspections:evidence.inspections.map(row=>row?{...row,inspectedBy:reviewer(actor)?row.inspectedBy:'warehouse reviewer'}:null)},creditProposal:creditProposal?{...creditProposal,lines:creditProposal.lines.map(line=>({...line,inspection:line.inspection?{...line.inspection,inspectedBy:reviewer(actor)?line.inspection.inspectedBy:'warehouse reviewer'}:null}))}:null,canCredit,credits,disputedQuantity,tasks}
  }))
+ const attributed=new Set(shown.flatMap(claim=>[claim.createdBy,claim.decision?.by,...claim.history.map(event=>event.by),...claim.receipts.map(receipt=>receipt.by),...claim.tasks.map(task=>task.ownerId)]))
+ const people=Object.fromEntries(names.filter(row=>!actor.staff||attributed.has(row.id)).map(row=>[row.id,row.display_name]))
  return {orderId,canReview:reviewer(actor),canRequest:reviewer(actor)||!!actor.company?.rights.some(right=>right==='purchaser'||right==='approver'),claims:shown,people}
 }
 export async function returnClaimCommand(env: Bindings, actor: Actor, type: string, p: any) {
@@ -93,6 +95,7 @@ export async function returnClaimCommand(env: Bindings, actor: Actor, type: stri
  if(before?.restored)fail('RETURN_RESTORED','Restored return records are history only; reconcile their authority with the supplier separately.',409)
  const accountRow=await account(env.DB,actor,order.accountId)
  const guards=[env.DB.prepare('UPDATE bw_return_claim_epoch SET revision=revision+1 WHERE id=1 AND revision=?').bind(epoch),changed(env.DB),env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_orders WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(order.id,order.revision),env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(accountRow.id,accountRow.revision)]
+ if(actor.staff?.role==='operations'){const current=await source(env,order);returnWarehouseAuthority(actor,returnWarehouses(order,current.state,before?.basis.itemId))}
  const at=(await now()).toISOString(),revision=crypto.randomUUID()
  let claim:ReturnClaim
  if(type==='return.request'||type==='return.revise') {
@@ -105,6 +108,7 @@ export async function returnClaimCommand(env: Bindings, actor: Actor, type: stri
   const requested=units(claim,quantity)
   let available:Awaited<ReturnType<typeof source>>
   try{available=await source(env,order)}catch{fail('RETURN_SOURCE','Current dispatched quantities are unavailable; no return entitlement is inferred.',409)}
+  claim.warehouses=returnWarehouses(order,available.state,basis.itemId)
   const used=all.filter(row=>row.orderId===order.id&&row.basis.itemId===basis.itemId&&row.id!==before?.id).reduce((sum,row)=>sum+units(row,row.quantity),0n)
   if(used+requested>(available.sources.get(basis.itemId)?.dispatched??0n))fail('RETURN_LIMIT','Requested physical units exceed the connected order’s dispatched quantity.',409)
  } else {
@@ -112,7 +116,8 @@ export async function returnClaimCommand(env: Bindings, actor: Actor, type: stri
   if(type==='return.decide') {
    if(claim.decision)fail('RETURN_DECIDED','This request already has an attributed decision.',409)
    if(p.orderRevision!==order.revision || claim.orderRevision!==order.revision)fail('REVISION','The original order changed. Review its current accepted basis before deciding.',409)
-   claim.decision={quantity:integer(p.quantity,'Approved units',0,claim.quantity),instructions:text(p.instructions,'Return instructions',2000),reason:text(p.reason,'Decision reason',2000),by:actor.id,at,requestRevision:before!.revision}
+   const approved=integer(p.quantity,'Approved units',0,claim.quantity);returnAmountAuthority(actor,claim,approved)
+   claim.decision={quantity:approved,instructions:text(p.instructions,'Return instructions',2000),reason:text(p.reason,'Decision reason',2000),by:actor.id,at,requestRevision:before!.revision}
   } else {
    if(!claim.decision?.quantity)fail('RETURN_APPROVAL','Approve quantities before matching physical receipts.',409)
    if(!Array.isArray(p.receipts)||!p.receipts.length||new Set(p.receipts.map((row:any)=>row.returnId)).size!==p.receipts.length)fail('INPUT','Choose distinct physical receipts.',400)
@@ -120,6 +125,8 @@ export async function returnClaimCommand(env: Bindings, actor: Actor, type: stri
    try{evidence=await source(env,order)}catch{fail('RETURN_SOURCE','Connected return evidence is unavailable; the claim remains unresolved.',409)}
    const linked=evidence.sources.get(claim.basis.itemId)
    if(claim.pierOrigin!==evidence.origin || !linked)fail('RETURN_SOURCE','The connected source does not match the original order.',409)
+   returnWarehouseAuthority(actor,returnWarehouses(order,evidence.state,claim.basis.itemId));returnAmountAuthority(actor,claim,claim.decision.quantity)
+   claim.warehouses=returnWarehouses(order,evidence.state,claim.basis.itemId)
    const additions:Receipt[]=[]
    for(const entry of p.receipts) {
     const returnId=text(entry.returnId,'Physical return receipt'),quantity=integer(entry.quantity,'Received selling units',1,claim.decision.quantity),base=units(claim,quantity)
@@ -144,7 +151,7 @@ export async function returnClaimCommand(env: Bindings, actor: Actor, type: stri
  if(!ownerId)fail('RETURN_OWNER','An active installation owner must own unresolved returns.',409)
  const today=calendarDate(new Date(at),await reportZone(env.DB))
  for(const [id,title,reason] of [[`return:${claim.id}`,'Return receipt review','Inspection and a separate disposition or credit decision remain unresolved.'],...(claim.decision&&claim.quantity>claim.decision.quantity?[[`return-dispute:${claim.id}`,'Disputed return remainder',`${claim.quantity-claim.decision.quantity} requested units remain disputed after partial authorization.`]]:[])]) {
-  const value={id,kind:'return',accountId:claim.accountId,sourceId:claim.id,sourcePath:`/api/barrow/orders/${claim.orderId}/return-claims`,title,reason,priority:1,ownerId,nextContactDate:today,status:'open',createdAt:at,contacts:[]}
+  const value={id,kind:'return',warehouses:claim.warehouses??[],accountId:claim.accountId,sourceId:claim.id,sourcePath:`/api/barrow/orders/${claim.orderId}/return-claims`,title,reason,priority:1,ownerId,nextContactDate:today,status:'open',createdAt:at,contacts:[]}
   statements.push(env.DB.prepare('INSERT OR IGNORE INTO bw_followups(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id,claim.accountId,JSON.stringify(value),crypto.randomUUID()))
  }
  statements.push(audit(env.DB,actor,claim.id,type,{accountId:claim.accountId,orderId:claim.orderId,revision,source:type,reason:claim.history.at(-1)!.reason}))
