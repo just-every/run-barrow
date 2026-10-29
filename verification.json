@@ -72,7 +72,8 @@
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
         "BARROW_TEST_SHARD=4/4 pnpm run test:api",
         "pnpm exec rer build --site",
-        "node --test tests/site.test.mjs"
+        "node --test tests/site.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-order-followthrough-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/return-claims.test.mjs"
       ]
     },
     {

@@ -1,4 +1,5 @@
 import { campaignErasureStatements } from './campaign-custody'
+import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { prepareLegacyErasure } from './legacy-erasure-journal'
 import { applicationAccess } from './application-access'
 import { readStaffGrant, staffGuard } from './staff-policy'
@@ -233,7 +234,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
  const redact = (value: unknown, field = ''): any => {
   // IDs, hashes and commercial product identifiers must never change because
   // someone's display name happens to equal part of an identifier.
-  if (/^(id|by|sku|itemId|unit|reference|sha256|contentSha256)$|Id$|By$/.test(field)) return value
+  if (/^(id|by|action|sku|itemId|unit|reference|sha256|contentSha256)$|Id$|By$/.test(field)) return value
   if (typeof value === 'string') return originals.reduce((result, original) => original.includes('@') ? result.replaceAll(original, email) : result === original ? former : result, value)
   if (Array.isArray(value)) return value.map(item => redact(item, field))
   return value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, redact(item, key)])) : value
@@ -260,11 +261,12 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   env.DB.prepare('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?').bind(member.userId, member.userId),
  ]
  // Use snapshot revisions so an order edit racing the review cannot be lost.
- for (const table of ['bw_orders', 'bw_quotes', 'bw_lists','bw_campaigns','bw_campaign_segments']) {
+ for (const table of ['bw_orders', 'bw_quotes', 'bw_lists', 'bw_return_claims','bw_campaigns','bw_campaign_segments']) {
   const rows = (await env.DB.prepare(`SELECT id,value_json,revision FROM ${table}`).all<any>()).results
   for (const record of rows) {
    if (table === 'bw_lists' && JSON.parse(record.value_json).createdBy === member.userId && !JSON.parse(record.value_json).shared) continue
-   const value = JSON.stringify(redact(JSON.parse(record.value_json)))
+   const redacted=redact(JSON.parse(record.value_json))
+   const value = JSON.stringify(table==='bw_return_claims'?eraseReturnNarrative(redacted,member.userId):redacted)
    if (value !== record.value_json) statements.push(env.DB.prepare(`UPDATE ${table} SET value_json=?,revision=? WHERE id=? AND revision=?`).bind(value, crypto.randomUUID(), record.id, record.revision), changed(env.DB))
   }
  }
@@ -273,8 +275,13 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
  const confirmations=(await env.DB.prepare('SELECT order_id,number,value_json FROM bw_confirmations').all<any>()).results
  for(const record of confirmations){const value=JSON.stringify(redact(JSON.parse(record.value_json)));if(value!==record.value_json)statements.push(env.DB.prepare('UPDATE bw_confirmations SET value_json=? WHERE order_id=? AND number=? AND value_json=?').bind(value,record.order_id,record.number,record.value_json),changed(env.DB))}
  for(const table of ['bw_quote_notices','bw_quote_mail','bw_audit']) {
-  const rows=(await env.DB.prepare(`SELECT id,${table==='bw_audit'?'context_json':'summary'} AS content FROM ${table}`).all<any>()).results
-  for(const row of rows){if(!row.content)continue;const value=originals.reduce((v,original)=>v.replaceAll(original,original.includes('@')?email:former),row.content);if(value!==row.content)statements.push(env.DB.prepare(`UPDATE ${table} SET ${table==='bw_audit'?'context_json':'summary'}=? WHERE id=? AND ${table==='bw_audit'?'context_json':'summary'}=?`).bind(value,row.id,row.content),changed(env.DB))}
+  const rows=(await env.DB.prepare(`SELECT id,${table==='bw_audit'?'actor_id,action,context_json':'summary'} AS content FROM ${table}`).all<any>()).results
+  for(const row of rows) {
+   if(!row.content)continue
+   const content=table==='bw_audit'&&row.actor_id===member.userId?JSON.stringify(eraseReturnAudit(JSON.parse(row.content),row.action)):row.content
+   const value=originals.reduce((v,original)=>v.replaceAll(original,original.includes('@')?email:former),content)
+   if(value!==row.content)statements.push(env.DB.prepare(`UPDATE ${table} SET ${table==='bw_audit'?'context_json':'summary'}=? WHERE id=? AND ${table==='bw_audit'?'context_json':'summary'}=?`).bind(value,row.id,row.content),changed(env.DB))
+  }
  }
  // Every exact actor reference stays opaque; only its saved identifying text goes.
  statements.push(env.DB.prepare('UPDATE bw_quote_entries SET author_email=?,body=replace(body,?,?) WHERE author_id=?').bind(email,member.email,email,member.userId),

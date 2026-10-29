@@ -1,4 +1,5 @@
 import { campaignErasureStatements } from './campaign-custody'
+import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { deltaErasure } from './imports/delta-custody'
 import { cutoverErasure } from './imports/cutover-custody'
 /** Outside-D1 protection for the erasure doors that predate account redaction. */
@@ -48,14 +49,22 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put("UPDATE bw_quote_mail SET recipient=NULL,summary='[Erased notice]',submission_json=NULL,sender_result_json=NULL,restored=1 WHERE recipient_id=?",id)
   const originals=[p.email,p.name,current?.email,current?.display_name,membership?.email,membership?.display_name,...p.subjects??[],...subjects].filter(Boolean)
   const redact=(value:any,key=''):any=>{
-   if(/^(id|sku|reference|sha256|unit)$|Id$|By$/.test(key))return value
+   if(/^(id|by|action|sku|reference|sha256|unit)$|Id$|By$/.test(key))return value
    if(typeof value==='string')return originals.reduce((v,original)=>original.includes('@')?v.replaceAll(original,email):v===original?'Former company user':v,value)
    if(Array.isArray(value))return value.map(item=>redact(item,key))
    return value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,redact(item,key)])):value
   }
-  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_campaigns','bw_campaign_segments'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const value=JSON.stringify(redact(JSON.parse(row.value_json)));if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
+  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_campaigns','bw_campaign_segments','bw_return_claims'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const redacted=redact(JSON.parse(row.value_json));const value=JSON.stringify(table==='bw_return_claims'?eraseReturnNarrative(redacted,id):redacted);if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
   for(const row of (await env.DB.prepare('SELECT * FROM bw_confirmations').all<any>()).results){const value=JSON.stringify(redact(JSON.parse(row.value_json)));if(value!==row.value_json)put('UPDATE bw_confirmations SET value_json=? WHERE order_id=? AND number=?',value,row.order_id,row.number)}
-  for(const [table,column] of [['bw_quote_notices','summary'],['bw_audit','context_json'],['oa_auth_audit','value']])for(const row of (await env.DB.prepare(`SELECT id,${column} AS value FROM ${table}`).all<any>()).results){if(!row.value)continue;const value=originals.reduce((v,original)=>v.replaceAll(original,original.includes('@')?email:'Former company user'),row.value);if(value!==row.value)put(`UPDATE ${table} SET ${column}=? WHERE id=?`,value,row.id)}
+  for(const [table,column] of [['bw_quote_notices','summary'],['bw_audit','context_json'],['oa_auth_audit','value']]) {
+   const rows=(await env.DB.prepare(`SELECT id,${table==='bw_audit'?'actor_id,action,':''}${column} AS value FROM ${table}`).all<any>()).results
+   for(const row of rows) {
+    if(!row.value)continue
+    const content=table==='bw_audit'&&row.actor_id===id?JSON.stringify(eraseReturnAudit(JSON.parse(row.value),row.action)):row.value
+    const value=originals.reduce((v,original)=>v.replaceAll(original,original.includes('@')?email:'Former company user'),content)
+    if(value!==row.value)put(`UPDATE ${table} SET ${column}=? WHERE id=?`,value,row.id)
+   }
+  }
   put('UPDATE bw_quote_entries SET author_email=?,body=replace(body,?,?) WHERE author_id=?',email,p.email,email,id)
  }
  if(kind==='unused-account') {
