@@ -37,12 +37,13 @@ export async function mcp(rt: Runtime, request: Request): Promise<Response> {
   if (rpc.method === 'tools/call') {
     const answer = await callTool(rt, String(params.name ?? ''), params.arguments, principal, 'mcp', meta.traceparent, undefined, params.requestState, meta['com.runeditrun/native-proof'])
     if (answer.status === 401) return rpcError(rpc.id, -32001, 'Unauthorized', 401, { code: answer.result.code }, challenge(rt))
+    if (answer.status === 409) return rpcError(rpc.id, -32000, 'Subject erasure in progress', 409, { code: answer.result.code })
     if (answer.status === 500) return rpcError(rpc.id, -32603, 'Tool execution failed', 500, { code: answer.result.code })
     if (answer.result.code === 'tool_not_found') return rpcError(rpc.id, -32602, 'Unknown tool', 400, { code: 'tool_not_found' })
     if (answer.status === 403) return rpcError(rpc.id, -32000, 'Insufficient scope', 403, { code: 'insufficient_scope' }, challenge(rt, answer.scope))
     return rpcResult(rpc, toolResult({ ...answer.result, ...(offers(rt.options.capabilities, 'resources') ? {} : { resources: undefined }) }, request.headers.get('mcp-protocol-version')!, meta['io.modelcontextprotocol/clientCapabilities']))
   }
-  if (rpc.method === 'tools/list') return rpcResult(rpc, { ...cache, tools: policyRefusal(rt, state, []) ? [] : rt.tools.filter(tool => tool.classes.every(cls => answered(state.document, cls))).map(describeTool) })
+  if (rpc.method === 'tools/list') return rpcResult(rpc, { ...cache, tools: policyRefusal(rt, state, []) ? [] : rt.tools.filter(tool => tool.exposure !== 'invoke' && tool.classes.every(cls => answered(state.document, cls))).map(describeTool) })
   if (rpc.method === 'resources/templates/list') return rpcResult(rpc, { ...cache, resourceTemplates: !offers(rt.options.capabilities, 'resources') || policyRefusal(rt, state, ['standard']) ? [] : [...rt.options.resources ?? []].filter(resource => !resource.scope || principal.scopes.includes(resource.scope)).sort((a, b) => a.uriTemplate.localeCompare(b.uriTemplate)).map(({ read: _read, classify: _classify, classes: _classes, scope: _scope, ...resource }) => resource) })
   if (rpc.method === 'prompts/list') return rpcResult(rpc, { ...cache, prompts: !offers(rt.options.capabilities, 'prompts') || policyRefusal(rt, state, ['standard']) ? [] : [...rt.options.prompts ?? []].sort((a, b) => a.name.localeCompare(b.name)).map(({ messages: _messages, ...prompt }) => prompt) })
   if (rpc.method === 'resources/read') {

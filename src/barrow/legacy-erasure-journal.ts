@@ -1,3 +1,4 @@
+import { eraseAccountAgentArtifacts } from './agent-door/erasure.ts'
 import { campaignErasureStatements } from './campaign-custody'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { deltaErasure } from './imports/delta-custody'
@@ -15,7 +16,8 @@ export async function prepareLegacyErasure(env:Bindings,actor:Actor,kind:LegacyE
  if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may erase personal data.',403)
  const operation:LegacyErasure={version:1,kind,sourceIdentity:await journalSource(env),id:receipt.id??crypto.randomUUID(),accountId,actorId:actor.id,at:receipt.erasedAt??new Date().toISOString(),reason:payload.reason??'Owner confirmed erasure of an unused account.',payload,receipt}
  const fingerprint=await writeErasureIntent(env,operation),statement={sql:'INSERT INTO bw_account_erasure_journal VALUES(?,?,?,?)',params:[operation.id,accountId,fingerprint,JSON.stringify({...receipt,kind,accountId,actorId:actor.id,reason:operation.reason,at:operation.at})]}
- return {statement,async run<T>(apply:()=>Promise<T>) {
+ const agentStatements=kind==='unused-account'?await eraseAccountAgentArtifacts(env,{accountId,accountEmail:payload.email},operation):[]
+ return {statement,agentStatements,async run<T>(apply:()=>Promise<T>) {
   try {const result=await apply();await completeErasureIntent(env,operation.id,fingerprint);return result}
   catch(error){const committed=await env.DB.prepare('SELECT 1 FROM bw_account_erasure_journal WHERE id=?').bind(operation.id).first();if(!committed)await abandonErasureIntent(env,operation);throw error}
  }}
@@ -68,6 +70,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put('UPDATE bw_quote_entries SET author_email=?,body=replace(body,?,?) WHERE author_id=?',email,p.email,email,id)
  }
  if(kind==='unused-account') {
+  statements.push(...await eraseAccountAgentArtifacts(env,{accountId,accountEmail:p.email},operation))
   statements.push(...campaignErasureStatements('account_id',accountId))
   statements.push(...deltaErasure(accountId),cutoverErasure(accountId))
   // Retire the source originals and provenance as well as the native account.

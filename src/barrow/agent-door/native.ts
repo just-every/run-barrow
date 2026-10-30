@@ -1,3 +1,4 @@
+import { checkAccountAgentArtifacts } from './erasure.ts'
 import { authConfig, operatorAuth, type Bindings } from '../../auth.server.ts'
 import { operatorAuthPeople } from '../../modules/agent-door/operator-people.ts'
 import { ToolRefusal } from '../../modules/agent-door/index.ts'
@@ -51,6 +52,7 @@ export async function currentScopes(env:Bindings,principal:{person:{id:string};c
 }
 /** Every native read and atomic mutation rechecks the operator and the installation's restore fence. */
 export async function nativeActor(env:Bindings,ctx:Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'> & Partial<Pick<ToolContext,'operationId'|'actor'|'approvers'>>) : Promise<Actor> {
+ await checkAccountAgentArtifacts(env.DB)
  if(await erasureRestoreResponse(env))throw new ToolRefusal('restore_fenced')
  const person=await people(env).person(ctx.person.id)
  if(!person?.active||!['owner','admin'].includes(person.role))throw new ToolRefusal('sponsor_inactive')

@@ -35,7 +35,7 @@ export const portabilityPolicy = {
  // Catalog search rows are rebuildable observations, never the catalog or stock authority.
  // Policy, bindings and executable approvals are installation authority, never restored.
  // Retained audit/events and the native custody fence remain portable history.
- excludeTables: ['bw_prebook_frontier','bw_return_claim_epoch','bs_%','agent_door_state','agent_door_agents','agent_door_calls','agent_door_approvals','agent_door_reviews','bw_tracking_epoch','bw_integration_grants','bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
+ excludeTables: ['bw_prebook_frontier','bw_return_claim_epoch','bs_%','agent_door_replay_aliases','agent_door_state','agent_door_agents','agent_door_calls','agent_door_approvals','agent_door_reviews','bw_tracking_epoch','bw_integration_grants','bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
  requiredConfiguration: ['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
 };
 

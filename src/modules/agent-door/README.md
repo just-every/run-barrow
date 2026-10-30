@@ -94,7 +94,9 @@ otherwise blocked, approval, review, autonomous is the order of strictness.
 
 Signed policy adoption verifies the existing owner-claim issuer, app audience,
 installation subject, ring and revision signature. A greater sequence replaces
-the envelope; equal sequence with later issue time refreshes it. The closed
+the envelope; equal sequence with later issue time may change only `iat`/`exp`,
+retaining all authority and the exact revision signature. Before requests the
+verifier renews an envelope with less than 60 seconds left, keeping its 300-second lifetime. The closed
 answer is `{"adopted":{"seq":n,"revision":r},"door":{"classes":[{"class":"standard","tools":["seed.area.verb"]}]}}`,
 where `revision` can be null. Resources also contribute declared classes. A
 Business rule with `max_per_day` must name a `seed`; unscoped daily limits are
@@ -121,8 +123,19 @@ Undo is a reviewer act with `UndoContext.agent: null` and a person actor.
 
 Mutating tools require `idempotency_key`; `expected_revision` is optional for
 tools with native revision lookup. Same agent and key and arguments return the
-recorded outcome; changed arguments conflict. Recorded outcomes are retained
-indefinitely. Completed mutation retries still run the native classifier for current
+recorded outcome; changed arguments conflict. `REPLAY_WINDOW_MS` in `erasure.ts`
+is one fixed window of 30 days after completion, with no configuration or
+seed override. The call's `expires_at` is set once at completion and is never
+extended by replay or erasure. A call with a recorded horizon keeps that horizon.
+Incomplete erased calls complete as tombstones at erasure time. Upgraded legacy
+completed calls use their recorded start because no completion time was stored.
+Expired calls are purged on the next door call (or `expireReplayCalls` from the
+native scheduled cleanup); the database trigger deletes their private aliases
+in the same transaction. Expiry is enforced even before physical cleanup.
+After expiry an old key is a new request under current authorization, and can
+never recover the erased value. Within the window it returns only the value-free
+`subject_erased` tombstone, with no effect. Aliases and their secret never enter
+archives, exports or restore. Completed mutation retries still run the native classifier for current
 sponsor authority. Its optional third argument carries the original effect's
 classes and facts, so it can classify consumed preparation state after enforcing
 current access. Current policy admission uses the recorded effect, and the
@@ -132,7 +145,7 @@ A replay completes a non-final audit from the durable outcome; without an outcom
 it returns `call_in_progress` and runs nothing. Every attempt captures its key,
 traceparent and ignored argument names before early policy refusals. Native
 actions still own their transaction guards and recovery.
-Admission reservations prevent concurrent calls from exceeding daily policy sums; an admission lease cannot execute after it loses its fence. `decision_busy` and `call_in_progress` refuse overlapping admissions without an effect. An unexpected execution failure keeps the key claimed because the native action may have committed; the edition must reconcile that action before recovery. The module does not supply a generic long-job executor.
+Admission reservations prevent concurrent calls from exceeding daily policy sums; an admission lease cannot execute after it loses its fence. Contending calls wait at most five seconds for policy admission, then recheck current authority and policy before reserving usage or executing. `decision_busy` refuses exhausted admission and `call_in_progress` refuses an already claimed call without an effect. Only lock acquisition is retried; native actions are never retried. An unexpected execution failure keeps the key claimed because the native action may have committed; the edition must reconcile that action before recovery. The module does not supply a generic long-job executor.
 
 ## Errors and capacity
 

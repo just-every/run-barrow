@@ -1,3 +1,4 @@
+import { expireReplayCalls } from './modules/agent-door/index.ts'
 import { agentDoor } from './barrow/agent-door/index.ts'
 import { businessSettings } from './barrow/agent-door/business.ts'
 import { reconcilePaymentPromises } from './barrow/payment-promises'
@@ -36,7 +37,7 @@ function noTransform(response: Response): Response {
 }
 
 export default withDemo({
-  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await reconcileErasureJournal(runtimeBindings(env));await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await dispatchCampaigns(runtimeBindings(env));await escalateApprovals(runtimeBindings(env));await reconcilePaymentPromises(runtimeBindings(env));await dispatchWebhooks(runtimeBindings(env));await runStockSync(runtimeBindings(env))})()) },
+  async scheduled(_event, env, execution) { execution.waitUntil((async()=>{await reconcileErasureJournal(runtimeBindings(env));await expireReplayCalls({options:{db:env.DB},now:Date.now});await purgeUnverified(runtimeBindings(env));await dispatchQuoteMail(runtimeBindings(env));await dispatchReports(runtimeBindings(env));await dispatchCampaigns(runtimeBindings(env));await escalateApprovals(runtimeBindings(env));await reconcilePaymentPromises(runtimeBindings(env));await dispatchWebhooks(runtimeBindings(env));await runStockSync(runtimeBindings(env))})()) },
   async fetch(request, env, execution) {
     const bindings = runtimeBindings(env)
     const business = await businessSettings(bindings).handle(request)
