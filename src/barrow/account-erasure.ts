@@ -1,4 +1,3 @@
-import { assertNoAgentCustody } from './agent-door/custody'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
 import { deltaErasure } from './imports/delta-custody'
@@ -21,7 +20,7 @@ type PersonalValue={value:string;replacement:string}
 export type ErasureOperation={version:1;sourceIdentity:string;id:string;accountId:string;actorId:string;at:string;reason:string;mode:'erase'|'revoke';exclusions:Exclusion[];deleteOrderIds:string[];people:{id:string;email:string;name:string;subjects:string[]}[];accountEmail:string;personal?:PersonalValue[];receipt:any}
 type Item={id:string;kind:string;action:string;reason:string;floorUntil:string|null}
 const sql=(sql:string,...params:any[]):Sql=>({sql,params})
-const tables=['bw_return_claims','bw_tracking_packages',...creditFinancialTables,'bw_refund_events','bw_card_customers','bw_saved_cards','bw_card_payments','bw_card_events','bw_brands','bw_buying_profiles','bw_profile_approvals','bw_delta_feed_runs','bw_delta_cutovers','bw_delta_sources','bw_cutover_imports','bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_integration_grants','bw_campaign_deliveries','bw_campaigns','bw_campaign_segments','bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
+const tables=['bw_agent_custody','bw_agent_account_clients','bw_agent_erased_accounts','bw_agent_erased_clients','bw_agent_erased_artifacts','agent_door_agents','agent_door_audit','agent_door_calls','agent_door_approvals','agent_door_reviews','agent_door_events','agent_door_usage','bw_prebooks','bw_return_claims','bw_tracking_packages',...creditFinancialTables,'bw_refund_events','bw_card_customers','bw_saved_cards','bw_card_payments','bw_card_events','bw_brands','bw_buying_profiles','bw_profile_approvals','bw_delta_feed_runs','bw_delta_cutovers','bw_delta_sources','bw_cutover_imports','bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_integration_grants','bw_campaign_deliveries','bw_campaigns','bw_campaign_segments','bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
 function owner(actor:Actor){if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may review account erasure.',403)}
 async function snapshot(env:Bindings) {
  const rows:Record<string,any[]>={},guards:Sql[]=[]
@@ -196,6 +195,10 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   if(signature)add('sales-terms signatures','signature:'+row.id,keep?'keep under financial floor':'remove personal image','Keep opaque acceptance IDs, times and content hash; submitted evidence remains until its floor',keep?[]:[sql('DELETE FROM bw_terms_signatures WHERE order_id=?',row.id)],floor)
   if(row.value.document)add('PO files','po:'+row.id,keep?'keep under financial floor':'remove bytes and name',keep?'Submitted-order evidence stays until the latest financial-event floor':'Keep only document type, size and SHA-256 in the snapshot',keep?[]:[sql('DELETE FROM bw_order_documents WHERE order_id=?',row.id),sql("UPDATE bw_orders SET value_json=json_remove(value_json,'$.document.name') WHERE id=?",row.id)],floor)
  }
+ for(const row of r.bw_prebooks.filter(row=>row.account_id===accountId)) {
+  const value=JSON.parse(row.value_json),floor=financialFloor({...value,status:value.state==='committed'?'submitted':'draft',approvedAt:value.committedAt}),keep=Boolean(floor&&at<floor)
+  add('commercial history','prebook:'+row.id,keep?'keep unchanged':'redact personal snapshot details',keep?'Seven calendar years from the attributed buyer commitment':'Uncommitted or expired intake retains opaque attribution and exact commercial quantities',keep?[]:[sql('UPDATE bw_prebooks SET value_json=?,revision=? WHERE id=?',JSON.stringify(redactSnapshot(value,people,op.accountEmail,'',personal)),op.id,row.id)],floor)
+ }
  for(const row of r.bw_quotes.filter(row=>row.account_id===accountId)) {
   const oid=converted.get(row.id),floor=oid?orderFloors.get(oid)??null:null,keep=Boolean(floor&&at<floor)
   add('quotes and acceptance','quote:'+row.id,keep?'keep unchanged':'redact personal snapshot details',keep?'Quote revisions and acceptance linked to a retained order':'Keep quote IDs, revisions, numbers and money',keep?[]:[sql('UPDATE bw_quotes SET value_json=?,revision=? WHERE id=?',JSON.stringify(redactSnapshot(JSON.parse(row.value_json),people,op.accountEmail,'',personal)),op.id,row.id)],floor)
@@ -268,7 +271,6 @@ export async function applyAccountErasure(env:Bindings,operation:ErasureOperatio
 }
 export async function executeAccountErasure(env:Bindings,actor:Actor,p:any,mode:'erase'|'revoke') {
  owner(actor)
- if(mode==='erase')await assertNoAgentCustody(env.DB,String(p.accountId))
  if(p.confirm!=='ERASE')fail('CONFIRM','Type ERASE to authorize this reviewed action.',400)
  const reason=text(p.reason,'Erasure reason',1000),state=await facts(env,text(p.accountId,'Account ID'))
  if(!state.request)fail('REQUEST','Record and verify a current erasure request before execution.')

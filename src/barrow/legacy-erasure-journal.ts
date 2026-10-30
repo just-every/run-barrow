@@ -1,4 +1,3 @@
-import { assertNoAgentCustody } from './agent-door/custody'
 import { campaignErasureStatements } from './campaign-custody'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { deltaErasure } from './imports/delta-custody'
@@ -14,7 +13,6 @@ import { portabilityPolicy } from './portability-policy.mjs'
 export type LegacyErasure={version:1;kind:'unused-account'|'company-user'|'po-document'|'application';sourceIdentity:string;id:string;accountId:string;actorId:string;at:string;reason:string;payload:any;receipt:any}
 export async function prepareLegacyErasure(env:Bindings,actor:Actor,kind:LegacyErasure['kind'],accountId:string,payload:any,receipt:any) {
  if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may erase personal data.',403)
- await assertNoAgentCustody(env.DB,accountId)
  const operation:LegacyErasure={version:1,kind,sourceIdentity:await journalSource(env),id:receipt.id??crypto.randomUUID(),accountId,actorId:actor.id,at:receipt.erasedAt??new Date().toISOString(),reason:payload.reason??'Owner confirmed erasure of an unused account.',payload,receipt}
  const fingerprint=await writeErasureIntent(env,operation),statement={sql:'INSERT INTO bw_account_erasure_journal VALUES(?,?,?,?)',params:[operation.id,accountId,fingerprint,JSON.stringify({...receipt,kind,accountId,actorId:actor.id,reason:operation.reason,at:operation.at})]}
  return {statement,async run<T>(apply:()=>Promise<T>) {
@@ -56,7 +54,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
    if(Array.isArray(value))return value.map(item=>redact(item,key))
    return value&&typeof value==='object'?Object.fromEntries(Object.entries(value).map(([key,item])=>[key,redact(item,key)])):value
   }
-  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_campaigns','bw_campaign_segments','bw_return_claims'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const redacted=redact(JSON.parse(row.value_json));const value=JSON.stringify(table==='bw_return_claims'?eraseReturnNarrative(redacted,id):redacted);if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
+  for(const table of ['bw_prebooks','bw_orders','bw_quotes','bw_lists','bw_campaigns','bw_campaign_segments','bw_return_claims'])for(const row of (await env.DB.prepare(`SELECT * FROM ${table}`).all<any>()).results){const redacted=redact(JSON.parse(row.value_json));const value=JSON.stringify(table==='bw_return_claims'?eraseReturnNarrative(redacted,id):redacted);if(value!==row.value_json)put(`UPDATE ${table} SET value_json=?,revision=? WHERE id=?`,value,operation.id,row.id)}
   for(const row of (await env.DB.prepare('SELECT * FROM bw_confirmations').all<any>()).results){const value=JSON.stringify(redact(JSON.parse(row.value_json)));if(value!==row.value_json)put('UPDATE bw_confirmations SET value_json=? WHERE order_id=? AND number=?',value,row.order_id,row.number)}
   for(const [table,column] of [['bw_quote_notices','summary'],['bw_audit','context_json'],['oa_auth_audit','value']]) {
    const rows=(await env.DB.prepare(`SELECT id,${table==='bw_audit'?'actor_id,action,':''}${column} AS value FROM ${table}`).all<any>()).results

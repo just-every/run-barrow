@@ -17,11 +17,12 @@ import { accountDirectorySnapshot, directoryPredicate, companyIdentityChanged, d
 import { portabilityPolicy } from './portability-policy.mjs'
 export async function accounts(db:D1Database,actor:Actor):Promise<Account[]> {
  const ids=await companyAccountIds(db,actor)
- const rows=await db.prepare('SELECT * FROM bw_accounts'+(ids===null?'':' WHERE id IN (SELECT value FROM json_each(?))')+' ORDER BY id').bind(...(ids===null?[]:[JSON.stringify(ids)])).all<any>()
+ const clauses=[...(ids===null?[]:['id IN (SELECT value FROM json_each(?))']),...(actor.agent?['NOT EXISTS(SELECT 1 FROM bw_agent_erased_accounts WHERE account_id=bw_accounts.id)']:[])]
+ const rows=await db.prepare('SELECT * FROM bw_accounts'+(clauses.length?' WHERE '+clauses.join(' AND '):'')+' ORDER BY id').bind(...(ids===null?[]:[JSON.stringify(ids)])).all<any>()
  return rows.results.map(row=>({id:row.id,value:JSON.parse(row.value_json),revision:row.revision}))
 }
 export async function account(db:D1Database,actor:Actor,id:string):Promise<Account> {
- const row=await db.prepare('SELECT * FROM bw_accounts WHERE id=?').bind(id).first<any>()
+ const row=await db.prepare('SELECT * FROM bw_accounts WHERE id=?'+(actor.agent?' AND NOT EXISTS(SELECT 1 FROM bw_agent_erased_accounts WHERE account_id=bw_accounts.id)':'')).bind(id).first<any>()
  if(!row || (actor.staff&&!staffAccountAllowed(actor.staff,id)) || (!supplier(actor) && !await companyMembership(db,actor,id))) fail('NOT_FOUND','Trade account not found.',404)
  return {id:row.id,value:JSON.parse(row.value_json),revision:row.revision}
 }
@@ -78,6 +79,7 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
   if(await env.DB.prepare('SELECT id FROM bw_retention_requests WHERE account_id=? AND held=1').bind(selected.id).first()) fail('LEGAL_HOLD','This account has a held erasure request. Preserve its records pending attributed owner review.')
   if(p.confirm!=='ERASE') fail('CONFIRM','Type ERASE to confirm removal of this unused account.',400)
   if(await env.DB.prepare('SELECT source_id FROM bw_faire_orders WHERE account_id=? LIMIT 1').bind(selected.id).first())fail('ORDERS_EXIST','This account has Faire orders. Preserve its commercial history.')
+  if(await env.DB.prepare('SELECT id FROM bw_prebooks WHERE account_id=? LIMIT 1').bind(selected.id).first())fail('ORDERS_EXIST','This account has prebook history. Retain its commercial commitments.');
   if(await env.DB.prepare('SELECT id FROM bw_orders WHERE account_id=? LIMIT 1').bind(selected.id).first()) fail('ORDERS_EXIST','This account has orders. Keep the commercial history; erasure is limited to unused accounts.')
   if(await env.DB.prepare('SELECT id FROM bw_quotes WHERE account_id=? LIMIT 1').bind(selected.id).first()) fail('QUOTES_EXIST','This account has quotes. Keep the commercial history; erasure is limited to unused accounts.')
   const portability=await createPortability({db:env.DB,policy:portabilityPolicy})

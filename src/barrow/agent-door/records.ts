@@ -13,11 +13,11 @@ import { nativeActor, native, restrictAccount } from './native.ts'
 
 export type Context = Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'>
 export async function readAccount(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision);return value})
+ return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision,ctx.agent.id);return value})
 }
 export async function directory(env:Bindings,args:Record<string,string>,ctx:Context) {
  return native(async()=>{const page=await accountPage(env.DB,await nativeActor(env,ctx),new URLSearchParams(args))
-  for(const row of page.accounts)await retainAgentAccount(env.DB,row.id,row.revision)
+  for(const row of page.accounts)await retainAgentAccount(env.DB,row.id,row.revision,ctx.agent.id)
   return page
  })
 }
@@ -33,7 +33,7 @@ export async function list(env:Bindings,id:string,ctx:Context) {
 export async function workspace(env:Bindings,ctx:Context) {
  return native(async()=>{const actor=await nativeActor(env,ctx),directory=await accounts(env.DB,actor)
   const rows=(await env.DB.prepare('SELECT id FROM bw_orders ORDER BY id').all<{id:string}>()).results
-  for(const selected of directory)await retainAgentAccount(env.DB,selected.id,selected.revision)
+  for(const selected of directory)await retainAgentAccount(env.DB,selected.id,selected.revision,ctx.agent.id)
   const orders=[]
   for(const row of rows){try{orders.push(await readOrder(env.DB,actor,row.id))}catch(error){if(!(error instanceof Error))throw error}}
   return {accounts:directory,orders}

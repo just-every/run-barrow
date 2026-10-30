@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
+import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
-export default async function({request,origin,cookie,tool}) {
+export default async function({request,origin,cookie,tool,database}) {
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
  const stale=await tool('barrow.orders.prepare',{...args,expected_revision:randomUUID()})
@@ -22,8 +23,8 @@ export default async function({request,origin,cookie,tool}) {
  const event=audit.events.find(row=>row.subjectId===draft.id&&row.action==='order.prepared')
  assert.equal(event.actorKind,'agent');assert.equal(event.actorName,draft.preparedBy)
  const erase=await request(origin+'/api/barrow/commands',{method:'POST',headers,body:JSON.stringify({type:'retention.erase-account',payload:{accountId:'juniper',confirm:'ERASE',reason:'Check retained native custody boundary'}})})
- assert.equal(erase.status,409);assert.equal((await erase.json()).error.code,'AGENT_CUSTODY')
- console.log('NATIVE PASS stale revision, one-effect replay, changed-argument conflict, agent attribution and closed client custody')
+ assert.equal(erase.status,409);assert.equal((await erase.json()).error.code,'REQUEST')
+ console.log('NATIVE PASS stale revision, one-effect replay, changed-argument conflict, agent attribution and owner-reviewed erasure admission')
  const grantResponse=await request(origin+'/api/barrow/agent-token',{method:'POST',headers,body:'{}'})
  console.log('NATIVE grant issuance HTTP '+grantResponse.status);assert.ok(grantResponse.ok);const grant=await grantResponse.json()
  async function legacy(path,payload) {
@@ -84,5 +85,6 @@ export default async function({request,origin,cookie,tool}) {
  assert.equal((await local('tools/list')).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
+ await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
 }

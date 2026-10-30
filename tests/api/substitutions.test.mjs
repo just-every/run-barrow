@@ -297,12 +297,10 @@ test('approval-bound agent proposals preserve provenance and refusals, then reau
  const {archive,restore}=await import('./harness.mjs'),backup=await archive(h),target=await installation();t.after(()=>target.close());await restore(target,backup);
  const restored=await target.api(`/api/barrow/orders/${f.order.id}/agent-proposals`);assert.ok(restored.proposals.every(row=>row.state==='superseded'&&!row.grantActive));assert.equal(target.mail.deliveries.length,0);
  const {verifiedRequest,erasurePreview,erasurePayload}=await import('./retention-fixture.mjs');await verifiedRequest(h,'cedar');
- const eraseReview=await erasurePreview(h);assert.equal(eraseReview.classes.find(row=>row.kind==='agent proposals').count,(await f.history()).proposals.length);assert.ok(eraseReview.custody.agents.includes('separate custody'));
- const retained=await f.history(),retainedGrants=await h.api('/api/barrow/proposal-grants?accountId=cedar');
- const refused=await h.command('retention.erase-account',erasurePayload(eraseReview),{status:409});assert.equal(refused.error.code,'AGENT_CUSTODY');
- assert.deepEqual(await f.history(),retained);assert.deepEqual(await h.api('/api/barrow/proposal-grants?accountId=cedar'),retainedGrants);
- const retainedRestore=await installation();t.after(()=>retainedRestore.close());await restore(retainedRestore,backup);
- assert.equal((await retainedRestore.api(`/api/barrow/orders/${f.order.id}/agent-proposals`)).proposals.length,retained.proposals.length);assert.equal(retainedRestore.mail.deliveries.length,0);
+ const eraseReview=await erasurePreview(h);assert.equal(eraseReview.classes.find(row=>row.kind==='agent proposals').count,(await f.history()).proposals.length);assert.ok(eraseReview.custody.agents.includes('separate custody'));await h.command('retention.erase-account',erasurePayload(eraseReview));
+ assert.equal((await h.api('/api/barrow/proposal-grants?accountId=cedar')).grants.length,0);assert.equal((await f.history()).proposals.length,0);
+ const erasedRestore=await installation();t.after(()=>erasedRestore.close());await restore(erasedRestore,backup);
+ assert.equal((await erasedRestore.api(`/api/barrow/orders/${f.order.id}/agent-proposals`)).proposals.length,0);assert.equal(erasedRestore.mail.deliveries.length,0);
 
 });
 

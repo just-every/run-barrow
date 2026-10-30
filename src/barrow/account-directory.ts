@@ -23,6 +23,7 @@ export async function accountPage(db: D1Database, actor: Actor, query: URLSearch
  const sorts: Record<string,string> = { id: 'id ASC', 'name-asc': "lower(json_extract(value_json,'$.name')) ASC,id ASC", 'name-desc': "lower(json_extract(value_json,'$.name')) DESC,id ASC" }
  if (!Object.hasOwn(sorts, sort)) fail('SEARCH', 'Choose a listed account sort.', 400)
  const scope=staffScope(actor,'id'),clauses = ['1=1'+scope.sql], values: (string|number)[] = [...scope.values]
+ if (actor.agent) clauses.push('NOT EXISTS(SELECT 1 FROM bw_agent_erased_accounts WHERE account_id=bw_accounts.id)')
  if (!supplier(actor)) { clauses.push(companyAccountPredicate('id')); values.push(actor.id) }
  if (search) {
   clauses.push("(instr(lower(id),lower(?))>0 OR instr(lower(json_extract(value_json,'$.name')),lower(?))>0 OR instr(lower(json_extract(value_json,'$.email')),lower(?))>0 OR instr(lower(json_extract(value_json,'$.pierCustomerId')),lower(?))>0)")
