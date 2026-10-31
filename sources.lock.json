@@ -2895,7 +2895,7 @@
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
-      "sha256": "c47e12575fdd5bf9d63b5e791828ff8df86c2b0040da173036a222d1bd4ab14d",
+      "sha256": "1127bd431918094e49d4376aae0335374f83d27af8b7c5f63000b580e6a9b4ad",
       "executable": false
     },
     "src/barrow/ui/order-revision.tsx": {
@@ -2915,7 +2915,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "2ca02eb5a115d7158fd16710485a1d708109b2d1dd1b872a9957fc5ad90a8039",
+      "sha256": "d5ad54313951c268da54f263569c38badc87034197c7c57d4bdbca1683222145",
       "executable": false
     },
     "src/barrow/ui/payment-promises.tsx": {
@@ -3043,7 +3043,7 @@
       "executable": false
     },
     "src/barrow/ui/style-matrix.tsx": {
-      "sha256": "f800405f72b24333be987d4469bc7e7f86249b658c3c9c5491ef0fa1d1f324e9",
+      "sha256": "849cf6b8e19c93f124d886d9302939fb5c2c529c43812469bca3e4ed5c6083ca",
       "executable": false
     },
     "src/barrow/ui/styles.ts": {
@@ -6163,7 +6163,7 @@
       "executable": false
     },
     "tests/journeys/buyer-accessibility.test.mjs": {
-      "sha256": "c6e4167e8c6a70d1a713f0c9ea6066176e667a44685938734aeea53657963011",
+      "sha256": "cdfac665a52a01ddf52e4c53ad355df3e45c2162bb4727308303c231b6ebf733",
       "executable": false
     },
     "tests/journeys/card-stripe-sandbox.mjs": {

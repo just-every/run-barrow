@@ -96,6 +96,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   const today = catalogue ? supplierDate(new Date(catalogue.observedAt)) : ''
   const requestedDateProblem = details.requestedDate && details.requestedDate < today ? 'Choose today or a future delivery date.' : ''
   const dateProblem = details.cancelAfter && details.cancelAfter < today ? 'Choose today or a future cancel date.' : details.requestedDate && details.cancelAfter && details.cancelAfter < details.requestedDate ? 'Choose a date on or after the requested delivery date.' : ''
+  const orderQuantityProblem = validationAttempt && (belowMinimum || pricingProblem) && chosen[0] ? { sku: chosen[0].sku, message: pricingProblem || `Add ${money(minimum - total)} to meet the minimum.` } : undefined
   const problems: FieldProblem[] = items.flatMap(item => {
     const message = cellProblem(item, quantities[item.sku])
     return message ? [{ id: quantityId(prefix, item.sku), label: item.sku, message }] : []
@@ -104,7 +105,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   if (dateProblem) problems.push({ id: `${prefix}-cancel`, label: 'Cancel after date', message: dateProblem })
   if (validationAttempt) {
     if (!chosen.length && items[0]) problems.push({ id: quantityId(prefix, items[0].sku), label: 'Order quantities', message: 'Enter at least one quantity.' })
-    if (belowMinimum || pricingProblem) problems.push({ id: quantityId(prefix, chosen[0].sku), label: 'Order quantities', message: pricingProblem || `Add ${money(minimum - total)} to meet the minimum.` })
+    if (orderQuantityProblem) problems.push({ id: quantityId(prefix, orderQuantityProblem.sku), label: 'Order quantities', message: orderQuantityProblem.message })
     for (const row of unsettled) problems.push({ id: `${prefix}-price-${encodeURIComponent(row.key)}`, label: row.name, message: 'Review and settle the changed price.' })
   }
 
@@ -191,7 +192,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
       <StyleCard row={shown} observedAt={catalogue.observedAt} />
       <section className="br-matrix-card br-card" aria-label="Size matrix">
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}
-        <StyleMatrix prefix={prefix} rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
+        <StyleMatrix orderQuantityProblem={orderQuantityProblem} prefix={prefix} rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
           onQuantity={(key, value) => setQuantities(current => ({ ...current, [key]: value }))} onSelect={setSelected} onKeep={key => setKept(current => new Set(current).add(key))} onRemove={remove} />
         <p className="br-quiet-text br-matrix-foot">{canPurchase?'Preparing creates a draft for review. Submit it from Orders when you are ready.':'Your approver rights allow company review in Orders; preparing purchases requires purchaser rights.'}<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
       </section>

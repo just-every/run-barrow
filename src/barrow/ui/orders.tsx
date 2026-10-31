@@ -64,7 +64,11 @@ export function Orders({ focusOrderId='', onResultFocused, orders: all, accounts
     if (!focusOrderId || loading || busy || !history || loadedOrders.current !== all) return
     const result = document.getElementById(`order-result-${focusOrderId}`)
     if (result) { result.focus(); onResultFocused?.() }
-  }, [focusOrderId, loading, busy, history, all, onResultFocused])
+    else if (filter !== 'all') {
+      // A successful decision may move the order out of the current status view.
+      setFilter('all'); setPage(1)
+    }
+  }, [focusOrderId, loading, busy, history, all, filter, onResultFocused])
   const orders = history?.orders ?? []
   const duplicate = (order: Order) => history?.duplicatePOs.includes(order.id) ?? false
   const counts=history?.counts ?? {}
