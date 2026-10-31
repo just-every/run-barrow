@@ -43,7 +43,7 @@
         "pnpm check:deployment-spec",
         "node scripts/edition-authoring/cli.mjs check",
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
-        "BARROW_TEST_SHARD=2/4 pnpm run test:api",
+        "BARROW_TEST_SHARD=2/16 pnpm run test:api",
         "pnpm exec rer build --site",
         "node --test tests/site.test.mjs"
       ]
@@ -129,6 +129,57 @@
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-connector-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/connector-review.test.mjs tests/journeys/delta-cutover.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-nuorder-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/move-nuorder.test.mjs tests/journeys/move-nuorder-companies.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-catalog-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/catalog-maintenance.test.mjs"
+      ]
+    },
+    {
+      "name": "barrow-7",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "node scripts/contract-docs.mjs check",
+        "pnpm exec rer check --profile first-party",
+        "pnpm run build",
+        "pnpm run typecheck",
+        "pnpm check:deployment-spec",
+        "node scripts/edition-authoring/cli.mjs check",
+        "node scripts/edition-authoring/cli.mjs verify-base --offline",
+        "BARROW_TEST_SHARD=6/16 pnpm run test:api",
+        "pnpm exec rer build --site",
+        "node --test tests/site.test.mjs"
+      ]
+    },
+    {
+      "name": "barrow-8",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "node scripts/contract-docs.mjs check",
+        "pnpm exec rer check --profile first-party",
+        "pnpm run build",
+        "pnpm run typecheck",
+        "pnpm check:deployment-spec",
+        "node scripts/edition-authoring/cli.mjs check",
+        "node scripts/edition-authoring/cli.mjs verify-base --offline",
+        "BARROW_TEST_SHARD=10/16 pnpm run test:api",
+        "pnpm exec rer build --site",
+        "node --test tests/site.test.mjs"
+      ]
+    },
+    {
+      "name": "barrow-9",
+      "browser": true,
+      "hosted": false,
+      "commands": [
+        "node scripts/contract-docs.mjs check",
+        "pnpm exec rer check --profile first-party",
+        "pnpm run build",
+        "pnpm run typecheck",
+        "pnpm check:deployment-spec",
+        "node scripts/edition-authoring/cli.mjs check",
+        "node scripts/edition-authoring/cli.mjs verify-base --offline",
+        "BARROW_TEST_SHARD=14/16 pnpm run test:api",
+        "pnpm exec rer build --site",
+        "node --test tests/site.test.mjs"
       ]
     }
   ],
