@@ -646,6 +646,10 @@
       "sha256": "40fc9cdf519b2bbea242e608e09c0649f66693bd52757d14b53c540eec0973aa",
       "executable": false
     },
+    "migrations/core/0076_agent_door_relay.sql": {
+      "sha256": "8b9514ad840af9990bb2113781c48e074cf0a064bb45708d0e81127ebd0fb5d6",
+      "executable": false
+    },
     "ONBOARDING.md": {
       "sha256": "afbad85325b7a2d3c051346fc2b41a3c42dfa758ced0d3ea8ca35ad3d638ea42",
       "executable": false
@@ -919,7 +923,7 @@
       "executable": false
     },
     "README.md": {
-      "sha256": "4f29ab4f21ea3c8b240dfdf8166903985a54c7b2581c071ef988b0ca9b7cc90f",
+      "sha256": "5d7866c5bb8982fee87cb5fa557fd244b935d094319253deb9e43d2799d48e15",
       "executable": false
     },
     "release-history/0.1.0.json": {
@@ -947,7 +951,7 @@
       "executable": false
     },
     "RUN-LOCALLY.md": {
-      "sha256": "49c62a97cf9957564bb09e8d50e8b8ab7be1db121b7e621bf0c9f32630cbe505",
+      "sha256": "2c16e7084bb5a780ebd87ee39afce2a7846e041bfcf8b1e4ef4f9c2dcbcecac2",
       "executable": false
     },
     "scripts/barrow.mjs": {
@@ -3550,6 +3554,10 @@
       "sha256": "55b1dbca5dae59d28d8695297fcc9affb833a63e385e217aba1a0113cab406b7",
       "executable": false
     },
+    "src/modules/agent-door/conformance/relay.mjs": {
+      "sha256": "7a3821e9cb9aa439073b6615178ac89cc4af510557be2d8f501e1ffbb4bfc7b5",
+      "executable": false
+    },
     "src/modules/agent-door/conformance/replay.mjs": {
       "sha256": "407a6b7cc91574588617868317346abc3f0e2c286e73b08da6c1d7f1c8a220ff",
       "executable": false
@@ -3592,6 +3600,10 @@
     },
     "src/modules/agent-door/conformance/tool-name.mjs": {
       "sha256": "2bedd64a69b1e2a7dc02f7218cdda66e541a955b1a0cfc289d15d96630e616e8",
+      "executable": false
+    },
+    "src/modules/agent-door/conformance/unpair.mjs": {
+      "sha256": "b95cf1cbc6f45d7e303ab0c2d96c7a91e3a111d8a7afdedc8c0926bff97d3872",
       "executable": false
     },
     "src/modules/agent-door/conformance/webhooks.mjs": {
@@ -3708,6 +3720,10 @@
     },
     "src/modules/agent-door/registry.ts": {
       "sha256": "dacde9acbe799d2cd24da7a7b8ec4f84d7560b0eb0c2171a33cc79ac87a5a8df",
+      "executable": false
+    },
+    "src/modules/agent-door/relay.ts": {
+      "sha256": "b26fdd6429cea45871fc04d2cc3b0b164fedbb10f1bfa332223eb8450555aab2",
       "executable": false
     },
     "src/modules/agent-door/resource-tool.ts": {
@@ -4396,6 +4412,10 @@
     },
     "src/modules/import-kit/src/d1/sets.ts": {
       "sha256": "684734c78e7704d1eac0ea006b2c4e10122f4f7bea2e24780ba4224f4ceb2dd1",
+      "executable": false
+    },
+    "src/modules/import-kit/src/d1/snapshot-text.ts": {
+      "sha256": "897102ef7d40325dba49573c2b53be45a19d18d0c81d07244015f2bb87d6e84c",
       "executable": false
     },
     "src/modules/import-kit/src/d1/staged-creation.ts": {

@@ -6,19 +6,13 @@ A wholesale ordering portal for US brands and wholesalers, built as the free, op
 
 ## Run locally
 
-The same two lines as the [Run page](https://run-barrow.com/run). Install `rer`, the Run Edit Run command (it brings its own Node when you have no Node 22 or later):
+Run the one line from the [Run page](https://run-barrow.com/run):
 
 ```sh
-curl -fsSL https://runeditrun.com/install.sh | sh
+curl -fsSL https://runeditrun.com/install.sh | sh -s -- dev just-every/run-barrow
 ```
 
-If the installer ends with a line to run, run it first. Then get Barrow and start it:
-
-```sh
-rer dev just-every/run-barrow
-```
-
-Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-barrow` does both in one line.
+Git is required; rer brings Node and pnpm. Already have Node 22 or later? `npx -y @runeditrun/rer dev just-every/run-barrow` does the same. The [getting-started guide](https://run-barrow.com/docs/getting-started) walks through the first launch.
 
 `rer dev just-every/run-barrow` clones Barrow and starts it; to start Barrow again later, run `cd run-barrow && rer dev`. `rer dev` installs the locked dependencies, selects Node 22.20.0, applies D1 migrations and prepares a local owner. Allow several minutes. Open its private `RER_OPEN` link, complete first-run setup and open `/app`. Local development suppresses external email. Use `rer demo` for a fresh, populated workspace. Keep sign-in links private. `rer dev --stop` stops this checkout's server.
 
