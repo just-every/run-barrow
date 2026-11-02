@@ -20,6 +20,7 @@ or reset installation remains empty for archive restore.
 | --- | --- |
 | `POST /mcp` | Discovery, tools, resources, prompts and subscription streams. `paths` can add aliases; the token audience remains the canonical `/mcp` URI. |
 | `/.well-known/oauth-protected-resource` and `/.well-known/oauth-protected-resource/mcp` | Canonical MCP resource, trusted authorization server and scopes. |
+| `POST /api/rer/agent-decisions` | Signed Business pull of public decision projections; see the relay wire below. |
 | `POST /api/rer/agent-policy` | Signed Business policy envelope; body `{"policy":"<JWS>"}`. |
 | `GET /agents` and `GET /agents/approvals/:id` | Signed-in Agents page and exact pending action. |
 | `GET /agents/api/state`, `/agents/api/audit`, `/agents/api/agents` | Private person-session state, audit and agent inventory reads. |
@@ -36,13 +37,22 @@ application sign-in system.
 
 ## Wire and authority
 
-The door serves MCP `2026-07-28` and the `2025-11-25` initialize path. Modern
+The door serves MCP `2026-07-28`, `2025-11-25` and `2025-06-18`. Modern
 requests carry `params._meta` protocol version and client capabilities, plus
 `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name` for named calls. Encoded
 names use the UTF-8 Base64 sentinel `=?base64?...?=`. Lists have deterministic
 ordering, `ttlMs` and private cache scope. Roots, Sampling and Logging are not
 served. [MCP transport](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
 defines these wire fields.
+
+Every MCP POST, including initialize and discovery, requires a valid bearer
+token. Missing or invalid credentials return 401 with the resource-metadata
+challenge before protocol/header validation. Initialize can carry its version
+in `params.protocolVersion` without transport metadata. Later stateless calls
+without `MCP-Protocol-Version` use `2025-06-18`; clients using the modern wire
+format must send its version and metadata. Supplied method/name and protocol
+metadata must agree with the request. Unsupported-version errors retain their
+stable code and include a plain-language message listing the supported versions.
 
 Tools declare input and output schemas, scope, possible classes, contract clauses,
 server classification and their native action. Every mutating tool also declares a
@@ -79,7 +89,15 @@ mapping and re-reads each native operator with the same admission predicate as
 native sessions, including `AUTH_ALLOW_LIST`. Later reads use `people.person(id)`;
 changes of email cannot transfer an agent or pending approval. Local credentials require an explicit edition adapter; a rejected
 recognizable Business credential cannot fall through to it. Local credential
-issuance remains adopter work. A signed envelope may include
+issuance remains adopter work. When Business is stopped (a signed `detached:true` document or the owner's stop)
+the door ends everything it derived from Business: no Business token is admitted for any subject (every method
+answers 401 with its resource-metadata challenge and open subscriptions close on their next tick), a call admitted
+with a Business token (`Principal.source: 'business'`) that was held for approval or waiting for admission is refused
+as `sponsor_unavailable` without a native effect, and `person:` and `role:` approver and reviewer refs match nobody.
+`sponsor` refs, seed credentials, native sessions and embedded invocations are unchanged, and the subject mapping
+stays, so a validly signed envelope that names Business people is still adopted and its Pause and revoked lists apply.
+`PeopleAdapter.businessStopped()` carries the stop; `operatorAuthPeople` reads `bs_settings.stopped`, and an adapter
+that omits it is never stopped. A signed envelope may include
 `revoked: { agents: string[], consents: string[] }`; these refuse the next call
 and expire affected pending approvals. Business delivery of those lists remains
 platform work.
@@ -107,6 +125,59 @@ reviewer refs use Business member ids and roles, independent of native roles. In
 Expired adopted policy refuses agent work; unpairing uses the retained local
 document, or leaves policy unset. Adoption delivery and the paired computer's
 self-host transport are outside this module.
+
+## Business decision relay (W-R1–W-R5)
+
+The Business pulls the seed's audit; the seed never calls Business, holds no
+signing key and has no outbox. This route is dark until Business starts pulling.
+Only MCP calls with Business consent and an adopted envelope enter the feed.
+Local credentials and embedded calls stay in the seed's own audit.
+
+- **W-R1:** `POST /api/rer/agent-decisions` takes exactly
+  `{"pull":"<compact JWS>"}`, at most 8 KiB. Authorization, cookies and Origin
+  are not used. Other methods return 405.
+- **W-R2:** the platform ring signs the exact ES256 header
+  `{alg:"ES256",typ:"rer-agent-decisions+jwt",kid}` and closed claims
+  `{v:1,iss,aud,sub,business,after,limit,iat,exp,jti}`. Issuer, app origin and
+  installation subject match trust. `after` is an integer ≥0, `limit` is 1–200,
+  `exp-iat` is at most 60 seconds, `iat` is at most 30 seconds ahead and `exp`
+  is still in the future.
+- **W-R3:** check body shape (400 `relay_invalid`), trust (empty 404), signature
+  and closed claims (401 `relay_unauthenticated`), Business stop (empty 404),
+  then the adopted Business (empty 404 for a different Business). Other
+  refusals contain only `{code}`. Pause still relays its refused decisions.
+- **W-R4:** a 200 answer is exactly `{decisions,cursor,head,more}`. Decisions
+  ascend by feed sequence; the cursor is the last returned sequence, or
+  `after` for an empty page, and `more` is `cursor < head`. Pages hold at most
+  `limit` entries and 65,536 UTF-8 bytes. One indexed D1 range query joins the
+  audit and current approval/review state. Repeating a pull is byte-identical
+  while that state remains unchanged.
+- **W-R5:** the Business must reject unknown or missing keys at every level,
+  secret-shaped data, nonascending sequences, duplicate ids and sequences at
+  or before `after`. It keys projections by Business, installation and audit
+  id, replacing a whole row only for a higher sequence.
+
+Live projections have exactly `id`, `seq`, `at`, `tool`, `disposition`,
+`outcome`, `code`, `revision`, `classes`, `agent`, `consent`, `execution_of`,
+`replay_of`, `approval`, `review`, `resources`, `resource_count`. Classes are
+ids only; approval holds only `{state,expires_at}` and review only `{state}`.
+Resources are up to eight URIs of at most 512 characters; `resource_count`
+keeps the full link count. Completed writes retain only their result link URIs
+in the audit, never link names or record bodies. No arguments, sponsor identity,
+agent names, facts, evidence, keys, digests, rules or traces are projected.
+Approval executions and door replays have their own linked audit ids.
+
+The trigger-maintained `agent_door_relay` holds one row per decision, capturing
+its first Business. Audit, approval and review changes replace its sequence,
+including native erasure. Erased projections contain exactly
+`{id,seq,at,erased:true,tool,classes,disposition,agent}`. The feed retains no
+subject payload. Re-pairing cannot expose an old Business's feed to a new one.
+The Business-held projection is an external store: a tombstone replaces its
+whole live row; stop, unpairing, authority loss, an unsupported route, a rewind
+or 30 days without a successful pull purge that installation's copy. The seed
+feed is never trimmed and can rebuild that copy from cursor zero. This is
+seed-side support for BASE-AGENT-009; platform readers and seed adoption need
+their own evidence.
 
 Approval produces `resultType:"input_required"`, opaque `requestState`, and,
 when the client advertises URL elicitation, an `inputRequests` map whose

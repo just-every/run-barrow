@@ -42,6 +42,7 @@ export default withDemo({
     const bindings = runtimeBindings(env)
     const business = await businessSettings(bindings).handle(request)
     if (business) return business
+    // Includes POST /api/rer/agent-decisions; signed agent routes precede app authentication.
     const agent = await agentDoor(bindings).handle(request)
     if (agent) return agent
     const asset = await staticAssetResponse(request, env)

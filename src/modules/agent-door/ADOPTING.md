@@ -114,7 +114,21 @@ name, specialist, database, tool registry and people adapter.
 Import `createAgentDoor` from the copied `index.ts` production entry, not an
 internal implementation file or the test-only conformance signer. Route its
 `handle` before ordinary app authentication redirects so MCP credentials and
-signed policy adoption reach their own checks. Retain the edition's native
+signed policy adoption reach their own checks. Also route
+`POST /api/rer/agent-decisions` to the same `handle` before app authentication.
+The relay migration, route and erasure-map declaration must land in the same
+seed commit. Copy the relay DDL from `schema/agent-door.sql` into a new numbered
+migration and backfill existing MCP audits with consent to the current
+envelope Business, as in `default-seed/migrations/core/0040_agent_door_relay.sql`.
+Do not alter an applied migration. The Business drops pre-join history; this
+backfill cannot reconstruct older pairing authority. Declare
+`agent_door_relay(sequence,decision_id,business)` as `unrelated` in each native
+artifact map: it holds only decision ids and the installation Business id.
+Record the Business-held projections as an external custody store, purged by
+tombstone pulls and the authority/stop/unreachable rules in the
+[relay wire](README.md#business-decision-relay-w-r1w-r5).
+`BASE-AGENT-009.relay` runs after the audit phase against the hosted build and
+refuses a missing route or one accepting a foreign signature. Retain the edition's native
 person session and Origin and CSRF controls. The [route and capacity reference](README.md)
 lists the owned paths and defaults; these are request capacities, not company
 policy limits.
@@ -130,7 +144,12 @@ email never selects a local account. Implement `people.person(id)` to re-read
 native ids for approval execution, Undo, embedded agents and subscriptions.
 Expose `businessMember(person)` from the same mapping for paired policy refs:
 Business owner is owner, Business team admin is editor, member has no policy
-role. The native role may differ. Local credentials return `sponsor: { id }`,
+role. The native role may differ. A custom adapter must also expose
+`businessStopped()`, true once Business is stopped or detached: the door then
+admits no Business token, refuses calls held or waiting from one, and matches no
+`person:` or `role:` ref, while `sponsor()` keeps resolving subjects so signed
+policy naming Business people is still adopted. An adapter without it keeps the
+earlier behavior and is never stopped. Local credentials return `sponsor: { id }`,
 read by `people.person`, rather than an address. Sponsorship is resolved from
 current native people on each request; an unknown or inactive sponsor cannot
 act. A saved token never replaces this account check. Keep native permissions,
@@ -143,6 +162,10 @@ installation ID, application origin (`appOrigin`) and public key ring. Keep that
 origin aligned with the edition's canonical origin. Do not create another key
 ring for agent access. Business credentials use the existing ring; local
 credentials come only from the edition's explicit `localCredentials` adapter.
+Build that trust from the `RER_OWNER_CLAIM_*` bindings and pass `null` when they
+are absent: `rer verify` ends with `BASE-AGENT-004.7`, re-serving the same
+installation without those bindings and `RER_BUSINESS_TRUST`, and the door must
+then refuse Business tokens while owner sessions and native clients keep working.
 With `trust: null`, an independently operated installation can use that local
 adapter under its owner's configuration. A recognizable Business credential
 that fails validation is refused; it cannot become a local credential.
@@ -667,9 +690,15 @@ still own atomic revision checks at their effect boundary.
 
 ## MCP version compatibility
 
-The negotiated versions remain `2026-07-28` and `2025-11-25`. Both initialize
-and list the same registry; unsupported negotiation returns
-`UnsupportedProtocolVersion` (-32022). March `2025-03-26` is deliberately not
+The negotiated versions are `2026-07-28`, `2025-11-25` and `2025-06-18`. All
+initialize and list the same registry; unsupported negotiation returns
+`UnsupportedProtocolVersion` (-32022), with a plain-language message and the
+supported versions in error data. Authenticate initialize and later calls with
+a bearer token; a 401 resource-metadata challenge precedes protocol validation.
+Initialize accepts its body version without transport headers; subsequent
+stateless calls without the version header use `2025-06-18`. June and November
+use the legacy `approval_required` result rather than modern `input_required`.
+March `2025-03-26` is deliberately not
 advertised: its Streamable HTTP transport permits batched requests, which this
 door's single-message parser rejects, and its pre-June schema lacks structured
 results, output schemas, resource links and elicitation. March also predates the
