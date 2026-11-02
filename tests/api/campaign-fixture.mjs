@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {createHmac} from 'node:crypto';
 import {sheetFixture} from './line-sheet-fixture.mjs';
 import {accountValue} from './harness.mjs';
-export const campaignClock='2026-10-28T12:00:00.000Z';
+// Keep business timestamps in the same period as signed provider receipts.
+export const campaignClock=new Date().toISOString();
 const email=n=>['synthetic-barrow-'+n,'example.test'].join('@');
 export async function campaignFixture(t,options={}){
  const key=Buffer.from('synthetic-barrow-021'),f=await sheetFixture(t,{...options,clock:campaignClock,https:true,bindings:{...options.bindings,MAIL_WEBHOOK_SECRET:'wh'+'sec_'+key.toString('base64'),MAIL_EVENT_TENANT:'synthetic-barrow-22'}}),{h,pier}=f;

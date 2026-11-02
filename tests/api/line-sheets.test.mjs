@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {activateStaff} from './harness.mjs';
+import {activateStaff,supplierDay} from './harness.mjs';
 import {sheetFixture} from './line-sheet-fixture.mjs';
 
 test('recipient seasonal sheets retain exact variants, columns, ship windows and revision, and revocation closes every sheet door',async t=>{
@@ -63,6 +63,7 @@ test('line-sheet buyer opens and visible-item views appear independently in the 
 });
 
 test('campaign sends resolve thirty accounts, preserve private prices and normal ordering, attribute only linked orders, and never resend a recipient',async t=>{
+ const from=supplierDay();
  const {campaignFixture}=await import('./campaign-fixture.mjs'),f=await campaignFixture(t),{h}=f;
  assert.equal(f.campaignMail().length,0);
  const before=h.mail.deliveries.length,tested=await h.command('campaign.test',{id:f.draft.id,revision:f.draft.revision,accountId:'wren'});
@@ -84,7 +85,7 @@ test('campaign sends resolve thirty accounts, preserve private prices and normal
  await h.api('/api/barrow/line-sheets/'+recipients[0].sheet_id,undefined,{...f.buyers.wren,status:404});
  const ordinary=await h.command('order.prepare',{accountId:'wren',reference:'synthetic-barrow-ordinary',lines:[{sku:f.skus[0],quantity:1}]},f.buyers.wren);await h.command('order.submit',{orderId:ordinary.id,revision:ordinary.revision},f.buyers.wren);
  delivered=await h.api('/api/barrow/campaigns/'+c.id);assert.deepEqual(delivered.counts,{delivered:28,accepted:0,bounced:0,suppressed:1,opened:2,viewed:2,ordered:2});assert.equal(delivered.orderValue.USD,7512);
- const report=await h.api('/api/barrow/reports/quotes?from=2026-10-01&to=2026-10-31'),row=report.campaigns.find(r=>r.id===c.id);assert.deepEqual([row.delivered,row.opened,row.viewed,row.ordered,row.orderValueCents],[28,2,2,2,7512]);
+ const report=await h.api(`/api/barrow/reports/quotes?from=${from}&to=${supplierDay()}`),row=report.campaigns.find(r=>r.id===c.id);assert.deepEqual([row.delivered,row.opened,row.viewed,row.ordered,row.orderValueCents],[28,2,2,2,7512]);
  const resend=await f.send();assert.equal(f.campaignMail().length,28);assert.equal(resend.counts.delivered,28);
  await h.command('campaign.send',{id:c.id,revision:c.revision},{...f.buyers.wren,status:403});
  const grant=await h.api('/api/barrow/agent-token',{});await h.command('campaign.send',{id:c.id,revision:c.revision},{headers:{authorization:'Bearer '+grant.token},status:403});

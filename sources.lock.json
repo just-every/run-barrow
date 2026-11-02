@@ -5815,7 +5815,7 @@
       "executable": false
     },
     "tests/api/campaign-fixture.mjs": {
-      "sha256": "c2cc2c3c97445fa5617f8c3acc2822b08448378a1d1eb6d0e6063a8a222af27a",
+      "sha256": "52dcaa0df070aaceb80071cbdc32240be88f70b408ae69282cb561b33bee360e",
       "executable": false
     },
     "tests/api/card-fixture.mjs": {
@@ -5927,7 +5927,7 @@
       "executable": false
     },
     "tests/api/line-sheets.test.mjs": {
-      "sha256": "19e418c8a72434324b12d51328f343f890959560cdbd92e31e998a328ba69f79",
+      "sha256": "aa99009c26d4e2e53623968422154ea7b008dd1cab0aa5c6006b7f158f1c4e32",
       "executable": false
     },
     "tests/api/locations.test.mjs": {
