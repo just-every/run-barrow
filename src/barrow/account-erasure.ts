@@ -1,3 +1,4 @@
+import { eraseServiceAudit, eraseServiceNarrative } from './service-custody'
 import { eraseAccountAgentArtifacts, checkAccountAgentArtifacts } from './agent-door/erasure.ts'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
@@ -21,7 +22,7 @@ type PersonalValue={value:string;replacement:string}
 export type ErasureOperation={version:1;sourceIdentity:string;id:string;accountId:string;actorId:string;at:string;reason:string;mode:'erase'|'revoke';exclusions:Exclusion[];deleteOrderIds:string[];people:{id:string;email:string;name:string;subjects:string[]}[];accountEmail:string;personal?:PersonalValue[];receipt:any}
 type Item={id:string;kind:string;action:string;reason:string;floorUntil:string|null}
 const sql=(sql:string,...params:any[]):Sql=>({sql,params})
-const tables=['bw_agent_erased_accounts','agent_door_replay_aliases','agent_door_agents','agent_door_audit','agent_door_calls','agent_door_approvals','agent_door_reviews','agent_door_events','agent_door_usage','bw_prebooks','bw_return_claims','bw_tracking_packages',...creditFinancialTables,'bw_refund_events','bw_card_customers','bw_saved_cards','bw_card_payments','bw_card_events','bw_brands','bw_buying_profiles','bw_profile_approvals','bw_delta_feed_runs','bw_delta_cutovers','bw_delta_sources','bw_cutover_imports','bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_integration_grants','bw_campaign_deliveries','bw_campaigns','bw_campaign_segments','bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
+const tables=['bw_agent_erased_accounts','agent_door_replay_aliases','agent_door_agents','agent_door_audit','agent_door_calls','agent_door_approvals','agent_door_reviews','agent_door_events','agent_door_usage','bw_prebooks','bw_service_cases','bw_return_claims','bw_tracking_packages',...creditFinancialTables,'bw_refund_events','bw_card_customers','bw_saved_cards','bw_card_payments','bw_card_events','bw_brands','bw_buying_profiles','bw_profile_approvals','bw_delta_feed_runs','bw_delta_cutovers','bw_delta_sources','bw_cutover_imports','bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants','bw_integration_grants','bw_campaign_deliveries','bw_campaigns','bw_campaign_segments','bw_line_sheets','bw_sheet_events','bw_accounts','bw_orders','bw_order_documents','bw_quotes','bw_quote_entries','bw_quote_notices','bw_quote_mail','rer_mail_event_receipts','rer_mail_event_states','bw_locations','bw_lists','bw_followups','bw_audit','oa_operators','oa_external_identities','oa_auth_audit','bw_company_members','bw_company_invites','bw_retention_requests','bw_settings','bw_applications','bw_application_documents','bw_application_history','bw_confirmations','bw_order_commissions','bw_visits','bw_account_erasure_journal','rer_mail_development_outbox','oa_oidc_transactions','bw_terms_signatures','bw_webhook_subscriptions','bw_webhook_deliveries','bw_company_route_versions','bw_company_delegations']
 function owner(actor:Actor){if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may review account erasure.',403)}
 async function snapshot(env:Bindings) {
  await checkAccountAgentArtifacts(env.DB)
@@ -142,6 +143,10 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   const reviewed=restoring?op.receipt?.items?.find((item:Item)=>item.id==='order:'+row.id)?.floorUntil:null
   return [row.id,[current,reviewed].filter((floor):floor is string=>typeof floor==='string').sort().at(-1)??null]
  }))
+ for(const row of r.bw_service_cases.filter(row=>row.account_id===accountId)) {
+  const clean=eraseServiceNarrative(JSON.parse(row.value_json))
+  add('service cases','service:'+row.id,'remove personal report and response text; preserve original commercial linkage','Service narratives are outside the financial floor; restored cases are inert',[sql('UPDATE bw_service_cases SET value_json=?,revision=? WHERE id=?',JSON.stringify(clean),op.id,row.id)])
+ }
  for(const row of r.bw_return_claims.filter(row=>row.account_id===accountId)) {
   const clean=eraseReturnNarrative(JSON.parse(row.value_json))
   add('return claims','return:'+row.id,'remove personal narrative; preserve opaque commercial and receipt linkage','Return narrative is outside the financial floor; no restored authority',[sql('UPDATE bw_return_claims SET value_json=?,revision=? WHERE id=?',JSON.stringify(clean),op.id,row.id)])
@@ -225,7 +230,7 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
  }
  for(const row of r.bw_audit) {
   if(!row.context_json)continue
-  const context=JSON.parse(row.context_json),clean=context.accountId===accountId?eraseReturnAudit(context,row.action):context
+  const context=JSON.parse(row.context_json),clean=context.accountId===accountId?eraseServiceAudit(eraseReturnAudit(context,row.action),row.action):context
   const reason=typeof clean.reason==='string'?replaceText(clean.reason,people,op.accountEmail,personal):clean.reason
   if(reason!==context.reason)add('commercial audit','audit:'+row.id,'replace exact personal values in free text','Preserve ID, subject, actor, action, time and revision',[sql("UPDATE bw_audit SET context_json=json_set(context_json,'$.reason',?) WHERE id=?",reason,row.id)])
  }

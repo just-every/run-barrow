@@ -1,3 +1,4 @@
+import { readServiceCases, serviceCommand } from './service-resolution'
 import { agentHttp } from './agent-door/http.ts'
 import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
@@ -298,6 +299,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(one && one[1]!=='history' && request.method==='GET') return json((await withApprovalStatus(env.DB,actor,[await readOrder(env.DB,actor,one[1])]))[0])
   const tracking=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/tracking$/.exec(path)
   if(tracking && request.method==='GET') return json(await trackingView(env,actor,tracking[1]))
+  const serviceCases=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/service-cases$/.exec(path)
+  if(serviceCases&&request.method==='GET')return json(await readServiceCases(env,actor,serviceCases[1]))
   const returnClaims=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/return-claims$/.exec(path)
   if(returnClaims&&request.method==='GET')return json(await readReturnClaims(env,actor,returnClaims[1]))
   const followthrough=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/followthrough$/.exec(path)
@@ -370,6 +373,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await staffCommandGate(env,actor,body.type,body.payload)
    if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
+   if(['service.report','service.review','service.close'].includes(body.type))return json({result:await serviceCommand(env,actor,body.type,body.payload)})
    if(['return.request','return.revise','return.decide','return.reconcile'].includes(body.type))return json({result:await returnClaimCommand(env,actor,body.type,body.payload)})
    if(['prebook.season','prebook.prepare','prebook.commit'].includes(body.type))return json({result:await prebookCommand(env,actor,body.type,body.payload)})
    if(body.type==='prebook.close'&&typeof body.payload?.id==='string'&&typeof body.payload?.revision==='string'&&await env.DB.prepare('SELECT 1 FROM bw_prebook_seasons WHERE id=? AND revision=?').bind(body.payload.id,body.payload.revision).first())return json({result:await prebookCommand(env,actor,body.type,body.payload)})

@@ -1,3 +1,4 @@
+import { ServiceResolution } from './service-resolution'
 import { ShipmentTracking } from './shipment-tracking'
 import { ReturnClaims } from './return-claims'
 import { PrebookCommitment } from './prebooks'
@@ -124,6 +125,7 @@ export function Orders({ focusOrderId='', onResultFocused, orders: all, accounts
           {order.prebook&&<PrebookCommitment order={order} canOperate={canOperate} run={run} busy={busy}/>}
           {order.prebookRelease&&<p>Release of seasonal commitment {order.prebookRelease.orderId} · window {order.prebookRelease.windowId}</p>}
           {order.status==='approved'&&(!order.prebook||order.prebook.depositCents>0)&&finance&&<CardPaymentPanel orderId={order.id} deposit={Boolean(order.prebook)} merchant={supplier} canAct={canOperate}/>}
+          {!!order.pierOrderId&&!!order.reservation&&((!supplier&&canPurchase)||(supplier&&canQuote))&&<ServiceResolution order={order}/>}
           {!!order.invoice&&!supplier&&canPurchase&&<ReturnClaims order={order}/>}
           {!!order.invoice&&supplier&&canQuote&&<ReturnClaims order={order}/>}
           {['approved','cancelled'].includes(order.status)&&!!order.invoice&&finance&&<CreditPanel order={order}/>}

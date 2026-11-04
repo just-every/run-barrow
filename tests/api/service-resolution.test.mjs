@@ -1,0 +1,83 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {returnClaimsFixture} from './return-claims-fixture.mjs';
+import {activateStaff,archive,installation,restore} from './harness.mjs';
+const email=number=>['synthetic-barrow-'+number,'example.test'].join('@');
+const stockFacts=state=>Object.fromEntries(['orders','movements','returns','shipments','commands','positions','stockPositions','warehouseStocks','companyStocks'].map(key=>[key,state[key]]));
+
+test('service cases retain original orders and disputed RMAs, current purchaser authority, owned calendar escalation and unresolved replacement history without stock or money effects, with scoped export and erased inert restore',async t=>{
+ const f=await returnClaimsFixture(t,{bindings:{BARROW_TEST_CLOCK:'2035-01-15T12:00:00Z'}}),{h,pier,buyer,other,order}=f;
+ let rma=await f.request();
+ rma=await h.command('return.decide',{id:rma.id,revision:rma.revision,orderRevision:order.revision,quantity:2,instructions:'Bring two units to the supplier.',reason:'One unit remains disputed.'});
+ const original=await h.api('/api/barrow/orders/'+order.id),inventory=stockFacts(await pier.api('/api/pier/state')),financial=await h.api('/api/barrow/credits?orderId='+order.id);
+ const path='/api/barrow/orders/'+order.id+'/service-cases',read=(who={})=>h.api(path,undefined,who);
+ const reason='synthetic-barrow-960 private shortage report',response='synthetic-barrow-961 buyer-visible response';
+ const payload={requestId:'synthetic-barrow-962',orderId:order.id,orderRevision:order.revision,line:1,quantity:1,kind:'shortage',reason,rmaId:rma.id,requestedReplacement:{sku:'OAT-2',quantity:1}};
+ let value=await h.command('service.report',payload,buyer),owner=(await read()).cases[0].ownerId;
+ assert.equal(value.state,'unresolved');assert.equal(value.evidence.dispatchedBaseQuantity,'6');assert.equal(value.quantity,1);assert.equal(value.rma.disputedQuantity,1);assert.equal(value.rma.id,rma.id);assert.equal(value.basis.unitCents,6500);assert.equal(value.currency,'USD');assert.equal(value.commercial.termsDays,order.termsDays);assert.equal(value.commercial.approvedBy,order.approvedBy);assert.equal(value.ownerId,'supplier');
+ const replay=await h.command('service.report',payload,buyer);assert.equal(replay.id,value.id);assert.equal(replay.revision,value.revision);
+ await h.command('service.report',{...payload,reason:'Changed retry'},{...buyer,status:409});
+ await h.command('service.report',{...payload,requestId:'synthetic-barrow-963',orderRevision:'synthetic-barrow-964'},{...buyer,status:409});
+ await h.command('service.report',{...payload,requestId:'synthetic-barrow-965',rmaId:'synthetic-barrow-966'},{...buyer,status:409});
+ // A simultaneous retry can conflict, but it must never create a second case.
+ const duplicate={...payload,requestId:'synthetic-barrow-967',kind:'defect',reason:'synthetic-barrow-968 private defect report'};
+ const concurrent=await Promise.all([1,2].map(()=>h.request('/api/barrow/commands',{method:'POST',as:buyer.as,body:{type:'service.report',payload:duplicate}})));
+ assert.ok(concurrent.some(row=>row.status===200));assert.ok(concurrent.every(row=>[200,409].includes(row.status)));
+ const second=await h.command('service.report',duplicate,buyer);assert.notEqual(second.id,value.id);assert.equal((await read()).cases.length,2);
+ const review={id:value.id,revision:value.revision,orderRevision:order.revision,ownerId:owner,responseDeadline:'2035-01-16',response};
+ await h.command('service.review',review,{...buyer,status:403});await h.api(path,undefined,{...other,status:404});await h.command('service.report',payload,{...other,status:404});
+ const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:'Bearer '+token}};
+ await h.command('service.report',payload,{...agent,status:403});await h.api(path,undefined,{...agent,status:403});
+ const {who:operations}=await activateStaff(h,email(969),{role:'operations',accounts:['cedar'],warehouses:'all',reports:['fulfillment'],discountLimitCents:0,stockExceptionLimitCents:0});
+ await h.api(path,undefined,{...operations,status:403});await h.command('service.review',review,{...operations,status:403});
+ const admin={as:await h.signIn(email(970),'admin')},adminId=(await read()).people.find(person=>person.id!==owner).id;
+ await h.command('service.review',{...review,ownerId:value.createdBy},{status:400});await h.command('service.review',{...review,responseDeadline:'2035-02-30'},{status:400});
+ value=await h.command('service.review',{...review,ownerId:adminId});assert.equal(value.ownerId,adminId);assert.equal(value.history.length,2);assert.equal(value.history[1].by,owner);assert.equal(value.history[1].reason,response);
+ await h.command('service.review',review,{status:409});
+ await h.command('service.close',{id:value.id,revision:value.revision,orderRevision:order.revision},{status:409});
+ await h.configure({BARROW_TEST_CLOCK:'2035-01-17T04:59:00Z'}); // Still Jan 16 in the supplier calendar.
+ assert.equal((await read()).cases.find(row=>row.id===value.id).overdue,false);
+ await h.command('followup.refresh',{});
+ await h.configure({BARROW_TEST_CLOCK:'2035-01-17T05:00:00Z'});
+ await h.command('followup.refresh',{});await h.command('followup.refresh',{});
+ let tasks=(await h.api('/api/barrow/followups?view=all')).tasks.filter(row=>row.id==='service:'+value.id);
+ assert.equal(tasks.length,1);assert.equal(tasks[0].ownerId,adminId);assert.equal(tasks[0].nextContactDate,'2035-01-16');assert.equal(tasks[0].status,'open');assert.equal(tasks[0].escalated.since,'2035-01-16');
+ await h.command('followup.update',{id:tasks[0].id,revision:tasks[0].revision,close:true,resolution:'Contact is not exchange resolution.'},{status:409});
+ assert.equal((await read()).cases.find(row=>row.id===value.id).overdue,true);
+ await h.configure({PIER_SESSION:undefined});let unknown=(await read()).cases.find(row=>row.id===value.id);assert.equal(unknown.evidence.available,false);assert.equal(unknown.state,'unresolved');assert.equal(unknown.ownerId,adminId);
+ await h.configure({PIER_SESSION:pier.cookie});
+ const account=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:[{sku:'OAT-1',unitCents:9900,minQty:2}]}});
+ value=(await read()).cases.find(row=>row.id===value.id);assert.equal(value.basis.unitCents,6500);assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),original);assert.deepEqual(stockFacts(await pier.api('/api/pier/state')),inventory);assert.deepEqual(await h.api('/api/barrow/credits?orderId='+order.id),financial);
+ const currentRma=(await f.claims()).claims.find(row=>row.id===rma.id);assert.equal(currentRma.disputedQuantity,1);assert.equal(currentRma.tasks.find(row=>row.id==='return-dispute:'+rma.id).status,'open');
+ let exported=await h.api('/api/barrow/export.json');assert.equal(exported.servicecases.length,2);assert.equal(exported.servicecases[0].accountId,'cedar');assert.ok(exported.servicecases.some(row=>row.id===value.id&&row.revision===value.revision&&JSON.parse(row.basis).unitCents===6500));
+ const csv=await(await h.request('/api/barrow/export/servicecases.csv')).text();assert.ok(csv.includes(value.id));assert.ok(csv.includes(rma.id));assert.ok(csv.includes(response));
+ const buyerExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(buyerExport.servicecases.length,2);assert.equal(buyerExport.servicecases.find(row=>row.id===value.id).ownerId,'supplier');assert.ok(!JSON.stringify(buyerExport.servicecases).includes(adminId));assert.equal((await h.api('/api/barrow/export.json',undefined,other)).servicecases.length,0);
+ assert.ok(JSON.stringify(await h.api('/api/barrow/audit?search='+value.id)).includes('service.review'));
+ const saved=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,saved);
+ exported=await restored.api('/api/barrow/export.json');assert.equal(exported.servicecases.find(row=>row.id===value.id).restored,true);
+ await restored.command('service.review',{...review,revision:value.revision},{status:409});
+ // Removing current purchaser rights closes reads, reports and stable retries immediately.
+ let member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.userId===value.createdBy);
+ const policy={rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null};
+ member=await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy,reason:'Remove purchasing authority for the service report.'});
+ await h.api(path,undefined,{...buyer,status:403});await h.command('service.report',payload,{...buyer,status:403});assert.equal((await h.api('/api/barrow/export.json',undefined,buyer)).servicecases.length,0);
+ // Person erasure removes only their contribution and fences replay, retaining the supplier response.
+ const successor=email(971);
+ await h.command('company.invite',{accountId:'cedar',email:successor,name:'Successor administrator',policy:{rights:['administrator'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Retain an administrator before erasing the service requester.'});
+ const invitation=new URL(h.mail.requests.findLast(row=>row.message.subject==='Your company buyer invitation'&&row.message.to.includes(successor)).message.text.match(/https?:\/\/[^\s<>]+\/app\?[^\s<>]+/)[0]);
+ await h.command('company.accept',{invitationId:invitation.searchParams.get('companyInvitation'),token:invitation.searchParams.get('companyToken')},{as:await h.signIn(successor,'existing')});
+ await h.command('company.erase',{memberId:member.id,revision:member.revision,confirm:'ERASE',reason:'Erase the service requester’s personal narrative.'});
+ let personal=(await h.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(personal.reason,'[Erased service text]');assert.equal(personal.restored,true);assert.ok(personal.history.includes(response));
+ const personReplay=await installation();t.after(()=>personReplay.close());await restore(personReplay,saved,{journalSource:h});
+ personal=(await personReplay.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(personal.reason,'[Erased service text]');assert.ok(personal.history.includes(response));
+ await h.api(path,undefined,{...buyer,status:401});
+ // Owner review erases report and response narratives; a later journal fences an old archive.
+ await h.command('retention.request',{accountId:'cedar',requester:'Buyer',channel:'Verified request',verificationNote:'Supplier verified the service requester.',held:false,reason:'Review service narrative erasure.'});
+ const preview=await h.command('retention.preview',{accountId:'cedar'});assert.ok(preview.items.some(row=>row.id==='service:'+value.id));
+ await h.command('retention.erase-account',{accountId:'cedar',accountRevision:preview.accountRevision,requestRevision:preview.requestRevision,policyRevision:preview.policyRevision,reviewHash:preview.reviewHash,confirm:'ERASE',reason:'Erase service report and response narratives.'});
+ const erased=(await h.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(erased.reason,'[Erased service text]');assert.equal(erased.restored,true);assert.ok(!erased.history.includes(response));assert.equal(JSON.parse(erased.basis).unitCents,6500);assert.equal(erased.rmaId,rma.id);
+ const audit=await h.api('/api/barrow/audit?orderId='+order.id+'&limit=200');assert.ok(!JSON.stringify(audit).includes(reason));assert.ok(!JSON.stringify(audit).includes(response));
+ const later=await installation();t.after(()=>later.close());await restore(later,saved,{journalSource:h});
+ const fenced=(await later.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(fenced.reason,'[Erased service text]');assert.ok(!fenced.history.includes(response));assert.equal(fenced.restored,true);await later.command('service.review',{...review,revision:fenced.revision},{status:409});
+ const auditReplay=await later.api('/api/barrow/audit?orderId='+order.id+'&limit=200');assert.ok(!JSON.stringify(auditReplay).includes(reason));assert.ok(!JSON.stringify(auditReplay).includes(response));
+});
