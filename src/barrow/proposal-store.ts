@@ -3,6 +3,7 @@ import { account } from './accounts'
 import { audit, changed, commit } from './access'
 import { fail, requirePerson, requireSupplier, type Actor } from './model'
 import type { AgentProposal } from './agent-proposal-model'
+import { readOrder } from './orders'
 import { readProposalGrant, grantGuard } from './proposal-grants'
 
 export async function readProposal(env: Bindings, actor: Actor, id: string, number?: number): Promise<AgentProposal> {
@@ -12,6 +13,14 @@ export async function readProposal(env: Bindings, actor: Actor, id: string, numb
  await account(env.DB,actor,proposal.accountId)
  if (actor.agent && proposal.grantId !== actor.grantId) fail('NOT_FOUND','Agent proposal not found.',404)
  return proposal
+}
+/** Current native review state, shared by the person page and scoped agent reads. */
+export async function proposalView(env: Bindings, actor: Actor, proposal: AgentProposal) {
+ const order=await readOrder(env.DB,actor,proposal.orderId)
+ const offer=order.substitutions?.find(offer=>offer.number===proposal.offerNumber&&offer.agentProposal?.id===proposal.id&&offer.agentProposal.number===proposal.number)
+ let grantActive=true;try {await proposalGrant(env,proposal)}catch {grantActive=false}
+ const attempts=(await env.DB.prepare('SELECT id,at,actor_id AS actorId,code,reason FROM bw_agent_proposal_attempts WHERE proposal_id=? AND proposal_number=? ORDER BY rowid').bind(proposal.id,proposal.number).all<any>()).results
+ return {...proposal,attempts,grantActive,...(offer?.decidedBy?{buyerApproval:{by:offer.decidedBy,at:offer.decidedAt!,status:offer.status}}:{})}
 }
 export function proposalGuard(env: Bindings, proposal: AgentProposal) {
  return env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_agent_proposals WHERE id=? AND number=? AND revision=?) THEN 1 ELSE 0 END').bind(proposal.id,proposal.number,proposal.revision)

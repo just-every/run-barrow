@@ -10,20 +10,14 @@ import { substitutionCommand } from './substitutions'
 import { fail, integer, Problem, requirePerson, text, type Actor, type Order } from './model'
 import { grantSpendStatements, readProposalGrant } from './proposal-grants'
 import { proposalCandidates, proposalFingerprint, proposalInput } from './proposal-sources'
-import { proposalGrant, proposalGuard, proposalManager, proposalRefusal, proposalUpdate, readProposal } from './proposal-store'
+import { proposalGrant, proposalGuard, proposalManager, proposalRefusal, proposalUpdate, readProposal, proposalView } from './proposal-store'
 import type { AgentProposal } from './agent-proposal-model'
 
 export async function listAgentProposals(env: Bindings, actor: Actor, orderId: string) {
  proposalManager(actor)
  await readOrder(env.DB,actor,orderId)
  const rows=(await env.DB.prepare('SELECT value_json FROM bw_agent_proposals WHERE order_id=? ORDER BY rowid').bind(orderId).all<{value_json:string}>()).results
- return {proposals:await Promise.all(rows.map(async row=>{
-  const proposal=JSON.parse(row.value_json) as AgentProposal,order=await readOrder(env.DB,actor,orderId)
-  const offer=order.substitutions?.find(offer=>offer.number===proposal.offerNumber&&offer.agentProposal?.id===proposal.id&&offer.agentProposal.number===proposal.number)
-  let grantActive=true;try {await proposalGrant(env,proposal)}catch {grantActive=false}
-  const attempts=(await env.DB.prepare('SELECT id,at,actor_id AS actorId,code,reason FROM bw_agent_proposal_attempts WHERE proposal_id=? AND proposal_number=? ORDER BY rowid').bind(proposal.id,proposal.number).all<any>()).results
-  return {...proposal,attempts,grantActive,...(offer?.decidedBy?{buyerApproval:{by:offer.decidedBy,at:offer.decidedAt!,status:offer.status}}:{})}
- }))}
+ return {proposals:await Promise.all(rows.map(row=>proposalView(env,actor,JSON.parse(row.value_json) as AgentProposal)))}
 }
 async function submit(env: Bindings, actor: Actor, p: any) {
  if (!actor.agent || !actor.grantId) fail('PROPOSAL_AGENT','Use an explicit account-scoped proposal credential.',403)

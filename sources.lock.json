@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9de5ac2e4bc91afe85638471c526b8b0bb0caab568f65441ff3c20f829280639",
+      "sha256": "f64bbcf7c70542b6dbd2ddc3886d79b25ed4a720d6a300797cd5013a2f7b46fb",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "0b053b220c7acf29e1b340339f13c7eb6a93121eb40e07c956ab3d47cb82057d",
+      "sha256": "e9bebdae7e117442057bde171badce3d909dcbed0032afb661cfe88ebefce16f",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1803,7 +1803,7 @@
       "executable": false
     },
     "src/barrow/agent-door/proposals.ts": {
-      "sha256": "aa04ca261a2c6ebe6701715ebe560636b703b4a425dacf4e09debd8c6086a3e7",
+      "sha256": "49e031ad533245c59550276474399d6776461d049d711ac255a6efc0159a7a53",
       "executable": false
     },
     "src/barrow/agent-door/records.ts": {
@@ -1823,7 +1823,7 @@
       "executable": false
     },
     "src/barrow/agent-proposals.ts": {
-      "sha256": "6dcade52ccc0d3fb411ffbf9023a67c26c2075df81d3ab07849fcaf468cf2255",
+      "sha256": "9a462bd153e96afa61ef752dce80656935aa99981742a19c12e7fd62309beecd",
       "executable": false
     },
     "src/barrow/api.ts": {
@@ -2467,7 +2467,7 @@
       "executable": false
     },
     "src/barrow/proposal-store.ts": {
-      "sha256": "eae6b28c56fa9866fa9b626d3c467dc7c0a9d4a97338330aa390104215a91616",
+      "sha256": "9583c85860e522ed6328e6db5023e07b7877f1501bcd814b06c7f0a6b97055fe",
       "executable": false
     },
     "src/barrow/purchase.ts": {
@@ -5783,7 +5783,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "4aa583ff3cc4dc432497d233e8d4da31d2b1d0b12bfdf38077fe577dadd42938",
+      "sha256": "c88e4f014da0e5c2a7a4318db953d738842e38d486b87e2c0aaf2769db8b9346",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {

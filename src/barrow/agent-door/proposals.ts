@@ -3,7 +3,7 @@ import type { ToolDefinition, ToolContext, ResourceContext } from '../../modules
 import { ToolRefusal } from '../../modules/agent-door/index.ts'
 import { readProposalGrant,grantGuard } from '../proposal-grants.ts'
 import { agentProposalCommand } from '../agent-proposals.ts'
-import { readProposal } from '../proposal-store.ts'
+import { readProposal, proposalView } from '../proposal-store.ts'
 import { native,nativeActor } from './native.ts'
 import { readAccount,order } from './records.ts'
 
@@ -17,7 +17,8 @@ export async function proposalActor(env:Bindings,id:string,ctx:Pick<ToolContext|
 export async function proposalRecord(env:Bindings,id:string,ctx:ResourceContext|ToolContext) {
  return native(async()=>{const row=await env.DB.prepare('SELECT grant_id FROM bw_agent_proposals WHERE id=? ORDER BY number DESC LIMIT 1').bind(id).first<{grant_id:string}>()
   if(!row)throw new ToolRefusal('not_found')
-  return readProposal(env,await proposalActor(env,row.grant_id,ctx),id)
+  const actor=await proposalActor(env,row.grant_id,ctx)
+  return proposalView(env,actor,await readProposal(env,actor,id))
  })
 }
 export function proposalTools(env:Bindings):ToolDefinition[] {
@@ -37,7 +38,7 @@ export function proposalTools(env:Bindings):ToolDefinition[] {
   run:async(a,c)=>native(async()=>{const actor=await proposalActor(env,String(a.grantId),c),{grantId,...args}=a
    const value=await agentProposalCommand(env,actor,'proposal.submit',args)
    c.emit('proposal.submitted',`barrow://proposals/${value.id}`,{operationId:c.operationId})
-   return {result:JSON.parse(JSON.stringify(value)),resources:[{uri:`barrow://proposals/${value.id}`,name:'Prepared substitution proposal'}]}
+   return {result:await proposalRecord(env,value.id,c),resources:[{uri:`barrow://proposals/${value.id}`,name:'Prepared substitution proposal'}]}
   })},
  {name:'barrow.proposals.read',title:'Read a prepared proposal',description:'Read a proposal within its current explicit native account grant.',scope:'proposals:submit',readOnly:true,classes:['standard'],clauses:['AGT-008'],inputSchema:{type:'object',properties:{id:str},required:['id'],additionalProperties:false},outputSchema:{type:'object'},untrusted:true,
   classify:async(a,c)=>{await proposalRecord(env,String(a.id),c);return [{class:'standard',facts:{measure:1}}]},run:async(a,c)=>({result:await proposalRecord(env,String(a.id),c)})}]
