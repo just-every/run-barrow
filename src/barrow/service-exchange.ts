@@ -18,7 +18,7 @@ export type ExchangeOffer = {
  originalMerchandiseCents: number; merchandiseCents: number; priceDifferenceCents: number;
  freightCents: number | null; delivery?: Delivery; freightQuotes?: FreightQuote[];
  termsDays: number; buyingProfile?: Order['buyingProfile']; accountRevision: string;
- orderRevision: string; proposedBy: string; proposedAt: string; reason: string;
+ orderRevision: string; proposedBy: string; proposedVersion: number; proposedAt: string; reason: string;
  buyerApproval?: { by: string; version: number; at: string; basis: string }
 }
 
@@ -50,7 +50,10 @@ export async function exchangePreview(env: Bindings, actor: Actor, order: Order,
 }
 
 export async function revalidateExchange(env: Bindings, actor: Actor, order: Order, value: ServiceCase, offer: ExchangeOffer) {
+ const proposer=await env.DB.prepare("SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status='active' AND role IN ('owner','admin')").bind(offer.proposedBy,offer.proposedVersion).first()
+ if(!proposer)fail('SERVICE_REVIEWER_REVOKED','The proposing supplier no longer holds the recorded authority. Ask a current reviewer for a new proposal.',409)
  const current=await exchangePreview(env,actor,order,value,{sku:offer.line.sku,unit:offer.line.unit,quantity:offer.line.quantity,delivery:offer.delivery},offer.freightQuotes)
  if(current.basis!==offer.basis)fail('SERVICE_EXCHANGE_CHANGED','Replacement prices, terms, seller, freight or the original order changed. Ask for a freshly reviewed proposal.',409)
+ current.guards.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status='active' AND role IN ('owner','admin')) THEN 1 ELSE 0 END").bind(offer.proposedBy,offer.proposedVersion))
  return current
 }

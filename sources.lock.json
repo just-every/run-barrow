@@ -2610,8 +2610,12 @@
       "sha256": "e3dba8eb9473e52214ba45fe0274f2060359c48ca7c3136fd9ddb1859a613bd8",
       "executable": false
     },
+    "src/barrow/service-exchange.ts": {
+      "sha256": "2ae87ef622d7d0720d500b210cb5e61d09a1390beddee6281e01ab555d145da7",
+      "executable": false
+    },
     "src/barrow/service-resolution.ts": {
-      "sha256": "bccb8174b53d72a2e19fd911ca88d2cee421e49533eb5a4e8417f4fd0393c284",
+      "sha256": "bd251d629eee996b6d4c031d7dc8dd88bb773c009d731a2dfc7adb35e9fe9782",
       "executable": false
     },
     "src/barrow/shipment-tracking.ts": {
@@ -3020,6 +3024,10 @@
     },
     "src/barrow/ui/sell-through.tsx": {
       "sha256": "95b6d8cedc56d74c1849778052ca56bb29034eec11db66f62c97aa9c1493e1b4",
+      "executable": false
+    },
+    "src/barrow/ui/service-exchange.tsx": {
+      "sha256": "e36e02219dec91f77e72a32d189b35bdf353906457af91057577c645f179b08d",
       "executable": false
     },
     "src/barrow/ui/service-resolution.tsx": {
@@ -6074,8 +6082,12 @@
       "sha256": "d9f6b7a47372754e06ec29dc82c8f6c9818ce777523634e6d9184e1116b3243c",
       "executable": false
     },
+    "tests/api/service-resolution-fixture.mjs": {
+      "sha256": "b8b92e9f955d85e707f2fc6840c64f88f2f86d0b051fab5cdf29d39bc10102b2",
+      "executable": false
+    },
     "tests/api/service-resolution.test.mjs": {
-      "sha256": "a112ab33a28f6049dd818440a61b6dbe637eb3ba8f5c0316a4ebaacde5c1e9cf",
+      "sha256": "af7b3ffbf61875169bce3e367fa4ea02a203964e3ad5490b92776a4d0e48cd73",
       "executable": false
     },
     "tests/api/sftp-fixture.mjs": {

@@ -42,8 +42,15 @@ function deadline(value: unknown) {
 }
 export function visibleServiceCase(value: ServiceCase, actor: Actor) {
  const {requestKey,requestFingerprint,...record}=value
- const shown={...record,exchanges:value.exchanges?.map(({requestKey,requestFingerprint,...offer})=>serviceReviewer(actor)?offer:{...offer,proposedBy:'supplier',freightQuotes:offer.freightQuotes?.map(quote=>({...quote,by:'supplier'})),delivery:offer.delivery?{...offer.delivery,quote:offer.delivery.quote?{...offer.delivery.quote,by:'supplier'}:undefined}:undefined,buyerApproval:offer.buyerApproval?{...offer.buyerApproval,by:offer.buyerApproval.by===actor.id?actor.id:'company buyer'}:undefined})}
- return serviceReviewer(actor)?shown:{...shown,ownerId:'supplier',createdBy:value.createdBy===actor.id?actor.id:'company buyer',history:value.history.map(event=>({...event,by:event.by===actor.id?actor.id:'supplier'}))}
+ const reviewer=serviceReviewer(actor)
+ const exchanges=value.exchanges?.map(({requestKey,requestFingerprint,...offer})=>reviewer?offer:{
+  ...offer,proposedBy:'supplier',
+  freightQuotes:offer.freightQuotes?.map(quote=>({...quote,by:'supplier'})),
+  delivery:offer.delivery?{...offer.delivery,quote:offer.delivery.quote?{...offer.delivery.quote,by:'supplier'}:undefined}:undefined,
+  buyerApproval:offer.buyerApproval?{...offer.buyerApproval,by:offer.buyerApproval.by===actor.id?actor.id:'company buyer'}:undefined
+ })
+ const shown={...record,exchanges}
+ return reviewer?shown:{...shown,ownerId:'supplier',createdBy:value.createdBy===actor.id?actor.id:'company buyer',history:value.history.map(event=>({...event,by:event.by===actor.id?actor.id:'supplier'}))}
 }
 async function dispatchEvidence(env: Bindings, order: Order, value: ServiceCase) {
  try {
@@ -150,7 +157,7 @@ export async function serviceCommand(env: Bindings, actor: Actor, type: string, 
    const preview=await exchangePreview(env,actor,order,before!,p)
    const {guards:exchangeGuards,deliveryOptions,tax,freightQuotes,basis,...commercial}=preview
    guards.push(...exchangeGuards)
-   const offer:ExchangeOffer={...commercial,basis,freightQuotes,number:(before!.exchanges?.at(-1)?.number??0)+1,status:'offered',requestKey,requestFingerprint,proposedBy:actor.id,proposedAt:at,reason:text(p.reason,'Replacement proposal reason',2000)}
+   const offer:ExchangeOffer={...commercial,basis,freightQuotes,number:(before!.exchanges?.at(-1)?.number??0)+1,status:'offered',requestKey,requestFingerprint,proposedBy:actor.id,proposedVersion:actor.version,proposedAt:at,reason:text(p.reason,'Replacement proposal reason',2000)}
    value={...before!,revision,exchanges:[...(before!.exchanges??[]),offer]}
   } else if(type==='service.exchange-approve') {
    if(serviceReviewer(actor))fail('BUYER_REQUIRED','A currently entitled company purchaser must approve the exact replacement price and freight.',403)
