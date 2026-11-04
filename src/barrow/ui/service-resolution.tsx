@@ -14,6 +14,7 @@ function ServiceReview({value,report,busy,act}:{value:Case;report:Report;busy:bo
   <p>Case {value.id} · original line {value.line} · buyer reported {value.quantity} {value.basis.unit??'units'}</p>
   <p>{value.reason}</p>
   <p>{value.evidence.available?`Pier confirms dispatch of ${value.evidence.dispatchedBaseQuantity} physical units.`:'Pier dispatch evidence unavailable.'} {value.evidence.note}</p>
+  {value.evidence.available&&<p>Source order: {value.evidence.orderedBaseQuantity} physical units; {value.evidence.pendingDispatchBaseQuantity} awaiting dispatch; {value.evidence.cancelledBaseQuantity} cancelled. These quantities do not change the buyer report.</p>}
   {value.rma&&<p>Linked RMA {value.rma.id} · requested {value.rma.quantity} · approved {value.rma.approvedQuantity??'awaiting decision'} · disputed {value.rma.disputedQuantity??'awaiting decision'}. Return decisions remain separate.</p>}
   <p>Requested replacement: {value.requestedReplacement?`${value.requestedReplacement.quantity} × ${value.requestedReplacement.sku}`:'None specified'}. Request only; no replacement order has been accepted.</p>
   <p>Owner: {report.people.find(person=>person.id===value.ownerId)?.name??'Supplier reviewer'} · response deadline {value.responseDeadline} ({value.timeZone}){value.overdue?' · Overdue response':''}</p>

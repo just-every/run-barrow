@@ -6,7 +6,7 @@ import {returnClaimsFixture} from '../api/return-claims-fixture.mjs';
 import {signedContext,captureRegionWidths} from './browser-helpers.mjs';
 
 test('buyer reports a shortage with an RMA and requested replacement, supplier assigns a response deadline and both see unresolved attributed service history',async t=>{
- const f=await returnClaimsFixture(t,{built:true,clock:'2035-01-15T12:00:00Z'}),{h,buyer,order}=f;
+ const f=await returnClaimsFixture(t,{built:true,clock:'2035-01-15T12:00:00Z',dispatchedQuantity:4}),{h,buyer,order}=f;
  await replacementCatalogue(h,f.pier);await replacementShipping(h);
  let rma=await f.request();rma=await h.command('return.decide',{id:rma.id,revision:rma.revision,orderRevision:order.revision,quantity:2,instructions:'Return two for separate inspection.',reason:'Keep the remainder disputed.'});
  const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM?{executablePath:process.env.BARROW_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
@@ -21,7 +21,7 @@ test('buyer reports a shortage with an RMA and requested replacement, supplier a
  }
  let panel=await open(buyerPage);await panel.getByText('Report a shortage or defect',{exact:true}).click();
  await panel.getByLabel('Reported units',{exact:true}).fill('1');await panel.getByLabel('Buyer report',{exact:true}).fill('One unit was missing from the delivered carton.');await panel.getByLabel('Linked RMA ID (optional)',{exact:true}).fill(rma.id);await panel.getByLabel('Requested replacement SKU (optional)',{exact:true}).fill('OAT-2');
- await panel.getByRole('button',{name:'Submit service report',exact:true}).click();await expect(panel).toContainText('buyer reported 1');await expect(panel).toContainText('Pier confirms dispatch of 6 physical units');await expect(panel).toContainText('1 × OAT-2');await expect(panel).toContainText('disputed 1');await expect(panel.getByText('Review service case',{exact:true})).toHaveCount(0);
+ await panel.getByRole('button',{name:'Submit service report',exact:true}).click();await expect(panel).toContainText('buyer reported 1');await expect(panel).toContainText('Pier confirms dispatch of 4 physical units');await expect(panel).toContainText('6 physical units; 2 awaiting dispatch; 0 cancelled');await expect(panel).toContainText('1 × OAT-2');await expect(panel).toContainText('disputed 1');await expect(panel.getByText('Review service case',{exact:true})).toHaveCount(0);
  panel=await open(ownerPage);await panel.getByText('Review service case',{exact:true}).click();await panel.getByLabel('Response deadline',{exact:true}).fill('2035-01-18');await panel.getByLabel('Buyer-visible response',{exact:true}).fill('We are reviewing your requested replacement. Price difference, tax and freight require approval before acceptance.');await panel.getByRole('button',{name:'Record service response',exact:true}).click();
  await expect(panel).toContainText('2035-01-18');await expect(panel).toContainText('Supplier owner');await expect(panel).toContainText('Unresolved.');await expect(panel.getByRole('list',{name:'Service response history'})).toContainText('require approval before acceptance');
  await panel.getByText('Propose replacement',{exact:true}).click();
@@ -31,7 +31,7 @@ test('buyer reports a shortage with an RMA and requested replacement, supplier a
  await panel.getByRole('button',{name:'Record replacement proposal',exact:true}).click();
  await expect(panel).toContainText('Replacement proposal 1');await expect(panel).toContainText('Replacement freight: USD 10.00');
  await captureRegionWidths(ownerPage,panel,'service-owner-review');
- panel=await open(buyerPage);await expect(panel).toContainText('2035-01-18');await expect(panel).toContainText('require approval before acceptance');await expect(panel).toContainText('no replacement order has been accepted');await expect(panel).toContainText('Unresolved.');
+ panel=await open(buyerPage);await expect(panel).toContainText('2035-01-18');await expect(panel).toContainText('require approval before acceptance');await expect(panel).toContainText('no replacement order has been accepted');await expect(panel).toContainText('Unresolved.');await expect(panel).toContainText('6 physical units; 2 awaiting dispatch; 0 cancelled');
  await expect(panel).toContainText('Merchandise difference: USD 14.00');await expect(panel).toContainText('Replacement freight: USD 10.00');
  await panel.getByRole('checkbox',{name:'I approve the displayed merchandise difference',exact:false}).check();
  await panel.getByRole('button',{name:'Approve replacement price and freight',exact:true}).click();

@@ -106,7 +106,7 @@ The commercial export includes `returnclaims` JSON records and `GET /api/barrow/
 
 ## Report a shortage or defect
 
-On an acknowledged order, open **Shortages and service**. A currently entitled company purchaser or approver can report units from one original line, optionally link an RMA for that same order and line, and record a requested replacement SKU and quantity. Pier dispatch quantities appear separately: a dispatch does not prove buyer receipt or invalidate a shortage report. A service report leaves stock, invoices, credit and existing RMA disputes unchanged.
+On an acknowledged order, open **Shortages and service**. A currently entitled company purchaser or approver can report units from one original line, optionally link an RMA for that same order and line, and record a requested replacement SKU and quantity. Pier shows original ordered physical units, dispatched units, units awaiting dispatch and cancelled units separately from the buyer report. Unavailable source quantities stay unknown. Completing dispatch does not resolve the case, prove buyer receipt or invalidate a shortage report. A service report leaves stock, invoices, credit and existing RMA disputes unchanged.
 
 An owner or admin uses **Review service case** to assign an active supplier owner or admin, set a response deadline in the supplier calendar and record a buyer-visible response. Earlier responses keep their author and time. **Next actions → Refresh** escalates overdue cases once while preserving their assignment. Review service ownership and responses through the order; a follow-up cannot close the case.
 

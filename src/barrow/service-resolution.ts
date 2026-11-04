@@ -57,8 +57,8 @@ async function dispatchEvidence(env: Bindings, order: Order, value: ServiceCase)
   const [state,origin]=await Promise.all([pierState(env),pierOrigin(env)])
   const sources=commissionSources(order,state,origin),line=sources.get(value.basis.itemId)
   if(origin!==value.pierOrigin||order.pierOrderId!==value.pierOrderId||!line)throw Error('Missing source')
-  return {available:true,sourceOrderId:line.sourceOrderId,sourceLineId:line.sourceLineId,dispatchedBaseQuantity:format(line.dispatched),orderedBaseQuantity:format(line.base),note:'These physical quantities describe the linked inventory source line. Source-confirmed dispatch is a separate fact. It does not confirm buyer receipt or disprove a reported shortage.'}
- } catch { return {available:false,dispatchedBaseQuantity:null,orderedBaseQuantity:value.basis.baseQuantity??String(value.basis.quantity),note:'Connected dispatch evidence is unavailable. The buyer report remains unresolved.'} }
+  return {available:true,sourceOrderId:line.sourceOrderId,sourceLineId:line.sourceLineId,dispatchedBaseQuantity:format(line.dispatched),orderedBaseQuantity:format(line.base),pendingDispatchBaseQuantity:format(line.base-line.dispatched-line.cancelled),cancelledBaseQuantity:format(line.cancelled),note:'These physical quantities describe the linked inventory source line. Source-confirmed dispatch is a separate fact. It does not confirm buyer receipt or disprove a reported shortage.'}
+ } catch { return {available:false,dispatchedBaseQuantity:null,orderedBaseQuantity:value.basis.baseQuantity??String(value.basis.quantity),pendingDispatchBaseQuantity:null,cancelledBaseQuantity:null,note:'Connected dispatch evidence is unavailable. The buyer report remains unresolved.'} }
 }
 export async function readServiceCases(env: Bindings, actor: Actor, orderId: string) {
  const order=await authorizedOrder(env,actor,orderId),all=(await serviceRecords(env.DB)).filter(value=>value.orderId===order.id),rmas=await returnRecords(env.DB)

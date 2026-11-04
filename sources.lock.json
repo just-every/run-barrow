@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "641a0b3bcb30475b78345771b10cb809916685b3cce4837169cd9ebc7bba4365",
+      "sha256": "381a693d97a67b61d2e5419403f3c2ce13ff38f95917cd7a9d72113470ec57b6",
       "executable": false
     },
     "DEMO.md": {
@@ -259,7 +259,7 @@
       "executable": false
     },
     "docs/ORDERS.md": {
-      "sha256": "91a63cd9b91e21c166f3603aae8438ce7548f56d6e885734b99a22843a1d8195",
+      "sha256": "4f042a74d764e6f67df9da5f56a94307337bf61356444779530dd2a26fb5b741",
       "executable": false
     },
     "docs/PAYMENT-PROMISES.md": {
@@ -343,7 +343,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "9db0facc462821707b9a945e86347c241af519d8ba427d39e1fc048ed5537e70",
+      "sha256": "f7ad4fcbad2715206a86aca39172d533fa089c4b70a1e1f7ca3712dbab23cc6f",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -2615,7 +2615,7 @@
       "executable": false
     },
     "src/barrow/service-resolution.ts": {
-      "sha256": "bd251d629eee996b6d4c031d7dc8dd88bb773c009d731a2dfc7adb35e9fe9782",
+      "sha256": "25398e5810cecaac2f7fffe7bd1798b1a96b264a18882b2aab29bd91a8ddad96",
       "executable": false
     },
     "src/barrow/shipment-tracking.ts": {
@@ -3031,7 +3031,7 @@
       "executable": false
     },
     "src/barrow/ui/service-resolution.tsx": {
-      "sha256": "63d86b15742ec4e32283ae093c8ec9356ebdc0f0638e6cd422b5a439f089a122",
+      "sha256": "63e7dd763c17dc2599947bdad0bd4b70791a393693a2ec9a09e2b43d3aa02e31",
       "executable": false
     },
     "src/barrow/ui/shipment-tracking.tsx": {
@@ -6063,7 +6063,7 @@
       "executable": false
     },
     "tests/api/return-claims-fixture.mjs": {
-      "sha256": "a2ced3adb8ee33b4f0b97f8d151cf9ee6411293b5e44087cdbcc7203a31bc69f",
+      "sha256": "8ed887e57a0ccfee0e11e9beb92d87ed27347c5edff63063078ad8a7b177b41a",
       "executable": false
     },
     "tests/api/return-claims.test.mjs": {
@@ -6087,7 +6087,7 @@
       "executable": false
     },
     "tests/api/service-resolution.test.mjs": {
-      "sha256": "af7b3ffbf61875169bce3e367fa4ea02a203964e3ad5490b92776a4d0e48cd73",
+      "sha256": "2d6b8c2e30e5234169c0788f8182a1a2a3c1bb6a5501ba25f92938abf5b39d26",
       "executable": false
     },
     "tests/api/sftp-fixture.mjs": {
@@ -6331,7 +6331,7 @@
       "executable": false
     },
     "tests/journeys/service-resolution.test.mjs": {
-      "sha256": "dfd38b46dd4935cc4b23f67d36552247df1dcdef03492e3c3d278bdf810cd9ba",
+      "sha256": "fe04b0eb07f243d09c01e91b0b35a96f454ed0dadd6b7e04202e2d29dbe35277",
       "executable": false
     },
     "tests/journeys/shipment-tracking-proof.mjs": {

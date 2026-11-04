@@ -100,7 +100,7 @@ test('service cases retain original orders and disputed RMAs, current purchaser 
  assert.equal(tasks.length,1);assert.equal(tasks[0].ownerId,adminId);assert.equal(tasks[0].nextContactDate,'2035-01-16');assert.equal(tasks[0].status,'open');assert.equal(tasks[0].escalated.since,'2035-01-16');
  await h.command('followup.update',{id:tasks[0].id,revision:tasks[0].revision,close:true,resolution:'Contact is not exchange resolution.'},{status:409});
  assert.equal((await read()).cases.find(row=>row.id===value.id).overdue,true);
- await h.configure({PIER_SESSION:undefined});let unknown=(await read()).cases.find(row=>row.id===value.id);assert.equal(unknown.evidence.available,false);assert.equal(unknown.state,'unresolved');assert.equal(unknown.ownerId,adminId);
+ await h.configure({PIER_SESSION:undefined});let unknown=(await read()).cases.find(row=>row.id===value.id);assert.equal(unknown.evidence.available,false);assert.equal(unknown.evidence.pendingDispatchBaseQuantity,null);assert.equal(unknown.evidence.cancelledBaseQuantity,null);assert.equal(unknown.state,'unresolved');assert.equal(unknown.ownerId,adminId);
  await h.configure({PIER_SESSION:pier.cookie});
  const account=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:[{sku:'OAT-1',unitCents:9900,minQty:2}]}});
  value=(await read()).cases.find(row=>row.id===value.id);assert.equal(value.basis.unitCents,6500);assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),original);assert.deepEqual(stockFacts(await pier.api('/api/pier/state')),inventory);assert.deepEqual(await h.api('/api/barrow/credits?orderId='+order.id),financial);
@@ -110,7 +110,13 @@ test('service cases retain original orders and disputed RMAs, current purchaser 
  const dispatched=await pier.command('dispatch.create',{orderId:nextUpstream.id,shipmentReference:'synthetic-barrow-973',lines:[{orderLineId:nextUpstream.lines[0].id,quantity:'2'}]});
  const partialPayload={...payload,requestId:'synthetic-barrow-974',orderId:nextOrder.id,orderRevision:nextOrder.revision,quantity:2};
  await h.command('service.report',partialPayload,{...buyer,status:409});
- const partial=await h.command('service.report',{...partialPayload,rmaId:undefined},buyer);assert.equal(partial.evidence.dispatchedBaseQuantity,'2');assert.equal(partial.evidence.orderedBaseQuantity,'4');assert.equal(partial.evidence.sourceLineId,dispatched.lines[0].orderLineId);assert.equal(partial.state,'unresolved');
+ const partial=await h.command('service.report',{...partialPayload,rmaId:undefined},buyer);assert.equal(partial.evidence.dispatchedBaseQuantity,'2');assert.equal(partial.evidence.orderedBaseQuantity,'4');assert.equal(partial.evidence.pendingDispatchBaseQuantity,'2');assert.equal(partial.evidence.cancelledBaseQuantity,'0');assert.equal(partial.evidence.sourceLineId,dispatched.lines[0].orderLineId);assert.equal(partial.state,'unresolved');
+ // Later dispatch and cancellation change source facts only; neither resolves the case.
+ await pier.command('dispatch.create',{orderId:nextUpstream.id,shipmentReference:'synthetic-barrow-985',lines:[{orderLineId:nextUpstream.lines[0].id,quantity:'1'}]});
+ await pier.command('order.cancel',{orderId:nextUpstream.id,reason:'The source owner cancelled the final undispatched unit.'});
+ const complete=(await h.api('/api/barrow/orders/'+nextOrder.id+'/service-cases',undefined,buyer)).cases.find(row=>row.id===partial.id);
+ assert.equal(complete.evidence.dispatchedBaseQuantity,'3');assert.equal(complete.evidence.pendingDispatchBaseQuantity,'0');assert.equal(complete.evidence.cancelledBaseQuantity,'1');assert.equal(complete.quantity,2);assert.equal(complete.state,'unresolved');assert.equal(complete.revision,partial.revision);assert.deepEqual(complete.history,partial.history);
+ await h.command('service.close',{id:complete.id,revision:complete.revision,orderRevision:nextOrder.revision},{status:409});
  const currentRma=(await f.claims()).claims.find(row=>row.id===rma.id);assert.equal(currentRma.disputedQuantity,1);assert.equal(currentRma.tasks.find(row=>row.id==='return-dispute:'+rma.id).status,'open');
  let exported=await h.api('/api/barrow/export.json');assert.equal(exported.servicecases.length,3);assert.equal(exported.servicecases[0].accountId,'cedar');assert.ok(exported.servicecases.some(row=>row.id===value.id&&row.revision===value.revision&&JSON.parse(row.basis).unitCents===6500));
  const csv=await(await h.request('/api/barrow/export/servicecases.csv')).text();assert.ok(csv.includes(value.id));assert.ok(csv.includes(rma.id));assert.ok(csv.includes(response));assert.ok(csv.includes('2400'));assert.ok(csv.includes('price-approved'));
