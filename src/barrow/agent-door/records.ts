@@ -43,9 +43,9 @@ export const sharedLists = (env:Bindings,id:string,ctx:Context)=>native(async()=
 
 export function resources(env:Bindings):ResourceDefinition[] {
  const record=(kind:string,read:(id:string,ctx:ResourceContext)=>Promise<unknown>):ResourceDefinition=>({
-  uriTemplate:`barrow://${kind}/{id}`,name:`Barrow ${kind}`,description:'Native private record; imported and external text is untrusted.',classes:['standard'],scope:kind==='proposals'?'proposals:submit':kind==='catalogs'?'catalog:read':kind==='orders'?'orders:read':kind==='lists'?'lists:read':'accounts:read',
+  uriTemplate:`barrow://${kind}/{id}`,name:`Barrow ${kind}`,description:'Native private record; imported and external text is untrusted.',mimeType:'application/json',classes:['standard'],scope:kind==='proposals'?'proposals:submit':kind==='catalogs'?'catalog:read':kind==='orders'?'orders:read':kind==='lists'?'lists:read':'accounts:read',
   classify:record=>[{class:'standard',facts:{measure:record.json?1:0}}],
-  async read(uri,ctx){try{const url=new URL(uri);if(url.protocol!=='barrow:'||url.hostname!==kind||!/^\/[^/]+$/.test(url.pathname))return null;return {json:await read(decodeURIComponent(url.pathname.slice(1)),ctx),untrusted:true}}catch{return null}}
+  async read(uri,ctx){try{const url=new URL(uri);if(url.protocol!=='barrow:'||url.host!==kind||url.username||url.password||url.search||url.hash||!/^\/[^/]+$/.test(url.pathname))return null;return {json:await read(decodeURIComponent(url.pathname.slice(1)),ctx),untrusted:true}}catch{return null}}
  })
  return [record('accounts',(id,ctx)=>readAccount(env,id,ctx)),record('catalogs',(id,ctx)=>readCatalog(env,id,ctx)),record('orders',(id,ctx)=>order(env,id,ctx)),record('lists',(id,ctx)=>list(env,id,ctx)),record('proposals',(id,ctx)=>proposalRecord(env,id,ctx))]
 }

@@ -14,6 +14,9 @@ export default async function({request,origin,email,claim,token,fixtures,reviewe
   return response.json()
  }
  await command('account.save',{id:'juniper',value:{name:'Juniper Market',email:'synthetic-buyer@example.com',pierCustomerId:'juniper',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:2400,minQty:1},{sku:'HEMP',unitCents:2500,minQty:1}]}})
+ await command('account.save',{id:'zinnia',value:{name:'Separate wholesale account',email:'synthetic-barrow-2'+'@example.invalid',pierCustomerId:'zinnia',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:3100,minQty:1}]}})
+ await command('list.save',{accountId:'juniper',name:'Owner private instructions',shared:false,lines:[{sku:'HEMP',quantity:'3'}]})
+ await command('list.save',{accountId:'zinnia',name:'Foreign shared list',shared:true,lines:[{sku:'LINEN',quantity:'1'}]})
  await command('list.save',{accountId:'juniper',name:'Replenishment',shared:true,lines:[{sku:'LINEN',quantity:'2'}]})
  const prepared=await command('order.prepare',{accountId:'juniper',lines:[{sku:'LINEN',quantity:2}]})
  const original=prepared.result??prepared

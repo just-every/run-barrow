@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
+import {installation,restore} from '../api/harness.mjs'
 
 /** Owner erasure through native HTTP, with SELECT-only retained-state witnesses. */
 export async function proveCustodyErasure({request,origin,cookie,database}) {
@@ -35,6 +36,26 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
  const retainedDraft=await tool('barrow.orders.prepare',draftArgs,draftGrant.token)
  assert.equal(retainedDraft.status,200);assert.ok(!retainedDraft.body.result.isError)
 
+ const list=await command('list.save',{accountId,name:'Customer supplied resource text',shared:true,lines:[{sku:'LINEN',quantity:'1'}]})
+ async function readResource(uri,token=draftGrant.token) {
+  const response=await request(origin+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','MCP-Protocol-Version':'2026-07-28','Mcp-Method':'resources/read','Mcp-Name':uri},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'resources/read',params:{uri,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}})})
+  return {status:response.status,body:await response.json()}
+ }
+ const resourceDecisions=[]
+ const resources=[['accounts',accountId],['catalogs',accountId],['orders',retainedDraft.body.result.structuredContent.id],['lists',list.id],['proposals',prepared.body.result.structuredContent.id]]
+ for(const [kind,id] of resources) {
+  const value=await readResource('barrow://'+kind+'/'+id,kind==='proposals'?grant.token:draftGrant.token)
+  assert.equal(value.status,200);assert.ok(value.body.result?.contents?.length,JSON.stringify(value.body.error))
+  assert.equal(value.body.result.contents[0]._meta['com.runeditrun/untrusted'],true)
+  resourceDecisions.push(value.body.result._meta['com.runeditrun/decision'].id)
+ }
+ async function archive() {
+  const {id}=await native('/api/barrow/portability/exports',{})
+  let state;do {state=await native('/api/barrow/portability/exports/'+id+'/advance',{})}while(state.phase!=='complete')
+  const response=await request(origin+'/api/barrow/portability/exports/'+id+'/download',{headers})
+  assert.equal(response.status,200);return (await response.text()).trim().split('\n').map(line=>JSON.parse(line))
+ }
+ const beforeErasure=await archive()
  const usage=async()=>(await db.prepare('SELECT decision_id,at,seed,agent,classes FROM agent_door_usage WHERE agent=? ORDER BY decision_id').bind(agentId).all()).results
  const counts=await usage();assert.ok(counts.length>0)
  await command('retention.request',{accountId,requester:'Verified account representative',channel:'In-app owner review',verificationNote:'Owner verified identity and scope.',reason:'Owner reviewed erasure of unexecuted agent preparation.',held:false})
@@ -60,6 +81,26 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
  assert.deepEqual(await usage(),counts,'Erasure must not reset policy usage or lifetime counters')
  const replay=await tool('barrow.proposals.submit',args)
  assert.ok([401,403].includes(replay.status));assert.equal(JSON.stringify(replay.body).includes(personal),false)
+ for(const id of resourceDecisions) {
+  const row=await db.prepare('SELECT row,evidence FROM agent_door_audit WHERE id=?').bind(id).first()
+  assert.equal(JSON.parse(row.row).tombstone.erasure_id,receipt.id,'URI-linked resource audit must be redacted')
+  assert.equal(row.evidence,null)
+ }
+ for(const [kind,id] of resources) {
+  const value=await readResource('barrow://'+kind+'/'+id,kind==='proposals'?grant.token:draftGrant.token)
+  assert.equal(value.body.result,undefined,'Erased resource content stays unavailable')
+  assert.equal(JSON.stringify(value.body).includes(personal),false)
+ }
+ const afterErasure=await archive(),independent=await native('/api/barrow/erasure-journal')
+ const destination=await installation({built:true})
+ try {
+  await destination.api('/api/barrow/erasure-journal',{bundle:independent,confirm:'JOURNAL',reason:'Owner attached the complete later erasure journal before an old archive restore.'})
+  const refused=await restore(destination,beforeErasure,{status:400,journalSource:undefined,laterJournal:{sourceIdentity:afterErasure[0].sourceIdentity,epoch:afterErasure[0].epoch,journal:afterErasure[0].journal}})
+  assert.equal(refused.error.code,'erasure_epoch')
+  assert.equal((await destination.api('/api/barrow/state')).accounts.length,0)
+  for(const [kind,id] of resources)assert.equal((await destination.request('/mcp',{method:'POST',headers:{Authorization:'Bearer '+draftGrant.token,'MCP-Protocol-Version':'2026-07-28','Mcp-Method':'resources/read','Mcp-Name':'barrow://'+kind+'/'+id},body:{jsonrpc:'2.0',id:1,method:'resources/read',params:{uri:'barrow://'+kind+'/'+id,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}}})).status,401)
+ }finally{await destination.close()}
+ console.log('PROBE BASE-AGENT-003 erasure and restore: five resource reads, native owner erasure, pre-erasure archive plus later journal -> URI audits redacted, content withheld and old restore refused with erasure_epoch')
  const account=await native('/api/barrow/accounts/by-id/'+accountId)
  assert.match(account.value.email,/@erased\.invalid$/)
  console.log('NATIVE PASS owner erasure removes proposal content and personal retained results; preserves Base tombstones, exact commercial history and usage; revoked replay refuses')

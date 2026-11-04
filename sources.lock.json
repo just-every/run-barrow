@@ -131,7 +131,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "bfc5b67dda921a36fa0ab01a19fa9e0d4e16dbf7ae27ef0f0fb302b71d13e76a",
+      "sha256": "88161bda867488ff2fa7d507917e23bc3b47155a678e292f29f3b094d8751bea",
       "executable": false
     },
     "AGENTS.md": {
@@ -1787,7 +1787,7 @@
       "executable": false
     },
     "src/barrow/agent-door/erasure.ts": {
-      "sha256": "b0f925b92ec447b30615fac7252c4c4b0480ddad7a6400a7fb274ffee442a50a",
+      "sha256": "87b0abc2558cc1dcadc73ed2635be30979aeed710e383b6bdbb6ff9aae34c01c",
       "executable": false
     },
     "src/barrow/agent-door/http.ts": {
@@ -1795,7 +1795,7 @@
       "executable": false
     },
     "src/barrow/agent-door/index.ts": {
-      "sha256": "771bc8333b4ec10948eb31c3a1b22cd6cad6fefa999e2150a160dc8f1e942514",
+      "sha256": "0f8f49696b3a1a8c10ae9beb67412c48cd327a829fa47c42d987e5d2d8f77abd",
       "executable": false
     },
     "src/barrow/agent-door/native.ts": {
@@ -1807,7 +1807,7 @@
       "executable": false
     },
     "src/barrow/agent-door/records.ts": {
-      "sha256": "e2e4a2d4c82f615d0fc0d705b01a05b6ce39c45e33fe3c9f42c9aa19a98d70c6",
+      "sha256": "4319ec88f1a5973b9d3ed28f713ff7531c59286e0212a17791830b3b39510d31",
       "executable": false
     },
     "src/barrow/agent-door/tools.ts": {
@@ -5771,7 +5771,7 @@
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
-      "sha256": "f093651a2256b836ae4c995e1376bb481cde7ccaeae0a6f679ce3f8da722f361",
+      "sha256": "af2b148d05d537481b2ddd4e51292462de2a31c3e2000eea9326352578250471",
       "executable": false
     },
     "tests/agent-door/initialize-admin.mjs": {
@@ -5779,11 +5779,11 @@
       "executable": false
     },
     "tests/agent-door/initialize.mjs": {
-      "sha256": "3c8c33d54bdfec7597782d2d1db21b45e83991522f1821d25e140ef2d709affb",
+      "sha256": "d51083176ee917330d2f9edddbd9c4d6c180fb29a0b22914205a4fde10f38147",
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "e7531475ed4b6dc326871253c97649b79cd12b9f0b459cb2af012465b414728a",
+      "sha256": "298173dac319b09d2988b95393294c6803a0ec34c0fc0ac91f7d45038afcccf2",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {

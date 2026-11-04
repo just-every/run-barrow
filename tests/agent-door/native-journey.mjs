@@ -63,6 +63,59 @@ export default async function({request,origin,cookie,tool,database}) {
   const response=await request(origin+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','MCP-Protocol-Version':'2026-07-28','Mcp-Method':method,...(params.name?{'Mcp-Name':params.name}:{})},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params:{...params,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}})})
   return {status:response.status,body:await response.json()}
  }
+ async function person(path,body,session=cookie) {
+  const response=await request(origin+path,{method:body?'POST':'GET',headers:{...headers,Cookie:session},...(body?{body:JSON.stringify(body)}:{})})
+  assert.equal(response.status,200,'Native resource witness '+path);return response.json()
+ }
+ const command=async(type,payload)=>(await person('/api/barrow/commands',{type,payload})).result
+ const nativeOrder=await person('/api/barrow/orders/'+draft.id)
+ async function resource(uri,token=grant.token) {
+  const answer=await local('resources/read',{uri},token)
+  assert.equal(answer.status,200);assert.ok(answer.body.result,JSON.stringify(answer.body.error))
+  const content=answer.body.result.contents
+  assert.equal(content.length,1);assert.equal(content[0].uri,uri);assert.equal(content[0].mimeType,'application/json')
+  assert.equal(content[0]._meta['com.runeditrun/untrusted'],true)
+  return JSON.parse(content[0].text)
+ }
+ const nativeLists=(await person('/api/barrow/lists?accountId=juniper')).lists
+ const shared=nativeLists.find(value=>value.shared),privateList=nativeLists.find(value=>!value.shared)
+ assert.ok(shared&&privateList)
+ const projections=[['accounts','juniper',await person('/api/barrow/accounts/by-id/juniper')],['catalogs','juniper',await person('/api/barrow/catalogue?accountId=juniper')],['orders',draft.id,nativeOrder],['lists',shared.id,Object.fromEntries(Object.entries(shared).filter(([key])=>!['mine','creatorName'].includes(key)))]]
+ for(const [kind,id,expected] of projections)assert.deepEqual(await resource('barrow://'+kind+'/'+id),expected,kind+' exact native projection')
+ const draftLink=prepared.result.content.find(value=>value.type==='resource_link')
+ assert.equal(draftLink.uri,'barrow://orders/'+draft.id)
+ assert.deepEqual(await resource(draftLink.uri),nativeOrder,'The linked record is the actual committed draft')
+ const missing=await local('resources/read',{uri:'barrow://lists/missing'})
+ const hidden=await local('resources/read',{uri:'barrow://lists/'+privateList.id})
+ assert.deepEqual(hidden,missing,'A private list is indistinguishable from a missing list')
+ const source=before.orders.find(value=>value.status==='reserved'||value.status==='approved'||value.pierOrderId)||before.orders[0]
+ const proposalGrant=await person('/api/barrow/proposal-grants',{accountId:'juniper',costLimitCents:0,contactLimit:3,approvedSubstitutes:[{fromSku:'LINEN',skus:['HEMP']}],consent:true,reason:'Explicit one-account resource readback proof.'})
+ const proposalAnswer=await local('tools/call',{name:'barrow.proposals.submit',arguments:{grantId:proposalGrant.grant.id,orderId:source.id,model:'synthetic-barrow-model',runId:'synthetic-barrow-resource-run',reportedCostCents:0,candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:2}]}],idempotency_key:randomUUID()}},proposalGrant.token)
+ assert.equal(proposalAnswer.status,200);assert.ok(!proposalAnswer.body.result.isError,JSON.stringify(proposalAnswer.body.result._meta))
+ const proposal=proposalAnswer.body.result.structuredContent,proposalLink=proposalAnswer.body.result.content.find(value=>value.type==='resource_link')
+ assert.equal(proposalLink.uri,'barrow://proposals/'+proposal.id)
+ assert.deepEqual(await resource(proposalLink.uri,proposalGrant.token),proposal)
+ const nativeProposal=(await person('/api/barrow/orders/'+source.id+'/agent-proposals')).proposals.find(value=>value.id===proposal.id)
+ assert.deepEqual(proposal,Object.fromEntries(Object.entries(nativeProposal).filter(([key])=>!['attempts','grantActive','buyerApproval'].includes(key))))
+ const foreignOrder=await command('order.prepare',{accountId:'zinnia',lines:[{sku:'LINEN',quantity:1}]})
+ for(const [kind,id] of [['catalogs','zinnia'],['orders',foreignOrder.id]]) {
+  assert.deepEqual(await local('resources/read',{uri:'barrow://'+kind+'/'+id},proposalGrant.token),await local('resources/read',{uri:'barrow://'+kind+'/missing'},proposalGrant.token),'Foreign account and missing record refusals match')
+ }
+ const scopeRefusal=await local('resources/read',{uri:proposalLink.uri})
+ assert.equal(scopeRefusal.status,403);assert.equal(scopeRefusal.body.error.data.code,'insufficient_scope')
+ const scopedTemplates=await local('resources/templates/list',{},proposalGrant.token)
+ assert.deepEqual(scopedTemplates.body.result.resourceTemplates.map(value=>value.uriTemplate).sort(),['barrow://catalogs/{id}','barrow://orders/{id}','barrow://proposals/{id}'])
+ await pause(true)
+ const pausedRead=await local('resources/read',{uri:draftLink.uri})
+ assert.equal(pausedRead.body.error.data.code,'agents_paused');assert.equal(pausedRead.body.result,undefined)
+ await pause(false)
+ assert.deepEqual(await resource(draftLink.uri),nativeOrder)
+ const resourceAudit=await person('/agents/api/audit')
+ assert.ok(resourceAudit.rows.some(value=>value.tool==='resources/read'&&value.resource===draftLink.uri&&value.outcome==='done'))
+ await person('/api/barrow/proposal-grants/revoke',{grantId:proposalGrant.grant.id,revision:proposalGrant.grant.revision,reason:'Remove this one-account resource authority.'})
+ assert.equal((await local('resources/read',{uri:proposalLink.uri},proposalGrant.token)).status,401)
+ console.log('PROBE BASE-AGENT-003 projections and links: native account, catalog, order, shared-list and proposal HTTP state -> exact MCP JSON and committed write readback with untrusted markers')
+ console.log('PROBE BASE-AGENT-003 isolation: private lists, foreign accounts, missing ids, removed scope, Pause and revoked proposal grant -> content withheld with matching record refusals')
  console.log('NATIVE grant received');const listed=await local('tools/list')
  console.log('NATIVE local list HTTP '+listed.status);assert.equal(listed.status,200);assert.ok(listed.body.result.tools.some(tool=>tool.name==='barrow.orders.prepare'))
  const denied=await local('tools/call',{name:'barrow.proposals.grants',arguments:{accountId:'juniper'}});console.log('NATIVE local scope refusal HTTP '+denied.status);assert.equal(denied.status,403)
@@ -76,13 +129,20 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal(adminGrantResponse.status,200);const adminGrant=await adminGrantResponse.json()
  const adminRead=await local('tools/call',{name:'barrow.accounts.read',arguments:{id:'juniper'}},adminGrant.token)
  assert.equal(adminRead.status,200);assert.equal(adminRead.body.result.structuredContent.id,'juniper')
+ for(const [kind,id] of projections) {
+  const expected=kind==='accounts'?await person('/api/barrow/accounts/by-id/'+id,undefined,admin.cookie):kind==='catalogs'?await person('/api/barrow/catalogue?accountId='+id,undefined,admin.cookie):kind==='orders'?await person('/api/barrow/orders/'+id,undefined,admin.cookie):Object.fromEntries(Object.entries((await person('/api/barrow/lists?accountId=juniper',undefined,admin.cookie)).lists.find(value=>value.id===id)).filter(([key])=>!['mine','creatorName'].includes(key)))
+  assert.deepEqual(await resource('barrow://'+kind+'/'+id,adminGrant.token),expected,'Admin native projection '+kind)
+ }
+ assert.deepEqual(await local('resources/read',{uri:'barrow://lists/'+privateList.id},adminGrant.token),await local('resources/read',{uri:'barrow://lists/missing'},adminGrant.token))
  const operators=await(await request(origin+'/auth/operators',{headers})).json(),adminPerson=operators.find(person=>person.email===admin.email)
  const inactive=await request(origin+'/auth/operator/status',{method:'POST',headers,body:JSON.stringify({operatorId:adminPerson.id,status:'inactive'})})
  assert.ok(inactive.ok);await inactive.body?.cancel()
  assert.equal((await local('tools/list',{},adminGrant.token)).status,401)
+ assert.equal((await local('resources/read',{uri:draftLink.uri},adminGrant.token)).status,401)
  console.log('NATIVE PASS native admin keeps scoped commercial access without Business editor authority; native deactivation refuses the next call')
  const revoked=await request(origin+'/api/barrow/agent-token/revoke',{method:'POST',headers,body:'{}'});console.log('NATIVE local revoke HTTP '+revoked.status);assert.ok(revoked.ok);await revoked.body?.cancel()
  assert.equal((await local('tools/list')).status,401)
+ assert.equal((await local('resources/read',{uri:draftLink.uri})).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveCustodyErasure({request,origin,cookie,database})

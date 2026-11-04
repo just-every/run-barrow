@@ -44,10 +44,13 @@ export const accountAgentArtifacts: AgentArtifactMap = { artifacts: [
 export const checkAccountAgentArtifacts=(db:D1Database)=>checkAgentArtifacts(db,accountAgentArtifacts)
 export async function eraseAccountAgentArtifacts(env:Bindings,subject:{accountId:string;accountEmail?:string;people?:{id:string;email:string;subjects:string[]}[]},operation:{id:string;at:string}) {
  const values:string[]=[subject.accountId,...(subject.accountEmail?[subject.accountEmail]:[])]
+ values.push(...['accounts','catalogs'].map(kind=>`barrow://${kind}/${encodeURIComponent(subject.accountId)}`))
  for(const person of subject.people??[])values.push(person.id,person.email,...person.subjects)
  for(const table of ['bw_orders','bw_quotes','bw_lists','bw_agent_proposals','bw_agent_proposal_grants']) {
   const rows=(await env.DB.prepare(`SELECT id FROM ${table} WHERE account_id=?`).bind(subject.accountId).all<{id:string}>()).results
   values.push(...rows.map(row=>row.id))
+  const kind=({bw_orders:'orders',bw_lists:'lists',bw_agent_proposals:'proposals'} as Record<string,string>)[table]
+  if(kind)values.push(...rows.map(row=>`barrow://${kind}/${encodeURIComponent(row.id)}`))
  }
  // The caller's existing native transaction includes transfer invalidation and
  // the portability redaction checkpoint exactly once, even with no artifacts.
@@ -57,6 +60,18 @@ export async function eraseAccountAgentArtifacts(env:Bindings,subject:{accountId
 export async function accountErasureFenced(env:Bindings,name:string,args:Record<string,unknown>,_ctx:ToolContext) {
  const parent=async(table:string,key:unknown)=>typeof key==='string'?(await env.DB.prepare(`SELECT account_id FROM ${table} WHERE id=? LIMIT 1`).bind(key).first<{account_id:string}>())?.account_id:undefined
  let id=args.accountId
+ if(name==='resources/read'&&typeof args.uri==='string') {
+  try {
+   const uri=new URL(args.uri)
+   if(uri.protocol!=='barrow:'||uri.username||uri.password||uri.search||uri.hash||!/^\/[^/]+$/.test(uri.pathname))return false
+   const key=decodeURIComponent(uri.pathname.slice(1))
+   if(uri.host==='accounts'||uri.host==='catalogs')id=key
+   else {
+    const table=({orders:'bw_orders',lists:'bw_lists',proposals:'bw_agent_proposals'} as Record<string,string>)[uri.host]
+    if(table)id=await parent(table,key)
+   }
+  }catch{return false}
+ }
  if(name==='barrow.accounts.read'||name==='barrow.catalog.read')id=args.id
  if(name==='barrow.orders.read'||name==='barrow.proposals.submit')id=await parent('bw_orders',args.orderId??args.id)
  if(name==='barrow.lists.read')id=await parent('bw_lists',args.id)
