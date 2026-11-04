@@ -25,7 +25,20 @@ export async function staffInstallation(run) {
   }})
   console.log('STAFF built installation started')
   const origin=hosted.origin
-  const request=async(absolute,init={})=>{const url=new URL(absolute);assert.equal(url.origin,origin);const response=await hosted.fetch(url.href.slice(url.origin.length+1),{...init,origin,signal:AbortSignal.timeout(30000),headers:Object.fromEntries(new Headers(init.headers))});if(url.pathname==='/auth/owner-claim'&&response.status!==303){const body=await response.clone().json();console.error('Staff owner claim status='+response.status+' code='+(body.code??body.error?.code))}return response}
+  const request=async(absolute,init={})=>{
+   const url=new URL(absolute);assert.equal(url.origin,origin)
+   const started=Date.now(),name=new Headers(init.headers).get('Mcp-Name')??''
+   try {
+    const response=await hosted.fetch(url.href.slice(url.origin.length+1),{...init,origin,signal:AbortSignal.timeout(30000),headers:Object.fromEntries(new Headers(init.headers))})
+    if(Date.now()-started>5000)console.log('STAFF slow request path='+url.pathname+' tool='+name+' milliseconds='+(Date.now()-started))
+    if(url.pathname==='/auth/owner-claim'&&response.status!==303){const body=await response.clone().json();console.error('Staff owner claim status='+response.status+' code='+(body.code??body.error?.code))}
+    return response
+   } catch(error) {
+    const code=String(error.cause?.code??error.code??'unavailable').replace(/[^A-Z0-9_]/gi,'')
+    console.error('STAFF transport path='+url.pathname+' tool='+name+' kind='+error.name+' code='+code+' milliseconds='+(Date.now()-started))
+    throw error
+   }
+  }
   const sign=(type,payload)=>signJws(signer.privateKey,signer.kid,type,payload)
   const iat=Math.floor(Date.now()/1000)
   const claim=await sign('rer-owner-claim+jwt',{v:1,iss:issuer,aud:origin,installationId,email,jti:randomUUID(),iat,exp:iat+300})

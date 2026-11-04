@@ -1,3 +1,5 @@
+import {spawn} from 'node:child_process'
+import {fileURLToPath} from 'node:url'
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
@@ -31,7 +33,7 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE grant issuance HTTP '+grantResponse.status);assert.ok(grantResponse.ok);const grant=await grantResponse.json()
  async function legacy(path,payload) {
   const response=await request(origin+path,{method:payload?'POST':'GET',headers:{Authorization:'Bearer '+grant.token,'Content-Type':'application/json'},...(payload?{body:JSON.stringify({type:'order.prepare',payload})}:{})})
-  return {status:response.status,body:await response.json()}
+  const body=await response.json();console.log('NATIVE legacy '+path+' status='+response.status+' code='+(body.code??body.error?.code??'none'));return {status:response.status,body}
  }
  const directory=await legacy('/api/barrow/accounts')
  assert.equal(directory.status,200);assert.equal(directory.body.accounts[0].id,'juniper')
@@ -58,6 +60,7 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.deepEqual((await legacy('/api/barrow/commands',legacyArgs)).body.result,legacyDraft.body.result)
  assert.equal((await legacy('/api/barrow/commands',{...legacyArgs,reference:'Changed'})).body.code,'idempotency_conflict')
  const doorAudit=await(await request(origin+'/agents/api/audit',{headers})).json()
+ console.log('NATIVE audit differs='+doorAudit.differs_from_policy+' rows='+doorAudit.rows?.length+' paused='+doorAudit.rows?.filter(row=>row.code==='agents_paused').length)
  assert.equal(doorAudit.differs_from_policy,0)
  assert.ok(doorAudit.rows.some(row=>row.agent.name==='Barrow scoped agent'&&row.code==='agents_paused'))
  console.log('NATIVE PASS legacy HTTP enters shared policy, Pause, audit and once-only replay; missing key and changed arguments refuse')
@@ -87,7 +90,21 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal((await local('tools/list')).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
- try {await staffInstallation(proveStaffParity)}catch(error){console.error('Staff journey assertion location: '+error.stack?.split('\n').filter(line=>line.trim().startsWith('at ')).join('\n'));throw error}
+ // Each built installation owns its Node bridge and captured network adapter.
+ // Keep every staff assertion in this journey, with an independent runtime process.
+ await new Promise((resolve,reject)=>{
+  const child=spawn(process.execPath,[fileURLToPath(import.meta.url),'--staff'],{cwd:process.cwd(),stdio:'inherit'})
+  child.once('error',reject)
+  child.once('exit',(code,signal)=>code===0?resolve():reject(new Error('Native staff journey exited '+(signal??code))))
+ })
+ // This shared verifier call also renews the unchanged signed company policy.
+ assert.ok(!(await tool('barrow.workspace.read',{})).result.isError)
+
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+}
+
+if(process.argv[1]===fileURLToPath(import.meta.url)) {
+ assert.equal(process.argv[2],'--staff','Use the native staff journey entry point.')
+ await staffInstallation(proveStaffParity)
 }
