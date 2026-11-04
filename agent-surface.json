@@ -332,12 +332,18 @@
           "proposals:submit"
         ],
         "policy": {
+          "schema": "rer-agent-policy/1",
+          "catalogue": "rer-agent-classes/1",
           "rules": [
             {
+              "id": "all",
               "class": "*",
               "do": "autonomous"
             }
-          ]
+          ],
+          "spend": {
+            "none": true
+          }
         }
       }
     },
@@ -369,6 +375,21 @@
           "proposals:submit"
         ],
         "paused": false
+      }
+    },
+    {
+      "id": "company_policy_unset",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit"
+        ],
+        "policy": null
       }
     }
   ],

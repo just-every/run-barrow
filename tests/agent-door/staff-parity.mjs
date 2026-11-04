@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 const callMethod=['tools','call'].join('/')
 import {randomUUID} from 'node:crypto'
-import {accessToken} from '../../node_modules/@runeditrun/rer/modules/agent-door/conformance/crypto.mjs'
+import {accessToken,autonomousPolicy} from '../../node_modules/@runeditrun/rer/modules/agent-door/conformance/crypto.mjs'
 import {staffTrust} from './staff-trust.mjs'
 import {staffFixtures,staffPolicy} from './initialize-staff.mjs'
 import {captureStaffDraft} from './staff-screens.mjs'
@@ -154,11 +154,13 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
    const options={claims:{act:{sub:'synthetic-barrow-authority-'+phase+'-'+role,name:'Synthetic grant editor',specialist:'wholesale account operator'}}}
    assert.deepEqual(result(await mcp(person,'barrow.scopes.read',{scope_id:'catalog:read'},options)).grants,['catalog:read'])
    const beforeGrant=(await mcp(person,'barrow.scopes.read',{scope_id:'orders:prepare'},options)).body.result.structuredContent
-   for(const extra of [{scopes:['accounts:read','events:read']},{sponsorRole:'owner'},{policy:{rules:[{class:'*',do:'autonomous'}]}},{paused:true},{paused:false}]) {
+   for(const extra of [{scopes:['accounts:read','events:read']},{sponsorRole:'owner'},{policy:autonomousPolicy()},{policy:null},{paused:true},{paused:false}]) {
     const unsafe=await mcp(person,'barrow.authority.update',{scopes:['accounts:read'],...extra,idempotency_key:randomUUID()},options)
     assert.equal(error(unsafe),'self_escalation',role+' attempted authority change')
     assert.equal(unsafe.body.result._meta['com.runeditrun/decision'].disposition,'self_escalation')
    }
+   const other=person===manager?rep:manager
+   assert.equal((await http('/api/barrow/commands',{type:'agent-scope.drop',payload:{agentId:options.claims.act.sub,scope:'orders:prepare'}},other.cookie)).status,404)
    assert.deepEqual(result(await mcp(person,'barrow.scopes.read',{scope_id:'orders:prepare'},options)),beforeGrant)
    const args={scopes:['accounts:read'],idempotency_key:randomUUID()}
    let narrowed=await mcp(person,'barrow.authority.update',args,options)

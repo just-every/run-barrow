@@ -131,7 +131,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "c33a1a82ade8d5380698be9a296988d3c4127090b26d5dbf0e401797d80a2b7e",
+      "sha256": "f8049f3446fdde7404441d5aa9509dd4fdb12dca848efd196ddaadd897ee90f8",
       "executable": false
     },
     "AGENTS.md": {
@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "682effee17564c992c897e2f4a23f87d6a2fd4c429189ee0b1fec066e365f643",
+      "sha256": "8feeac250ae0581a36e4e72c7a5a0a6a82cb722c6d4705b4c90cee710dcc069a",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "b585891badf49fcbfcb36da7639441aa67031f36e7755c6e5bc6bf61543f19f0",
+      "sha256": "6295d8762afe256e60febab3a369d514b85a34f658c1c2b922828d17366920f4",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1815,7 +1815,7 @@
       "executable": false
     },
     "src/barrow/agent-door/scope-grants.ts": {
-      "sha256": "353412cd2f63563e71815d5d35e63430d61cccfb8a7e522bb5a940429175b554",
+      "sha256": "69cabf41cceabff32c1a332a1b9c94f2f91e20d85cf30a3be6aaa99485e15cfa",
       "executable": false
     },
     "src/barrow/agent-door/staff-authority.ts": {
@@ -5799,7 +5799,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "a07cd047e1f0628c0d8af063cc7883042f9a2462a9ffb2d90e8c88a225df031b",
+      "sha256": "70f8b5ab5bf0b432a8811cb5f0314ce3b229f2fd3c65a9efc43e013be542befc",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5815,11 +5815,11 @@
       "executable": false
     },
     "tests/agent-door/staff-installation.mjs": {
-      "sha256": "93ed38afbcbdfe54339a4f49b4e452d8ffe352f38f549bc1d355c2500bd1bf80",
+      "sha256": "a6ae6a67f401cc420fbd7a5f7b2fea7cd5981b3ecc16943d7c36c9e7917e0bac",
       "executable": false
     },
     "tests/agent-door/staff-parity.mjs": {
-      "sha256": "8b9821cc1b33576ed31351211f50d730e73044ff3eba6e7ee083f02d615f6785",
+      "sha256": "49b6edb83eb71a68f7a09cb4c704d0b2c5b9878fb96fbfcfdb8a3d45645b7cc6",
       "executable": false
     },
     "tests/agent-door/staff-screens.mjs": {
