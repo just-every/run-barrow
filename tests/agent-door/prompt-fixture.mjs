@@ -15,6 +15,10 @@ export async function inspectPrompts(mcp) {
   const resources = await mcp('resources/templates/list')
   assert.deepEqual(resources.body.result.resourceTemplates, model.resources)
   const discovery = await mcp('server/discover')
+  assert.equal(discovery.body.result.instructions, model.instructions, 'Discovery must carry the current registry job instructions')
+  const initialized = await mcp('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'synthetic-barrow-949', version: '1' } })
+  assert.equal(initialized.body.result.protocolVersion, '2025-11-25')
+  assert.equal(initialized.body.result.instructions, model.instructions, 'Initialization and discovery must teach the same jobs')
   assert.deepEqual(discovery.body.result._meta['com.runeditrun/limits'], model.limits)
   assert.deepEqual(discovery.body.result._meta['com.runeditrun/capabilities'].declared, model.capabilities)
   const prompts = await mcp('prompts/list')
@@ -32,10 +36,11 @@ export async function inspectPrompts(mcp) {
 
 export function mcpClient(request, origin, token) {
   return async (method, params = {}) => {
+    const version = method === 'initialize' ? params.protocolVersion ?? '2026-07-28' : '2026-07-28'
     const response = await request(origin + '/mcp', {
       method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json',
-        'MCP-Protocol-Version': '2026-07-28', 'Mcp-Method': method, ...(params.name ? { 'Mcp-Name': params.name } : {}) },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28' } } }),
+        'MCP-Protocol-Version': version, 'Mcp-Method': method, ...(params.name ? { 'Mcp-Name': params.name } : {}) },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...params, _meta: { 'io.modelcontextprotocol/protocolVersion': version } } }),
     })
     return { status: response.status, body: await response.json() }
   }

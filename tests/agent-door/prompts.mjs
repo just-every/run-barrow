@@ -9,6 +9,12 @@ export async function provePromptPolicies() {
   try {
   const grant = await h.api('/api/barrow/agent-token', {})
   const mcp = mcpClient((url, init) => h.raw(new URL(url).pathname, init), h.origin, grant.token)
+  const unauthenticated = mcpClient((url, init) => h.raw(new URL(url).pathname, init), h.origin, '')
+  for (const method of ['server/discover', 'initialize']) {
+    const answer = await unauthenticated(method)
+    assert.equal(answer.status, 401)
+    assert.equal(answer.body.result, undefined, 'Registry instructions cannot bypass authentication')
+  }
   const model = await documentedRegistry(), name = model.prompts[0].name
   const before = await h.api('/api/barrow/state'), deliveries = h.mail.deliveries.length
   const refused = async expected => {
@@ -39,7 +45,7 @@ export async function provePromptPolicies() {
   await h.api('/agents/api/pause', { paused: false })
   await inspectPrompts(mcp)
   await h.api('/api/barrow/agent-token/revoke', {})
-  for (const method of ['prompts/list', 'prompts/get']) assert.equal((await mcp(method, { name })).status, 401)
+  for (const method of ['server/discover', 'initialize', 'prompts/list', 'prompts/get']) assert.equal((await mcp(method, { name })).status, 401)
   assert.deepEqual(await h.api('/api/barrow/state'), before)
   assert.equal(h.mail.deliveries.length, deliveries)
   assert.equal(outbound, 0)

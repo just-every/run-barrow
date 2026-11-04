@@ -9,10 +9,12 @@ export async function documentation() {
   const directory = await mkdtemp(join(tmpdir(), 'barrow-agent-docs-'))
   try {
     const entry = `import {agentRegistry} from './src/barrow/agent-door/registry.ts';
+      import {registryInstructions} from './src/barrow/agent-door/discovery.ts';
       import {registry,describeTool} from './src/modules/agent-door/registry.ts';
       const surface=agentRegistry({});
-      export default {...surface,tools:registry({...surface,seed:'barrow',origin:'https://documentation.invalid'}).map(describeTool),
-        resources:[],prompts:surface.prompts.map(({messages,...prompt})=>({...prompt,messages:messages({})}))};`
+      export default {...surface,instructions:registryInstructions(surface),tools:registry({...surface,seed:'barrow',origin:'https://documentation.invalid'}).filter(tool=>tool.exposure!=='invoke').map(describeTool),
+        resources:surface.capabilities.includes('resources')?surface.resources.toSorted((a,b)=>a.uriTemplate.localeCompare(b.uriTemplate)).map(({read,classify,classes,scope,...resource})=>resource):[],
+        prompts:surface.prompts.toSorted((a,b)=>a.name.localeCompare(b.name)).map(({messages,...prompt})=>({...prompt,messages:messages({})}))};`
     const result = await build({ stdin: { contents: entry, resolveDir: resolve('.'), loader: 'ts' }, bundle: true, write: false, platform: 'node', format: 'esm', plugins: [{ name: 'declarations-only', setup(plugin) {
       plugin.onResolve({ filter: /^cloudflare:(sockets|workers)$/ }, args => ({ path: args.path, namespace: 'declarations-only' }))
       plugin.onLoad({ filter: /.*/, namespace: 'declarations-only' }, args => ({ contents: args.path === 'cloudflare:workers' ? 'export const env=undefined' : 'export function connect(){throw new Error("Documentation cannot execute provider operations")}' }))
@@ -34,6 +36,12 @@ export function renderDocumentation(model) {
   return `# Company agent jobs
 
 This guide is generated from Barrow’s runtime action registry. Regenerate with \`node scripts/agent-docs.mjs write\`; check with \`node scripts/agent-docs.mjs check\`. The specialist is **${model.specialist}**. Connect to the installation’s \`/mcp\` door; a public run site is documentation, not an account session. A person establishes sponsorship, scopes and company policy at the installation’s \`/agents\` page.
+
+## Discover available jobs
+
+After Base authenticates and validates the request, Barrow adds these registry-derived instructions to \`server / discover\` and \`initialize\`. The same registry generates the job page and exact schemas below. Discovery contains public instructions only, never account data or credentials; tools recheck current authority and policy for every call.
+
+${model.instructions.split('\n').map(line => `> ${line}`).join('\n>\n')}
 
 ## Prepare one stockist draft
 
@@ -61,7 +69,7 @@ ${groups.map(group => `### ${group}\n\n| Tool | Scope | Class and computed measu
 
 The door admits ${model.limits.requestsPerMinute} requests per agent per minute, with a ${model.limits.maxBodyBytes}-byte body limit. A rate refusal returns HTTP 429 with \`retry-after\`; an oversized body returns HTTP 413. Exact input bounds, required keys and output schemas appear below. Drafts accept at most ${draftLimit} lines; proposals accept at most ${candidates.maxItems} candidates with at most ${candidates.items.properties.lines.maxItems} lines each. No provider spend is registered or reserved.
 
-There are currently **no public resource templates, event types or subscriptions**. Internal emitted events are not a public event catalogue. Read back records with the named read tools. Resource, event and subscription requests remain undeclared. Registry-generated discovery instructions, complete role parity, broader Base conformance and stranger-agent qualification remain unfinished; this guide does not promote them.
+There are currently **no public resource templates, event types or subscriptions**. Internal emitted events are not a public event catalogue. Read back records with the named read tools. Resource, event and subscription requests remain undeclared. Complete role parity, broader Base conformance and stranger-agent qualification remain unfinished; this guide does not promote them.
 
 ## Refusals and person-required steps
 

@@ -4,7 +4,7 @@ import { installationTrust } from './trust.ts'
 import type { Bindings } from '../../auth.server.ts'
 import { people,localCredential,currentScopes } from './native.ts'
 import { agentRegistry } from './registry.ts'
-import { resources } from './records.ts'
+import { registryInstructions, withRegistryInstructions } from './discovery.ts'
 
 export const notTools=[
  {clauses:['BAR-006','MOB-001'],reason:'screen' as const},
@@ -15,9 +15,10 @@ export const notTools=[
 ]
 export function agentDoor(env:Bindings) {
  const trust=installationTrust(env)
- return createAgentDoor({seed:'barrow',name:'Barrow',...agentRegistry(env),db:env.DB,origin:env.AUTH_ORIGIN,trust,
+ const surface=agentRegistry(env)
+ return withRegistryInstructions(createAgentDoor({seed:'barrow',name:'Barrow',...surface,db:env.DB,origin:env.AUTH_ORIGIN,trust,
   erasure:{secret:env.SESSION_SECRET,fenced:(name,args,ctx)=>accountErasureFenced(env,name,args,ctx)},
-  people:people(env),resources:resources(env),notTools,
+  people:people(env),notTools,
   localCredentials:request=>localCredential(env,request),currentScopes:principal=>currentScopes(env,principal)
-  })
+  }),registryInstructions(surface))
 }

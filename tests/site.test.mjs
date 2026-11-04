@@ -1,10 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import { resolve, extname, sep } from 'node:path'
 import { documentation, renderDocumentation } from '../scripts/agent-docs.mjs'
 import { documentedRegistry } from './agent-door/prompt-fixture.mjs'
+import { chromium } from '@playwright/test'
 
 const output = resolve('dist/site')
 const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' }
@@ -74,6 +75,29 @@ test('built run site serves its guides, Markdown navigation and local assets', a
     assert.equal(missing.status, 404)
     assert.match(missing.headers.get('content-type'), /text\/html/)
     assert.equal(await missing.text(), await readFile(resolve(output, '404.html'), 'utf8'))
+    const browser = await chromium.launch({ headless: true,
+      ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}),
+      args: ['--no-sandbox'] })
+    try {
+      const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
+      await page.goto(origin + '/docs')
+      await page.getByRole('link', { name: 'Company agent jobs', exact: true }).first().click()
+      assert.equal(new URL(page.url()).pathname, '/docs/agents', 'A reader can reach the jobs from the guide navigation')
+      assert.equal(await page.getByRole('heading', { name: 'Company agent jobs', exact: true }).count(), 1)
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'The agent guide fits the viewport')
+      await page.getByText('Open the exact registry JSON', { exact: true }).click()
+      assert.deepEqual(JSON.parse(await page.locator('.docs-code pre code').textContent()), registry, 'A reader can open the exact tool schemas')
+      await page.getByText('Open the exact registry JSON', { exact: true }).click()
+      const evidence = process.env.BARROW_AGENT_EVIDENCE
+      if (evidence) {
+        await mkdir(evidence, { recursive: true })
+        for (const width of [1440, 390]) {
+          await page.setViewportSize({ width, height: 1000 })
+          await page.screenshot({ path: resolve(evidence, `agents-guide-${width}.png`), fullPage: true })
+        }
+      }
+      console.log('PROBE BASE-AGENT-013 page: built guide navigation -> registry-derived discovery, jobs and expandable schemas at 1440; optional captures at 1440 and 390')
+    } finally { await browser.close() }
   } finally {
     server.closeAllConnections()
     await new Promise((done, fail) => server.close(error => error ? fail(error) : done()))

@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "b9c9f41b629a0ed35875f2a15a16b8b9eb3e8f237b9ad133cfa5ed3353cd8d22",
+      "sha256": "6b7baa29462a5c68da5280fb817c90f7bb527229f808d5d5dca9158c44a1fb18",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "2bd18909982abc53a12bcb01428a433baaa74030103fc7471ab06d8e13f9dbcc",
+      "sha256": "536968bd69dcca7bbceeb2cd86de5aaea1a80e414cb073c51829a7397a85d8e3",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -191,7 +191,7 @@
       "executable": false
     },
     "docs/AGENTS.md": {
-      "sha256": "b06ccfeeabae1142b02c4507132b4800b99258bbfdcc8a168b64dd9eddafd0ae",
+      "sha256": "642e4bfa2a388f50b5cfb70a7d9042c7ad4bc6c853e328f4c0be9940aab0a0a5",
       "executable": false
     },
     "docs/BACKUP-RESTORE.md": {
@@ -959,7 +959,7 @@
       "executable": false
     },
     "scripts/agent-docs.mjs": {
-      "sha256": "2f849f27729423c373bd941a4b07620a416c64edbb5ceddb3e08bcb094016273",
+      "sha256": "43227ac4bba829acc432f41ede73a958d1fe5621d64dee1a72c18466bae892db",
       "executable": false
     },
     "scripts/barrow.mjs": {
@@ -1794,6 +1794,10 @@
       "sha256": "667c85ebcbc5dbaed730862899e696fbf0f703e9d1c9bedc15b7ff8ffd80772a",
       "executable": false
     },
+    "src/barrow/agent-door/discovery.ts": {
+      "sha256": "5710364b045717ec248520132670b960a651457f6f353d5b06a7dd2d9b590642",
+      "executable": false
+    },
     "src/barrow/agent-door/erasure.ts": {
       "sha256": "b0f925b92ec447b30615fac7252c4c4b0480ddad7a6400a7fb274ffee442a50a",
       "executable": false
@@ -1803,7 +1807,7 @@
       "executable": false
     },
     "src/barrow/agent-door/index.ts": {
-      "sha256": "61482ef83d093dc075befd7684f05e5d2c2106ec0db9cbc223aa9080ac587517",
+      "sha256": "928ee323720e87b3a2214c16799a7cca941eb334057b2ac8e8486a347f2e3cfc",
       "executable": false
     },
     "src/barrow/agent-door/native.ts": {
@@ -1823,7 +1827,7 @@
       "executable": false
     },
     "src/barrow/agent-door/registry.ts": {
-      "sha256": "c60ce260b09af19803f758d462e55552f3c56fb7fe9429075cfe1df5abc40bbf",
+      "sha256": "a7575db5c8ba913c58deda34f63db978227779072f97bdc77d4961c11b86221b",
       "executable": false
     },
     "src/barrow/agent-door/tools.ts": {
@@ -5807,11 +5811,11 @@
       "executable": false
     },
     "tests/agent-door/prompt-fixture.mjs": {
-      "sha256": "54af1fc7dfcf3b14b3d6fd2e19e9cbef8aa179d4d39b97b5b38c56e0c4a64fab",
+      "sha256": "2abe1e226f599c27853d556943d5a37b24c595196418c42e33964d04e6e680f7",
       "executable": false
     },
     "tests/agent-door/prompts.mjs": {
-      "sha256": "29d3c0514a87d6e1ecfb86929c074eb2b0d1c3b6e750840dbf8f408c2feabb09",
+      "sha256": "a84cb11cdf5ae6f250e60240c8e97a0e9c336b3c722cd0587a472965836523e4",
       "executable": false
     },
     "tests/agent-door/screens.mjs": {
@@ -6347,7 +6351,7 @@
       "executable": false
     },
     "tests/site.test.mjs": {
-      "sha256": "6d48170eaf4eace767b269d38537ea89925b3711a35520256c64dbd1a51f66fe",
+      "sha256": "7a057c9f1aa1221a30c4834c861c1c4707aae3bb86d945b16164000f7f30f58a",
       "executable": false
     },
     "tsconfig.json": {
