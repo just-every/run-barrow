@@ -1,6 +1,6 @@
 import type { Bindings } from '../../auth.server.ts'
 import { ToolRefusal } from '../../modules/agent-door/index.ts'
-import type { Person } from '../../modules/agent-door/types.ts'
+import type { Person, ToolContext } from '../../modules/agent-door/types.ts'
 import { type Actor } from '../model.ts'
 import { readStaffGrant, staffGuard } from '../staff-policy.ts'
 import { companyMembership, companyRightsGuard, requireCompanyRight } from '../company-policy.ts'
@@ -31,11 +31,16 @@ export async function authorizedRead<T>(env:Bindings,actor:Actor,path:string,rea
  } catch {throw new ToolRefusal('authority_changed')}
  return value
 }
-export async function authorizeDraft(env:Bindings,actor:Actor,args:Record<string,unknown>) {
+export async function authorizeDraft(env:Bindings,actor:Actor,args:Record<string,unknown>,replay?:Pick<ToolContext,'agent'|'idempotencyKey'>) {
  await staffCommandGate(env,actor,'order.prepare',args)
  await requireCompanyRight(env.DB,actor,String(args.accountId),'purchaser',typeof args.shipToId==='string'?args.shipToId:undefined)
- if(actor.company&&actor.door?.operationId) {
-  const prior=await env.DB.prepare("SELECT subject_id FROM bw_audit WHERE action='order.prepared' AND json_extract(context_json,'$.operationId')=?").bind(actor.door.operationId).first<{subject_id:string}>()
-  if(prior)await readOrder(env.DB,actor,prior.subject_id)
+ if(actor.company&&replay) {
+  // A retry has a fresh operation ID. Bind visibility to the original effect,
+  // including its resolved default ship-to, before the door returns its receipt.
+  const prior=await env.DB.prepare(`SELECT a.subject_id FROM agent_door_calls c JOIN bw_audit a
+   ON json_extract(a.context_json,'$.operationId')=c.decision_id
+   WHERE c.agent=? AND c.key=? AND a.action='order.prepared'`).bind(replay.agent.id,replay.idempotencyKey).first<{subject_id:string}>()
+  if(!prior)throw new ToolRefusal('not_found')
+  await readOrder(env.DB,actor,prior.subject_id)
  }
 }

@@ -127,6 +127,27 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
   }
  }
  if(phase) {
+  const buyer=staffFixtures.get('buyer'),locations=[]
+  for(const name of ['Default store','Remaining store'])locations.push(await command('location.save',{accountId:'juniper',kind:'ship-to',makeDefault:name==='Default store',value:{name,line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'}}))
+  const update=async policy=>{buyer.grant={...await command('company.update',{accountId:'juniper',memberId:buyer.grant.id,revision:buyer.grant.revision,policy,reason:'Owner reviews current purchasing locations.'}),userId:buyer.grant.userId}}
+  await update({...buyer.policy,locations:locations.map(row=>row.id)})
+  const args={accountId:'juniper',lines,reference:'Synthetic default ship-to '+phase,idempotency_key:randomUUID()}
+  const draft=result(await mcp(buyer,'barrow.orders.prepare',args))
+  assert.equal(draft.shipTo.id,locations[0].id)
+  assert.deepEqual(result(await mcp(buyer,'barrow.orders.prepare',args)),draft)
+  await update({...buyer.policy,locations:[locations[1].id]})
+  const before=(await http('/api/barrow/state')).body.orders
+  assert.equal((await http('/api/barrow/orders/'+draft.id,undefined,buyer.cookie)).status,403)
+  assert.equal(error(await mcp(buyer,'barrow.orders.read',{id:draft.id})),'FORBIDDEN')
+  const replay=await mcp(buyer,'barrow.orders.prepare',args)
+  assert.equal(error(replay),'FORBIDDEN')
+  assert.equal(replay.body.result.structuredContent,undefined)
+  assert.deepEqual((await http('/api/barrow/state')).body.orders,before)
+  await update(buyer.policy)
+  assert.deepEqual(result(await mcp(buyer,'barrow.orders.prepare',args)),draft)
+  console.log('PROBE BASE-AGENT-005 '+phase+' default ship-to replay: prepare without shipToId, remove its location -> native read, MCP read and same-key replay refuse without saved content or changes; restored access returns the original draft')
+ }
+ if(phase) {
   const claims={act:{sub:'synthetic-barrow-scope-'+phase,name:'Synthetic scope narrowing',specialist:'wholesale account operator'}}
   const options={claims},scopeArgs={scope_id:'orders:prepare',idempotency_key:randomUUID()}
   assert.deepEqual(result(await mcp(manager,'barrow.scopes.read',{scope_id:'orders:prepare'},options)).grants,['orders:prepare'])

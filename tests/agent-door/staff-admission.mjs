@@ -99,7 +99,7 @@ export async function proveStaffAdmission() {
   let membership=(await h.api('/api/barrow/state',undefined,who)).actor.company
   const buyerBearer=await accessToken({...context,person:{sub:buyerSub,email:buyerEmail},agentId:'synthetic-barrow-buyer-agent',consent:'synthetic-barrow-buyer-consent',surface:{specialist:'wholesale account operator',tools:[]}},{scope:'accounts:read catalog:read orders:read orders:prepare lists:read'})
   const buyerCall=(name,args={})=>call(name,args,buyerBearer)
-  const buyerArgs={accountId:'juniper',shipToId:addresses[0].id,lines:[{sku:'LINEN',quantity:1}],idempotency_key:randomUUID()}
+  const buyerArgs={accountId:'juniper',lines:[{sku:'LINEN',quantity:1}],idempotency_key:randomUUID()}
   const buyerDraft=await buyerCall('barrow.orders.prepare',buyerArgs);assert.ok(!buyerDraft.body.result.isError,code(buyerDraft))
   assert.equal(buyerDraft.body.result.structuredContent.shipTo.id,addresses[0].id)
   await h.command('order.prepare',{...buyerArgs,shipToId:addresses[1].id},{...who,status:403})
