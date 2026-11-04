@@ -7,6 +7,7 @@ import { current } from '../access.ts'
 import { Problem, type Actor } from '../model.ts'
 import { erasureRestoreResponse } from '../erasure-journal.ts'
 import { readProposalGrant } from '../proposal-grants.ts'
+import { droppedScopes } from './scope-grants.ts'
 import { personAuthority } from './staff-authority.ts'
 
 export const scopes = ['accounts:read','catalog:read','orders:read','orders:prepare','lists:read','events:read','proposals:submit']
@@ -24,7 +25,7 @@ export function people(env: Bindings): PeopleAdapter {
   person:async id=>bind(await native.person(id)),session:async request=>bind(await native.session(request)),
   async sponsor(claims) {
   const person=await native.sponsor(claims)
-  // Signed Business sponsorship uses the durable mapping and current native sales grant.
+  // Signed Business sponsorship uses the durable mapping and current native staff or company grant.
   return person && await personAuthority(env,person) ? bind(person) : null
  }}
 }
@@ -44,15 +45,17 @@ export async function localGrant(env:Bindings,personId:string,clientId:string|un
  return env.DB.prepare(`SELECT t.id,t.scope_kind,o.version FROM bw_agent_tokens t JOIN oa_operators o ON o.id=t.actor_id
   WHERE t.id=? AND o.id=? AND t.actor_version=o.version AND t.expires_at>? AND o.status='active' AND o.role IN ('owner','admin')`).bind(id,personId,Date.now()).first<{id:string;scope_kind:string;version:number}>()
 }
-export async function currentScopes(env:Bindings,principal:{person:{id:string};clientId?:string}) {
+export async function currentScopes(env:Bindings,principal:{person:{id:string};agent:{id:string};clientId?:string}) {
  if(!principal.clientId?.startsWith('barrow-local:')) {
   const person=await people(env).person(principal.person.id),actor=person&&await personAuthority(env,person)
-  return actor?scopes.filter(scope=>!actor.staff||scope!=='proposals:submit'):[]
+  const dropped=await droppedScopes(env.DB,principal.agent.id)
+  return actor?scopes.filter(scope=>!dropped.includes(scope)&&((!actor.staff&&!actor.company)||scope!=='proposals:submit')):[]
  }
  const grant=await localGrant(env,principal.person.id,principal.clientId)
  if(!grant)return []
- if(grant.scope_kind==='proposal')return await readProposalGrant(env.DB,grant.id)?['catalog:read','orders:read','proposals:submit']:[]
- return grant.scope_kind==='draft'?scopes.filter(scope=>scope!=='proposals:submit'):[]
+ const dropped=await droppedScopes(env.DB,principal.agent.id)
+ if(grant.scope_kind==='proposal')return await readProposalGrant(env.DB,grant.id)?['catalog:read','orders:read','proposals:submit'].filter(scope=>!dropped.includes(scope)):[]
+ return grant.scope_kind==='draft'?scopes.filter(scope=>scope!=='proposals:submit'&&!dropped.includes(scope)):[]
 }
 /** Every native read and atomic mutation rechecks the operator and the installation's restore fence. */
 export async function nativeActor(env:Bindings,ctx:Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'> & Partial<Pick<ToolContext,'operationId'|'actor'|'approvers'>>) : Promise<Actor> {
@@ -73,7 +76,8 @@ export async function nativeActor(env:Bindings,ctx:Pick<ToolContext|ResourceCont
      AND (envelope IS NULL OR (json_extract(envelope,'$.paused')=0 AND json_extract(envelope,'$.exp')*1000>?)))
     AND EXISTS(SELECT 1 FROM agent_door_agents WHERE id=? AND sponsor=? AND revoked=0)
     AND (? IS NULL OR EXISTS(SELECT 1 FROM bw_agent_tokens WHERE id=? AND actor_id=? AND actor_version=? AND expires_at>?))
-    THEN 1 ELSE 0 END`).bind(authority.id,authority.version,authority.role,state?.envelope??null,state?.local_document??null,state?.local_revision??0,Date.now(),ctx.agent.id,authority.id,local?.id??null,local?.id??null,authority.id,authority.version,Date.now())}}
+    AND NOT EXISTS(SELECT 1 FROM bw_agent_scope_drops WHERE agent_id=? AND scope IN (SELECT value FROM json_each(?)))
+    THEN 1 ELSE 0 END`).bind(authority.id,authority.version,authority.role,state?.envelope??null,state?.local_document??null,state?.local_revision??0,Date.now(),ctx.agent.id,authority.id,local?.id??null,local?.id??null,authority.id,authority.version,Date.now(),ctx.agent.id,JSON.stringify(ctx.scopes))}}
 }
 export async function native<T>(run:()=>Promise<T>):Promise<T> {
  try{return await run()}catch(error){if(error instanceof Problem)throw new ToolRefusal(error.code,error.message,{native_status:error.status,message:error.message});if(/bw_guard|CHECK constraint failed/.test(String(error)))throw new ToolRefusal('authority_changed','Native authority or records changed. Refresh before retrying.');throw error}

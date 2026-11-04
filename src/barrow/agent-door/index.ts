@@ -4,6 +4,7 @@ import { createAgentDoor } from '../../modules/agent-door/index.ts'
 import { installationTrust } from './trust.ts'
 import type { Bindings } from '../../auth.server.ts'
 import { people,localCredential,currentScopes } from './native.ts'
+import { scopeTools } from './scope-grants.ts'
 import { tools } from './tools.ts'
 import { resources } from './records.ts'
 
@@ -19,7 +20,7 @@ export function agentDoor(env:Bindings) {
  return createAgentDoor({seed:'barrow',name:'Barrow',specialist:'wholesale account operator',db:env.DB,origin:env.AUTH_ORIGIN,trust,
   erasure:{secret:env.SESSION_SECRET,fenced:(name,args,ctx)=>accountErasureFenced(env,name,args,ctx)},
   capabilities:['tools','policy','pause','audit','idempotency'],
-  people:people(env),tools:[...tools(env),...proposalTools(env)],resources:resources(env),notTools,
+  people:people(env),tools:[...tools(env),...proposalTools(env),...scopeTools(env)],resources:resources(env),notTools,
   localCredentials:request=>localCredential(env,request),currentScopes:principal=>currentScopes(env,principal)
   })
 }

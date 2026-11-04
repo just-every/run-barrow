@@ -158,6 +158,54 @@
       "clauses": [
         "AGT-008"
       ]
+    },
+    {
+      "name": "barrow.scopes.drop",
+      "scope": "accounts:read",
+      "readOnly": false,
+      "classes": [
+        "access"
+      ],
+      "clauses": [
+        "BASE-AGENT-005"
+      ],
+      "widens": false,
+      "narrowing": {
+        "effect": "narrow",
+        "target": "scope_id"
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scope_id": {
+            "type": "string",
+            "enum": [
+              "accounts:read",
+              "catalog:read",
+              "orders:read",
+              "orders:prepare",
+              "lists:read",
+              "events:read",
+              "proposals:submit"
+            ]
+          }
+        },
+        "required": [
+          "scope_id"
+        ]
+      }
+    },
+    {
+      "name": "barrow.scopes.read",
+      "scope": "accounts:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-005"
+      ]
     }
   ],
   "resources": [],
@@ -474,6 +522,37 @@
           }
         }
       ]
+    },
+    {
+      "id": "scope_before",
+      "tool": "barrow.scopes.read",
+      "args": {
+        "scope_id": "events:read"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "drop_scope",
+      "tool": "barrow.scopes.drop",
+      "args": {
+        "scope_id": "events:read"
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        }
+      ]
     }
   ],
   "verification": {
@@ -510,5 +589,18 @@
     "pause",
     "audit",
     "idempotency"
+  ],
+  "narrowings": [
+    {
+      "tool": "barrow.scopes.drop",
+      "step": "drop_scope",
+      "witness": {
+        "tool": "barrow.scopes.read",
+        "args": {
+          "scope_id": "events:read"
+        },
+        "pointer": "/grants"
+      }
+    }
   ]
 }

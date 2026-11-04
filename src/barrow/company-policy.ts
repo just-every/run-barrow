@@ -40,7 +40,11 @@ export function parseCompanyMember(row: any): CompanyMembership {
  return { ...JSON.parse(row.policy_json), id: row.id, accountId: row.account_id, userId: row.user_id, email: row.email, name: row.display_name, state: row.state, revision: row.revision, ...(row.erased_at ? { erasedAt: row.erased_at } : {}) }
 }
 export async function companyMembership(db: D1Database, actor: Actor, accountId?: string): Promise<CompanyMembership | null> {
- if (actor.agent || actor.staff || actor.role !== 'member') return null
+ // Agent-door authority carries a currently resolved native membership. The door
+ // fences its revision before a read returns or a write commits. Legacy bearers
+ // carry no membership and remain outside company purchasing authority.
+ if (actor.agent) return actor.door && actor.company && (accountId === undefined || actor.company.accountId === accountId) ? actor.company : null
+ if (actor.staff || actor.role !== 'member') return null
  const row = await db.prepare(`SELECT m.* FROM bw_company_members m JOIN oa_operators p ON p.id=m.user_id
   WHERE m.user_id=? AND m.state='active' AND m.erased_at IS NULL AND p.status='active' AND p.role='member'${accountId === undefined ? '' : ' AND m.account_id=?'}`).bind(actor.id, ...(accountId === undefined ? [] : [accountId])).first<any>()
  return row ? parseCompanyMember(row) : null
