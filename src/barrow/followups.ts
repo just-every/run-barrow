@@ -1,3 +1,4 @@
+import { refreshServiceDeadlines } from './service-resolution'
 import { trackingExceptionSources } from './shipment-tracking'
 import { financialGuard } from './credit-ledger'
 import { orderExceptionSources } from './order-followthrough'
@@ -60,6 +61,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  authorize(actor)
  const at = (await now()).toISOString()
  if (type === 'followup.refresh') {
+  if(!actor.staff)await refreshServiceDeadlines(env,actor)
   if(!actor.staff||actor.staff.role==='finance')await reconcilePaymentPromises(env,actor)
   const financial=await financialGuard(env.DB)
   const [sources, existing] = await Promise.all([followupSources(env.DB, new Date(at)), allTasks(env.DB)])
@@ -114,6 +116,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
  if (!row) fail('NOT_FOUND', 'Follow-up task not found.', 404)
  const before = parse(row)
  if(!staffTaskAllowed(actor,before))fail('NOT_FOUND','Follow-up task not found.',404)
+ if(before.kind==='service')fail('SERVICE_UNRESOLVED','Review service ownership, deadlines and buyer-visible responses through the linked service case. A follow-up cannot close an exchange.',409)
  if (before.revision !== expected) fail('REVISION', 'The task changed. Refresh before updating it.')
  if (before.status === 'closed') fail('CLOSED', 'Resolved follow-up tasks remain closed.')
  const { revision: previous, ...value } = before
