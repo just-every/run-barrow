@@ -1,3 +1,4 @@
+import { recordedPreparation } from './preparation-attribution'
 import { fail, requireSupplier, type Actor } from './model'
 import { readStaffGrant } from './staff-policy'
 
@@ -29,11 +30,13 @@ function numberParam(value: string | null, name: string, defaultValue: number) {
 function stringValue(value: unknown): string | null { return typeof value === 'string' && value.length ? value : null }
 function event(row: AuditRow): CommercialAuditEvent {
   const context = row.context_json ? JSON.parse(row.context_json) : null
+  const prepared = recordedPreparation(context?.preparedBy)
+  const preparation = prepared && row.actor_id === `agent:${prepared.agent}` ? prepared : undefined
   const recordedAccount = stringValue(context?.accountId), recordedOrder = stringValue(context?.orderId)
   return {
     id: row.id, subjectId: row.subject_id, actorId: row.actor_id,
     actorKind: row.actor_id.startsWith('system:') ? 'system' : row.actor_id.startsWith('agent:') ? 'agent' : 'human',
-    actorName: stringValue(context?.preparedBy?.label) ?? row.actor_name ?? null, actorEmail: row.actor_email || null,
+    actorName: preparation?.label ?? row.actor_name ?? null, actorEmail: row.actor_email || null,
     action: row.action, createdAt: row.created_at,
     accountId: recordedAccount ?? row.related_account, orderId: recordedOrder ?? row.related_order,
     accountOrigin: recordedAccount ? 'recorded' : row.related_account ? 'current-relation' : null,
@@ -80,8 +83,8 @@ export async function listCommercialAudit(db: D1Database, actor: Actor, params: 
   }
   const person = params.get('person')?.trim()
   if (person) {
-    predicates.push(`(instr(lower(e.actor_id),lower(?))>0 OR instr(lower(p.display_name),lower(?))>0 OR instr(lower(p.email),lower(?))>0)`)
-    values.push(person, person, person)
+    predicates.push(`(instr(lower(e.actor_id),lower(?))>0 OR instr(lower(json_extract(e.context_json,'$.preparedBy.label')),lower(?))>0 OR instr(lower(json_extract(e.context_json,'$.preparedBy.person')),lower(?))>0 OR instr(lower(p.display_name),lower(?))>0 OR instr(lower(p.email),lower(?))>0)`)
+    values.push(person, person, person, person, person)
   }
   if (params.has('cursor')) { predicates.push('e.rowid<?'); values.push(numberParam(params.get('cursor'), 'cursor', 0)) }
   const rows = await db.prepare(`SELECT e.rowid AS cursor,e.*,p.display_name AS actor_name,p.email AS actor_email,

@@ -1,3 +1,4 @@
+import { recordedPreparation } from './preparation-attribution'
 import { eraseAccountAgentArtifacts, checkAccountAgentArtifacts } from './agent-door/erasure.ts'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
@@ -72,6 +73,7 @@ function replaceText(value:string,people:ErasureOperation['people'],accountEmail
  return result
 }
 function redactSnapshot(value:any,people:ErasureOperation['people'],email:string,key='',personal:PersonalValue[]=[]):any {
+ if(key==='agentPreparation' && recordedPreparation(value))return {...value,label:replaceText(value.label,people,email,personal)}
  if(/^(id|sku|reference|sha256|currency|unit|pierReference|customerName|name)$|Id$|By$|At$/.test(key))return value
  if(typeof value==='string')return replaceText(value,people,email,personal)
  if(Array.isArray(value))return value.map(item=>redactSnapshot(item,people,email,key,personal))
@@ -227,7 +229,9 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   if(!row.context_json)continue
   const context=JSON.parse(row.context_json),clean=context.accountId===accountId?eraseReturnAudit(context,row.action):context
   const reason=typeof clean.reason==='string'?replaceText(clean.reason,people,op.accountEmail,personal):clean.reason
-  if(reason!==context.reason)add('commercial audit','audit:'+row.id,'replace exact personal values in free text','Preserve ID, subject, actor, action, time and revision',[sql("UPDATE bw_audit SET context_json=json_set(context_json,'$.reason',?) WHERE id=?",reason,row.id)])
+  const preparation=recordedPreparation(context.preparedBy)
+  const label=preparation?replaceText(preparation.label,people,op.accountEmail,personal):undefined
+  if(reason!==context.reason||label!==preparation?.label)add('commercial audit','audit:'+row.id,'replace exact personal values in free text','Preserve ID, subject, actor, action, time and revision',[sql('UPDATE bw_audit SET context_json=? WHERE id=?',JSON.stringify({...context,reason,...(preparation?{preparedBy:{...preparation,label}}:{})}),row.id)])
  }
  for(const [table,match] of [['bw_application_history',(row:any)=>r.bw_applications.some(app=>app.id===row.application_id&&app.account_id===accountId)],['bw_company_route_versions',(row:any)=>row.account_id===accountId],['bw_company_delegations',(row:any)=>row.account_id===accountId]] as const)for(const row of r[table].filter(match)){const reason=replaceText(row.reason,people,op.accountEmail,personal);if(reason!==row.reason)add('commercial audit','history:'+table+':'+row.id,'replace exact personal values in free text','Keep the attributed history row and revision',[sql(`UPDATE ${table} SET reason=? WHERE id=?`,reason,row.id)])}
  for(const row of r.oa_auth_audit) {
