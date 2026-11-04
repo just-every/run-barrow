@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { resolve, extname, sep } from 'node:path'
+import { documentedRegistry } from './agent-door/prompt-fixture.mjs'
 
 const output = resolve('dist/site')
 const types = { '.html': 'text/html', '.css': 'text/css', '.js': 'text/javascript', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' }
@@ -32,7 +33,8 @@ async function siteServer() {
 test('built run site serves its guides, Markdown navigation and local assets', async () => {
   const { server, origin } = await siteServer()
   try {
-    const queued = ['/', '/run', '/docs', '/404']
+    const queued = ['/', '/run', '/docs', '/docs/agents', '/404']
+    const registry = await documentedRegistry()
     const visited = new Set()
     let articleLinked = false
     while (queued.length) {
@@ -46,6 +48,13 @@ test('built run site serves its guides, Markdown navigation and local assets', a
       const content = await response.text()
       if (path === '/docs') {
         assert.match(content, /<main\b[^>]*>[\s\S]*<h1\b/, 'Docs must render Markdown as an article')
+      }
+      if (path === '/docs/agents') {
+        const encoded = content.match(/<pre[^>]*><code>([\s\S]*?)<\/code><\/pre>/)?.[1]
+        assert.ok(encoded, 'Agent guide must render the exact public registry schemas')
+        const decoded = encoded.replaceAll('&quot;', '"').replaceAll('&#39;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&')
+        assert.deepEqual(JSON.parse(decoded), registry, 'Built page must carry the same registry as the checked MCP documentation')
+        assert.ok(content.includes('aria-current="page"'), 'The current agent guide must be reachable through guide navigation')
       }
       const references = type.includes('html')
         ? [...content.matchAll(/\b(?:href|src)=["']([^"']+)["']/g)].map(match => match[1])

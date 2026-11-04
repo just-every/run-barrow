@@ -12,6 +12,7 @@ Take a stockist's order from its agreed price list to an invoice CSV. Barrow kee
 
 - [Move in trade accounts and agreed prices](IMPORT-ACCOUNTS.md): review a CSV dry run, apply it and inspect or undo its journal.
 - [Back up, restore and erase unused accounts](BACKUP-RESTORE.md): keep commercial records portable and respect later erasures.
+- [Company agent jobs and prompts](AGENTS.md): inspect the MCP tools, schemas, scopes and preparation-only specialist journey.
 - [Let an agent prepare drafts](AGENTS-API.md): use a revocable credential while people retain submission and approval.
 
 ## Keep the boundaries clear

@@ -26,7 +26,7 @@ export async function configurePierRouting(pier) {
  rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});
  await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
 }
-export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock,socketEdge=false}={}) {
+export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock,socketEdge=false,agentPolicy=true}={}) {
  const connected=nativePiers.get(bindings.PIER_ORIGIN);
  if(!pier&&connected&&connected.cookie===bindings.PIER_SESSION)await configurePierRouting(connected);
  const root=pier?await pierSource():resolve('.');
@@ -78,7 +78,7 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
   cookie=boot.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
   // Existing commercial journeys now start with the owner's explicit standalone policy.
   // The production conformance journey separately proves unset/held/blocked policy.
-  if(!pier){const policy=await request('/agents/api/policy',{method:'PUT',body:{document:{schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[{id:'native-fixture',class:'*',do:'autonomous'}],spend:{none:true}}}});assert.equal(policy.status,200,await policy.text());}
+  if(!pier&&agentPolicy){const policy=await request('/agents/api/policy',{method:'PUT',body:{document:{schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[{id:'native-fixture',class:'*',do:'autonomous'}],spend:{none:true}}}});assert.equal(policy.status,200,await policy.text());}
   const api=async(path,body,opts={})=>{
    const response=await request(path,{...(body===undefined?{}:{method:'POST',body}),...opts});const value=await response.json();
    if(opts.status!==undefined) assert.equal(response.status,opts.status,JSON.stringify(value)); else assert.ok(response.ok,JSON.stringify(value));

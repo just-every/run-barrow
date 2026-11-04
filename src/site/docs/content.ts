@@ -16,7 +16,7 @@ const sources = import.meta.glob<string>('../../../docs/*.md', { query: '?raw', 
 // (source lineage) stays in the repository and is linked there.
 const published: [string, string][] = [
   ['README.md', 'Start'], ['GETTING-STARTED.md', 'Start'],
-  ['ACCOUNTS.md', 'Everyday work'], ['ORDERS.md', 'Everyday work'], ['AGENTS-API.md', 'Everyday work'],
+  ['ACCOUNTS.md', 'Everyday work'], ['ORDERS.md', 'Everyday work'], ['AGENTS-API.md', 'Everyday work'], ['AGENTS.md', 'Everyday work'],
   ['IMPORT-ACCOUNTS.md', 'Your records'], ['MOVE-IN.md', 'Your records'], ['BACKUP-RESTORE.md', 'Your records'],
 ]
 

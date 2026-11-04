@@ -1,10 +1,9 @@
 import { accountErasureFenced } from './erasure.ts'
-import { proposalTools } from './proposals.ts'
 import { createAgentDoor } from '../../modules/agent-door/index.ts'
 import { installationTrust } from './trust.ts'
 import type { Bindings } from '../../auth.server.ts'
 import { people,localCredential,currentScopes } from './native.ts'
-import { tools } from './tools.ts'
+import { agentRegistry } from './registry.ts'
 import { resources } from './records.ts'
 
 export const notTools=[
@@ -16,10 +15,9 @@ export const notTools=[
 ]
 export function agentDoor(env:Bindings) {
  const trust=installationTrust(env)
- return createAgentDoor({seed:'barrow',name:'Barrow',specialist:'wholesale account operator',db:env.DB,origin:env.AUTH_ORIGIN,trust,
+ return createAgentDoor({seed:'barrow',name:'Barrow',...agentRegistry(env),db:env.DB,origin:env.AUTH_ORIGIN,trust,
   erasure:{secret:env.SESSION_SECRET,fenced:(name,args,ctx)=>accountErasureFenced(env,name,args,ctx)},
-  capabilities:['tools','policy','pause','audit','idempotency'],
-  people:people(env),tools:[...tools(env),...proposalTools(env)],resources:resources(env),notTools,
+  people:people(env),resources:resources(env),notTools,
   localCredentials:request=>localCredential(env,request),currentScopes:principal=>currentScopes(env,principal)
   })
 }

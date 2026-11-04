@@ -509,6 +509,7 @@
     "policy",
     "pause",
     "audit",
-    "idempotency"
+    "idempotency",
+    "prompts"
   ]
 }

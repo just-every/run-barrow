@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
+import {inspectPrompts,mcpClient} from './prompt-fixture.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
@@ -87,4 +88,35 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+}
+
+// Run the documented specialist preparation path inside both signed policy legs.
+const documentedRuns = new Map()
+export async function beforeStep({request,origin,cookie,phase,step}) {
+ if(!['autonomous','held'].includes(phase)||step.id!=='workspace')return
+ const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
+ const issued=await request(origin+'/api/barrow/agent-token',{method:'POST',headers,body:'{}'})
+ assert.equal(issued.status,200)
+ const grant=await issued.json()
+ await inspectPrompts(mcpClient(request,origin,grant.token))
+ const state=await(await request(origin+'/api/barrow/state',{headers})).json()
+ documentedRuns.set(phase,state.orders)
+ console.log('PROBE BASE-AGENT-013 '+phase+' registry: MCP listings -> exact guide names, schemas, scopes, classes, limits and deterministic prompts')
+}
+export async function afterStep({request,origin,cookie,phase,step,outputs,result}) {
+ if(!['autonomous','held'].includes(phase))return
+ if(step.id==='account')assert.equal(result.id,'juniper')
+ if(step.id==='catalog')assert.ok(result.items.some(item=>item.sku==='LINEN'&&item.unitCents===2400))
+ if(step.id==='order') {
+  assert.deepEqual(result,outputs.prepare)
+  assert.equal(result.status,'draft');assert.equal(result.totalCents,4800);assert.equal(result.currency,'USD')
+  assert.deepEqual(result.lines.map(({sku,quantity})=>({sku,quantity})),[{sku:'LINEN',quantity:2}])
+  for(const field of ['submittedBy','approvedBy','pierOrderId','reservation','invoice'])assert.equal(result[field],undefined)
+  const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
+  const state=await(await request(origin+'/api/barrow/state',{headers})).json()
+  const original=documentedRuns.get(phase)
+  assert.deepEqual(state.orders.filter(order=>original.some(before=>before.id===order.id)),original)
+  assert.deepEqual(state.orders.filter(order=>!original.some(before=>before.id===order.id)).map(order=>order.id),[result.id])
+  console.log('PROBE BASE-AGENT-013 '+phase+' preparation: account, catalog, cart, draft and readback -> one USD 4800 draft; prior orders unchanged, no submission, stock reservation or invoice')
+ }
 }
