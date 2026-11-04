@@ -9,7 +9,7 @@ import {proveStaffParity} from './staff-parity.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
-export default async function({request,origin,cookie,tool,database}) {
+async function nativeJourney({request,origin,cookie,tool,database}) {
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
  const stale=await tool('barrow.orders.prepare',{...args,expected_revision:randomUUID()})
@@ -33,7 +33,7 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE grant issuance HTTP '+grantResponse.status);assert.ok(grantResponse.ok);const grant=await grantResponse.json()
  async function legacy(path,payload) {
   const response=await request(origin+path,{method:payload?'POST':'GET',headers:{Authorization:'Bearer '+grant.token,'Content-Type':'application/json'},...(payload?{body:JSON.stringify({type:'order.prepare',payload})}:{})})
-  const body=await response.json();console.log('NATIVE legacy '+path+' status='+response.status+' code='+(body.code??body.error?.code??'none'));return {status:response.status,body}
+  return {status:response.status,body:await response.json()}
  }
  const directory=await legacy('/api/barrow/accounts')
  assert.equal(directory.status,200);assert.equal(directory.body.accounts[0].id,'juniper')
@@ -59,8 +59,13 @@ export default async function({request,origin,cookie,tool,database}) {
  await pause(false)
  assert.deepEqual((await legacy('/api/barrow/commands',legacyArgs)).body.result,legacyDraft.body.result)
  assert.equal((await legacy('/api/barrow/commands',{...legacyArgs,reference:'Changed'})).body.code,'idempotency_conflict')
- const doorAudit=await(await request(origin+'/agents/api/audit',{headers})).json()
- console.log('NATIVE audit differs='+doorAudit.differs_from_policy+' rows='+doorAudit.rows?.length+' paused='+doorAudit.rows?.filter(row=>row.code==='agents_paused').length)
+ const doorAudit={rows:[],differs_from_policy:0};let auditCursor=''
+ for(;;) {
+  const page=await(await request(origin+'/agents/api/audit'+(auditCursor?'?after='+encodeURIComponent(auditCursor):''),{headers})).json()
+  doorAudit.rows.push(...page.rows);doorAudit.differs_from_policy+=page.differs_from_policy
+  if(page.rows.length<200)break
+  assert.notEqual(page.cursor,auditCursor);auditCursor=page.cursor
+ }
  assert.equal(doorAudit.differs_from_policy,0)
  assert.ok(doorAudit.rows.some(row=>row.agent.name==='Barrow scoped agent'&&row.code==='agents_paused'))
  console.log('NATIVE PASS legacy HTTP enters shared policy, Pause, audit and once-only replay; missing key and changed arguments refuse')
@@ -102,6 +107,14 @@ export default async function({request,origin,cookie,tool,database}) {
 
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+}
+
+export default async function(context) {
+ try {await nativeJourney(context)} catch(error) {
+  const location=String(error.stack??'').match(/native-journey\.mjs:\d+:\d+/)?.[0]??'native runtime'
+  console.error('NATIVE failure kind='+error.name+' code='+String(error.code??'none').replace(/[^A-Z0-9_]/gi,'')+' location='+location)
+  throw error
+ }
 }
 
 if(process.argv[1]===fileURLToPath(import.meta.url)) {

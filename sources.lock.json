@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "6295d8762afe256e60febab3a369d514b85a34f658c1c2b922828d17366920f4",
+      "sha256": "fd8deb18aca4fc0328f24b0ee0e6a8a1f458af5abec930d76cfbcf28a18c337e",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -343,7 +343,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "9db0facc462821707b9a945e86347c241af519d8ba427d39e1fc048ed5537e70",
+      "sha256": "16ca2aef4ea781def347ae4820bf546adfaa7b6a4cf369bb312cb79011da5118",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -5799,7 +5799,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "70f8b5ab5bf0b432a8811cb5f0314ce3b229f2fd3c65a9efc43e013be542befc",
+      "sha256": "6c4124ee364deefd02bddc8056deeac575e7ce07cd66da62254d5993a92289cc",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
