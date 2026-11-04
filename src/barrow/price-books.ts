@@ -16,10 +16,10 @@ export async function importPriceBook(env:Bindings,actor:Actor,p:any) {
  await commit(env.DB,actor,saved.statements)
  return saved.record
 }
-/** Bind both the destination values and today's effective source to the person's review. */
+/** Bind the destination book and today's effective source without disclosing the company record. */
 export async function priceBookChange(selected:Account,p:any) {
  const at=await now(),value=await priceBookValue(selected,p,at)
- return {value,basis:{source:commercialBookBasis(selected,at),value}}
+ return {value,basis:{source:commercialBookBasis(selected,at),destination:commercialBookBasis({...selected,value},at)}}
 }
 /** Validate without writes so integration preparation and native import use one rule. */
 export async function priceBookValue(selected:Account,p:any,at?:Date) {

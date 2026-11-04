@@ -166,8 +166,8 @@ Its JSON contains `entity`, `accountId`, current `accountRevision`, current ISO
 `currency` and `payload`. The response contains the exact `proposal`, a server
 authenticated `fingerprint`, and `requiresPerson:true`. Preparation changes no
 entity and reserves no stock. It records an attributed audit event. A preparer
-receives its submitted data and opaque revision basis, never another account's
-unrelated profile, catalog maintenance report or quote history. Quote preparation returns the commercial terms of the named account-owned quote, including its existing buying profile and effective price source, without granting profile enumeration or quote-history reads.
+receives its submitted data and revision basis, never another account's
+unrelated profile, catalog maintenance report or quote history. Price-book preparation binds only the destination book and effective source (activation date, currency and prices); it returns no company identity, contact, terms or other account fields. Quote preparation returns the commercial terms of the named account-owned quote, including its existing buying profile and effective price source, without granting profile enumeration or quote-history reads.
 
 Each payload uses the existing native format:
 

@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "bd76cec3033aebd1b291f75efe52b7ef5c67e0772eb202d3961150a0b02571d0",
+      "sha256": "7d06d7704b19cc26c76e896e37969283b050f811164faae04ff5377b49a89633",
       "executable": false
     },
     "DEMO.md": {
@@ -187,7 +187,7 @@
       "executable": false
     },
     "docs/AGENTS-API.md": {
-      "sha256": "2a72980efc20dd48068aaf266e935702007e86346411b6b91120e82826e10c85",
+      "sha256": "10abe2f1a0356402ac89517e60ad3bb0997a89ed2f670433f19cfb6e1e159df2",
       "executable": false
     },
     "docs/BACKUP-RESTORE.md": {
@@ -2435,7 +2435,7 @@
       "executable": false
     },
     "src/barrow/price-books.ts": {
-      "sha256": "18b89be088c7d7b2adf2945775933aca254d0affbbc3bdfc1e1f0a8cd241e068",
+      "sha256": "d98081db03d12b584406c1cb7d1aea850d6d24938dbd3c17e4464fc5ce026273",
       "executable": false
     },
     "src/barrow/price-display.ts": {
