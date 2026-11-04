@@ -37,7 +37,7 @@ export async function workspace(env:Bindings,ctx:Context) {
   const rows=(await env.DB.prepare('SELECT id FROM bw_orders ORDER BY id').all<{id:string}>()).results
   for(const selected of directory)await retainAgentAccount(env.DB,selected.id,selected.revision,ctx.agent.id)
   const orders=[]
-  for(const row of rows){try{orders.push(await readOrder(env.DB,actor,row.id))}catch(error){if(!(error instanceof Error))throw error}}
+  for(const row of ctx.scopes.includes('orders:read')?rows:[]){try{orders.push(await readOrder(env.DB,actor,row.id))}catch(error){if(!(error instanceof Error))throw error}}
   return {accounts:directory,orders}})
  })
 }

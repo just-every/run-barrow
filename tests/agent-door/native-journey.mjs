@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
+import {staffInstallation} from './staff-installation.mjs'
 import {proveStaffParity} from './staff-parity.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
@@ -86,7 +87,7 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal((await local('tools/list')).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
- try {await proveStaffParity({request,origin,cookie,database})}catch(error){console.error('Staff journey assertion location: '+error.stack?.split('\n').filter(line=>line.trim().startsWith('at ')).join('\n'));throw error}
+ try {await staffInstallation(proveStaffParity)}catch(error){console.error('Staff journey assertion location: '+error.stack?.split('\n').filter(line=>line.trim().startsWith('at ')).join('\n'));throw error}
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
 }

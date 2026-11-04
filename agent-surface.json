@@ -481,10 +481,7 @@
       "initializer": "tests/agent-door/initialize.mjs",
       "bindings": {
         "PIER_ORIGIN": "appOrigin",
-        "PIER_SESSION": "token",
-        "RER_OWNER_CLAIM_PUBLIC_KEYS": {
-          "module": "tests/agent-door/staff-trust.mjs"
-        }
+        "PIER_SESSION": "token"
       }
     },
     "network": {
@@ -504,23 +501,6 @@
         "label": "local-admin",
         "email": "synthetic-admin@example.invalid",
         "initializer": "tests/agent-door/initialize-admin.mjs"
-      }
-    ],
-    "sponsors": [
-      {
-        "label": "owner"
-      },
-      {
-        "label": "sales-manager",
-        "email": "synthetic-barrow-43\u0040example.invalid",
-        "initializer": "tests/agent-door/initialize-staff.mjs",
-        "negativeOnly": true
-      },
-      {
-        "label": "rep",
-        "email": "synthetic-barrow-44\u0040example.invalid",
-        "initializer": "tests/agent-door/initialize-staff.mjs",
-        "negativeOnly": true
       }
     ]
   },

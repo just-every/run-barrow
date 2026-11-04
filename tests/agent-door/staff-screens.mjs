@@ -19,7 +19,10 @@ export async function captureStaffDraft({request,origin,cookie,draft}) {
    await page.setViewportSize({width,height:1000})
    await page.goto(origin+'/app')
    await page.getByRole('button',{name:'Orders',exact:true}).click()
-   if(width===1440)await page.getByText(draft.preparedBy,{exact:false}).first().waitFor()
+   await page.getByLabel('Purchase order / reference',{exact:true}).fill(draft.reference)
+   const card=page.locator('article.br-order').filter({has:page.getByText(draft.id,{exact:true})}).last()
+   await card.getByText('Order history & Pier details',{exact:true}).click()
+   if(width===1440)await card.getByText(draft.preparedBy,{exact:false}).waitFor()
    await page.screenshot({path:directory+'/staff-draft-'+width+'.png',fullPage:true})
   }
   await context.close()

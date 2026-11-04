@@ -131,7 +131,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "9487d4e3e335331ebf8f7b07f9cd81f792060c384118bf6953763c0e5763b7e5",
+      "sha256": "bfc5b67dda921a36fa0ab01a19fa9e0d4e16dbf7ae27ef0f0fb302b71d13e76a",
       "executable": false
     },
     "AGENTS.md": {
@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a3aa5af335b535badfa47f5d31bc8440691a6c09581084fe2aa53a537fd13289",
+      "sha256": "96a83098cbb866c64187cc952f00fb28b221bd1e5faba5e980321c6bcbb925a4",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "64e001bcc1e1fdbceb7d27b83bcb089ad26e6c73eab93ca8e8103b286f15881f",
+      "sha256": "6dad7bde7b51bb0c4f850d13a0f9d13309f19dcf3ac1ea0e4ccd4943f5ca5a04",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1799,7 +1799,7 @@
       "executable": false
     },
     "src/barrow/agent-door/native.ts": {
-      "sha256": "7eb858d57da5761fee48a0b73918afdfaff33f4c906183bf5887f43ec7ca4d38",
+      "sha256": "56e111f1ef69695af4ae190c02788bf337aa07375b6ff07d2a80e950c1c40345",
       "executable": false
     },
     "src/barrow/agent-door/proposals.ts": {
@@ -1807,7 +1807,7 @@
       "executable": false
     },
     "src/barrow/agent-door/records.ts": {
-      "sha256": "9684f377a439557c5c0ee130018bcd9ca4976e89758fd99c42bfe18404ed06bf",
+      "sha256": "745f36e03dbf6ecd1e7f7b23d2baffbfa4aac31881780b24c23a9cc7fca2ab3f",
       "executable": false
     },
     "src/barrow/agent-door/staff-authority.ts": {
@@ -3127,7 +3127,7 @@
       "executable": false
     },
     "src/barrow/workspace-orders.ts": {
-      "sha256": "a7381ace139ee9e93fe3992dcbf3b93a0c2195f55cec14aba97c988898a9e889",
+      "sha256": "6241c4b70995ae6557d6d9f7ebbde1644a3112ef36ba50c61639d6be2788d479",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -5783,7 +5783,7 @@
       "executable": false
     },
     "tests/agent-door/initialize-staff.mjs": {
-      "sha256": "c9b82e2149be9acbbe1be2da6a08abfac3400c8f16077f7c16e58ddd57192ab0",
+      "sha256": "afdc304f4cf5c676d8d4d1919250f39b503bd634cfde463ec56d3a69d3c5bb74",
       "executable": false
     },
     "tests/agent-door/initialize.mjs": {
@@ -5791,7 +5791,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "192e08711bd8b468a9fc8fe73f305cc19cf3379815c1cd3ffbd9c78f6935e63a",
+      "sha256": "a07cd047e1f0628c0d8af063cc7883042f9a2462a9ffb2d90e8c88a225df031b",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5802,16 +5802,24 @@
       "sha256": "a852cdceeca9867f8d987e78c99c8ce1bc379734d762384280658c9fe38b784e",
       "executable": false
     },
+    "tests/agent-door/staff-admission.mjs": {
+      "sha256": "2ebdc84391f36e6ebeafa743c86475513ef3dea70f7061c16687a5dd678c08bf",
+      "executable": false
+    },
+    "tests/agent-door/staff-installation.mjs": {
+      "sha256": "ab79598d0be7e4eb4d747abb563ecd3cb82917e2f63e27dec325989b5f983db9",
+      "executable": false
+    },
     "tests/agent-door/staff-parity.mjs": {
-      "sha256": "bc05435a2b63f944436531d465d25c0e59de4f09430f91f7c06da439b509b429",
+      "sha256": "6ace03aa4493b7d81f3fa649bcbef70575ad7335b4cf4e9b65e2058aa6b95384",
       "executable": false
     },
     "tests/agent-door/staff-screens.mjs": {
-      "sha256": "baf37d0c3ae72f5fed8ccadaf1e020c0480adde7c51ccd09cb91971dd89f237a",
+      "sha256": "04e5682944e030b315394dc50befbf85c99ac580d8239e7ad30e1aea9c36af98",
       "executable": false
     },
     "tests/agent-door/staff-trust.mjs": {
-      "sha256": "f1068825f9b1c42487e246e3acc1904d064c83f536935200d1cb1ac9ae4b8e71",
+      "sha256": "384e03152a99f5575512a0b0ecd7fe1a130d53f3fd2d621666be8aa24a867ef0",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
@@ -6151,7 +6159,7 @@
       "executable": false
     },
     "tests/api/worker.ts": {
-      "sha256": "336e3ad0325e1824c7037f836194591d44830d5525d4e43c47335b987c107cc8",
+      "sha256": "be9269c0446fe04ea4b213999fcf2fb98ecb2b2c385c23a8c948c69017cbb80c",
       "executable": false
     },
     "tests/eastern-day.mjs": {
