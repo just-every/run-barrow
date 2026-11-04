@@ -79,6 +79,8 @@ export async function captureAttribution({request,origin,cookie,preparations,app
    await page.screenshot({path:directory+'/attribution-orders-390.png',fullPage:true})
    const draftCard=page.locator('.br-order').filter({has:page.locator('.br-order-id',{hasText:draft.result.id})})
    await draftCard.getByRole('button',{name:'Open in order pad',exact:true}).click()
+   await page.locator('.br-pad-context').waitFor({state:'visible'})
+   await page.evaluate(()=>document.fonts.ready)
    await page.screenshot({path:directory+'/attribution-pad-390.png',fullPage:true})
   }
   await context.close()
