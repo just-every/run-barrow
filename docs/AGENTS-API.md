@@ -167,7 +167,7 @@ Its JSON contains `entity`, `accountId`, current `accountRevision`, current ISO
 authenticated `fingerprint`, and `requiresPerson:true`. Preparation changes no
 entity and reserves no stock. It records an attributed audit event. A preparer
 receives its submitted data and opaque revision basis, never another account's
-profile, catalog maintenance report or quote history.
+unrelated profile, catalog maintenance report or quote history. Quote preparation returns the commercial terms of the named account-owned quote, including its existing buying profile and effective price source, without granting profile enumeration or quote-history reads.
 
 Each payload uses the existing native format:
 
@@ -178,7 +178,7 @@ Each payload uses the existing native format:
 | `accounts` | `{id,revision,value,duplicateReviews?}`, using the complete native account value. This edits the grant's existing company only. Its buyer identity cannot be reassigned; native duplicate review and commercial validation still apply. |
 | `locations` | `{accountId,kind,value,makeDefault?}` for creation, or `{accountId,id,revision,value,makeDefault?}` for an existing location. Native address validation, current location revision and account ownership apply. |
 | `price-books` | `{accountId,revision,csv}`, with `sku,currency,unitCents,msrpCents,minQty` headers. Native single-currency, integer minor-unit, minimum and configured selling-unit rules apply. |
-| `quotes` | `{type,accountId,lines,note?}` for `quote.request`; `quote.propose` also names `quoteId`, current `revision`, and ordinary `validUntil`, `termsDays` and `shipping` fields where needed. Native quote pricing and approval rules apply. Acceptance, discount approval and order submission remain separate human actions. |
+| `quotes` | `{type,accountId,lines,note?}` for `quote.request`; `quote.propose` also names `quoteId`, current `revision`, and ordinary `validUntil`, `termsDays` and `shipping` fields where needed, plus `shippingMethodId`, `shippingWarehouse`, `ownCarrierAccount` and `freightQuote` when the native delivery method needs them. An existing quote keeps its actual buying profile; its currency must match the grant account. Native quote pricing and approval rules apply. Acceptance, discount approval and order submission remain separate human actions. |
 
 For example, save this input privately as `entity-change.json`, substituting the
 current revision returned by the person's account read:
@@ -194,6 +194,25 @@ outside the checkout:
 node scripts/barrow.mjs prepare-exchange-v1 --origin "$ORIGIN" \
   --token-file /private/integration-token.txt --input /private/entity-change.json
 ```
+
+Quote revision preparation uses the same calculator as the native quote command.
+Its `proposal.basis` names the current profile and brand revisions, effective
+commercial source, priced lines, exact `basisCents` and `totalCents`, payment
+terms, validity and delivery cost and window. The total is merchandise cents;
+add `delivery.totalCents` for the delivered amount. The native delivery option's
+transient selection fingerprint and attribution time are assigned during
+application; the reviewed commercial terms and settings revision remain bound.
+For example, two units at a profile price of 7,900 cents review and apply 15,800
+cents even when the base account book prices each unit at 6,500 cents.
+
+Price-book preparation binds the effective source date, currency and prices as
+well as the proposed destination book. Scheduled prices activate at midnight
+Eastern. Activation invalidates an older review even when the saved account
+revision and integration grant are unchanged. An attempt with that review
+returns HTTP 409 and leaves the activated schedule intact. Prepare and review
+again against the active source before approving a replacement. Quote delivery
+settings and the native calculation are also rechecked before the effect;
+changed settings or commercial terms require fresh preparation and review.
 
 The signed-in owner then posts
 that exact response to `/api/barrow/v1/exchange/review`, with the installation's

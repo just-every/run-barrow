@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3eaddb3be23ae5badbc3bc057be8ba538907efebb1a2d8cd34f17e1812b6ee53",
+      "sha256": "bd76cec3033aebd1b291f75efe52b7ef5c67e0772eb202d3961150a0b02571d0",
       "executable": false
     },
     "DEMO.md": {
@@ -187,7 +187,7 @@
       "executable": false
     },
     "docs/AGENTS-API.md": {
-      "sha256": "e3247b642f4b06667620f35ab4c6ab65d4c14a88aab6c32e7d32323f1524c1d9",
+      "sha256": "2a72980efc20dd48068aaf266e935702007e86346411b6b91120e82826e10c85",
       "executable": false
     },
     "docs/BACKUP-RESTORE.md": {
@@ -2091,7 +2091,7 @@
       "executable": false
     },
     "src/barrow/currency.ts": {
-      "sha256": "d9d4fe87a5041a92c3850a166be440500e7fbdcea20adb49630a186d7b606bd9",
+      "sha256": "6d892f1c17225c688d148e611f6a68542c9862fe190a764a170507da2747ecfa",
       "executable": false
     },
     "src/barrow/demo-pier.ts": {
@@ -2343,7 +2343,7 @@
       "executable": false
     },
     "src/barrow/integration-exchange.ts": {
-      "sha256": "97b13ca1919a325bb8e8d4a150031c1c64ca3dcb1cee96f65439ecdc4c41f607",
+      "sha256": "a377c5e3cc8b432d7bcca60c5200a92bde76a7cb30b9e6b487b93a0b24beaee1",
       "executable": false
     },
     "src/barrow/integration-grants.ts": {
@@ -2435,7 +2435,7 @@
       "executable": false
     },
     "src/barrow/price-books.ts": {
-      "sha256": "c0cd0c512be1b8865ab4bbdabd7ee660e340b25e18e9734a68d60bde7128ed64",
+      "sha256": "18b89be088c7d7b2adf2945775933aca254d0affbbc3bdfc1e1f0a8cd241e068",
       "executable": false
     },
     "src/barrow/price-display.ts": {
@@ -2519,7 +2519,7 @@
       "executable": false
     },
     "src/barrow/quotes.ts": {
-      "sha256": "bb4b0063c7a24df83f3c93673cce7d5749e0338a6553e3c527b1b820b05e23a8",
+      "sha256": "e13dc024501b22ac76716bd795e74f998cea0268531ad549b368627bf2b1a0a7",
       "executable": false
     },
     "src/barrow/reorders.ts": {
@@ -5919,7 +5919,7 @@
       "executable": false
     },
     "tests/api/integration-api.test.mjs": {
-      "sha256": "991e8e88800e838ba633c3b0bfc791b61c69d62b3d80f21acc96cc95fc885a39",
+      "sha256": "59a768ed2047a9b0f6dd24a0c8edb31571e838b923b7292a4bfbac2332672508",
       "executable": false
     },
     "tests/api/line-sheet-fixture.mjs": {
