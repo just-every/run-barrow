@@ -15,7 +15,7 @@ export async function staffInstallation(run) {
  const root=process.cwd(),surface=JSON.parse(await readFile('agent-surface.json','utf8'))
  const issuer='https://synthetic-barrow-business.invalid',installationId=randomUUID(),sub=randomUUID(),email=['synthetic-barrow-41','example.invalid'].join('@')
  const ring=await createStaffTrust({issuer,installationId,sub,email,publicKeys:'{}'})
- const {signer}=staffTrust(),network=await createAgentConformanceNetwork(root,surface.verification.network,{email,sponsorEmails:[43,44,45,46,47,48,49,50,51].map(n=>['synthetic-barrow-'+n,'example.invalid'].join('@'))})
+ const {signer}=staffTrust(),network=await createAgentConformanceNetwork(root,surface.verification.network,{email,sponsorEmails:[43,44,45,46,47,48,49,50,51,52].map(n=>['synthetic-barrow-'+n,'example.invalid'].join('@'))})
  let hosted
  try {
   hosted=await serveHosted(root,{fixturePreparation:true,outboundService:request=>network.fetch(request),bindings:{
@@ -32,7 +32,7 @@ export async function staffInstallation(run) {
   const bootstrap=await initializeOwner({request,origin,email,claim:{path:'/auth/owner-claim',token:claim},token:'synthetic-barrow-pier',fixtures:network.fixtures,reviewers:{initialize:async()=>{}}})
   console.log('STAFF native owner initialized')
   const cookie=bootstrap.headers.getSetCookie().map(value=>value.split(';',1)[0]).join('; ');await bootstrap.body?.cancel()
-  const owner={email,cookie,sub},team=['sales-manager','rep','operations','finance','analyst','buyer','buyer-approver','buyer-finance','buyer-admin'].map((label,i)=>({id:randomUUID(),email:['synthetic-barrow-'+(43+i),'example.invalid'].join('@'),name:label,role:'member',invite:1}))
+  const owner={email,cookie,sub},team=['sales-manager','rep','operations','finance','analyst','buyer','buyer-approver','buyer-finance','buyer-admin','native-admin'].map((label,i)=>({id:randomUUID(),email:['synthetic-barrow-'+(43+i),'example.invalid'].join('@'),name:label,role:'member',invite:1}))
   const settings=await sign('rer-business-settings+jwt',{v:1,iss:issuer,aud:origin,sub:installationId,business:'rer-agent-conformance',email,owner_id:sub,jti:randomUUID(),iat,exp:iat+300,rev:1,values:{},logo:null,team})
   const paired=await request(origin+'/api/rer/business-settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({settings})})
   assert.equal(paired.status,200);await paired.body?.cancel()

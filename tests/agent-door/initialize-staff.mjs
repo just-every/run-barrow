@@ -15,9 +15,14 @@ export default async function({request,origin,email,sub,label,owner,mail}) {
  const companyRights={buyer:['purchaser'],'buyer-approver':['approver'],'buyer-finance':['finance'],'buyer-admin':['administrator']}[label]
  const policy=companyRights?{rights:companyRights,locations:'all',perOrderLimitCents:100000,approvalLimitCents:0}:staffPolicy(label,label==='rep'?[]:['juniper'])
  let grant
- if(companyRights) {
-  const invitation=await request(origin+'/auth/invite',{method:'POST',headers,body:JSON.stringify({email,displayName:'Synthetic '+label,role:'member',returnTo:'/app'})})
-  assert.equal(invitation.status,202);await invitation.body?.cancel()
+ if(label==='native-admin') {
+  const people=await(await request(origin+'/auth/operators',{headers})).json(),person=people.find(row=>row.email===email)
+  const promoted=await request(origin+'/auth/operator/role',{method:'POST',headers,body:JSON.stringify({operatorId:person.id,role:'admin'})})
+  assert.equal(promoted.status,200);await promoted.body?.cancel()
+ }
+ if(companyRights||label==='native-admin') {
+  const invitation=await request(origin+'/auth/invite',{method:'POST',headers,body:JSON.stringify({email,displayName:'Synthetic '+label,role:label==='native-admin'?'admin':'member',returnTo:'/app'})})
+  assert.equal(invitation.status,202,await invitation.text())
  } else grant=await command('staff.invite',{email,name:'Synthetic '+label,policy,reason:'Owner reviewed native account scope.'})
  const message=(await mail.read()).at(-1)
  const href=message?.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)?.[0]??message?.html.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]?.replaceAll('&amp;','&')

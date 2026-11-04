@@ -36,6 +36,8 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
   for(const [person,allowed,denied] of [[manager,'juniper','staff-other'],[rep,'staff-other','juniper']]) {
    const native=(await http('/api/barrow/catalogue?accountId='+allowed,undefined,person.cookie));assert.equal(native.status,200)
    assert.deepEqual(withoutObservation(result(await mcp(person,'barrow.catalog.read',{accountId:allowed}))),withoutObservation(native.body))
+   assert.deepEqual(withoutObservation(result(await mcp(person,'barrow.catalog.read',{accountId:allowed},{scope:'catalog:read'}))),withoutObservation(native.body))
+   assert.equal(error(await mcp(person,'barrow.catalog.read',{accountId:denied},{scope:'catalog:read'})),'NOT_FOUND')
    assert.equal((await http('/api/barrow/catalogue?accountId='+denied,undefined,person.cookie)).status,404)
    assert.equal(error(await mcp(person,'barrow.catalog.read',{accountId:denied})),'NOT_FOUND')
    const directory=result(await mcp(person,'barrow.accounts.list'))
@@ -79,7 +81,7 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
   const shared=await command('list.save',{accountId:'juniper',name:'Synthetic role matrix '+phase,shared:true,lines})
   const invoice=before.find(row=>row.invoice&&row.accountId==='juniper');assert.ok(invoice,'Nonempty financial order fixture')
   const draft=manager.draft
-  for(const role of ['operations','finance','analyst','buyer','buyer-approver','buyer-finance','buyer-admin']) {
+  for(const role of ['operations','finance','analyst','buyer','buyer-approver','buyer-finance','buyer-admin','native-admin']) {
    const person=staffFixtures.get(role)
    const checks=[
     ['barrow.accounts.list',{},'/api/barrow/accounts'],
@@ -118,7 +120,9 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
     assert.equal(result(await mcp(person,'barrow.orders.prepare',args)).id,value.id)
     person.draft=value;person.replay=args
    } else assert.equal(error(prepared),nativeDraft.body.error.code,role+' draft refused')
-   assert.equal(error(await mcp(person,'barrow.accounts.read',{id:'staff-other'})),role==='analyst'?'FORBIDDEN':'NOT_FOUND')
+   const other=await mcp(person,'barrow.accounts.read',{id:'staff-other'})
+   if(role==='native-admin')assert.equal(result(other).id,'staff-other')
+   else assert.equal(error(other),role==='analyst'?'FORBIDDEN':'NOT_FOUND')
    for(const [name,args] of [['barrow.proposals.grants',{accountId:'juniper'}],['barrow.proposals.read',{id:randomUUID()}],['barrow.proposals.submit',{grantId:randomUUID(),orderId:invoice.id,model:'synthetic-barrow-1',runId:randomUUID(),reportedCostCents:0,candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:1}]}],idempotency_key:randomUUID()}]])assert.equal(error(await mcp(person,name,args)),'insufficient_scope',role+' '+name)
   }
  }
@@ -141,6 +145,46 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
   assert.deepEqual(nativeDrop.removed,['catalog:read','orders:prepare'])
   assert.equal(error(await mcp(manager,'barrow.catalog.read',{accountId:'juniper'},options)),'insufficient_scope')
   console.log('PROBE BASE-AGENT-005 '+phase+' self narrowing: MCP and native sponsor drop scopes -> narrowed grants persist across freshly signed tokens; held policy requires the named sponsor approval')
+ }
+ if(phase) {
+  const policyBefore=(await http('/agents/api/state')).body
+  const rolesBefore=(await http('/auth/operators')).body.map(row=>[row.id,row.role,row.status,row.version])
+  const removed=['catalog:read','lists:read','orders:prepare','orders:read']
+  for(const [role,person] of staffFixtures) {
+   const options={claims:{act:{sub:'synthetic-barrow-authority-'+phase+'-'+role,name:'Synthetic grant editor',specialist:'wholesale account operator'}}}
+   assert.deepEqual(result(await mcp(person,'barrow.scopes.read',{scope_id:'catalog:read'},options)).grants,['catalog:read'])
+   const beforeGrant=(await mcp(person,'barrow.scopes.read',{scope_id:'orders:prepare'},options)).body.result.structuredContent
+   for(const extra of [{scopes:['accounts:read','events:read']},{sponsorRole:'owner'},{policy:{rules:[{class:'*',do:'autonomous'}]}},{paused:true},{paused:false}]) {
+    const unsafe=await mcp(person,'barrow.authority.update',{scopes:['accounts:read'],...extra,idempotency_key:randomUUID()},options)
+    assert.equal(error(unsafe),'self_escalation',role+' attempted authority change')
+    assert.equal(unsafe.body.result._meta['com.runeditrun/decision'].disposition,'self_escalation')
+   }
+   assert.deepEqual(result(await mcp(person,'barrow.scopes.read',{scope_id:'orders:prepare'},options)),beforeGrant)
+   const args={scopes:['accounts:read'],idempotency_key:randomUUID()}
+   let narrowed=await mcp(person,'barrow.authority.update',args,options)
+   if(phase==='held') {
+    const approval=narrowed.body.result._meta['com.runeditrun/approval'];assert.ok(approval)
+    const path='/agents/api/approvals/'+approval.id,view=(await http(path,undefined,person.cookie)).body.approval
+    const approved=await http(path+'/approve',{revision:view.revision,summary_sha256:view.summary_sha256},person.cookie)
+    assert.equal(approved.status,200);assert.equal(approved.body.approval.state,'executed')
+    narrowed=await mcp(person,'barrow.authority.update',args,options)
+   }
+   assert.deepEqual(result(narrowed).removed,removed)
+   assert.deepEqual(result(await mcp(person,'barrow.scopes.read',{scope_id:'catalog:read'},options)).grants,[])
+   assert.equal(error(await mcp(person,'barrow.catalog.read',{accountId:'juniper'},options)),'insufficient_scope')
+   // The native person can remove the same scopes from another agent they sponsor.
+   const nativeId='synthetic-barrow-authority-native-'+phase+'-'+role,nativeOptions={claims:{act:{...options.claims.act,sub:nativeId}}}
+   result(await mcp(person,'barrow.scopes.read',{scope_id:'catalog:read'},nativeOptions))
+   let nativeGrant
+   for(const scope of removed)nativeGrant=await command('agent-scope.drop',{agentId:nativeId,scope},person.cookie)
+   assert.deepEqual(nativeGrant.removed,result(narrowed).removed)
+   assert.equal(error(await mcp(person,'barrow.catalog.read',{accountId:'juniper'},nativeOptions)),'insufficient_scope')
+   const restored=await mcp(person,'barrow.authority.update',{scopes:['accounts:read','catalog:read'],idempotency_key:randomUUID()},options)
+   assert.equal(error(restored),'self_escalation')
+  }
+  assert.deepEqual((await http('/agents/api/state')).body,policyBefore)
+  assert.deepEqual((await http('/auth/operators')).body.map(row=>[row.id,row.role,row.status,row.version]),rolesBefore)
+  console.log('PROBE BASE-AGENT-005 '+phase+' authority: every activated role removes its own grant scopes through MCP and native commands; widening, sponsor promotion, policy and both Pause changes return self_escalation with unchanged grants, roles and company controls')
  }
  if(phase){console.log('PROBE BASE-AGENT-005 '+phase+' parity: signed staff tokens and native catalog, cart and draft doors -> equal scoped data and draft totals under autonomous and held policies; foreign accounts refused');return}
  // Shared lists remain available; a private list, even the sponsor's own, does not enter the agent door.
@@ -169,6 +213,9 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
  assert.equal(error(await mcp(rep,'barrow.catalog.read',{accountId:'staff-other'})),'FORBIDDEN')
  const inactive=await http('/auth/operator/status',{operatorId:rep.grant.userId,status:'inactive'});assert.equal(inactive.status,200)
  assert.equal((await mcp(rep,'barrow.orders.prepare',rep.replay)).status,401)
+ const admin=staffFixtures.get('native-admin')
+ assert.equal((await http('/auth/operator/status',{operatorId:admin.grant.userId,status:'inactive'})).status,200)
+ assert.equal((await mcp(admin,'barrow.accounts.read',{id:'juniper'})).status,401)
  const after=(await http('/api/barrow/state')).body.orders
  assert.deepEqual(after.filter(row=>before.some(old=>old.id===row.id)),before)
  assert.ok(after.filter(row=>!before.some(old=>old.id===row.id)).every(row=>row.status==='draft'&&!row.invoice&&!row.pierOrderId))
