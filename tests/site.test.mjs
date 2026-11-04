@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { resolve, extname, sep } from 'node:path'
+import { documentation, renderDocumentation } from '../scripts/agent-docs.mjs'
 import { documentedRegistry } from './agent-door/prompt-fixture.mjs'
 
 const output = resolve('dist/site')
@@ -35,6 +36,7 @@ test('built run site serves its guides, Markdown navigation and local assets', a
   try {
     const queued = ['/', '/run', '/docs', '/docs/agents', '/404']
     const registry = await documentedRegistry()
+    assert.equal(await readFile('docs/AGENTS.md', 'utf8'), renderDocumentation(await documentation()), 'Agent docs generator must reject stale runtime documentation')
     const visited = new Set()
     let articleLinked = false
     while (queued.length) {

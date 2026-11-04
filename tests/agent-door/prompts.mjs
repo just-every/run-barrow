@@ -1,13 +1,12 @@
-import test from 'node:test'
 import assert from 'node:assert/strict'
 import { installation } from '../api/harness.mjs'
 import { inspectPrompts, mcpClient, documentedRegistry } from './prompt-fixture.mjs'
 
 // One public-door journey: policy setup, allowed jobs and revoked authority.
-test('specialist instructions match discovery and refuse unset, blocked, paused and revoked access without effects', async t => {
+export async function provePromptPolicies() {
   let outbound = 0
   const h = await installation({ agentPolicy: false, networkEdge: () => { outbound++; return new Response(null, { status: 503 }) } })
-  t.after(() => h.close())
+  try {
   const grant = await h.api('/api/barrow/agent-token', {})
   const mcp = mcpClient((url, init) => h.raw(new URL(url).pathname, init), h.origin, grant.token)
   const model = await documentedRegistry(), name = model.prompts[0].name
@@ -45,4 +44,5 @@ test('specialist instructions match discovery and refuse unset, blocked, paused 
   assert.equal(h.mail.deliveries.length, deliveries)
   assert.equal(outbound, 0)
   console.log('PROBE BASE-AGENT-013 prompts: unset, autonomous, held review, blocked, approval, Pause and revocation -> instructions only or refusal; zero commercial or provider effects')
-})
+  } finally { await h.close() }
+}

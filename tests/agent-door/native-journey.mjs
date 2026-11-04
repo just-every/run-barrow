@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
+import {provePromptPolicies} from './prompts.mjs'
 import {inspectPrompts,mcpClient} from './prompt-fixture.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
@@ -88,6 +89,7 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+ await provePromptPolicies()
 }
 
 // Run the documented specialist preparation path inside both signed policy legs.

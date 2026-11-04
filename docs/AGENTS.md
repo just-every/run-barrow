@@ -815,7 +815,7 @@ The following registry projection includes the copied runtime’s added idempote
     {
       "name": "barrow.proposals.submit",
       "title": "Prepare a scoped substitution proposal",
-      "description": "Prepare native-priced alternatives under an existing owner-authorized account grant. Manager/buyer decisions and stock execution remain native person actions.",
+      "description": "Prepare native-priced alternatives under an existing owner-authorized account grant. Manager and buyer decisions and stock execution remain native person actions.",
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
