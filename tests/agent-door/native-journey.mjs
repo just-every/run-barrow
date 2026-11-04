@@ -6,6 +6,7 @@ import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
+ try {
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
  const stale=await tool('barrow.orders.prepare',{...args,expected_revision:randomUUID()})
@@ -60,7 +61,7 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.ok(doorAudit.rows.some(row=>row.agent.name==='Barrow scoped agent'&&row.code==='agents_paused'))
  console.log('NATIVE PASS legacy HTTP enters shared policy, Pause, audit and once-only replay; missing key and changed arguments refuse')
  async function local(method,params={},token=grant.token) {
-  const response=await request(origin+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','MCP-Protocol-Version':'2026-07-28','Mcp-Method':method,...(params.name?{'Mcp-Name':params.name}:{})},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params:{...params,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}})})
+  const response=await request(origin+'/mcp',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json','MCP-Protocol-Version':'2026-07-28','Mcp-Method':method,...((params.name??params.uri)?{'Mcp-Name':params.name??params.uri}:{})},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params:{...params,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}})})
   return {status:response.status,body:await response.json()}
  }
  async function person(path,body,session=cookie) {
@@ -81,11 +82,18 @@ export default async function({request,origin,cookie,tool,database}) {
  const shared=nativeLists.find(value=>value.shared),privateList=nativeLists.find(value=>!value.shared)
  assert.ok(shared&&privateList)
  const projections=[['accounts','juniper',await person('/api/barrow/accounts/by-id/juniper')],['catalogs','juniper',await person('/api/barrow/catalogue?accountId=juniper')],['orders',draft.id,nativeOrder],['lists',shared.id,Object.fromEntries(Object.entries(shared).filter(([key])=>!['mine','creatorName'].includes(key)))]]
- for(const [kind,id,expected] of projections)assert.deepEqual(await resource('barrow://'+kind+'/'+id),expected,kind+' exact native projection')
+ function projection(kind,actual,expected) {
+  if(kind==='catalogs') {
+   assert.ok(Date.parse(actual.observedAt)>=Date.parse(expected.observedAt)&&Date.parse(actual.observedAt)<=Date.now(),'Catalogue reports the current observation time')
+   assert.deepEqual({...actual,observedAt:expected.observedAt},expected,'All catalogue fields match the native projection; observation times describe their own request')
+  }else assert.deepEqual(actual,expected,kind+' exact native projection')
+ }
+ for(const [kind,id,expected] of projections)projection(kind,await resource('barrow://'+kind+'/'+id),expected)
  const draftLink=prepared.result.content.find(value=>value.type==='resource_link')
  assert.equal(draftLink.uri,'barrow://orders/'+draft.id)
  assert.deepEqual(await resource(draftLink.uri),nativeOrder,'The linked record is the actual committed draft')
  const missing=await local('resources/read',{uri:'barrow://lists/missing'})
+ assert.equal(missing.body.error.data.code,'resource_unavailable')
  const hidden=await local('resources/read',{uri:'barrow://lists/'+privateList.id})
  assert.deepEqual(hidden,missing,'A private list is indistinguishable from a missing list')
  const source=before.orders.find(value=>value.status==='reserved'||value.status==='approved'||value.pierOrderId)||before.orders[0]
@@ -131,7 +139,7 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal(adminRead.status,200);assert.equal(adminRead.body.result.structuredContent.id,'juniper')
  for(const [kind,id] of projections) {
   const expected=kind==='accounts'?await person('/api/barrow/accounts/by-id/'+id,undefined,admin.cookie):kind==='catalogs'?await person('/api/barrow/catalogue?accountId='+id,undefined,admin.cookie):kind==='orders'?await person('/api/barrow/orders/'+id,undefined,admin.cookie):Object.fromEntries(Object.entries((await person('/api/barrow/lists?accountId=juniper',undefined,admin.cookie)).lists.find(value=>value.id===id)).filter(([key])=>!['mine','creatorName'].includes(key)))
-  assert.deepEqual(await resource('barrow://'+kind+'/'+id,adminGrant.token),expected,'Admin native projection '+kind)
+  projection(kind,await resource('barrow://'+kind+'/'+id,adminGrant.token),expected)
  }
  assert.deepEqual(await local('resources/read',{uri:'barrow://lists/'+privateList.id},adminGrant.token),await local('resources/read',{uri:'barrow://lists/missing'},adminGrant.token))
  const operators=await(await request(origin+'/auth/operators',{headers})).json(),adminPerson=operators.find(person=>person.email===admin.email)
@@ -147,4 +155,5 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+ }catch(error){console.error('Native resource journey assertion:',error);throw error}
 }

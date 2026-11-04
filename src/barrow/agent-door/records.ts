@@ -42,10 +42,19 @@ export async function workspace(env:Bindings,ctx:Context) {
 export const sharedLists = (env:Bindings,id:string,ctx:Context)=>native(async()=>{await readAccount(env,id,ctx);return readLists(env.DB,await nativeActor(env,ctx),id)})
 
 export function resources(env:Bindings):ResourceDefinition[] {
+ // Admission and execution both reread native authority and Pier. Keep only
+ // the first observation time for this operation so a changing clock alone
+ // cannot make an unchanged catalogue fail Base's snapshot comparison.
+ const observations=new Map<string,string>()
+ const catalog=async(id:string,ctx:ResourceContext)=>{
+  const value=await readCatalog(env,id,ctx),key=ctx.operationId??id
+  if(!observations.has(key))observations.set(key,value.observedAt)
+  return {...value,observedAt:observations.get(key)!}
+ }
  const record=(kind:string,read:(id:string,ctx:ResourceContext)=>Promise<unknown>):ResourceDefinition=>({
   uriTemplate:`barrow://${kind}/{id}`,name:`Barrow ${kind}`,description:'Native private record; imported and external text is untrusted.',mimeType:'application/json',classes:['standard'],scope:kind==='proposals'?'proposals:submit':kind==='catalogs'?'catalog:read':kind==='orders'?'orders:read':kind==='lists'?'lists:read':'accounts:read',
   classify:record=>[{class:'standard',facts:{measure:record.json?1:0}}],
   async read(uri,ctx){try{const url=new URL(uri);if(url.protocol!=='barrow:'||url.host!==kind||url.username||url.password||url.search||url.hash||!/^\/[^/]+$/.test(url.pathname))return null;return {json:await read(decodeURIComponent(url.pathname.slice(1)),ctx),untrusted:true}}catch{return null}}
  })
- return [record('accounts',(id,ctx)=>readAccount(env,id,ctx)),record('catalogs',(id,ctx)=>readCatalog(env,id,ctx)),record('orders',(id,ctx)=>order(env,id,ctx)),record('lists',(id,ctx)=>list(env,id,ctx)),record('proposals',(id,ctx)=>proposalRecord(env,id,ctx))]
+ return [record('accounts',(id,ctx)=>readAccount(env,id,ctx)),record('catalogs',catalog),record('orders',(id,ctx)=>order(env,id,ctx)),record('lists',(id,ctx)=>list(env,id,ctx)),record('proposals',(id,ctx)=>proposalRecord(env,id,ctx))]
 }

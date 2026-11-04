@@ -14,5 +14,5 @@ export default {async fetch(request,{fixture}) {
  }
  if(request.method!=='GET'||url.pathname!=='/api/pier/state')return Response.json({code:'not_found'},{status:404})
  return Response.json({items:[{id:'linen',sku:'LINEN',name:'Linen table runner',unit:'each',archived:false},{id:'hemp',sku:'HEMP',name:'Hemp table runner',unit:'each',archived:false}],
-  positions:['linen','hemp'].map(itemId=>({itemId,locationId:'shelf',status:'sellable',available:String(100-orders.flatMap(order=>order.lines).filter(line=>line.itemId===itemId).reduce((n,line)=>n+Number(line.reserved),0))})),locations:[{id:'shelf',kind:'bin',warehouse:'Main'}],parties:[{id:'juniper',kind:'customer'},{id:'custody-review',kind:'customer'}],orders,purchaseOrders:[]})
+  positions:['linen','hemp'].map(itemId=>({itemId,locationId:'shelf',status:'sellable',available:String(100-orders.flatMap(order=>order.lines).filter(line=>line.itemId===itemId).reduce((n,line)=>n+Number(line.reserved),0))})),locations:[{id:'shelf',kind:'bin',warehouse:'Main'}],parties:[{id:'juniper',kind:'customer'},{id:'custody-review',kind:'customer'},{id:'zinnia',kind:'customer'}],orders,purchaseOrders:[]})
 }}

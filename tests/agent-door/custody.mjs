@@ -5,9 +5,9 @@ import {installation,restore} from '../api/harness.mjs'
 /** Owner erasure through native HTTP, with SELECT-only retained-state witnesses. */
 export async function proveCustodyErasure({request,origin,cookie,database}) {
  const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
- async function native(path,body) {
+ async function native(path,body,status=200) {
   const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
-  assert.equal(response.status,200,'Native erasure fixture HTTP '+response.status);return response.json()
+  assert.equal(response.status,status,'Native erasure fixture HTTP '+response.status);return response.json()
  }
  const command=async(type,payload)=>(await native('/api/barrow/commands',{type,payload})).result
  console.log('NATIVE custody fixture begins')
@@ -50,7 +50,7 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
   resourceDecisions.push(value.body.result._meta['com.runeditrun/decision'].id)
  }
  async function archive() {
-  const {id}=await native('/api/barrow/portability/exports',{})
+  const {id}=await native('/api/barrow/portability/exports',{},201)
   let state;do {state=await native('/api/barrow/portability/exports/'+id+'/advance',{})}while(state.phase!=='complete')
   const response=await request(origin+'/api/barrow/portability/exports/'+id+'/download',{headers})
   assert.equal(response.status,200);return (await response.text()).trim().split('\n').map(line=>JSON.parse(line))
@@ -96,7 +96,7 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
  try {
   await destination.api('/api/barrow/erasure-journal',{bundle:independent,confirm:'JOURNAL',reason:'Owner attached the complete later erasure journal before an old archive restore.'})
   const refused=await restore(destination,beforeErasure,{status:400,journalSource:undefined,laterJournal:{sourceIdentity:afterErasure[0].sourceIdentity,epoch:afterErasure[0].epoch,journal:afterErasure[0].journal}})
-  assert.equal(refused.error.code,'erasure_epoch')
+  assert.equal(refused.error,'erasure_epoch')
   assert.equal((await destination.api('/api/barrow/state')).accounts.length,0)
   for(const [kind,id] of resources)assert.equal((await destination.request('/mcp',{method:'POST',headers:{Authorization:'Bearer '+draftGrant.token,'MCP-Protocol-Version':'2026-07-28','Mcp-Method':'resources/read','Mcp-Name':'barrow://'+kind+'/'+id},body:{jsonrpc:'2.0',id:1,method:'resources/read',params:{uri:'barrow://'+kind+'/'+id,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}}})).status,401)
  }finally{await destination.close()}
