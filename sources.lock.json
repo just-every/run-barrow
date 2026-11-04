@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a3aa5af335b535badfa47f5d31bc8440691a6c09581084fe2aa53a537fd13289",
+      "sha256": "1cf9822bbde4cbc4113c2893480d426e6e7d678c49c806f2f3e32b3a446a37e2",
       "executable": false
     },
     "DEMO.md": {
@@ -208,6 +208,10 @@
     },
     "docs/CONNECTORS.md": {
       "sha256": "c10caad030c578a8c9fa5709bea74ecef3545b375c1f1e7abac536db6058634a",
+      "executable": false
+    },
+    "docs/contract/SHIP-006-rubric.md": {
+      "sha256": "7f1845f734b01f433e5b8a9999bb816992285816e7f8a98938125e1c05767c83",
       "executable": false
     },
     "docs/CUTOVER-DELTA.md": {
@@ -947,7 +951,7 @@
       "executable": false
     },
     "RULINGS.md": {
-      "sha256": "b8381f6668f7c2decaa4f241e39b365e857f53d3d63aeb6262cd483efed2ef1c",
+      "sha256": "c97ca86c2e5bbc5cea92a49800c71334c7ea8dd3f2bd2dbcb7ebe4cddf33afc2",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -967,7 +971,7 @@
       "executable": false
     },
     "scripts/contract-docs.mjs": {
-      "sha256": "05895826d62442530462b67dd5e5c67dd9a19d0426684fc50abb09b6bb0bf8f9",
+      "sha256": "ba5a1d3cd7824a7d11f14985f642f7a18f6985eb3c1a5f1332553eb402c0a784",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {

@@ -8,11 +8,18 @@ const rows=[...contract.matchAll(/^\| `([A-Z0-9-]+)` \| (.+) \| (published|targe
 const count=selected=>['done','partial','missing'].map(status=>selected.filter(row=>row.status===status).length).concat(selected.length).join(' | ');
 for(const [label,selected]of [['Published',rows.filter(row=>row.kind==='published')],['Target and push further',rows.filter(row=>row.kind!=='published')],['All',rows]])contract=contract.replace(new RegExp('^\\| '+label+' \\|.*$','m'),'| '+label+' | '+count(selected)+' |');
 const definitions=new Map([...contract.matchAll(/^- \*\*([A-Z0-9-]+) — ([^\n]+)$/gm)].map(m=>[m[1],m[0].slice(2)]));
+// Add standard heading clauses without changing legacy clause bytes or the Base parser.
+const parsed=parseContract(contract), lines=contract.split('\n');
+for(const clause of parsed.clauses){
+ const start=clause.line-1;if(!/^#### /.test(lines[start]))continue;
+ let end=start+1;
+ while(end<lines.length&&!/^(?:#{1,4} |-[ \t]+\*\*[A-Z0-9-]+ — )/.test(lines[end]))end++;
+ definitions.set(clause.id,lines.slice(start,end).join('\n').trimEnd());
+}
 if(rows.length!==definitions.size||new Set(rows.map(row=>row.id)).size!==rows.length)throw Error('Refuse incomplete or duplicate contract status rows.');
-parseContract(contract);
 const acceptance='# Acceptance journeys\n\nGenerated from [CONTRACT.md](CONTRACT.md) by `node scripts/contract-docs.mjs write`. The complete canonical clause precedes its current proof and remaining work.\n\n'+rows.map((row,index)=>{
  const clause=definitions.get(row.id);if(!clause)throw Error('Missing definition for '+row.id);
- return `${index+1}. ${clause} **Status:** ${row.status}. **Current evidence:** ${row.evidence||'None yet.'}${row.gap?' **Remaining:** '+row.gap:''}`;
+ return `${clause.startsWith('#### ')?clause+'\n\n':`${index+1}. ${clause} `}**Status:** ${row.status}. **Current evidence:** ${row.evidence||'None yet.'}${row.gap?' **Remaining:** '+row.gap:''}`;
 }).join('\n\n')+'\n';
 const claims='# Product claims\n\nGenerated from the canonical status rows in [CONTRACT.md](../CONTRACT.md) by `node scripts/contract-docs.mjs write`. Done rows describe the recorded current scope; partial and missing rows retain their named gaps.\n\n| Clause | Title | Status | Evidence | Gap |\n| --- | --- | --- | --- | --- |\n'+rows.map(row=>`| \`${row.id}\` | ${row.title} | ${row.status} | ${row.evidence} | ${row.gap} |`).join('\n')+'\n';
 for(const [file,expected]of [['CONTRACT.md',contract],['ACCEPTANCE.md',acceptance],['docs/CLAIMS.md',claims]]){
