@@ -24,6 +24,7 @@ test('catalog media: native scoped managers review stored matches, atomic replac
  const confirmation='/api/barrow/orders/'+order.id+'/confirmations/2.pdf';
  const frozen=hash(Buffer.from(await(await h.request(confirmation,buyer)).arrayBuffer()));
  const history=await h.api('/api/barrow/imports/nuorder'),stock=await pier.api('/api/pier/state');
+ const initialAttrs=await h.api('/api/barrow/variant-attributes');
  const otherManager=await activateStaff(h,mediaEmail(902),mediaPolicy([], {entitlements:[],catalogMedia:undefined}));
  const operations=await activateStaff(h,mediaEmail(903),mediaPolicy([], {role:'operations',entitlements:[],catalogMedia:undefined}));
  const winter=await activateStaff(h,mediaEmail(904),mediaPolicy(['winter']));
@@ -45,6 +46,8 @@ test('catalog media: native scoped managers review stored matches, atomic replac
  for(const endpoint of ['/api/barrow/imports/nuorder','/api/barrow/catalog-maintenance/export.json','/api/barrow/variant-attributes'])await h.api(endpoint,undefined,{...who,status:403});
  await h.command('variant.image',{sku:'OAT-1',contentBase64:'synthetic-barrow-907'},{...who,status:403});
  await h.api(mediaPath+'/membership',{catalogs,reason:mediaReason},{...who,status:403});
+ assert.deepEqual(await h.api('/api/barrow/variant-attributes'),initialAttrs,'every refused media or membership operation leaves variants unchanged');
+ const crossOrigin=await h.request(mediaPath+'/preview',{method:'POST',as,headers:{origin:'https://other.invalid'},body:match});assert.equal(crossOrigin.status,403);
  const before=await h.api('/api/barrow/variant-attributes');const review=await preview();assert.equal(review.grantRevision,grant.revision);assert.deepEqual(review.affectedCatalogs,['spring']);assert.ok(review.imageRevision);
  assert.deepEqual(await h.api('/api/barrow/variant-attributes'),before,'preparation writes no variants');
  const outcomes=await Promise.all([h.request(mediaPath+'/apply',{method:'POST',as,body:{...match,fingerprint:review.fingerprint,reason:mediaReason}}),h.request(mediaPath+'/apply',{method:'POST',as,body:{...match,fingerprint:review.fingerprint,reason:mediaReason}})]);

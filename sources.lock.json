@@ -198,6 +198,10 @@
       "sha256": "d59053cc0fa2bacd47c8f7eab9b84ba5e2133c9b3cad13694da5b6848e0d47e0",
       "executable": false
     },
+    "docs/CATALOG-MEDIA.md": {
+      "sha256": "4c23616c1b1a3b24e00733f117228740f85884508d383bba47750ec9d21319cd",
+      "executable": false
+    },
     "docs/CLAIMS.md": {
       "sha256": "d1083839845ba6c6fbae810c6be75010d92ce839a14c9c3ffd18b083a9175251",
       "executable": false
@@ -1986,6 +1990,14 @@
       "sha256": "b22daa4ce716722aca9232b0933473fc83796030da368a6b2d969243c30173c3",
       "executable": false
     },
+    "src/barrow/catalog-media-access.ts": {
+      "sha256": "31516b85caa0daab0d4510bd8a5f0977977f3f60e210e35b5fab9f97952d1499",
+      "executable": false
+    },
+    "src/barrow/catalog-media.ts": {
+      "sha256": "86c29c962d4e256dabeaf246ae08f6920554657d7a4cad7281a288e7473d0e72",
+      "executable": false
+    },
     "src/barrow/catalog-search.ts": {
       "sha256": "75c3ec583befce29fc183c4535f87bfacc784a79206ebe53b61f85f4ba6b54af",
       "executable": false
@@ -2760,6 +2772,10 @@
     },
     "src/barrow/ui/catalog-maintenance.tsx": {
       "sha256": "9cebc2be0d27f10abf5c04602802c8cf19e202689b26e21f37a6eaaa3fb0e52b",
+      "executable": false
+    },
+    "src/barrow/ui/catalog-media.tsx": {
+      "sha256": "c48929a6310a18bdce5df780bd420e12e5b5e39f8e6c011c651b0682cc09697b",
       "executable": false
     },
     "src/barrow/ui/commercial-audit.tsx": {
@@ -5834,6 +5850,14 @@
       "sha256": "289e430f6098bf1e3f17f7bbb63a722a8e51d03db2d623cc919e50eec67304bb",
       "executable": false
     },
+    "tests/api/catalog-media-access.test.mjs": {
+      "sha256": "733ee8100a3c36d6a58fac47a468a1af2cfdec970d88f45a017993d15ce0b6a3",
+      "executable": false
+    },
+    "tests/api/catalog-media-fixture.mjs": {
+      "sha256": "44fbd66b9f4ccd79dc65ce109baf5dd7639dfb4b072aea7e3a145cf5d68bc718",
+      "executable": false
+    },
     "tests/api/catalog-search.test.mjs": {
       "sha256": "d7634ab4e07ce7831d750d126285e8cab7ba4fefe9b67f6a9d40b22b558758dc",
       "executable": false
@@ -6192,6 +6216,10 @@
     },
     "tests/journeys/catalog-maintenance.test.mjs": {
       "sha256": "d394ea5475456b2318958cbc1cbac335ca4d769bd64c327aabc599a663b7053b",
+      "executable": false
+    },
+    "tests/journeys/catalog-media-access.test.mjs": {
+      "sha256": "3968be2201a2a431cacd61e5228c82c26b2b6e93bfa3e2bf220f67ad19ebc717",
       "executable": false
     },
     "tests/journeys/catalog-search-scale.test.mjs": {
