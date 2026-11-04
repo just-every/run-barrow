@@ -18,7 +18,7 @@ export async function proveStaffAdmission() {
   const action=duringRead;duringRead=undefined;if(action)await action()
   return pierEdge.fetch(request,{fixture:{cookie:pierCookie}})
  }})
- let target
+ let target,erasedTarget
  try {
   const selected=await h.command('account.save',{id:'juniper',value:{name:'Synthetic admission market',email:['synthetic-barrow-53','example.invalid'].join('@'),pierCustomerId:'juniper',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:2400,minQty:1}]}})
   const owner=(await h.api('/api/barrow/state')).actor
@@ -135,5 +135,19 @@ export async function proveStaffAdmission() {
   assert.equal(denied.status,401)
   assert.deepEqual((await target.api('/api/barrow/state')).orders.find(row=>row.id===restored.id),restored)
   console.log('PROBE BASE-AGENT-005 restore: native export and fresh installation import -> retained draft attribution, revoked staff grants and refused captured bearer replay')
- } finally {await target?.close();await h.close()}
+  await h.command('retention.request',{accountId:'juniper',requester:'Verified company purchaser',channel:'In-app owner review',verificationNote:'Owner verified this company scope.',reason:'Owner reviewed buyer sponsorship custody.',held:false})
+  const preview=await h.command('retention.preview',{accountId:'juniper'})
+  const receipt=await h.command('retention.erase-account',{accountId:'juniper',accountRevision:preview.accountRevision,requestRevision:preview.requestRevision,policyRevision:preview.policyRevision,reviewHash:preview.reviewHash,confirm:'ERASE',reason:'Owner authorizes erasure without changing the financial floor.'})
+  const erasedSponsor=await h.db.prepare('SELECT name,sponsor,sponsor_name,revoked,tombstone FROM agent_door_agents WHERE id=?').bind('synthetic-barrow-buyer-agent').first()
+  assert.deepEqual([erasedSponsor.name,erasedSponsor.sponsor,erasedSponsor.sponsor_name,erasedSponsor.revoked],['','','',1])
+  assert.equal(JSON.parse(erasedSponsor.tombstone).erasure_id,receipt.id)
+  assert.equal((await buyerCall('barrow.orders.prepare',buyerArgs)).status,401)
+  const later=await archive(h)
+  erasedTarget=await installation({https:true})
+  const old=await restore(erasedTarget,exported,{status:400,laterJournal:{sourceIdentity:later[0].sourceIdentity,epoch:later[0].epoch,journal:later[0].journal}})
+  assert.match(typeof old.error==='string'?old.error:old.error.code,/erasure|journal/i)
+  assert.equal((await erasedTarget.api('/api/barrow/state')).orders.length,0)
+  console.log('PROBE BASE-AGENT-005 erasure: owner erases a former sponsoring buyer -> sponsor identity tombstoned, captured token refused, later journal refuses the older archive without restored orders')
+
+ } finally {await erasedTarget?.close();await target?.close();await h.close()}
 }

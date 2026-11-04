@@ -49,7 +49,7 @@ export async function currentScopes(env:Bindings,principal:{person:{id:string};a
  if(!principal.clientId?.startsWith('barrow-local:')) {
   const person=await people(env).person(principal.person.id),actor=person&&await personAuthority(env,person)
   const dropped=await droppedScopes(env.DB,principal.agent.id)
-  return actor?scopes.filter(scope=>!dropped.includes(scope)&&((!actor.staff&&!actor.company)||scope!=='proposals:submit')):[]
+  return actor?scopes.filter(scope=>!dropped.includes(scope)&&(actor.role==='owner'||scope!=='proposals:submit')):[]
  }
  const grant=await localGrant(env,principal.person.id,principal.clientId)
  if(!grant)return []
