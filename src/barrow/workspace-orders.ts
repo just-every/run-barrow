@@ -78,3 +78,11 @@ export async function waitingDraft(db: D1Database, actor: Actor) {
  const row = await db.prepare(`SELECT o.value_json,o.revision FROM bw_orders o JOIN bw_accounts a ON a.id=o.account_id WHERE json_extract(o.value_json,'$.status')='draft'${visible.sql} ORDER BY (json_extract(o.value_json,'$.accountRevision')<>a.revision) DESC,json_extract(o.value_json,'$.preparedAt') DESC,o.id DESC LIMIT 1`).bind(...visible.values).first<Stored>()
  return row ? parse(row) : null
 }
+
+/** Account projections share the native role's price visibility in every door. */
+export function commercialAccountView(actor:Actor,row:import('./model').Account) {
+ return actor.staff&&!['sales-manager','rep'].includes(actor.staff.role)?{...row,value:{...row.value,prices:[]}}:row
+}
+export function workspaceAccounts(actor:Actor,rows:import('./model').Account[]) {
+ return actor.staff?.role==='analyst'?[]:rows.map(row=>commercialAccountView(actor,row))
+}

@@ -2,6 +2,7 @@ import { proposalRecord } from './proposals.ts'
 import { retainAgentAccount } from './custody.ts'
 import type { Bindings } from '../../auth.server.ts'
 import type { ResourceDefinition, ToolContext, ResourceContext } from '../../modules/agent-door/types.ts'
+import { commercialAccountView, workspaceAccounts } from '../workspace-orders.ts'
 import { accounts, account } from '../accounts.ts'
 import { accountPage } from '../account-directory.ts'
 import { readOrder } from '../orders.ts'
@@ -15,10 +16,10 @@ import { nativeActor, native, restrictAccount } from './native.ts'
 
 export type Context = Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'>
 export async function readAccount(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);return authorizedRead(env,actor,'/api/barrow/accounts/by-id/'+encodeURIComponent(id),async()=>{const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision,ctx.agent.id);return value})})
+ return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);return authorizedRead(env,actor,'/api/barrow/accounts/by-id/'+encodeURIComponent(id),async()=>{const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision,ctx.agent.id);return commercialAccountView(actor,value)})})
 }
 export async function directory(env:Bindings,args:Record<string,string>,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/accounts',async()=>{const page=await accountPage(env.DB,actor,new URLSearchParams(args))
+ return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/accounts',async()=>{const page=await accountPage(env.DB,actor,new URLSearchParams(args));page.accounts=page.accounts.map(row=>commercialAccountView(actor,row))
   for(const row of page.accounts)await retainAgentAccount(env.DB,row.id,row.revision,ctx.agent.id)
   return page})
  })
@@ -33,7 +34,7 @@ export async function list(env:Bindings,id:string,ctx:Context) {
  return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/lists',async()=>{const value=await readList(env.DB,actor,id);await readAccount(env,value.accountId,ctx);return value})})
 }
 export async function workspace(env:Bindings,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/state',async()=>{const directory=await accounts(env.DB,actor)
+ return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/state',async()=>{const directory=workspaceAccounts(actor,await accounts(env.DB,actor))
   const rows=(await env.DB.prepare('SELECT id FROM bw_orders ORDER BY id').all<{id:string}>()).results
   for(const selected of directory)await retainAgentAccount(env.DB,selected.id,selected.revision,ctx.agent.id)
   const orders=[]

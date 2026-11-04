@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {mkdir} from 'node:fs/promises'
 /** Inspect the existing native Orders screen, without adding UI or authority. */
-export async function captureStaffDraft({request,origin,cookie,draft}) {
+export async function captureStaffDraft({request,origin,cookie,draft,kind='staff'}) {
  const directory=process.env.BARROW_AGENT_EVIDENCE
  if(!directory)return
  const {chromium}=await import('@playwright/test')
@@ -23,7 +23,7 @@ export async function captureStaffDraft({request,origin,cookie,draft}) {
    const card=page.locator('article.br-order').filter({has:page.getByText(draft.id,{exact:true})}).last()
    await card.getByText('Order history & Pier details',{exact:true}).click()
    if(width===1440)await card.getByText(draft.preparedBy,{exact:false}).waitFor()
-   await page.screenshot({path:directory+'/staff-draft-'+width+'.png',fullPage:true})
+   await page.screenshot({path:directory+'/'+kind+'-draft-'+width+'.png',fullPage:true})
   }
   await context.close()
  } finally {await browser.close()}
