@@ -11,6 +11,12 @@ test('finance allocates one verified seasonal deposit across two acknowledged re
  let statement=await h.api('/api/barrow/statements/cedar?to=2100-12-31',undefined,buyer);assert.equal(statement.sections[0].unappliedCents,21000);assert.equal(statement.sections[0].closingCents,49000);
  assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).exposureCents,70000);
  assert.ok((await h.api('/api/barrow/reports/commissions')).rows.every(row=>row.grossCents===0&&row.netCents===0));
+ let policy=await h.command('credit-policy.save',{accountId:'cedar',revision:null,currency:'USD',limitCents:100000,termsDays:30,reason:'Review the exact seasonal invoice exposure.'});
+ policy=await h.command('credit-policy.hold',{accountId:'cedar',revision:policy.revision,kind:'overdue',expiresAt:'2027-12-31T00:00:00Z',ownerId:(await h.api('/api/barrow/state')).actor.id,reason:'Only freshly reviewed finance exposure may release this account.'});
+ let quote=await h.command('quote.request',{accountId:'cedar',lines:[{sku:'OAT-1',quantity:2}]},buyer);quote=await h.command('quote.propose',{quoteId:quote.id,revision:quote.revision,lines:[{sku:'OAT-1',quantity:2}],validUntil:'2027-12-31'});
+ const reviewed=await h.api('/api/barrow/account-credit?accountId=cedar');
+ policy=await h.command('credit-policy.release',{accountId:'cedar',revision:reviewed.revision,exposureFingerprint:reviewed.fingerprint,ceilingCents:83000,reason:'Review both invoices before a buyer may accept another quote.'});assert.equal(policy.released,true);
+
  await h.command('card.allocate',{...allocation(0,15000),sourceRevision:'synthetic-barrow-701'},{status:409});
  await h.command('card.allocate',{...allocation(0,15000),orderRevision:'synthetic-barrow-702'},{status:409});
  await h.command('card.allocate',allocation(0,15000),{...buyer,status:403});
@@ -21,6 +27,11 @@ test('finance allocates one verified seasonal deposit across two acknowledged re
  assert.deepEqual(results.map(row=>row.status).sort(),[200,409]);const winning=results.findIndex(row=>row.status===200),other=1-winning;
  const saved=(await results[winning].json()).result;assert.equal(saved.amountCents,15000);assert.equal(saved.sourceOrderId,commitment.id);assert.equal(saved.providerPaymentId,payment.providerPaymentId);
  assert.deepEqual(await h.command('card.allocate',allocation(winning,15000)),saved);
+ assert.equal((await h.api('/api/barrow/account-credit?accountId=cedar')).held,true);
+ assert.equal((await h.command('quote.accept',{quoteId:quote.id,number:1},{...buyer,status:409})).error.code,'CREDIT_HOLD');
+ assert.equal((await h.command('credit-policy.release',{accountId:'cedar',revision:policy.revision,exposureFingerprint:reviewed.fingerprint,ceilingCents:68000,reason:'An earlier review cannot authorize changed allocations.'},{status:409})).error.code,'CREDIT_REVIEW_CHANGED');
+ assert.equal((await h.api('/api/barrow/state')).orders.length,3);
+
  await h.command('card.allocate',allocation(winning,14999),{status:409});
  const second=await h.command('card.allocate',allocation(other,6000));assert.equal(second.amountCents,6000);
  for(const release of releases){const credit=await h.api('/api/barrow/credits?orderId='+release.id,undefined,buyer);assert.equal(credit.allocations.length,1);assert.equal(credit.depositReceipts[0].availableCents,0)}
@@ -34,7 +45,7 @@ test('finance allocates one verified seasonal deposit across two acknowledged re
  const exposure=await h.api('/api/barrow/account-credit?accountId=cedar');assert.deepEqual([exposure.exposureCents,exposure.unpaidInvoicesCents,exposure.depositsCents],[49000,49000,0]);
  let commissions=await h.api('/api/barrow/reports/commissions');assert.equal(commissions.rows.reduce((sum,row)=>sum+row.grossCents,0),2100);assert.equal(commissions.rows.reduce((sum,row)=>sum+row.netCents,0),2100);assert.ok(commissions.rows.every(row=>row.paymentSources.includes(payment.providerPaymentId)));
  const account=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,assignedRep:'Replacement rep'}});
- const policy=await h.api('/api/barrow/commissions');await h.command('commission.settings',{revision:policy.revision,rules:[],reason:'Later policy cannot rewrite earned deposit allocations.'});assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows,commissions.rows);
+ const commissionPolicy=await h.api('/api/barrow/commissions');await h.command('commission.settings',{revision:commissionPolicy.revision,rules:[],reason:'Later policy cannot rewrite earned deposit allocations.'});assert.deepEqual((await h.api('/api/barrow/reports/commissions')).rows,commissions.rows);
  const correction=await h.command('credit.issue',{orderId:releases[0].id,kind:'price-correction',sourceReference:'synthetic-barrow-705',lines:[{line:1,quantity:8,amountCents:10400}],reason:'Correct unpaid original merchandise without reversing still-backed earned payment commission.'});
  const afterCorrection=await h.api('/api/barrow/reports/commissions');assert.equal(afterCorrection.rows.reduce((sum,row)=>sum+row.grossCents,0),2100);assert.equal(afterCorrection.rows.reduce((sum,row)=>sum+row.reversedCents,0),0);assert.equal(afterCorrection.rows.reduce((sum,row)=>sum+row.netCents,0),2100);
  const exported=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(exported.cardallocations.length,2);assert.equal(exported.manifest.counts.cardallocations,2);const amounts=exported.manifest.totals.find(row=>row.currency==='USD');assert.deepEqual([amounts.orders,amounts.orderCents,amounts.commitments,amounts.commitmentCents,amounts.releases,amounts.releaseCents,amounts.invoiceCents,amounts.allocatedCardCents],[3,70000,1,70000,2,70000,70000,21000]);assert.equal(exported.orders.find(row=>row.id===releases[0].id).prebookRelease.orderId,commitment.id);assert.ok(exported.cardallocations.every(row=>row.sourceOrderId===commitment.id&&row.providerPaymentId===payment.providerPaymentId));

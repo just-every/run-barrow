@@ -25,7 +25,7 @@ export async function prebookFixture(t,{built=false,surchargeBps=0}={}) {
  return {pier,product,rye,po,h,edge,account,buyer,publication,publish,input,prepare,submit,accept,deposit,day};
 }
 
-export async function releasedDepositFixture(t,options={}) {
+export async function readyDepositFixture(t,options={}) {
  const f=await prebookFixture(t,options),{h,pier,product,po,account,publication}=f;
  if(options.built)publication.windows[1].shipDate='2027-03-05';
  await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,assignedRep:'Season rep'}});
@@ -34,6 +34,11 @@ export async function releasedDepositFixture(t,options={}) {
  await h.command('prebook.close',{id:publication.id,revision:(await h.api('/api/barrow/prebook-seasons')).revision,reason:'Season intake completed before release.'});
  await f.day('2027-03-12T15:00:00Z');
  await pier.command('receipt.create',{poId:po.id,supplierReference:'Both promised spring windows arrived',lines:po.lines.map(line=>({poLineId:line.id,locationId:product.location.id,quantity:'12',cost:line.itemId===product.item.id?'20.00':'15.00'}))});
+ return {...f,commitment,payment};
+}
+
+export async function releasedDepositFixture(t,options={}) {
+ const f=await readyDepositFixture(t,options),{h,payment}=f;let {commitment}=f;
  const releases=[];
  for(const windowId of ['first','second']) {
   const next=await h.command('prebook.release',{orderId:commitment.id,windowId,revision:commitment.revision,reason:'Finance and operations reviewed the received seasonal window.'});commitment=next.order;

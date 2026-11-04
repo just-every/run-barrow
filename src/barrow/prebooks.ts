@@ -1,4 +1,4 @@
-import { creditPolicy, creditSignature } from './credit-policy'
+import { admitCredit, creditPolicy, creditSignature } from './credit-policy'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { account } from './accounts'
@@ -131,6 +131,7 @@ export async function prebookWindowCommand(env:Bindings,actor:Actor,type:string,
   }
   const id=`${order.id}-W${order.prebook.windows.indexOf(window)+1}`,lines=window.lineIndexes.map(index=>structuredClone(order.lines[index]))
   const release:Order={...order,id,creditPolicySnapshot:creditSignature(await creditPolicy(env.DB,order.accountId)),prebook:undefined,prebookRelease:{orderId:order.id,windowId:window.id,seasonId:order.prebook.season.id},requestedDate:window.estimatedDate??terms.shipDate,cancelAfter:terms.cancelAfter,lines:lines.map(line=>({...line,requestedDate:window.estimatedDate??terms.shipDate})),totalCents:lines.reduce((n,line)=>n+(line.lineCents??0),0),status:'submitted',revision:crypto.randomUUID(),preparedAt:at.toISOString(),reference:order.reference,approvedAt:undefined,approvedBy:undefined,invoice:undefined}
+  epoch.push(...await admitCredit(env,release,order))
   window.releaseId=id
   epoch.push(env.DB.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(id,order.accountId,JSON.stringify(release),release.revision),audit(env.DB,actor,id,'prebook.release-created',{accountId:order.accountId,orderId:id,revision:release.revision,source:type,reason:`Commitment ${order.id}, window ${window.id}: ${reason}`}))
  }

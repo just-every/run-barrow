@@ -68,12 +68,13 @@ export async function readAccountCredit(env:Bindings,actor:Actor,id:string) {
  const held=!!policy?.hold&&Date.parse(policy.hold.expiresAt)>(await now()).getTime()&&!released
  return {...value,configured:!!policy,limitCents:policy?.limitCents??null,availableCents:policy?policy.limitCents-value.exposureCents:null,termsDays:policy?.termsDays??selected.value.termsDays,revision:policy?.revision??null,held,released,releaseCeilingCents:released?policy!.accountRelease!.ceilingCents:null,explanation:released?'Finance recorded a conditional release. Current exposure is rechecked on acceptance.':held?'Credit hold: contact finance to request a reviewed release.':'Orders above available credit require a finance decision.',...(['owner','admin'].includes(actor.role)||actor.staff?.role==='finance'?{policy}:{}),sources:actor.staff||['owner','admin'].includes(actor.role)?value.sources:[]}
 }
-export async function admitCredit(env:Bindings,order:Order) {
+export async function admitCredit(env:Bindings,order:Order,transferringFrom?:Order) {
  const policy=await creditPolicy(env.DB,order.accountId),guards=await creditGuards(env.DB,order.accountId,policy)
  if(!policy)return guards
  await assertCreditSignature(env.DB,order)
  if(order.currency!==policy.currency)fail('CREDIT_CURRENCY','The order currency differs from the finance credit currency. Ask finance to review it.')
- const value=await creditExposure(env.DB,order.accountId,policy.currency,order.id),projected=value.exposureCents+order.totalCents
+ // A new seasonal release transfers an already counted window, rather than adding a second commitment.
+ const value=await creditExposure(env.DB,order.accountId,policy.currency,transferringFrom?'':order.id),projected=value.exposureCents+(transferringFrom?0:order.totalCents)
  if(!Number.isSafeInteger(projected))fail('MONEY','Resulting exposure exceeds the exact-cent range.')
  const held=!!policy.hold&&Date.parse(policy.hold.expiresAt)>(await now()).getTime()
  if(held||projected>policy.limitCents) {
@@ -122,7 +123,9 @@ export async function creditPolicyCommand(env:Bindings,actor:Actor,type:string,p
    const order=row?{...JSON.parse(row.value_json),revision:row.revision} as Order:null
    if(order&&!['draft','awaiting-company-approval','submitted'].includes(order.status))fail('CREDIT_RELEASE','Only a current unaccepted order may receive a release.')
    if(order&&order.currency!==before.currency)fail('CREDIT_CURRENCY','Release cannot change currency.')
-   const value=await creditExposure(env.DB,id,before.currency,order?.id),ceilingCents=integer(p.ceilingCents,'Maximum resulting exposure cents')
+   const reviewed=await creditExposure(env.DB,id,before.currency)
+   if(p.exposureFingerprint!==reviewed.fingerprint)fail('CREDIT_REVIEW_CHANGED','Credit exposure sources changed. Reload credit settings and review them before approving a release.')
+   const value=order?await creditExposure(env.DB,id,before.currency,order.id):reviewed,ceilingCents=integer(p.ceilingCents,'Maximum resulting exposure cents')
    creditAuthority(actor,id,ceilingCents,before.currency)
    if(ceilingCents<value.exposureCents+(order?.totalCents??0))fail('CREDIT_LIMIT','The release ceiling is below current resulting exposure.')
    const release={...(order?{orderId:order.id,commercial:commercial(order)}:{}),fingerprint:value.fingerprint,ceilingCents,by:actor.id,at,reason}

@@ -2079,7 +2079,7 @@
       "executable": false
     },
     "src/barrow/credit-policy.ts": {
-      "sha256": "04685778bec11980472b9035e96a8203c2c7e2b7c4f429637ab7fa77b165e411",
+      "sha256": "d7f461ba08d1834eeecf0fd33fc50335da47342b43eaea92971ab4fa7a6e0d5d",
       "executable": false
     },
     "src/barrow/credit-refunds.ts": {
@@ -2427,7 +2427,7 @@
       "executable": false
     },
     "src/barrow/prebooks.ts": {
-      "sha256": "956a664656b0239abb6dd82e1dbc595393dddebc24595ddf86908fc53ea4cab3",
+      "sha256": "95bb879b089df69d3b6eef369b9ceb1c1a0db46e5b2fd18db0402d5fcd8bc2c4",
       "executable": false
     },
     "src/barrow/presentation.ts": {
@@ -2659,7 +2659,7 @@
       "executable": false
     },
     "src/barrow/ui/account-credit.tsx": {
-      "sha256": "5e184bbe3c846393c3c5a268d4dd556eccd0a04c7e8ba7c6160bf3a789b0106d",
+      "sha256": "4d40a8101e5600e77b3baecdc191cdad269deb24ff646bc762eecc7de30c4efc",
       "executable": false
     },
     "src/barrow/ui/account-erasure.tsx": {
@@ -5875,7 +5875,7 @@
       "executable": false
     },
     "tests/api/deposits.test.mjs": {
-      "sha256": "0808f197611380cd2e95d7f00b28203e8bc0edb971835d1f32fbf134a250acf1",
+      "sha256": "e6e8703b8f7e1c391eea69292e08980474ffd35e0c6b3964545fd0698b1f1d22",
       "executable": false
     },
     "tests/api/diagnostics.test.mjs": {
@@ -5983,7 +5983,7 @@
       "executable": false
     },
     "tests/api/prebook-fixture.mjs": {
-      "sha256": "24f8394e6f944d6d13a6660f41752e77ab4eb97ea1def14f48e57832b7ab746b",
+      "sha256": "aca2f2288cdd96144b6098d31dea6de90be6680e4291b594396921fec7548ffa",
       "executable": false
     },
     "tests/api/pricing.test.mjs": {
@@ -5999,7 +5999,7 @@
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
-      "sha256": "06391934ec8532a44b7a0a6bfa84903bebbf1e1557d99b812310c034be9dd25a",
+      "sha256": "4ab938ca205cba1fbfc12039e0c29e4ed5c3806b4b630a233665f95cba062bb9",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {
@@ -6215,7 +6215,7 @@
       "executable": false
     },
     "tests/journeys/credit-policy.test.mjs": {
-      "sha256": "ac8047a02876e594b3d1f89d7e5397fe9f484eda14b7abfead3fbd2bab8c1f16",
+      "sha256": "2c52472a22558fe8314e418a127fb58a9e15c70af914161cff14f880a26b008d",
       "executable": false
     },
     "tests/journeys/cutover.test.mjs": {
