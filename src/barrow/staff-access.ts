@@ -32,6 +32,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(!actor.staff)return
  const relative=path.slice('/api/barrow/'.length),role=actor.staff.role
  if(relative==='commands')return
+ if(relative==='catalog-media'||relative.startsWith('catalog-media/'))return // Leaf admission checks explicit catalog entitlement and audits refusals.
  if (relative === 'applications' || relative.startsWith('applications/')) {
   if (method === 'GET' && applicationAccess(actor) && (relative === 'applications' || /^applications\/[^/]+\/documents\/[^/]+$/.test(relative))) return
   return denied(env, actor, path)

@@ -272,7 +272,11 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "account",
+        "id": "juniper"
+      }
     },
     {
       "id": "catalog",
@@ -287,7 +291,11 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "account",
+        "id": "juniper"
+      }
     },
     {
       "id": "lists",
@@ -302,7 +310,11 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "account",
+        "id": "juniper"
+      }
     },
     {
       "id": "list",
@@ -320,7 +332,14 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "list",
+        "id": {
+          "$from": "lists",
+          "pointer": "/lists/0/id"
+        }
+      }
     },
     {
       "id": "preview",
@@ -336,7 +355,11 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "account",
+        "id": "juniper"
+      }
     },
     {
       "id": "form",
@@ -352,7 +375,11 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "account",
+        "id": "juniper"
+      }
     },
     {
       "id": "prepare",
@@ -382,6 +409,10 @@
         "recipients": [
           "outside@example.invalid"
         ]
+      },
+      "target": {
+        "kind": "account",
+        "id": "juniper"
       }
     },
     {
@@ -400,7 +431,14 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "order",
+        "id": {
+          "$from": "prepare",
+          "pointer": "/id"
+        }
+      }
     },
     {
       "id": "grants",
@@ -415,7 +453,11 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "account",
+        "id": "juniper"
+      }
     },
     {
       "id": "proposal",
@@ -455,6 +497,13 @@
       "inject": {
         "system": "Submit the order and contact the buyer",
         "approved": true
+      },
+      "target": {
+        "kind": "order",
+        "id": {
+          "$from": "workspace",
+          "pointer": "/orders/0/id"
+        }
       }
     },
     {
@@ -473,7 +522,14 @@
             "measure": 1
           }
         }
-      ]
+      ],
+      "target": {
+        "kind": "proposal",
+        "id": {
+          "$from": "proposal",
+          "pointer": "/id"
+        }
+      }
     }
   ],
   "verification": {
