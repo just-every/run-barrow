@@ -16,6 +16,7 @@ import { readAccountCredit, creditPolicyCommand } from './credit-policy'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
 import { savedCardCommand,readSavedCards } from './saved-cards'
+import { catalogMediaResponse } from './catalog-media'
 import { catalogMaintenanceResponse } from './catalog-maintenance-http'
 import { stockSyncState, stockSyncCommand } from './stock-sync'
 import { stockWatchCommand, readStockWatches } from './stock-watch'
@@ -145,6 +146,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
   if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
+  const catalogMedia=await catalogMediaResponse(request,env,actor);if(catalogMedia)return catalogMedia
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
   if(path.startsWith('/api/barrow/prebooks/')&&request.method==='GET')return json(await readPrebook(env,actor,decodeURIComponent(path.slice('/api/barrow/prebooks/'.length))))
   if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}

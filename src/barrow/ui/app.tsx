@@ -2,6 +2,7 @@ import { PaymentPromises } from './payment-promises'
 import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
 import { CreditSettings, CreditBalance } from './account-credit'
+import { CatalogMedia } from './catalog-media'
 import { CatalogMaintenance } from './catalog-maintenance'
 import { StockSync } from './stock-sync'
 import { StockAlerts } from './stock-alerts'
@@ -68,7 +69,7 @@ export function BarrowApp() {
   const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=legacySupplier||staff?.role==='finance'||rights.includes('finance'),companyAdmin=legacySupplier||!staff&&rights.includes('administrator')
   const pad = supplier ? 'Order pad' : 'Catalog'
   const applicationRight = state ? applicationAccess(state.actor) : null
-  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit']:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[])] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[])]
+  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit',...(staff.entitlements?.includes('catalog-media')?['Settings']:[])]:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team','Settings']:[])] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[])]
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
   const selected=selectedAccount?.id===accountId?selectedAccount:null
@@ -237,6 +238,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><WizCommerceMoveIn reload={reload} /><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} />{legacySupplier&&<CatalogMaintenance />}</>}
+          {activeTab === 'Settings' && (state.actor.role==='owner'||staff?.entitlements?.includes('catalog-media')) && <CatalogMedia />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
           {activeTab === 'Data' && state.actor.role==='owner' && <ApplicationRetention run={run} version={state} busy={busy}/>}

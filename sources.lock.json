@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "a3aa5af335b535badfa47f5d31bc8440691a6c09581084fe2aa53a537fd13289",
+      "sha256": "1770cd1ec185bdd8d858cb3884d105badc8fce2d097e711d9c5768abe4786a74",
       "executable": false
     },
     "DEMO.md": {
@@ -1827,7 +1827,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "cec779daf7ff240d079760bff8c3d958e92f112fbf23da1fe0a58cecc88b021c",
+      "sha256": "132e9961be2a07a68995cbb1a226298261a32ff70b62512b46d5312040136226",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -1995,7 +1995,7 @@
       "executable": false
     },
     "src/barrow/commercial-audit.ts": {
-      "sha256": "ad26ff28c900a2791c9f755c51e5c3592541e2e9141bbf00bc1de0ec8b078a1e",
+      "sha256": "c2cb1adf2405b624f198070b6f12d7fd8830c26222eb08de30592c54c49956ec",
       "executable": false
     },
     "src/barrow/commission-report.ts": {
@@ -2615,7 +2615,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "6f48c83523149040e0b047276502de2e00273d2cfc2233f12477cbd7d84a329a",
+      "sha256": "8550a191641448a06291da4853d25142a1bf28d811aa8aa1c59445631162e8e5",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -2623,7 +2623,7 @@
       "executable": false
     },
     "src/barrow/staff-policy.ts": {
-      "sha256": "6ad9b8e858fc6f80dcdabbf5b943ea9a575ef19b3c5dbdd6e8aa4002243f3ebf",
+      "sha256": "25ff6a8cdb85f1c605313ceaeb7ea1f42a1a1aaf7ab3fa8535b6a43900267a86",
       "executable": false
     },
     "src/barrow/statements.ts": {
@@ -2695,7 +2695,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "3b824f419a11fbf011908b515a5de06af21ffe38977129915c9998b3178196ea",
+      "sha256": "e93dcb9d4e02e1c28c6d76b2bf54f0f154d344dbdadb92661d16e11d061c1438",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -3019,11 +3019,11 @@
       "executable": false
     },
     "src/barrow/ui/staff-members.tsx": {
-      "sha256": "c65b775da4df23a1249373f5f8a437323ad9a393a924833ca37272fd2a6ba3d7",
+      "sha256": "925cba2df367900d0edfab39aa180b2c0cad04e3cd9017d4a8a1e44db0cafa4c",
       "executable": false
     },
     "src/barrow/ui/staff-policy-fields.tsx": {
-      "sha256": "c6d5a105ad1e3f20a2162cc09032b6f4f9a10b54b01bc4d27f2a88ac8c25c637",
+      "sha256": "dbbdc18fe47a9fd7aa5b7044e63f35575225c204bb354a7ef8e6693c027ad0ee",
       "executable": false
     },
     "src/barrow/ui/staff-workspace.tsx": {
@@ -6331,7 +6331,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "1c54bfdfa34a14c02f02ab4001bf026ad3c99ccf9e2e18c30a938d06a6afd74a",
+      "sha256": "7f014f5fbaf8c0af41da17ff919cfed72d5186f572354ad6ec6864d33cf63837",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
