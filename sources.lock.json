@@ -131,7 +131,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "bfc5b67dda921a36fa0ab01a19fa9e0d4e16dbf7ae27ef0f0fb302b71d13e76a",
+      "sha256": "9d93e4e9866aabe86598e1bc55941adb74c294cd14cf8b358de0d5c74d0851dc",
       "executable": false
     },
     "AGENTS.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "64e001bcc1e1fdbceb7d27b83bcb089ad26e6c73eab93ca8e8103b286f15881f",
+      "sha256": "7e7968b59c02ad0dccd916df240895db792e4082f67f6d81d36dfa46ac1eb635",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -5794,6 +5794,10 @@
       "sha256": "254691a6d38f47b005b7d8784cab52cc3cec42e178e595ad7df5b5ce05dc5b43",
       "executable": false
     },
+    "tests/agent-door/initialize-inactive.mjs": {
+      "sha256": "076807b03c00fc857c771617bc159c18b0e76e08775b02bd06ea97d79370e080",
+      "executable": false
+    },
     "tests/agent-door/initialize.mjs": {
       "sha256": "3c8c33d54bdfec7597782d2d1db21b45e83991522f1821d25e140ef2d709affb",
       "executable": false
@@ -5808,6 +5812,10 @@
     },
     "tests/agent-door/screens.mjs": {
       "sha256": "a852cdceeca9867f8d987e78c99c8ce1bc379734d762384280658c9fe38b784e",
+      "executable": false
+    },
+    "tests/agent-door/sponsor-fixtures.mjs": {
+      "sha256": "8ba69a2343c014b60dbe95d19bbcdd2921ca7eee85abc3f7f241b26f55892ecc",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {

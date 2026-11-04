@@ -496,6 +496,21 @@
       ]
     },
     "journey": "tests/agent-door/native-journey.mjs",
+    "sponsors": [
+      {
+        "label": "owner"
+      },
+      {
+        "label": "inactive-sponsor",
+        "email": "synthetic-barrow-47@example.invalid",
+        "role": "admin",
+        "negativeOnly": true,
+        "initializer": "tests/agent-door/initialize-inactive.mjs"
+      }
+    ],
+    "fixtures": {
+      "module": "tests/agent-door/sponsor-fixtures.mjs"
+    },
     "reviewers": [
       {
         "label": "local-admin",
