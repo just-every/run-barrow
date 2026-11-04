@@ -2611,7 +2611,7 @@
       "executable": false
     },
     "src/barrow/service-resolution.ts": {
-      "sha256": "d1ef48fc76fb3c0acfa6da0bd61bd887023a1d56d8f17c2e293863d8404beab0",
+      "sha256": "2cdebdeb072064d9469d5e80daf3b293e936da72ca7fe1e98792af828c2d1406",
       "executable": false
     },
     "src/barrow/shipment-tracking.ts": {
@@ -6075,7 +6075,7 @@
       "executable": false
     },
     "tests/api/service-resolution.test.mjs": {
-      "sha256": "4cdd1b7c93cfdc37d8e967ffbdb6b4c5a8ec35e4ad3de44248aaa416376997fc",
+      "sha256": "4c55989976108371a1f0ff3d3d170e1a91f2c6ba2a67a3818fa36c709e0d88ad",
       "executable": false
     },
     "tests/api/sftp-fixture.mjs": {
