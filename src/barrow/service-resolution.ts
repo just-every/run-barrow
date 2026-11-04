@@ -13,7 +13,7 @@ import { returnRecords } from './return-claims'
 type Event = { action: string; by: string; at: string; reason: string; revision: string }
 export type ServiceCase = {
  id: string; accountId: string; orderId: string; orderRevision: string; line: number;
- currency: Order['currency']; basis: Order['lines'][number]; commercial: unknown;
+ currency: NonNullable<Order['currency']>; basis: Order['lines'][number]; commercial: unknown;
  pierOrigin: string; pierOrderId: string; rmaId?: string; rmaRevision?: string;
  kind: 'shortage' | 'defect'; quantity: number; reason: string;
  requestedReplacement: { sku: string; quantity: number } | null;
@@ -59,7 +59,7 @@ export async function readServiceCases(env: Bindings, actor: Actor, orderId: str
   return {...visibleServiceCase(value,actor),overdue:!value.restored&&today>value.responseDeadline,evidence:await dispatchEvidence(env,order,value),rma:linked?{id:linked.id,revision:linked.revision,quantity:linked.quantity,approvedQuantity:linked.decision?.quantity??null,disputedQuantity:linked.decision?linked.quantity-linked.decision.quantity:null}:null,
    resolution:'Unresolved. A replacement request is not an accepted exchange. Exact price difference, verified tax and freight approvals, replacement execution, linked delivery and buyer-facing final resolution are still required.'}
  }))
- return {orderId,canReview:serviceReviewer(actor),people,cases}
+ return {orderId,orderRevision:order.revision,canReview:serviceReviewer(actor),people,cases}
 }
 const taskId=(id:string)=>`service:${id}`
 async function taskStatements(env: Bindings, value: ServiceCase, at: string) {
@@ -116,7 +116,7 @@ export async function serviceCommand(env: Bindings, actor: Actor, type: string, 
   const owner=await env.DB.prepare("SELECT id,version FROM oa_operators WHERE status='active' AND role='owner' ORDER BY id LIMIT 1").first<{id:string;version:number}>()
   if(!owner)fail('SERVICE_OWNER','An active supplier owner must own unresolved service cases.',409)
   guards.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND role='owner' AND status='active') THEN 1 ELSE 0 END").bind(owner.id,owner.version))
-  value={id:crypto.randomUUID(),accountId:order.accountId,orderId:order.id,orderRevision:order.revision,line,currency:order.currency,basis:order.lines[line-1],commercial:{currency:order.currency,totalCents:order.totalCents,termsDays:order.termsDays,termsAcceptance:order.termsAcceptance,buyingProfile:order.buyingProfile,preparedBy:order.preparedBy,preparedAt:order.preparedAt,submittedBy:order.submittedBy,companyApprovedBy:order.companyApprovedBy,companyApprovedAt:order.companyApprovedAt,approvedBy:order.approvedBy,approvedAt:order.approvedAt,delivery:order.delivery},pierOrigin:order.pierOrigin,pierOrderId:order.pierOrderId,rmaId,rmaRevision:rma?.revision,kind:p.kind,quantity,reason,requestedReplacement,ownerId:owner.id,responseDeadline:calendarDate(new Date(at),timeZone),timeZone,state:'unresolved',createdBy:actor.id,createdAt:at,history:[],revision,requestKey,requestFingerprint}
+  value={id:crypto.randomUUID(),accountId:order.accountId,orderId:order.id,orderRevision:order.revision,line,currency:order.currency??'AUD',basis:order.lines[line-1],commercial:{currency:order.currency??'AUD',totalCents:order.totalCents,termsDays:order.termsDays,termsAcceptance:order.termsAcceptance,buyingProfile:order.buyingProfile,preparedBy:order.preparedBy,preparedAt:order.preparedAt,submittedBy:order.submittedBy,companyApprovedBy:order.companyApprovedBy,companyApprovedAt:order.companyApprovedAt,approvedBy:order.approvedBy,approvedAt:order.approvedAt,delivery:order.delivery},pierOrigin:order.pierOrigin,pierOrderId:order.pierOrderId,rmaId,rmaRevision:rma?.revision,kind:p.kind,quantity,reason,requestedReplacement,ownerId:owner.id,responseDeadline:calendarDate(new Date(at),timeZone),timeZone,state:'unresolved',createdBy:actor.id,createdAt:at,history:[],revision,requestKey,requestFingerprint}
  } else {
   review(actor)
   if(before!.restored)fail('SERVICE_RESTORED','Restored service cases are inert history; no authority or exchange execution is restored.',409)

@@ -23,7 +23,7 @@ function ServiceReview({value,report,busy,act}:{value:Case;report:Report;busy:bo
    <label>Service owner<select value={ownerId} onChange={event=>setOwner(event.target.value)}>{!report.people.some(person=>person.id===ownerId)&&<option value={ownerId}>Former supplier — assign an active owner</option>}{report.people.map(person=><option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
    <label>Response deadline<input type="date" value={responseDeadline} onChange={event=>setDeadline(event.target.value)}/></label>
    <label>Buyer-visible response<textarea maxLength={2000} value={response} onChange={event=>setResponse(event.target.value)}/></label>
-   <button disabled={busy||!response.trim()} onClick={()=>void act('service.review',{id:value.id,revision:value.revision,orderRevision:value.orderRevision,ownerId,responseDeadline,response})}>Record service response</button>
+   <button disabled={busy||!response.trim()} onClick={()=>void act('service.review',{id:value.id,revision:value.revision,orderRevision:report.orderRevision,ownerId,responseDeadline,response})}>Record service response</button>
   </div></details>}
  </article>
 }
@@ -33,7 +33,13 @@ export function ServiceResolution({order}:{order:Order}) {
  const load=async()=>setReport(await request<Report>(`/api/barrow/orders/${order.id}/service-cases`))
  async function act(type:string,payload:Record<string,unknown>) {
   setBusy(true);setError('')
-  try{await request('/api/barrow/commands',{type,payload});await load();if(type==='service.report'){setRequestId(crypto.randomUUID());setReason('');setSku('');setRma('')}}catch(cause){setError(errorMessage(cause))}finally{setBusy(false)}
+  try {
+   // Reconciliation may advance the order while this panel remains open.
+   // Refresh only that source revision; keep the reviewed case revision guard.
+   if(type==='service.review'){const current=await request<Report>(`/api/barrow/orders/${order.id}/service-cases`);payload={...payload,orderRevision:current.orderRevision}}
+   await request('/api/barrow/commands',{type,payload});await load()
+   if(type==='service.report'){setRequestId(crypto.randomUUID());setReason('');setSku('');setRma('')}
+  } catch(cause){setError(errorMessage(cause))}finally{setBusy(false)}
  }
  return <details className="br-details" onToggle={event=>{if(event.target===event.currentTarget&&event.currentTarget.open)void load().catch(cause=>setError(errorMessage(cause)))}}>
   <summary>Shortages and service</summary><section className="br-stack" aria-label={`Service for ${order.id}`}>
@@ -47,7 +53,7 @@ export function ServiceResolution({order}:{order:Order}) {
      <label>Linked RMA ID (optional)<input value={rmaId} onChange={event=>setRma(event.target.value)}/></label>
      <label>Requested replacement SKU (optional)<input maxLength={160} value={sku} onChange={event=>setSku(event.target.value)}/></label>
      <label>Requested replacement units<input type="number" min="1" value={replacementQuantity} onChange={event=>setReplacementQuantity(event.target.value)}/></label>
-     <button disabled={busy||!reason.trim()} onClick={()=>void act('service.report',{requestId,orderId:order.id,orderRevision:order.revision,line:Number(line),quantity:Number(quantity),kind,reason,rmaId:rmaId||undefined,requestedReplacement:sku.trim()?{sku,quantity:Number(replacementQuantity)}:undefined})}>Submit service report</button>
+     <button disabled={busy||!reason.trim()} onClick={()=>void act('service.report',{requestId,orderId:order.id,orderRevision:report.orderRevision,line:Number(line),quantity:Number(quantity),kind,reason,rmaId:rmaId||undefined,requestedReplacement:sku.trim()?{sku,quantity:Number(replacementQuantity)}:undefined})}>Submit service report</button>
     </div></details>
     <button className="br-secondary" disabled={busy} onClick={()=>void load().catch(cause=>setError(errorMessage(cause)))}>Reload service cases</button>
     {!report.cases.length&&<p>No service cases for this order.</p>}
