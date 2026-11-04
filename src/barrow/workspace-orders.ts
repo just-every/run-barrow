@@ -11,7 +11,14 @@ const live = ['submitted', 'reserving', 'shortfall', 'approved', 'releasing']
 const scope = companyOrderScope
 export async function orderPeople(db: D1Database, orders: Order[]) {
  const ids = [...new Set(orders.flatMap(order => [order.preparedBy, order.submittedBy, order.companyPreparedBy, order.companyApprovedBy, order.approvedBy,...(order.approvalRoute?.decided.map(entry=>entry.by)??[]),...(order.approvalRoute?.steps.flatMap(step=>[...step.approvers,...step.escalateTo])??[])]).filter((id): id is string => typeof id === 'string' && !id.startsWith('agent:')))]
- return ids.length ? Object.fromEntries((await db.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<{id:string;display_name:string}>()).results.map(row => [row.id, row.display_name])) : {}
+ const names:Record<string,string>=ids.length ? Object.fromEntries((await db.prepare('SELECT id,display_name FROM oa_operators WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(ids)).all<{id:string;display_name:string}>()).results.map(row => [row.id, row.display_name])) : {}
+ // The MCP preparer is an attributed label, rather than a native operator ID.
+ // Resolve only the matching native audit of an order already admitted above.
+ if(orders.length) {
+  const rows=(await db.prepare("SELECT subject_id,json_extract(context_json,'$.preparedBy.label') AS label FROM bw_audit WHERE action='order.prepared' AND actor_id LIKE 'agent:%' AND json_type(context_json,'$.preparedBy.person')='text' AND subject_id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(orders.map(order=>order.id))).all<{subject_id:string;label:string}>()).results
+  for(const row of rows)if(orders.some(order=>order.id===row.subject_id&&order.preparedBy===row.label)&&!Object.hasOwn(names,row.label))names[row.label]=row.label
+ }
+ return names
 }
 /** Original Unicode/Eastern history semantics, with bounded database batches and browser pages. */
 export async function workspaceOrders(env: Bindings, actor: Actor, query: URLSearchParams, includeSuperseded = false) {
@@ -70,4 +77,12 @@ export async function waitingDraft(db: D1Database, actor: Actor) {
  const visible = companyOrderScope(actor,'o.account_id','o.value_json')
  const row = await db.prepare(`SELECT o.value_json,o.revision FROM bw_orders o JOIN bw_accounts a ON a.id=o.account_id WHERE json_extract(o.value_json,'$.status')='draft'${visible.sql} ORDER BY (json_extract(o.value_json,'$.accountRevision')<>a.revision) DESC,json_extract(o.value_json,'$.preparedAt') DESC,o.id DESC LIMIT 1`).bind(...visible.values).first<Stored>()
  return row ? parse(row) : null
+}
+
+/** Account projections share the native role's price visibility in every door. */
+export function commercialAccountView(actor:Actor,row:import('./model').Account) {
+ return actor.staff&&!['sales-manager','rep'].includes(actor.staff.role)?{...row,value:{...row.value,prices:[]}}:row
+}
+export function workspaceAccounts(actor:Actor,rows:import('./model').Account[]) {
+ return actor.staff?.role==='analyst'?[]:rows.map(row=>commercialAccountView(actor,row))
 }

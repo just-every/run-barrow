@@ -10,6 +10,11 @@ export async function readUsageTerms(env:Bindings,actor:Actor) {
  return {current:row?{version:row.version,title:row.title,body:row.body,sha256:row.sha256,publishedAt:row.created_at,pdf:pdf?{name:pdf.name,sha256:pdf.sha256,path:`/api/barrow/usage-terms/${row.version}/document`}:null}:null,accepted,required:!supplier(actor)&&!!row&&!accepted}
 }
 export async function requireUsageTerms(env:Bindings,actor:Actor,accountId?:string) {
+ if(actor.door&&actor.company) {
+  const usage=await readUsageTerms(env,{...actor,agent:false})
+  if(usage.required)fail('USAGE_TERMS_REQUIRED','The sponsoring buyer must accept the current portal usage terms.')
+  return
+ }
  if(actor.agent&&accountId) {
   const row=await latest(env.DB)
   if(row&&!await env.DB.prepare("SELECT 1 FROM bw_company_members m JOIN oa_operators p ON p.id=m.user_id JOIN bw_usage_acceptances u ON u.user_id=p.id WHERE m.account_id=? AND m.state='active' AND m.erased_at IS NULL AND p.role='member' AND p.status='active' AND u.version=?").bind(accountId,row.version).first())fail('USAGE_TERMS_REQUIRED','The account’s buyer person must accept the current portal usage terms.')

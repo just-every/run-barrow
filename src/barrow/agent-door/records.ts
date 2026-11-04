@@ -2,44 +2,47 @@ import { proposalRecord } from './proposals.ts'
 import { retainAgentAccount } from './custody.ts'
 import type { Bindings } from '../../auth.server.ts'
 import type { ResourceDefinition, ToolContext, ResourceContext } from '../../modules/agent-door/types.ts'
+import { commercialAccountView, workspaceAccounts } from '../workspace-orders.ts'
 import { accounts, account } from '../accounts.ts'
 import { accountPage } from '../account-directory.ts'
 import { readOrder } from '../orders.ts'
 import { readLists, readList } from '../lists.ts'
 import { catalogue } from '../pier.ts'
 import { requireCompanyRight } from '../company-policy.ts'
+import { resolveBuyingProfile } from '../buying-profiles.ts'
+import { authorizedRead } from './staff-authority.ts'
 import { requireUsageTerms } from '../usage-terms.ts'
 import { nativeActor, native, restrictAccount } from './native.ts'
 
 export type Context = Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'>
 export async function readAccount(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision,ctx.agent.id);return value})
+ return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);return authorizedRead(env,actor,'/api/barrow/accounts/by-id/'+encodeURIComponent(id),async()=>{const value=await account(env.DB,actor,id);await requireUsageTerms(env,actor,id);await retainAgentAccount(env.DB,id,value.revision,ctx.agent.id);return commercialAccountView(actor,value)})})
 }
 export async function directory(env:Bindings,args:Record<string,string>,ctx:Context) {
- return native(async()=>{const page=await accountPage(env.DB,await nativeActor(env,ctx),new URLSearchParams(args))
+ return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/accounts',async()=>{const page=await accountPage(env.DB,actor,new URLSearchParams(args));page.accounts=page.accounts.map(row=>commercialAccountView(actor,row))
   for(const row of page.accounts)await retainAgentAccount(env.DB,row.id,row.revision,ctx.agent.id)
-  return page
+  return page})
  })
 }
-export async function readCatalog(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);await requireCompanyRight(env.DB,actor,id,'purchasing');const selected=await readAccount(env,id,ctx);return catalogue(env,selected)})
+export async function readCatalog(env:Bindings,id:string,ctx:Context,profileId?:string) {
+ return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);return authorizedRead(env,actor,'/api/barrow/catalogue',async()=>{await requireCompanyRight(env.DB,actor,id,'purchasing');const selected=await readAccount(env,id,ctx);return catalogue(env,(await resolveBuyingProfile(env.DB,actor,selected,profileId)).selected)})})
 }
 export async function order(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx),value=await readOrder(env.DB,actor,id);await restrictAccount(env,actor,value.accountId);await readAccount(env,value.accountId,ctx);return value})
+ return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/orders/'+encodeURIComponent(id),async()=>{const value=await readOrder(env.DB,actor,id);await restrictAccount(env,actor,value.accountId);await readAccount(env,value.accountId,ctx);return value})})
 }
 export async function list(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const value=await readList(env.DB,await nativeActor(env,ctx),id);await readAccount(env,value.accountId,ctx);return value})
+ return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/lists',async()=>{const value=await readList(env.DB,actor,id);await readAccount(env,value.accountId,ctx);return value})})
 }
 export async function workspace(env:Bindings,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx),directory=await accounts(env.DB,actor)
+ return native(async()=>{const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/state',async()=>{const directory=workspaceAccounts(actor,await accounts(env.DB,actor))
   const rows=(await env.DB.prepare('SELECT id FROM bw_orders ORDER BY id').all<{id:string}>()).results
   for(const selected of directory)await retainAgentAccount(env.DB,selected.id,selected.revision,ctx.agent.id)
   const orders=[]
-  for(const row of rows){try{orders.push(await readOrder(env.DB,actor,row.id))}catch(error){if(!(error instanceof Error))throw error}}
-  return {accounts:directory,orders}
+  for(const row of ctx.scopes.includes('orders:read')?rows:[]){try{orders.push(await readOrder(env.DB,actor,row.id))}catch(error){if(!(error instanceof Error))throw error}}
+  return {accounts:directory,orders}})
  })
 }
-export const sharedLists = (env:Bindings,id:string,ctx:Context)=>native(async()=>{await readAccount(env,id,ctx);return readLists(env.DB,await nativeActor(env,ctx),id)})
+export const sharedLists = (env:Bindings,id:string,ctx:Context)=>native(async()=>{await readAccount(env,id,ctx);const actor=await nativeActor(env,ctx);return authorizedRead(env,actor,'/api/barrow/lists',()=>readLists(env.DB,actor,id))})
 
 export function resources(env:Bindings):ResourceDefinition[] {
  const record=(kind:string,read:(id:string,ctx:ResourceContext)=>Promise<unknown>):ResourceDefinition=>({

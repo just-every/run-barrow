@@ -158,6 +158,66 @@
       "clauses": [
         "AGT-008"
       ]
+    },
+    {
+      "name": "barrow.scopes.drop",
+      "scope": "accounts:read",
+      "readOnly": false,
+      "classes": [
+        "access"
+      ],
+      "clauses": [
+        "BASE-AGENT-005"
+      ],
+      "widens": false,
+      "narrowing": {
+        "effect": "narrow",
+        "target": "scope_id"
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scope_id": {
+            "type": "string",
+            "enum": [
+              "accounts:read",
+              "catalog:read",
+              "orders:read",
+              "orders:prepare",
+              "lists:read",
+              "events:read",
+              "proposals:submit"
+            ]
+          }
+        },
+        "required": [
+          "scope_id"
+        ]
+      }
+    },
+    {
+      "name": "barrow.scopes.read",
+      "scope": "accounts:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-005"
+      ]
+    },
+    {
+      "name": "barrow.authority.update",
+      "scope": "accounts:read",
+      "readOnly": false,
+      "classes": [
+        "access",
+        "security"
+      ],
+      "clauses": [
+        "BASE-AGENT-005"
+      ]
     }
   ],
   "resources": [],
@@ -228,7 +288,111 @@
     "tool": "barrow.workspace.read",
     "args": {}
   },
-  "escalations": [],
+  "escalations": [
+    {
+      "id": "restore_scope",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit",
+          "events:read"
+        ]
+      }
+    },
+    {
+      "id": "sponsor_role",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit"
+        ],
+        "sponsorRole": "owner"
+      }
+    },
+    {
+      "id": "company_policy",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit"
+        ],
+        "policy": {
+          "schema": "rer-agent-policy/1",
+          "catalogue": "rer-agent-classes/1",
+          "rules": [
+            {
+              "id": "all",
+              "class": "*",
+              "do": "autonomous"
+            }
+          ],
+          "spend": {
+            "none": true
+          }
+        }
+      }
+    },
+    {
+      "id": "company_pause_on",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit"
+        ],
+        "paused": true
+      }
+    },
+    {
+      "id": "company_pause_off",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit"
+        ],
+        "paused": false
+      }
+    },
+    {
+      "id": "company_policy_unset",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit"
+        ],
+        "policy": null
+      }
+    }
+  ],
   "spend": {
     "none": true
   },
@@ -474,6 +638,67 @@
           }
         }
       ]
+    },
+    {
+      "id": "scope_before",
+      "tool": "barrow.scopes.read",
+      "args": {
+        "scope_id": "events:read"
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "drop_scope",
+      "tool": "barrow.scopes.drop",
+      "args": {
+        "scope_id": "events:read"
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 1,
+            "direction": "narrows"
+          }
+        }
+      ]
+    },
+    {
+      "id": "authority_subset",
+      "tool": "barrow.authority.update",
+      "args": {
+        "scopes": [
+          "accounts:read",
+          "catalog:read",
+          "orders:read",
+          "orders:prepare",
+          "lists:read",
+          "proposals:submit"
+        ]
+      },
+      "expect": [
+        {
+          "class": "access",
+          "facts": {
+            "measure": 0,
+            "direction": "narrows"
+          }
+        },
+        {
+          "class": "security",
+          "facts": {
+            "measure": 1,
+            "setting": "agent grant"
+          }
+        }
+      ]
     }
   ],
   "verification": {
@@ -510,5 +735,18 @@
     "pause",
     "audit",
     "idempotency"
+  ],
+  "narrowings": [
+    {
+      "tool": "barrow.scopes.drop",
+      "step": "drop_scope",
+      "witness": {
+        "tool": "barrow.scopes.read",
+        "args": {
+          "scope_id": "events:read"
+        },
+        "pointer": "/grants"
+      }
+    }
   ]
 }

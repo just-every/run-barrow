@@ -1,3 +1,4 @@
+import { dropScope } from './agent-door/scope-grants'
 import { agentHttp } from './agent-door/http.ts'
 import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
@@ -52,7 +53,7 @@ import { readReportSchedules, reportScheduleCommand, reportDownload } from './re
 import { runSavedReport } from './report-runs'
 import { dispatchReports } from './report-delivery'
 import { reportMailWebhook } from './report-mail-events'
-import { workspaceOrders, waitingDraft } from './workspace-orders'
+import { commercialAccountView, workspaceAccounts, workspaceOrders, waitingDraft } from './workspace-orders'
 import { searchOrders } from './order-search'
 import { readCommissionRules, saveCommissionRules } from './commission-rules'
 import { commissionReport, commissionCsv } from './commission-report'
@@ -231,8 +232,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const directory=await accountPage(env.DB,actor,new URLSearchParams())
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
    const {orders,people,...orderPage}=page
-   if(actor.staff&&actor.staff.role==='analyst'){orders.splice(0);directory.accounts.splice(0)}
-   else if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))directory.accounts=directory.accounts.map(a=>({...a,value:{...a.value,prices:[]}}))
+   if(actor.staff?.role==='analyst')orders.splice(0)
+   directory.accounts=workspaceAccounts(actor,directory.accounts)
    return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
@@ -261,10 +262,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/export.json' && request.method==='GET') return await exportResponse(env,actor,'json')
   const exported=/^\/api\/barrow\/export\/([a-z]+)\.csv$/.exec(path)
   if(exported && request.method==='GET' && (exportKinds as readonly string[]).includes(exported[1])) return await exportResponse(env,actor,exported[1] as (typeof exportKinds)[number])
-  if(path==='/api/barrow/accounts' && request.method==='GET'){const page=await accountPage(env.DB,actor,url.searchParams);if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))page.accounts=page.accounts.map(a=>({...a,value:{...a.value,prices:[]}}));return json(page)}
+  if(path==='/api/barrow/accounts' && request.method==='GET'){const page=await accountPage(env.DB,actor,url.searchParams);page.accounts=page.accounts.map(row=>commercialAccountView(actor,row));return json(page)}
   if(path==='/api/barrow/accounts/duplicates' && request.method==='GET')return json(await duplicateAccountPage(env.DB,actor,url.searchParams))
   const accountRead=/^\/api\/barrow\/accounts\/by-id\/([^/]+)$/.exec(path)
-  if(accountRead && request.method==='GET'){const value=await account(env.DB,actor,decodeURIComponent(accountRead[1]));return json(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role)?{...value,value:{...value.value,prices:[]}}:value)}
+  if(accountRead && request.method==='GET'){const value=await account(env.DB,actor,decodeURIComponent(accountRead[1]));return json(commercialAccountView(actor,value))}
   if(path==='/api/barrow/orders/search' && request.method==='GET') return json(await searchOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/orders/history' && request.method==='GET') return json(await workspaceOrders(env,actor,url.searchParams))
   if(path==='/api/barrow/locations' && request.method==='GET') return json({locations:await readLocations(env.DB,actor,url.searchParams.get('accountId')??'')})
@@ -367,6 +368,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(typeof body?.type!=='string'||!body.payload||typeof body.payload!=='object') fail('INPUT','A command has a type and payload.',400)
    if(actor.agent && !['order.prepare','cart.preview','cart.form','proposal.submit'].includes(body.type)) fail('PERSON_REQUIRED','Agents may prepare drafts only. A person must submit and approve.',403)
    if(!['usage.publish','usage.accept','company.accept'].includes(body.type))await requireUsageTerms(env,actor,body.payload.accountId)
+   if(body.type==='agent-scope.drop')return json({result:await dropScope(env,actor,body.payload)})
    await staffCommandGate(env,actor,body.type,body.payload)
    if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
