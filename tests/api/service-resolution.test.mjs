@@ -48,20 +48,37 @@ test('service cases retain original orders and disputed RMAs, current purchaser 
  await h.configure({PIER_SESSION:pier.cookie});
  const account=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,prices:[{sku:'OAT-1',unitCents:9900,minQty:2}]}});
  value=(await read()).cases.find(row=>row.id===value.id);assert.equal(value.basis.unitCents,6500);assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),original);assert.deepEqual(stockFacts(await pier.api('/api/pier/state')),inventory);assert.deepEqual(await h.api('/api/barrow/credits?orderId='+order.id),financial);
+ const printedName='synthetic-barrow-975 buyer printed name';
+ await h.command('terms.publish',{series:'Service terms',title:'Original service terms',body:'Supplier terms retained with the original order.'});
+ await h.command('terms.assign',{accountId:'cedar',series:'Service terms',requireAcceptance:true});
  const nextDraft=await h.command('order.prepare',{accountId:'cedar',reference:'synthetic-barrow-972',lines:[{sku:'OAT-1',quantity:4}]},buyer);
- await h.command('order.submit',{orderId:nextDraft.id},buyer);const nextOrder=await h.command('order.approve',{orderId:nextDraft.id});
+ // Model the supported historical order format before ISO currency was stored.
+ delete nextDraft.currency;await h.db.prepare('UPDATE bw_orders SET value_json=? WHERE id=?').bind(JSON.stringify(nextDraft),nextDraft.id).run();
+ await h.command('order.submit',{orderId:nextDraft.id,termsAcceptance:{version:1,accepted:true,printedName}},buyer);
+ await pier.command('order.create',{customerId:f.product.customer.id,lines:[{itemId:f.product.item.id,quantity:'192'}]});
+ const nextOrder=await h.command('order.approve',{orderId:nextDraft.id});assert.equal(nextOrder.status,'shortfall');
+ // Historical source fixture lies beyond the financial floor, independent of the wall clock.
+ nextOrder.preparedAt='2010-01-01T12:00:00Z';nextOrder.approvedAt='2010-01-02T12:00:00Z';
+ await h.db.prepare('UPDATE bw_orders SET value_json=? WHERE id=?').bind(JSON.stringify(nextOrder),nextOrder.id).run();
  const nextUpstream=(await pier.api('/api/pier/state')).orders.find(row=>row.id===nextOrder.pierOrderId);
  const dispatched=await pier.command('dispatch.create',{orderId:nextUpstream.id,shipmentReference:'synthetic-barrow-973',lines:[{orderLineId:nextUpstream.lines[0].id,quantity:'2'}]});
  const partialPayload={...payload,requestId:'synthetic-barrow-974',orderId:nextOrder.id,orderRevision:nextOrder.revision,quantity:2};
  await h.command('service.report',partialPayload,{...buyer,status:409});
- const partial=await h.command('service.report',{...partialPayload,rmaId:undefined},buyer);assert.equal(partial.evidence.dispatchedBaseQuantity,'2');assert.equal(partial.evidence.orderedBaseQuantity,'4');assert.equal(partial.evidence.sourceLineId,dispatched.lines[0].orderLineId);assert.equal(partial.state,'unresolved');
+ let partial=await h.command('service.report',{...partialPayload,rmaId:undefined},buyer);assert.equal(partial.evidence.dispatchedBaseQuantity,'2');assert.equal(partial.evidence.orderedBaseQuantity,'4');assert.equal(partial.evidence.sourceLineId,dispatched.lines[0].orderLineId);assert.equal(partial.state,'unresolved');assert.equal(partial.currency,'AUD');assert.equal(partial.commercial.currency,'AUD');assert.equal(partial.commercial.termsAcceptance.printedName,printedName);assert.equal(partial.basis.unitCents,9900);assert.equal(partial.commercial.totalCents,39600);
+ const refreshed=await h.command('order.refresh',{orderId:nextOrder.id});assert.notEqual(refreshed.revision,nextOrder.revision);
+ const currentReport=await h.api('/api/barrow/orders/'+nextOrder.id+'/service-cases');assert.equal(currentReport.orderRevision,refreshed.revision);assert.equal(currentReport.cases[0].orderRevision,nextOrder.revision);
+ const partialReview={...review,id:partial.id,revision:partial.revision,responseDeadline:'2035-01-18'};
+ await h.command('service.review',{...partialReview,orderRevision:nextOrder.revision},{status:409});
+ partial=await h.command('service.review',{...partialReview,orderRevision:currentReport.orderRevision});assert.equal(partial.history.at(-1).reason,response);
  const currentRma=(await f.claims()).claims.find(row=>row.id===rma.id);assert.equal(currentRma.disputedQuantity,1);assert.equal(currentRma.tasks.find(row=>row.id==='return-dispute:'+rma.id).status,'open');
  let exported=await h.api('/api/barrow/export.json');assert.equal(exported.servicecases.length,3);assert.equal(exported.servicecases[0].accountId,'cedar');assert.ok(exported.servicecases.some(row=>row.id===value.id&&row.revision===value.revision&&JSON.parse(row.basis).unitCents===6500));
+ const legacyExport=exported.servicecases.find(row=>row.id===partial.id);assert.equal(legacyExport.currency,'AUD');assert.equal(JSON.parse(legacyExport.commercial).currency,'AUD');
+ const legacyCsv=await(await h.request('/api/barrow/export/servicecases.csv')).text();assert.ok(legacyCsv.split('\r\n').find(row=>row.includes(partial.id)).includes('"AUD"'));
  const csv=await(await h.request('/api/barrow/export/servicecases.csv')).text();assert.ok(csv.includes(value.id));assert.ok(csv.includes(rma.id));assert.ok(csv.includes(response));
  const buyerExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(buyerExport.servicecases.length,3);assert.equal(buyerExport.servicecases.find(row=>row.id===value.id).ownerId,'supplier');assert.ok(!JSON.stringify(buyerExport.servicecases).includes(adminId));assert.equal((await h.api('/api/barrow/export.json',undefined,other)).servicecases.length,0);
  assert.ok(JSON.stringify(await h.api('/api/barrow/audit?search='+value.id)).includes('service.review'));
  const saved=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,saved);
- exported=await restored.api('/api/barrow/export.json');assert.equal(exported.servicecases.find(row=>row.id===value.id).restored,true);
+ exported=await restored.api('/api/barrow/export.json');assert.equal(exported.servicecases.find(row=>row.id===partial.id).currency,'AUD');assert.equal(exported.servicecases.find(row=>row.id===value.id).restored,true);
  await restored.command('service.review',{...review,revision:value.revision},{status:409});
  // Removing current purchaser rights closes reads, reports and stable retries immediately.
  let member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.userId===value.createdBy);
@@ -82,9 +99,12 @@ test('service cases retain original orders and disputed RMAs, current purchaser 
  await h.command('retention.request',{accountId:'cedar',requester:'Buyer',channel:'Verified request',verificationNote:'Supplier verified the service requester.',held:false,reason:'Review service narrative erasure.'});
  const preview=await h.command('retention.preview',{accountId:'cedar'});assert.ok(preview.items.some(row=>row.id==='service:'+value.id));
  await h.command('retention.erase-account',{accountId:'cedar',accountRevision:preview.accountRevision,requestRevision:preview.requestRevision,policyRevision:preview.policyRevision,reviewHash:preview.reviewHash,confirm:'ERASE',reason:'Erase service report and response narratives.'});
- const erased=(await h.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(erased.reason,'[Erased service text]');assert.equal(erased.restored,true);assert.ok(!erased.history.includes(response));assert.equal(JSON.parse(erased.basis).unitCents,6500);assert.equal(erased.rmaId,rma.id);
+ const erasedExport=await h.api('/api/barrow/export.json'),erasedLegacy=erasedExport.servicecases.find(row=>row.id===partial.id);
+ assert.equal((await h.api('/api/barrow/orders/'+nextOrder.id)).termsAcceptance.printedName,'[Erased personal details]');assert.equal(JSON.parse(erasedLegacy.commercial).termsAcceptance.printedName,'[Erased personal details]');assert.ok(!JSON.stringify(erasedExport).includes(printedName));assert.ok(!(await(await h.request('/api/barrow/export/servicecases.csv')).text()).includes(printedName));assert.equal(erasedLegacy.currency,'AUD');assert.equal(JSON.parse(erasedLegacy.commercial).totalCents,39600);assert.equal(JSON.parse(erasedLegacy.basis).unitCents,9900);
+ const erased=erasedExport.servicecases.find(row=>row.id===value.id);assert.equal(erased.reason,'[Erased service text]');assert.equal(erased.restored,true);assert.ok(!erased.history.includes(response));assert.equal(JSON.parse(erased.basis).unitCents,6500);assert.equal(erased.rmaId,rma.id);
  const audit=await h.api('/api/barrow/audit?orderId='+order.id+'&limit=200');assert.ok(!JSON.stringify(audit).includes(reason));assert.ok(!JSON.stringify(audit).includes(response));
  const later=await installation();t.after(()=>later.close());await restore(later,saved,{journalSource:h});
- const fenced=(await later.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(fenced.reason,'[Erased service text]');assert.ok(!fenced.history.includes(response));assert.equal(fenced.restored,true);await later.command('service.review',{...review,revision:fenced.revision},{status:409});
+ const replayedExport=await later.api('/api/barrow/export.json');assert.ok(!JSON.stringify(replayedExport).includes(printedName));assert.ok(!(await(await later.request('/api/barrow/export/servicecases.csv')).text()).includes(printedName));assert.equal(JSON.parse(replayedExport.servicecases.find(row=>row.id===partial.id).commercial).termsAcceptance.printedName,'[Erased personal details]');
+ const fenced=replayedExport.servicecases.find(row=>row.id===value.id);assert.equal(fenced.reason,'[Erased service text]');assert.ok(!fenced.history.includes(response));assert.equal(fenced.restored,true);await later.command('service.review',{...review,revision:fenced.revision},{status:409});
  const auditReplay=await later.api('/api/barrow/audit?orderId='+order.id+'&limit=200');assert.ok(!JSON.stringify(auditReplay).includes(reason));assert.ok(!JSON.stringify(auditReplay).includes(response));
 });

@@ -144,7 +144,8 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   return [row.id,[current,reviewed].filter((floor):floor is string=>typeof floor==='string').sort().at(-1)??null]
  }))
  for(const row of r.bw_service_cases.filter(row=>row.account_id===accountId)) {
-  const clean=eraseServiceNarrative(JSON.parse(row.value_json))
+  const value=JSON.parse(row.value_json),floor=orderFloors.get(row.order_id)??null,keep=Boolean(floor&&at<floor)
+  const clean={...eraseServiceNarrative(value),...(keep?{}:{basis:redactSnapshot(value.basis,people,op.accountEmail,'',personal),commercial:redactSnapshot(value.commercial,people,op.accountEmail,'',personal)})}
   add('service cases','service:'+row.id,'remove personal report and response text; preserve original commercial linkage','Service narratives are outside the financial floor; restored cases are inert',[sql('UPDATE bw_service_cases SET value_json=?,revision=? WHERE id=?',JSON.stringify(clean),op.id,row.id)])
  }
  for(const row of r.bw_return_claims.filter(row=>row.account_id===accountId)) {
