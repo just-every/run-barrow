@@ -229,3 +229,91 @@ test('integration expiry, scoped permissions, revocation, issuer changes, accoun
  assert.equal((await h.api(base+'/accounts?accountId=cedar',undefined,{...signedOwner,status:404})).error.code,'NOT_FOUND');
  assert.equal((await pier.api('/api/pier/state')).orders.length,0);
 });
+
+async function exactExchangeFixture(t,clock=frozen) {
+ const pier=await installation({pier:true});t.after(()=>pier.close());const source=await stock(pier,'100');
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,BARROW_TEST_CLOCK:clock}});t.after(()=>h.close());
+ const a=await h.command('account.save',{id:'cedar',value:accountValue(source.customer.id)});
+ const buyer={as:await h.signIn(a.value.email)},owner=(await h.api('/api/barrow/state')).actor;
+ const grant=await h.api(base+'/grants',{...consent(a.id),scopes:['catalog:read','quotes:prepare','price-books:prepare'],expiresAt:Date.parse(clock)+86400000}),writer=bearer(grant.token);
+ const current=async()=>(await h.api(base+'/accounts?accountId=cedar')).data[0];
+ const quotes=async()=>(await h.api(base+'/quotes?accountId=cedar')).data;
+ const stage=async(entity,payload,opts=writer)=>h.api(base+'/exchange/prepare',{entity,accountId:a.id,accountRevision:(await current()).revision,currency:'USD',payload},opts);
+ const review=prepared=>h.api(base+'/exchange/review',prepared);
+ const approval=prepared=>({...prepared,confirm:true,reason:'Owner approved the exact current commercial effect.'});
+ const apply=(prepared,opts={})=>h.api(base+'/exchange/apply',approval(prepared),opts);
+ const untouched=async()=>({account:await current(),quotes:await quotes(),audit:(await h.api('/api/barrow/audit?accountId=cedar')).events,mail:h.mail.requests.length});
+ const audit=async receipt=>{
+  const applied=(await h.api('/api/barrow/audit?accountId=cedar&person='+encodeURIComponent(owner.id))).events.filter(row=>row.id===receipt.id);
+  assert.equal(applied.length,1);const event=applied[0];assert.equal(event.action,'integration.applied');assert.equal(event.actorKind,'human');assert.equal(event.actorId,owner.id);assert.equal(event.subjectId,grant.grant.id);assert.equal(event.revision,receipt.id);assert.equal(event.source,'integration.exchange.'+receipt.entity);assert.ok(event.createdAt);
+  assert.deepEqual(JSON.parse(event.reason),{reason:approval({}).reason,preparedBy:'agent:'+grant.grant.id,appliedBy:owner.id,grantRevision:grant.grant.revision});
+  assert.ok((await h.api('/api/barrow/audit?accountId=cedar&person='+encodeURIComponent('agent:'+grant.grant.id))).events.some(row=>row.action==='integration.prepared'&&row.revision===receipt.id));
+  const csv=await(await h.request('/api/barrow/audit.csv?accountId=cedar&limit=1')).text();assert.ok(csv.includes(event.id));assert.ok(csv.includes(grant.grant.id));assert.ok(!csv.includes(grant.token));
+ };
+ return {h,pier,source,a,buyer,owner,grant,writer,current,quotes,stage,review,approval,apply,untouched,audit};
+}
+
+test('quote-configured-shipping: configured pickup uses native delivery rules, binds reviewed settings and applies once as a person',async t=>{
+ const f=await exactExchangeFixture(t),{h,a,buyer,writer}=f;
+ const pickup={id:'pickup',name:'Local pickup',kind:'pickup',accountIds:[a.id],states:[],warehouses:[],minCents:0,maxCents:null,baseCents:0,handlingCents:0,freeOverCents:null,transitMinDays:0,transitMaxDays:0,quoteRequired:false};
+ let settings=await h.command('shipping.settings',{revision:null,methods:[pickup]});
+ const quote=await h.command('quote.request',{accountId:a.id,lines:[{sku:'OAT-1',quantity:2}]},buyer);
+ const payload={type:'quote.propose',accountId:a.id,quoteId:quote.id,revision:quote.revision,lines:[{sku:'OAT-1',quantity:2}],validUntil:'2026-11-10',shippingMethodId:'pickup',shippingWarehouse:'',shipping:'Collect at the supplier counter'};
+ await f.stage('quotes',{...payload,shippingMethodId:'unknown'},{...writer,status:409});
+ const prepared=await f.stage('quotes',payload),reviewed=await f.review(prepared);
+ assert.deepEqual(reviewed.proposal,prepared.proposal);assert.equal(reviewed.proposal.basis.delivery.methodId,'pickup');assert.equal(reviewed.proposal.basis.delivery.totalCents,0);assert.equal(reviewed.proposal.basis.totalCents,13000);
+ const before=await f.untouched();
+ await f.apply(reviewed,{...writer,status:403});await f.apply(reviewed,{...buyer,status:403});
+ assert.deepEqual(await f.untouched(),before);
+ settings=await h.command('shipping.settings',{revision:settings.revision,methods:[{...pickup,name:'Supplier pickup counter'}]});
+ const changed=await f.untouched();await f.apply(reviewed,{status:409});assert.deepEqual(await f.untouched(),changed);
+ const fresh=await f.review(await f.stage('quotes',payload));assert.notEqual(fresh.fingerprint,prepared.fingerprint);assert.equal(fresh.proposal.basis.delivery.settingsRevision,settings.revision);
+ const applied=await f.apply(fresh);assert.equal(applied.result.status,'proposed');const {fingerprint:deliveryFingerprint,...delivered}=applied.result.revisions[0].delivery;assert.ok(deliveryFingerprint);assert.deepEqual(delivered,fresh.proposal.basis.delivery);assert.equal(applied.result.revisions[0].totalCents,13000);
+ const after=await f.untouched();await f.apply(fresh,{status:409});assert.deepEqual(await f.untouched(),after);
+ const nativeRequest=await h.command('quote.request',{accountId:a.id,lines:payload.lines},buyer);
+ const native=await h.command('quote.propose',{...payload,quoteId:nativeRequest.id,revision:nativeRequest.revision});
+ assert.deepEqual(native.revisions[0].delivery,applied.result.revisions[0].delivery);assert.deepEqual(native.revisions[0].lines,applied.result.revisions[0].lines);
+ await f.audit(applied.receipt);
+ t.diagnostic('PROBE INT-021 1: exchange prepare, review and apply with configured pickup -> native-equivalent pickup; stale settings refused without writes; fresh human application succeeds.');
+});
+
+test('quote-profile-exact-review: two profile-priced units review and apply 15800 cents and refuse a 13000-cent authorization',async t=>{
+ const f=await exactExchangeFixture(t),{h,a,buyer}=f;
+ const draft=await h.command('order.prepare',{accountId:a.id,lines:[{sku:'OAT-1',quantity:2}]},buyer);await h.command('order.submit',{orderId:draft.id},buyer);const issued=await h.command('order.approve',{orderId:draft.id});
+ const invoice=await(await h.request('/api/barrow/invoices/'+issued.id+'.csv',buyer)).text();
+ await h.command('brand.save',{id:'synthetic-barrow-21',value:{name:'Profile seller',currency:'USD',seller:{legalName:'Synthetic Barrow Seller',address:'101 Main Street, Columbia SC'}}});
+ const profile=await h.command('profile.save',{id:'synthetic-barrow-22',accountId:a.id,value:{brandId:'synthetic-barrow-21',name:'Approved USD book',minimumCents:0,termsDays:14,prices:[{sku:'OAT-1',unitCents:7900,minQty:2}]}});
+ const buyerId=(await h.api('/api/barrow/state',undefined,buyer)).actor.id;await h.command('profile.grant',{profileId:profile.id,userId:buyerId,approved:true,reason:'Owner approves this buyer’s independent profile.'});
+ const quote=await h.command('quote.request',{accountId:a.id,profileId:profile.id,lines:[{sku:'OAT-1',quantity:2}]},buyer);
+ const payload={type:'quote.propose',accountId:a.id,quoteId:quote.id,revision:quote.revision,lines:[{sku:'OAT-1',quantity:2}],validUntil:'2026-11-10'};
+ const reviewed=await f.review(await f.stage('quotes',payload)),basis=reviewed.proposal.basis;
+ assert.equal(basis.profile.id,profile.id);assert.equal(basis.profile.revision,profile.revision);assert.equal(basis.source.prices[0].unitCents,7900);assert.equal(basis.lines[0].unitCents,7900);assert.equal(basis.lines[0].lineCents,15800);assert.equal(basis.basisCents,15800);assert.equal(basis.totalCents,15800);assert.equal(basis.termsDays,14);
+ const baseAuthorization=structuredClone(reviewed);baseAuthorization.proposal.basis={...basis,profile:null,source:{...basis.source,prices:a.value.prices},basisCents:13000,totalCents:13000,lines:basis.lines.map(line=>({...line,unitCents:6500,lineCents:13000,basisUnitCents:6500,basisLineCents:13000}))};
+ const before=await f.untouched();await f.apply(baseAuthorization,{status:409});assert.deepEqual(await f.untouched(),before);
+ const applied=await f.apply(reviewed),revision=applied.result.revisions[0];assert.equal(revision.totalCents,15800);assert.equal(revision.basisCents,15800);assert.equal(revision.lines[0].unitCents,7900);assert.equal(revision.lines[0].lineCents,15800);assert.equal(revision.termsDays,14);assert.equal(applied.result.buyingProfile.id,profile.id);
+ const after=await f.untouched();await f.apply(reviewed,{status:409});assert.deepEqual(await f.untouched(),after);
+ assert.equal((await h.api('/api/barrow/orders/'+issued.id,undefined,buyer)).totalCents,13000);assert.equal(await(await h.request('/api/barrow/invoices/'+issued.id+'.csv',buyer)).text(),invoice);
+ await f.audit(applied.receipt);
+ t.diagnostic('PROBE INT-021 2: two-unit profile quote through exchange prepare, review and apply -> 7900 cents each and 15800 total; 13000-cent authorization refused without writes; issued invoice unchanged.');
+});
+
+test('scheduled-price-book-exact-review: supplier midnight invalidates a reviewed CSV within an unexpired grant and fresh review applies atomically',async t=>{
+ const f=await exactExchangeFixture(t,'2030-01-02T04:59:58Z'),{h,a,writer,buyer}=f;
+ const scheduled=await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,priceRevisions:[{effectiveFrom:'2030-01-02',prices:[{sku:'OAT-1',unitCents:7900,minQty:2}]}]}});
+ const draft=await h.command('order.prepare',{accountId:a.id,lines:[{sku:'OAT-1',quantity:2}]},buyer);await h.command('order.submit',{orderId:draft.id},buyer);const issued=await h.command('order.approve',{orderId:draft.id});
+ const invoice=await(await h.request('/api/barrow/invoices/'+issued.id+'.csv',buyer)).text();
+ const payload={accountId:a.id,revision:scheduled.revision,csv:'sku,currency,unitCents,msrpCents,minQty\nOAT-1,USD,7300,,2'};
+ const reviewed=await f.review(await f.stage('price-books',payload));assert.equal(reviewed.proposal.basis.source.prices[0].unitCents,6500);assert.equal(reviewed.proposal.basis.source.effectiveFrom,null);
+ await h.configure({BARROW_TEST_CLOCK:'2030-01-02T04:59:59Z'});assert.equal((await f.review(reviewed)).fingerprint,reviewed.fingerprint);
+ await h.configure({BARROW_TEST_CLOCK:'2030-01-02T05:00:00Z'});
+ assert.equal((await h.api(base+'/price-books?accountId=cedar')).data[0].prices[0].unitCents,7900);assert.equal((await h.api(base+'/products?accountId=cedar',undefined,writer)).data[0].unitCents,7900);
+ const before=await f.untouched();await h.api(base+'/exchange/review',reviewed,{status:409});await f.apply(reviewed,{status:409});assert.deepEqual(await f.untouched(),before);
+ assert.deepEqual((await f.current()).value.priceRevisions,scheduled.value.priceRevisions);assert.equal((await f.current()).revision,scheduled.revision);
+ const prepared=await f.stage('price-books',payload),fresh=await f.review(prepared);assert.notEqual(fresh.fingerprint,reviewed.fingerprint);assert.equal(fresh.proposal.basis.source.effectiveFrom,'2030-01-02');assert.equal(fresh.proposal.basis.source.prices[0].unitCents,7900);
+ const freshBefore=await f.untouched();await f.apply({...fresh,fingerprint:reviewed.fingerprint},{status:409});assert.deepEqual(await f.untouched(),freshBefore);
+ const responses=await Promise.all([1,2].map(()=>h.request(base+'/exchange/apply',{method:'POST',body:f.approval(fresh)})));assert.deepEqual(responses.map(response=>response.status).sort(),[200,409]);
+ const applied=await responses.find(response=>response.status===200).json();assert.equal(applied.result.value.prices[0].unitCents,6500);assert.equal(applied.result.value.priceRevisions[0].effectiveFrom,'2030-01-02');assert.equal(applied.result.value.priceRevisions[0].prices[0].unitCents,7300);assert.equal((await h.api(base+'/price-books?accountId=cedar')).data[0].prices[0].unitCents,7300);
+ assert.equal((await h.api('/api/barrow/orders/'+issued.id,undefined,buyer)).totalCents,13000);assert.equal(await(await h.request('/api/barrow/invoices/'+issued.id+'.csv',buyer)).text(),invoice);
+ await f.audit(applied.receipt);
+ t.diagnostic('PROBE INT-021 3: reviewed 7300-cent CSV at 04:59:59Z, apply at supplier midnight 05:00:00Z -> 409 without writes, activated 7900-cent schedule intact; fresh review succeeds exactly once within the same grant.');
+});
