@@ -27,8 +27,11 @@ export async function attributionStep(ctx) {
  assert.ok(event,'Recorded agent label must be searchable')
  assert.equal(event.actorId,'agent:'+provenance.agent);assert.equal(event.actorKind,'agent')
  assert.equal(event.actorName,provenance.label)
+ assert.equal(event.agentId,provenance.agent);assert.equal(event.sponsorId,provenance.person)
  const exported=await read(ctx,'/api/barrow/export.json')
- assert.equal(exported.audit.find(row=>row.id===event.id).actorName,provenance.label)
+ const exportedEvent=exported.audit.find(row=>row.id===event.id)
+ assert.equal(exportedEvent.actorName,provenance.label)
+ assert.equal(exportedEvent.agentId,provenance.agent);assert.equal(exportedEvent.sponsorId,provenance.person)
  if(step.tool==='barrow.orders.prepare') {
   const row=exported.orders.find(row=>row.id===result.id)
   assert.equal(row.preparedBy,result.preparedBy)
@@ -69,6 +72,7 @@ export async function proveHumanAttribution(ctx) {
   const event=audit.find(row=>row.action===action)
   assert.equal(event.actorId,owner.id);assert.equal(event.actorKind,'human')
   assert.equal(event.actorName,'Juniper wholesale owner')
+  assert.equal(event.agentId,null);assert.equal(event.sponsorId,null)
  }
  const exported=await read(ctx,'/api/barrow/export.json'),row=exported.orders.find(row=>row.id===approved.id)
  assert.equal(row.submittedBy,owner.id);assert.equal(row.approvedBy,owner.id)

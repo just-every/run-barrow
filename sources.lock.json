@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "1770cd1ec185bdd8d858cb3884d105badc8fce2d097e711d9c5768abe4786a74",
+      "sha256": "1f53e4c7cc1eaba0b91244eb0d4c2c441ceabca4788d509de5c47af9af459d46",
       "executable": false
     },
     "DEMO.md": {
@@ -2007,7 +2007,7 @@
       "executable": false
     },
     "src/barrow/commercial-audit.ts": {
-      "sha256": "5afe370d365e0b0019c4188ebd2751129566797a2cbceafae6ea235ea03173a3",
+      "sha256": "db528c025804810a14c40948251a9d8d091d7e065644dce39c2942724110fa11",
       "executable": false
     },
     "src/barrow/commission-report.ts": {
@@ -2131,7 +2131,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "845d7143196ea0a8c2a44eb6cd826609db4524313c371e9434fd9c47586520da",
+      "sha256": "07562018269ebb5cfe9ba18116510a446350602e049d498dd6f3a658ac7625ed",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -2440,6 +2440,10 @@
     },
     "src/barrow/prebooks.ts": {
       "sha256": "95bb879b089df69d3b6eef369b9ceb1c1a0db46e5b2fd18db0402d5fcd8bc2c4",
+      "executable": false
+    },
+    "src/barrow/preparation-attribution.ts": {
+      "sha256": "adffd99079c7dc97df8c160a8e66552dfd31205ca0c65244e315925b7d2d617d",
       "executable": false
     },
     "src/barrow/presentation.ts": {
@@ -5786,6 +5790,10 @@
       "sha256": "a57501fa2c3518def4dc2f827c84b8e73c718246d989236e8aab03641568dd42",
       "executable": false
     },
+    "tests/agent-door/attribution.mjs": {
+      "sha256": "5b91fa9df4e6573733489efab12cfb957c3327ba9417596be2b42541d01c7f7e",
+      "executable": false
+    },
     "tests/agent-door/custody.mjs": {
       "sha256": "f093651a2256b836ae4c995e1376bb481cde7ccaeae0a6f679ce3f8da722f361",
       "executable": false
@@ -5807,7 +5815,7 @@
       "executable": false
     },
     "tests/agent-door/screens.mjs": {
-      "sha256": "f43a445ccdba0b91fd1b12809bb54c9343a7e66012264b790eee475c10fa7e9b",
+      "sha256": "9d7c84ded9c973b44bbcfc16d1066cba9f1d9be94805f419d62be8cfd3ba0fe6",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
@@ -5823,7 +5831,7 @@
       "executable": false
     },
     "tests/api/audit.test.mjs": {
-      "sha256": "c46ee5eee9af89c1f186081b88576d0602a28c6381ff7415ae64ecb82387bd9e",
+      "sha256": "8fc187c8e1c9ca1fcae7db66b4908c36745cf50fd8962729c33caf777b6f5ee4",
       "executable": false
     },
     "tests/api/buying-profiles-fixture.mjs": {
@@ -6059,7 +6067,7 @@
       "executable": false
     },
     "tests/api/retention.test.mjs": {
-      "sha256": "e82c8760f117294e23b145fabef91cbcc7d9a577768500b9ed6b92c386b18b65",
+      "sha256": "79075c62d352112a6b8f6c8d1607e003a6067636467a3504a292a53a2490c829",
       "executable": false
     },
     "tests/api/return-claims-fixture.mjs": {

@@ -181,11 +181,29 @@ test('independent erasure journal reapplies after D1 rewind and old archive impo
 });
 
 test('post-floor review defaults to personal redaction; explicit order deletion leaves reconciliable totals and exclusions have recorded reasons',async t=>{
- const h=await installation();t.after(()=>h.close());const f=await orderedAccountFixture(h);await verifiedRequest(h);
+ const h=await installation();t.after(()=>h.close());const f=await orderedAccountFixture(h);
+ // This historical trusted label carries an exact personal address, with opaque IDs.
+ const provenance={agent:'synthetic-barrow-81',person:f.person.id,label:'Synthetic specialist for '+f.email};
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.agentPreparation',json(?)) WHERE id='cedar-expired'").bind(JSON.stringify(provenance)).run();
+ await h.db.prepare('INSERT INTO bw_audit(id,subject_id,actor_id,action,created_at,context_json) VALUES(?,?,?,?,?,?)').bind('synthetic-barrow-82','cedar-expired','agent:'+provenance.agent,'order.prepared','2010-02-28T12:00:00.000Z',JSON.stringify({accountId:'cedar',orderId:'cedar-expired',source:'order.prepare',reason:'Historical native preparation',preparedBy:provenance})).run();
+ const older=await archive(h);
+ await verifiedRequest(h);
  let preview=await erasurePreview(h);assert.equal(preview.items.find(row=>row.id==='order:cedar-expired').floorUntil,'2017-02-28T12:00:00.000Z');
  await h.command('retention.erase-account',{...erasurePayload(preview),deleteOrderIds:['cedar-recent']},{status:409});
  await h.command('retention.erase-account',{...erasurePayload(preview),exclusions:[{id:'message:'+f.message.id,reason:''}]},{status:400});
  const receipt=await h.command('retention.erase-account',erasurePayload(await erasurePreview(h))),old=await h.api('/api/barrow/orders/cedar-expired');assert.equal(old.billTo,undefined);assert.equal(old.shipTo,undefined);assert.equal(old.termsAcceptance.printedName,'[Erased personal details]');assert.equal(old.totalCents,13000);assert.equal(old.preparedBy,f.person.id);assert.equal(old.reference,f.orders[1].reference);assert.equal((await h.request('/api/barrow/orders/cedar-expired/document')).status,404);assert.equal((await h.request('/api/barrow/orders/cedar-expired/terms-signature')).status,404);const retainedSignature=await h.request('/api/barrow/orders/cedar-recent/terms-signature');assert.equal(retainedSignature.status,200);assert.deepEqual(Buffer.from(await retainedSignature.arrayBuffer()),f.signatureBytes);assert.equal(receipt.deletedOrders.length,0);
+ assert.equal(old.agentPreparation.agent,provenance.agent);assert.equal(old.agentPreparation.person,provenance.person);
+ assert.ok(!old.agentPreparation.label.includes(f.email));assert.match(old.agentPreparation.label,/@erased\.invalid/);
+ const erasedExport=await h.api('/api/barrow/export.json');
+ assert.deepEqual(JSON.parse(erasedExport.orders.find(row=>row.id==='cedar-expired').agentPreparation),old.agentPreparation);
+ assert.equal(erasedExport.audit.find(row=>row.id==='synthetic-barrow-82').actorName,old.agentPreparation.label);
+ const target=await installation();t.after(()=>target.close());await restore(target,older);
+ const restored=await target.api('/api/barrow/orders/cedar-expired');
+ assert.deepEqual(restored.agentPreparation,old.agentPreparation,'Later independent journal must reapply label redaction on older history');
+ assert.equal(restored.preparedBy,f.person.id);
+ assert.equal((await target.request('/api/barrow/orders/cedar-expired',f.buyer)).status,401,'Erased person cannot read restored provenance');
+ console.log('PROBE BASE-AGENT-008 erasure: owner post-floor redaction and later-journal restore -> display label redacted, historical identities retained, erased session refused');
+
  const other=await installation();t.after(()=>other.close());const g=await orderedAccountFixture(other);await historicalCard(other,{id:'expired-card-history',accountId:'cedar',orderId:'cedar-expired',at:'2016-02-29T12:34:56.789Z'});await verifiedRequest(other);
  const deleted=await other.command('retention.erase-account',{...erasurePayload(await erasurePreview(other)),deleteOrderIds:['cedar-expired']});assert.deepEqual(deleted.deletedOrders,[{id:'cedar-expired',currency:'USD',totalCents:13000,invoiceNumber:'INV-cedar-expired'}]);assert.equal((await other.request('/api/barrow/orders/cedar-expired')).status,404);assert.equal((await other.api('/api/barrow/orders/cedar-recent')).totalCents,13000);
  const retained=(await archive(other)).flatMap(part=>part.items??[]).find(item=>item.table==='bw_card_payments'&&item.row.id==='expired-card-history');assert.ok(retained);assert.equal(JSON.parse(retained.row.value_json).orderId,deleted.deletedOrders[0].id);assert.equal(JSON.parse(retained.row.value_json).amountCents,deleted.deletedOrders[0].totalCents);

@@ -4,6 +4,7 @@ import { readStaffGrant } from './staff-policy'
 
 export type CommercialAuditEvent = {
   id: string; subjectId: string; actorId: string; actorKind: 'human' | 'agent' | 'system'
+  agentId: string | null; sponsorId: string | null
   actorName: string | null; actorEmail: string | null; action: string; createdAt: string
   accountId: string | null; orderId: string | null
   accountOrigin: 'recorded' | 'current-relation' | null
@@ -36,6 +37,7 @@ function event(row: AuditRow): CommercialAuditEvent {
   return {
     id: row.id, subjectId: row.subject_id, actorId: row.actor_id,
     actorKind: row.actor_id.startsWith('system:') ? 'system' : row.actor_id.startsWith('agent:') ? 'agent' : 'human',
+    agentId: preparation?.agent ?? null, sponsorId: preparation?.person ?? null,
     actorName: preparation?.label ?? row.actor_name ?? null, actorEmail: row.actor_email || null,
     action: row.action, createdAt: row.created_at,
     accountId: recordedAccount ?? row.related_account, orderId: recordedOrder ?? row.related_order,
@@ -83,8 +85,8 @@ export async function listCommercialAudit(db: D1Database, actor: Actor, params: 
   }
   const person = params.get('person')?.trim()
   if (person) {
-    predicates.push(`(instr(lower(e.actor_id),lower(?))>0 OR instr(lower(json_extract(e.context_json,'$.preparedBy.label')),lower(?))>0 OR instr(lower(json_extract(e.context_json,'$.preparedBy.person')),lower(?))>0 OR instr(lower(p.display_name),lower(?))>0 OR instr(lower(p.email),lower(?))>0)`)
-    values.push(person, person, person, person, person)
+    predicates.push(`(instr(lower(e.actor_id),lower(?))>0 OR lower(json_extract(e.context_json,'$.preparedBy.label'))=lower(?) OR instr(lower(p.display_name),lower(?))>0 OR instr(lower(p.email),lower(?))>0)`)
+    values.push(person, person, person, person)
   }
   if (params.has('cursor')) { predicates.push('e.rowid<?'); values.push(numberParam(params.get('cursor'), 'cursor', 0)) }
   const rows = await db.prepare(`SELECT e.rowid AS cursor,e.*,p.display_name AS actor_name,p.email AS actor_email,
@@ -100,7 +102,7 @@ function csvCell(value: string | null) {
   const safe = /^[\s\u0000-\u001f]*[=+@-]/.test(text) || /^[\t\r\n]/.test(text) ? `'${text}` : text
   return `"${safe.replace(/"/g, '""')}"`
 }
-const columns: (keyof CommercialAuditEvent)[] = ['id', 'actorId', 'actorKind', 'actorName', 'actorEmail', 'subjectId', 'accountId', 'accountOrigin', 'orderId', 'orderOrigin', 'action', 'createdAt', 'source', 'revision', 'reason']
+const columns: (keyof CommercialAuditEvent)[] = ['id', 'actorId', 'actorKind', 'agentId', 'sponsorId', 'actorName', 'actorEmail', 'subjectId', 'accountId', 'accountOrigin', 'orderId', 'orderOrigin', 'action', 'createdAt', 'source', 'revision', 'reason']
 
 export async function exportCommercialAudit(db: D1Database, actor: Actor, params: URLSearchParams): Promise<Response> {
   requireSupplier(actor)

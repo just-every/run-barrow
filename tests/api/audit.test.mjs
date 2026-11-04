@@ -10,7 +10,22 @@ test('DATA-002: every current commercial mutation has searchable, attributed, ap
  await h.command('account.invite',{accountId:account.id});const buyer=await h.signIn(account.value.email),as={as:buyer};
  const grant=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${grant.token}`}};
  const agentDraft=await h.command('order.prepare',{accountId:account.id,lines:[{sku:'OAT-1',quantity:3}]},agent);
- let draft=await h.command('order.prepare',{accountId:account.id,replaces:agentDraft.id,reference:'AUDIT-ORDER',lines:[{sku:'OAT-1',quantity:2}]},as);
+ assert.equal(agentDraft.agentPreparation.label,'Barrow scoped agent for Supplier');
+ assert.equal(agentDraft.agentPreparation.person,owner.id);
+ // Historical native records lacked the typed field but already had trusted audit provenance.
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_remove(value_json,'$.agentPreparation') WHERE id=?").bind(agentDraft.id).run();
+ const historical=await h.api('/api/barrow/orders/'+agentDraft.id);
+ assert.equal(historical.preparedBy,agentDraft.preparedBy);assert.deepEqual(historical.agentPreparation,agentDraft.agentPreparation);
+ assert.equal(JSON.parse((await h.db.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(agentDraft.id).first()).value_json).agentPreparation,undefined,'Reading must not rewrite a historical snapshot');
+ const legacyHistory=await h.api('/api/barrow/orders/history');
+ assert.deepEqual(legacyHistory.orders.find(row=>row.id===agentDraft.id).agentPreparation,agentDraft.agentPreparation);
+ const legacyExport=await h.api('/api/barrow/export.json');
+ assert.deepEqual(JSON.parse(legacyExport.orders.find(row=>row.id===agentDraft.id).agentPreparation),agentDraft.agentPreparation);
+ assert.equal(legacyExport.audit.find(row=>row.subjectId===agentDraft.id&&row.action==='order.prepared').actorName,agentDraft.preparedBy);
+
+ let draft=await h.command('order.prepare',{accountId:account.id,replaces:agentDraft.id,preparedBy:agentDraft.preparedBy,agentPreparation:agentDraft.agentPreparation,reference:'AUDIT-ORDER',lines:[{sku:'OAT-1',quantity:2}]},as);
+ assert.equal(draft.agentPreparation,undefined,'Person preparation remains a person identity');
+ assert.equal(draft.preparedBy,(await h.api('/api/barrow/state',undefined,as)).actor.id,'Customer provenance fields cannot impersonate an agent');
  await h.command('order.submit',{orderId:draft.id},as);const approved=await h.command('order.approve',{orderId:draft.id});assert.equal(approved.status,'approved');
  const comparison=await h.command('order.reorder-preview',{orderId:approved.id,selections:[{sku:'OAT-1'}]},as);const reordered=await h.command('order.reorder',{orderId:approved.id,selections:[{sku:'OAT-1'}],fingerprint:comparison.fingerprint,acknowledged:true},as);
  draft=await h.command('order.prepare',{accountId:account.id,reference:'AUDIT-SHORT',lines:[{sku:'OAT-1',quantity:10}]},as);
