@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
+import {attributionStep,proveHumanAttribution} from './attribution.mjs'
+import {captureAttribution} from './screens.mjs'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
+export async function afterStep(ctx) {try {await attributionStep(ctx)} catch(error) {console.error('Attribution step failed at '+ctx.phase+' '+ctx.step.id+': '+error.stack);throw error}}
+
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
+ const attribution=await proveHumanAttribution({request,origin,cookie,database})
+ await captureAttribution({request,origin,cookie,...attribution})
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
  const stale=await tool('barrow.orders.prepare',{...args,expected_revision:randomUUID()})

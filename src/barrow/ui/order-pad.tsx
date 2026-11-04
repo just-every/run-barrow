@@ -13,7 +13,7 @@ import { quantityProblem } from '../quantity-rules'
 import { groupStyles, quantityOf, type StyleRow } from './styles'
 import type { Account, Catalogue, Order, RunCommand } from './types'
 import { useLocations } from './locations'
-import { byAgent, clock, money as formatMoney, terms, town, when } from './types'
+import { byAgent, preparationLabel, clock, money as formatMoney, terms, town, when } from './types'
 
 interface Props {
   account: Account; accounts: Account[]; supplier: boolean; canPurchase?:boolean; draft?: Order; draftCount: number; commandError?: string; run: RunCommand; busy: boolean
@@ -167,7 +167,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
         {supplier && <AccountPicker accounts={accounts} value={account.id} onChange={id => id && onAccount(id)} />}
         {shipTos.length > 0 && <label>Ship to<select value={shipToId} onChange={event => setShipToId(event.target.value)} disabled={busy}><option value="">Default ship-to</option>{shipTos.map(location => <option key={location.id} value={location.id}>{location.value.name} · {location.value.city}, {location.value.state}{location.isDefault ? ' (default)' : ''}</option>)}</select></label>}
         <label>Delivery location label<input value={deliveryLocation} maxLength={240} onChange={event => setDeliveryLocation(event.target.value)} disabled={busy} placeholder="Store or delivery location" /></label>
-        {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? 'Prepared by your agent' : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
+        {draft && <p className="br-pad-context">{byAgent(draft) && <span className="br-rivet" aria-hidden="true" />}{byAgent(draft) ? `Prepared by ${preparationLabel(draft)}` : 'Draft written'} {when(draft.preparedAt)}{draft.reference && ` · ${draft.reference}`}</p>}
       </div>
       <div className="br-pad-find" role="search">
         <label className="br-sku"><span className="br-sr-only">Scan or type SKU</span><input id={`${prefix}-sku`} aria-invalid={skuMessage ? true : undefined} aria-describedby={skuMessage ? `${prefix}-sku-error` : undefined} value={sku} placeholder="Scan or type SKU" autoComplete="off" spellCheck={false} disabled={!catalogue}

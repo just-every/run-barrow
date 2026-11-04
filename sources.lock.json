@@ -1767,7 +1767,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "70597e603fe5494c5a1f8d173e1c3ab5595748e1011836ec786b1a2d1950c2fb",
+      "sha256": "0ce9e3290e250f4ced26b1a4274221520c7cd3fc6cca3c83b6dd653226afcaaf",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1827,11 +1827,11 @@
       "executable": false
     },
     "src/barrow/agent-proposal-model.ts": {
-      "sha256": "209fd7510836bc003126601e995186494104370164d5d1cb9f756d84b896aaf4",
+      "sha256": "8d521ea2c028c37ab26df467c1c4aea42f4006ea68265dd0d77f869e0adbadc8",
       "executable": false
     },
     "src/barrow/agent-proposals.ts": {
-      "sha256": "6dcade52ccc0d3fb411ffbf9023a67c26c2075df81d3ab07849fcaf468cf2255",
+      "sha256": "f83b4e3fb9ab5bb2c8da9b565da1bdbd9958c787c818cb2b30e451a110836a98",
       "executable": false
     },
     "src/barrow/api.ts": {
@@ -2011,7 +2011,7 @@
       "executable": false
     },
     "src/barrow/commercial-audit.ts": {
-      "sha256": "c2cb1adf2405b624f198070b6f12d7fd8830c26222eb08de30592c54c49956ec",
+      "sha256": "5afe370d365e0b0019c4188ebd2751129566797a2cbceafae6ea235ea03173a3",
       "executable": false
     },
     "src/barrow/commission-report.ts": {
@@ -2135,7 +2135,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "69e42b869cac43ffed39a890a17f97f767393f7db563d5e8c5224cbf808d0433",
+      "sha256": "845d7143196ea0a8c2a44eb6cd826609db4524313c371e9434fd9c47586520da",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -2391,7 +2391,7 @@
       "executable": false
     },
     "src/barrow/model.ts": {
-      "sha256": "06f35169d0ba00cfab6ec9b70374814a53b0ccc80c4722c1c6d9b53ebbd75d47",
+      "sha256": "064827f939a860d0800afc9deb37f545ab678e51f98ea5c3bd47eb14558f244e",
       "executable": false
     },
     "src/barrow/order-followthrough.ts": {
@@ -2407,7 +2407,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "9e1302689fccccf10c1cf0618c267a77f28fcb8e3a832fcfd1e79e3c40ce8d19",
+      "sha256": "043300ca6d2f88154a75f36158472cc1ce72ce1ae7a7673ebf127f8b69adf589",
       "executable": false
     },
     "src/barrow/payment-promises.ts": {
@@ -2703,7 +2703,7 @@
       "executable": false
     },
     "src/barrow/ui/agent-proposals.tsx": {
-      "sha256": "ecc5033af7cfeae47cce73510d0004ac7e58227a685399f7807a389214bced6b",
+      "sha256": "a43ab8a2d0b00781c495ff83247e103826da0c45bf766885932c45aff2315421",
       "executable": false
     },
     "src/barrow/ui/api.ts": {
@@ -2919,7 +2919,7 @@
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
-      "sha256": "1127bd431918094e49d4376aae0335374f83d27af8b7c5f63000b580e6a9b4ad",
+      "sha256": "e935b80ddd6995544b662f39f631488b2bd755cee11f032e1045f09a2b31995f",
       "executable": false
     },
     "src/barrow/ui/order-revision.tsx": {
@@ -2939,7 +2939,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "d5ad54313951c268da54f263569c38badc87034197c7c57d4bdbca1683222145",
+      "sha256": "1e87bae77e65b4711355122b7b4afa1f6b9727ff1a611c8be2e6553904f2847c",
       "executable": false
     },
     "src/barrow/ui/payment-promises.tsx": {
@@ -3075,7 +3075,7 @@
       "executable": false
     },
     "src/barrow/ui/types.ts": {
-      "sha256": "849f8258e2eb9e42f0365a032ce2f336890aad1571c5b846d7cfe087f010eef1",
+      "sha256": "0f507f0a9e87474b23f3f9533d840647651a74a657ea4b8d1f329a5328f7b98a",
       "executable": false
     },
     "src/barrow/ui/unit-draft.tsx": {
@@ -3143,7 +3143,7 @@
       "executable": false
     },
     "src/barrow/workspace-orders.ts": {
-      "sha256": "a7381ace139ee9e93fe3992dcbf3b93a0c2195f55cec14aba97c988898a9e889",
+      "sha256": "ab67733dd986c189a2b9059df0f278bb2cf067dd6b6ad40f359884895b52a3bb",
       "executable": false
     },
     "src/base/contract-filter.ts": {
@@ -5803,7 +5803,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "e7531475ed4b6dc326871253c97649b79cd12b9f0b459cb2af012465b414728a",
+      "sha256": "23528c7a9aa31e13c831a79a8c6f67b724d8aa13f55e8b655a92cb0ed5d4e504",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5811,7 +5811,7 @@
       "executable": false
     },
     "tests/agent-door/screens.mjs": {
-      "sha256": "a852cdceeca9867f8d987e78c99c8ce1bc379734d762384280658c9fe38b784e",
+      "sha256": "f43a445ccdba0b91fd1b12809bb54c9343a7e66012264b790eee475c10fa7e9b",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {

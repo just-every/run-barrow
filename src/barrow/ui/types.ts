@@ -20,7 +20,7 @@ export interface Order {
   totalCents: number; currency?: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'; termsDays: number; accountRevision: string; preparedAt: string
   status: 'draft' | 'awaiting-company-approval' | 'submitted' | 'reserving' | 'shortfall' | 'approved' | 'superseded' | 'releasing' | 'cancelled'
   replaces?: string; supersededBy?: string; stockException?: { by: string; at: string; reason: string }; quote?: { id: string; revision: number; shipping: string; validUntil: string }
-  companyPreparedBy?: string; companyRequestedAt?: string; companyApprovedBy?: string; companyApprovedAt?: string; preparedBy: string; preparedAs?: 'rep'|'sales-manager'|'owner'|'admin'; approvalStatus?: import('../company-approval').ApprovalStatus; approvalVoided?: { at: string; reason: string }; submittedBy?: string; approvedBy?: string; approvedAt?: string
+  companyPreparedBy?: string; companyRequestedAt?: string; companyApprovedBy?: string; companyApprovedAt?: string; preparedBy: string; agentPreparation?:import('../model').AgentPreparation; preparedAs?: 'rep'|'sales-manager'|'owner'|'admin'; approvalStatus?: import('../company-approval').ApprovalStatus; approvalVoided?: { at: string; reason: string }; submittedBy?: string; approvedBy?: string; approvedAt?: string
   termsAcceptance?: import('../sales-terms').TermsAcceptance
   pierOrderId?: string; pierReference?: string; reservation?: { quantity: string; reserved: string }[]; invoice?: { number: string; issuedAt: string; dueAt: string }
   release?: { reason: string; requestedBy: string; requestedAt: string; held: { itemId: string; quantity: string }[]; confirmedAt?: string; lines?: { quantity: string; dispatched: string; cancelled: string }[] }
@@ -70,4 +70,5 @@ export const town = (value: AccountValue) => [value.city, value.state].filter(Bo
 export const orderNumber = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(id) ? id.slice(0, 8) : id
 /** A draft written against an older revision of its account's prices or terms cannot be submitted as it stands. */
 export const stale = (order: Order, accounts: Account[]) => order.status === 'draft' && accounts.some(account => account.id === order.accountId && account.revision !== order.accountRevision)
-export const byAgent = (order: Order) => order.preparedBy.startsWith('agent:')
+export const byAgent = (order: Order) => Boolean(order.agentPreparation) || order.preparedBy.startsWith('agent:')
+export const preparationLabel = (order: Order) => order.agentPreparation?.label ?? (byAgent(order) ? 'Your agent' : null)

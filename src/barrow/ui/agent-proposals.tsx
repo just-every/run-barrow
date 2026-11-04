@@ -51,6 +51,7 @@ function ProposalReview({ proposal, order, latest, busy, act }: {
   const canExecute = latest && ['offered','executing'].includes(proposal.state) && proposal.buyerApproval?.status === 'accepted' && proposal.grantActive === true && Boolean(proposal.executionKey)
   return <article className="br-card br-stack" style={{ overflowWrap: 'anywhere' }}>
     <h4>Proposal {proposal.number} · {proposal.state}{latest ? ' · latest revision' : ' · history'}</h4>
+    {proposal.preparedBy && <p>Prepared by {proposal.preparedBy.label}</p>}
     <p>Received {when(proposal.createdAt)} · agent-reported model {proposal.model} · run {proposal.runId} · reported inference cost {money(proposal.reportedCostCents)}.</p>
     <p>Grant: {proposal.grantActive === true ? 'active' : proposal.grantActive === false ? 'inactive' : 'status not recorded'}. Buyer approval: {proposal.buyerApproval ? `${proposal.buyerApproval.status} · ${proposal.buyerApproval.by} · ${when(proposal.buyerApproval.at)}` : 'not recorded'}.</p>
     {proposal.managerApproval && <p>Manager approval: {proposal.managerApproval.by} · {when(proposal.managerApproval.at)} · candidate {proposal.managerApproval.candidate + 1}. Reason: {proposal.managerApproval.reason}</p>}

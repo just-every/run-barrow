@@ -1,3 +1,4 @@
+import { withPreparation } from './preparation-attribution'
 import { companyOrderScope } from './company-access'
 import type { Bindings } from '../auth.server'
 import { fail, supplier, supplierDate, type Actor, type Order } from './model'
@@ -63,11 +64,11 @@ export async function workspaceOrders(env: Bindings, actor: Actor, query: URLSea
  const completedReplacements = replacementIds.length ? (await env.DB.prepare("SELECT id FROM bw_orders WHERE id IN (SELECT value FROM json_each(?)) AND json_extract(value_json,'$.status') IN ('approved','shortfall')" + visible.sql).bind(JSON.stringify(replacementIds), ...visible.values).all<{id:string}>()).results.map(row => row.id) : []
  const accountIds = [...new Set(orders.map(order=>order.accountId))]
  const accountRevisions = accountIds.length ? Object.fromEntries((await env.DB.prepare('SELECT id,revision FROM bw_accounts WHERE id IN (SELECT value FROM json_each(?))').bind(JSON.stringify(accountIds)).all<{id:string;revision:string}>()).results.map(row=>[row.id,row.revision])) : {}
- return { orders: await withApprovalStatus(env.DB, actor, orders), accountRevisions, completedReplacements, people: await orderPeople(env.DB, orders), page, pageSize, hasNext, counts, duplicatePOs }
+ return { orders: await withApprovalStatus(env.DB, actor, await withPreparation(env.DB, orders)), accountRevisions, completedReplacements, people: await orderPeople(env.DB, orders), page, pageSize, hasNext, counts, duplicatePOs }
 }
 /** One initial draft, chosen from the complete authorized collection, independent of the first page. */
 export async function waitingDraft(db: D1Database, actor: Actor) {
  const visible = companyOrderScope(actor,'o.account_id','o.value_json')
  const row = await db.prepare(`SELECT o.value_json,o.revision FROM bw_orders o JOIN bw_accounts a ON a.id=o.account_id WHERE json_extract(o.value_json,'$.status')='draft'${visible.sql} ORDER BY (json_extract(o.value_json,'$.accountRevision')<>a.revision) DESC,json_extract(o.value_json,'$.preparedAt') DESC,o.id DESC LIMIT 1`).bind(...visible.values).first<Stored>()
- return row ? parse(row) : null
+ return row ? (await withPreparation(db,[parse(row)]))[0] : null
 }
