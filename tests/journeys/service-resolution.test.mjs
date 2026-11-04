@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
+import {replacementCatalogue,replacementShipping} from '../api/service-resolution-fixture.mjs';
 import {returnClaimsFixture} from '../api/return-claims-fixture.mjs';
 import {signedContext,captureRegionWidths} from './browser-helpers.mjs';
 
 test('buyer reports a shortage with an RMA and requested replacement, supplier assigns a response deadline and both see unresolved attributed service history',async t=>{
  const f=await returnClaimsFixture(t,{built:true,clock:'2035-01-15T12:00:00Z'}),{h,buyer,order}=f;
+ await replacementCatalogue(h,f.pier);await replacementShipping(h);
  let rma=await f.request();rma=await h.command('return.decide',{id:rma.id,revision:rma.revision,orderRevision:order.revision,quantity:2,instructions:'Return two for separate inspection.',reason:'Keep the remainder disputed.'});
  const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM?{executablePath:process.env.BARROW_CHROMIUM}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const ownerContext=await signedContext(browser,h),buyerContext=await signedContext(browser,h,buyer.as);t.after(()=>ownerContext.close());t.after(()=>buyerContext.close());
@@ -22,8 +24,18 @@ test('buyer reports a shortage with an RMA and requested replacement, supplier a
  await panel.getByRole('button',{name:'Submit service report',exact:true}).click();await expect(panel).toContainText('buyer reported 1');await expect(panel).toContainText('Pier confirms dispatch of 6 physical units');await expect(panel).toContainText('1 × OAT-2');await expect(panel).toContainText('disputed 1');await expect(panel.getByText('Review service case',{exact:true})).toHaveCount(0);
  panel=await open(ownerPage);await panel.getByText('Review service case',{exact:true}).click();await panel.getByLabel('Response deadline',{exact:true}).fill('2035-01-18');await panel.getByLabel('Buyer-visible response',{exact:true}).fill('We are reviewing your requested replacement. Price difference, tax and freight require approval before acceptance.');await panel.getByRole('button',{name:'Record service response',exact:true}).click();
  await expect(panel).toContainText('2035-01-18');await expect(panel).toContainText('Supplier owner');await expect(panel).toContainText('Unresolved.');await expect(panel.getByRole('list',{name:'Service response history'})).toContainText('require approval before acceptance');
+ await panel.getByText('Propose replacement',{exact:true}).click();
+ await panel.getByRole('button',{name:'Review replacement prices',exact:true}).click();
+ await expect(panel).toContainText('Merchandise difference: USD 14.00');
+ await panel.getByLabel('Replacement proposal reason',{exact:true}).fill('We propose the different-value oat replacement with the displayed parcel charge.');
+ await panel.getByRole('button',{name:'Record replacement proposal',exact:true}).click();
+ await expect(panel).toContainText('Replacement proposal 1');await expect(panel).toContainText('Replacement freight: USD 10.00');
  await captureRegionWidths(ownerPage,panel,'service-owner-review');
  panel=await open(buyerPage);await expect(panel).toContainText('2035-01-18');await expect(panel).toContainText('require approval before acceptance');await expect(panel).toContainText('no replacement order has been accepted');await expect(panel).toContainText('Unresolved.');
+ await expect(panel).toContainText('Merchandise difference: USD 14.00');await expect(panel).toContainText('Replacement freight: USD 10.00');
+ await panel.getByRole('checkbox',{name:'I approve the displayed merchandise difference',exact:false}).check();
+ await panel.getByRole('button',{name:'Approve replacement price and freight',exact:true}).click();
+ await expect(panel).toContainText('Buyer approved this exact merchandise difference and freight.');await expect(panel).toContainText('Tax remains unverified.');await expect(panel).toContainText('case remains unresolved');
  await captureRegionWidths(buyerPage,panel,'service-buyer-response');
  const original=await h.api('/api/barrow/orders/'+order.id);assert.deepEqual(original.lines,order.lines);assert.equal((await h.api('/api/barrow/credits?orderId='+order.id)).credits.length,0);
  assert.equal((await f.claims()).claims.find(row=>row.id===rma.id).disputedQuantity,1);

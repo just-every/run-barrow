@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4bb2e233c3427ed191fc0c2ce9e466a01b348de5afa0e6c922473b5a22499b32",
+      "sha256": "641a0b3bcb30475b78345771b10cb809916685b3cce4837169cd9ebc7bba4365",
       "executable": false
     },
     "DEMO.md": {
@@ -1831,7 +1831,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "0109b02a28bc803d75f3fa1fe7d681db1b86c8b87d82989ee6f93f190437756e",
+      "sha256": "50b125b656c46073685bca985e37d277f1f0895166682c415e8ddd1a08ed0e8f",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -2123,7 +2123,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "badaae4bd192cfeec1b242999feace0220fd897b0c42cca305f3ed8d11730cd1",
+      "sha256": "d9657490a20b3358ff88ec4d787f332af53e410f306b8497f551950f987a544a",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -2607,11 +2607,11 @@
       "executable": false
     },
     "src/barrow/service-custody.ts": {
-      "sha256": "dc6133b1f6870c6feefea36fb3d5d7b36253a15aa6650be8e5931744c9bce453",
+      "sha256": "e3dba8eb9473e52214ba45fe0274f2060359c48ca7c3136fd9ddb1859a613bd8",
       "executable": false
     },
     "src/barrow/service-resolution.ts": {
-      "sha256": "2cdebdeb072064d9469d5e80daf3b293e936da72ca7fe1e98792af828c2d1406",
+      "sha256": "bccb8174b53d72a2e19fd911ca88d2cee421e49533eb5a4e8417f4fd0393c284",
       "executable": false
     },
     "src/barrow/shipment-tracking.ts": {
@@ -3023,7 +3023,7 @@
       "executable": false
     },
     "src/barrow/ui/service-resolution.tsx": {
-      "sha256": "24d57add1aaaa74bd75050a020a5b606448861dafc45384fa1eb85e315551a25",
+      "sha256": "63d86b15742ec4e32283ae093c8ec9356ebdc0f0638e6cd422b5a439f089a122",
       "executable": false
     },
     "src/barrow/ui/shipment-tracking.tsx": {
@@ -6075,7 +6075,7 @@
       "executable": false
     },
     "tests/api/service-resolution.test.mjs": {
-      "sha256": "4c55989976108371a1f0ff3d3d170e1a91f2c6ba2a67a3818fa36c709e0d88ad",
+      "sha256": "a112ab33a28f6049dd818440a61b6dbe637eb3ba8f5c0316a4ebaacde5c1e9cf",
       "executable": false
     },
     "tests/api/sftp-fixture.mjs": {
@@ -6319,7 +6319,7 @@
       "executable": false
     },
     "tests/journeys/service-resolution.test.mjs": {
-      "sha256": "95f508850363f534c668da716e02f2e0fa2847c9c32a5ede2b0bc987732a3dba",
+      "sha256": "dfd38b46dd4935cc4b23f67d36552247df1dcdef03492e3c3d278bdf810cd9ba",
       "executable": false
     },
     "tests/journeys/shipment-tracking-proof.mjs": {

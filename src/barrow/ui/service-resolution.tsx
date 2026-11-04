@@ -1,3 +1,4 @@
+import { ServiceExchange } from './service-exchange'
 import { useState } from 'react'
 import { request, errorMessage } from './api'
 import { Notice } from './primitives'
@@ -19,11 +20,12 @@ function ServiceReview({value,report,busy,act}:{value:Case;report:Report;busy:bo
   <p>{value.resolution}</p>
   {value.restored&&<p>Inert restored history. Review and retry commands are refused.</p>}
   <ol aria-label="Service response history">{value.history.map(event=><li key={event.revision}>{event.reason} · {report.people.find(person=>person.id===event.by)?.name??(event.by==='supplier'?'Supplier reviewer':'Company buyer')} · {event.at}</li>)}</ol>
+  <ServiceExchange value={value} report={report} busy={busy} act={act}/>
   {report.canReview&&!value.restored&&<details><summary>Review service case</summary><div className="br-stack">
    <label>Service owner<select value={ownerId} onChange={event=>setOwner(event.target.value)}>{!report.people.some(person=>person.id===ownerId)&&<option value={ownerId}>Former supplier — assign an active owner</option>}{report.people.map(person=><option key={person.id} value={person.id}>{person.name}</option>)}</select></label>
    <label>Response deadline<input type="date" value={responseDeadline} onChange={event=>setDeadline(event.target.value)}/></label>
    <label>Buyer-visible response<textarea maxLength={2000} value={response} onChange={event=>setResponse(event.target.value)}/></label>
-   <button disabled={busy||!response.trim()} onClick={()=>void act('service.review',{id:value.id,revision:value.revision,orderRevision:value.orderRevision,ownerId,responseDeadline,response})}>Record service response</button>
+   <button disabled={busy||!response.trim()} onClick={()=>void act('service.review',{id:value.id,revision:value.revision,orderRevision:report.orderRevision,ownerId,responseDeadline,response})}>Record service response</button>
   </div></details>}
  </article>
 }

@@ -1,3 +1,4 @@
+import { exchangePreview, revalidateExchange, type ExchangeOffer } from './service-exchange'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit, digest } from './access'
 import { account } from './accounts'
@@ -19,6 +20,7 @@ export type ServiceCase = {
  requestedReplacement: { sku: string; quantity: number } | null;
  ownerId: string; responseDeadline: string; timeZone: string; state: 'unresolved';
  createdBy: string; createdAt: string; history: Event[]; revision: string;
+ exchanges?: ExchangeOffer[];
  requestKey: string; requestFingerprint: string; restored?: boolean
 }
 export const serviceReviewer = (actor: Actor) => !actor.agent && !actor.staff && ['owner','admin'].includes(actor.role)
@@ -39,7 +41,8 @@ function deadline(value: unknown) {
  return value
 }
 export function visibleServiceCase(value: ServiceCase, actor: Actor) {
- const {requestKey,requestFingerprint,...shown}=value
+ const {requestKey,requestFingerprint,...record}=value
+ const shown={...record,exchanges:value.exchanges?.map(({requestKey,requestFingerprint,...offer})=>serviceReviewer(actor)?offer:{...offer,proposedBy:'supplier',freightQuotes:offer.freightQuotes?.map(quote=>({...quote,by:'supplier'})),delivery:offer.delivery?{...offer.delivery,quote:offer.delivery.quote?{...offer.delivery.quote,by:'supplier'}:undefined}:undefined,buyerApproval:offer.buyerApproval?{...offer.buyerApproval,by:offer.buyerApproval.by===actor.id?actor.id:'company buyer'}:undefined})}
  return serviceReviewer(actor)?shown:{...shown,ownerId:'supplier',createdBy:value.createdBy===actor.id?actor.id:'company buyer',history:value.history.map(event=>({...event,by:event.by===actor.id?actor.id:'supplier'}))}
 }
 async function dispatchEvidence(env: Bindings, order: Order, value: ServiceCase) {
@@ -59,7 +62,7 @@ export async function readServiceCases(env: Bindings, actor: Actor, orderId: str
   return {...visibleServiceCase(value,actor),overdue:!value.restored&&today>value.responseDeadline,evidence:await dispatchEvidence(env,order,value),rma:linked?{id:linked.id,revision:linked.revision,quantity:linked.quantity,approvedQuantity:linked.decision?.quantity??null,disputedQuantity:linked.decision?linked.quantity-linked.decision.quantity:null}:null,
    resolution:'Unresolved. A replacement request is not an accepted exchange. Exact price difference, verified tax and freight approvals, replacement execution, linked delivery and buyer-facing final resolution are still required.'}
  }))
- return {orderId,canReview:serviceReviewer(actor),people,cases}
+ return {orderId,orderRevision:order.revision,canReview:serviceReviewer(actor),people,cases}
 }
 const taskId=(id:string)=>`service:${id}`
 async function taskStatements(env: Bindings, value: ServiceCase, at: string) {
@@ -81,6 +84,16 @@ export async function refreshServiceDeadlines(env: Bindings, actor: Actor) {
   statements.push(env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_service_cases WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(value.id,value.revision),...await taskStatements(env,value,at),audit(env.DB,actor,value.id,'service.escalated',{accountId:value.accountId,orderId:value.orderId,revision:value.revision,source:'followup.refresh',reason:'Response deadline missed; service case remains assigned and unresolved.'}))
  }
  if(statements.length)await commit(env.DB,actor,statements)
+}
+export async function previewServiceExchange(env: Bindings, actor: Actor, p: any) {
+ review(actor)
+ const value=(await serviceRecords(env.DB)).find(row=>row.id===p.id)
+ if(!value)fail('NOT_FOUND','Service case not found.',404)
+ const order=await authorizedOrder(env,actor,value.orderId)
+ if(value.restored)fail('SERVICE_RESTORED','Restored service history is inert.',409)
+ if(value.revision!==p.revision||order.revision!==p.orderRevision)fail('REVISION','Reload the current case and original order before preparing an exchange.',409)
+ const {guards,...preview}=await exchangePreview(env,actor,order,value,p,undefined,false)
+ return preview
 }
 export async function serviceCommand(env: Bindings, actor: Actor, type: string, p: any) {
  requirePerson(actor)
@@ -118,19 +131,51 @@ export async function serviceCommand(env: Bindings, actor: Actor, type: string, 
   guards.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND role='owner' AND status='active') THEN 1 ELSE 0 END").bind(owner.id,owner.version))
   value={id:crypto.randomUUID(),accountId:order.accountId,orderId:order.id,orderRevision:order.revision,line,currency:order.currency,basis:order.lines[line-1],commercial:{currency:order.currency,totalCents:order.totalCents,termsDays:order.termsDays,termsAcceptance:order.termsAcceptance,buyingProfile:order.buyingProfile,preparedBy:order.preparedBy,preparedAt:order.preparedAt,submittedBy:order.submittedBy,companyApprovedBy:order.companyApprovedBy,companyApprovedAt:order.companyApprovedAt,approvedBy:order.approvedBy,approvedAt:order.approvedAt,delivery:order.delivery},pierOrigin:order.pierOrigin,pierOrderId:order.pierOrderId,rmaId,rmaRevision:rma?.revision,kind:p.kind,quantity,reason,requestedReplacement,ownerId:owner.id,responseDeadline:calendarDate(new Date(at),timeZone),timeZone,state:'unresolved',createdBy:actor.id,createdAt:at,history:[],revision,requestKey,requestFingerprint}
  } else {
-  review(actor)
   if(before!.restored)fail('SERVICE_RESTORED','Restored service cases are inert history; no authority or exchange execution is restored.',409)
-  if(before!.revision!==p.revision||p.orderRevision!==order.revision)fail('REVISION','The case or original order changed. Reload before responding.',409)
-  if(type==='service.close')fail('SERVICE_UNRESOLVED','Commercial approvals, replacement execution, verified delivery and buyer-facing final resolution are not established. This case cannot close.',409)
-  if(type!=='service.review')fail('COMMAND','Unknown service command.',400)
-  const ownerId=text(p.ownerId,'Active service owner'),responseDeadline=deadline(p.responseDeadline)
-  if(responseDeadline<calendarDate(new Date(at),timeZone))fail('INPUT','Choose today or a later supplier-calendar response deadline.',400)
-  const owner=await env.DB.prepare("SELECT id,version FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')").bind(ownerId).first<{id:string;version:number}>()
-  if(!owner)fail('SERVICE_OWNER','Assign an active supplier owner or admin.',400)
-  guards.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status='active' AND role IN ('owner','admin')) THEN 1 ELSE 0 END").bind(ownerId,owner.version))
-  value={...before!,ownerId,responseDeadline,timeZone,revision}
+  if(['service.exchange-accept','service.exchange-execute'].includes(type))fail('SERVICE_TAX_UNVERIFIED','Verified tax and freight approvals are required before exchange acceptance or execution. No exchange order, credit or stock command was created.',409)
+  if(type==='service.close') {
+   review(actor)
+   fail('SERVICE_UNRESOLVED','Commercial approvals, replacement execution, verified delivery and buyer-facing final resolution are not established. This case cannot close.',409)
+  }
+  if(type==='service.exchange-offer') {
+   review(actor)
+   const requestKey=await digest(JSON.stringify([actor.id,before!.id,text(p.requestId,'Stable offer identity',160)]))
+   const requestFingerprint=await digest(JSON.stringify([p.revision,p.orderRevision,p.sku,p.quantity,p.unit??null,p.delivery??null,p.methodId??null,p.warehouse??null,p.ownCarrierAccount??null,p.freightQuote??null,p.reason]))
+   const previous=before!.exchanges?.find(offer=>offer.requestKey===requestKey)
+   if(previous) {
+    if(previous.requestFingerprint!==requestFingerprint)fail('SERVICE_RETRY','This offer identity already names different commercial terms.',409)
+    return (await readServiceCases(env,actor,order.id)).cases.find(row=>row.id===before!.id)
+   }
+   if(before!.revision!==p.revision||p.orderRevision!==order.revision)fail('REVISION','The case or original order changed. Reload before proposing an exchange.',409)
+   const preview=await exchangePreview(env,actor,order,before!,p)
+   const {guards:exchangeGuards,deliveryOptions,tax,freightQuotes,basis,...commercial}=preview
+   guards.push(...exchangeGuards)
+   const offer:ExchangeOffer={...commercial,basis,freightQuotes,number:(before!.exchanges?.at(-1)?.number??0)+1,status:'offered',requestKey,requestFingerprint,proposedBy:actor.id,proposedAt:at,reason:text(p.reason,'Replacement proposal reason',2000)}
+   value={...before!,revision,exchanges:[...(before!.exchanges??[]),offer]}
+  } else if(type==='service.exchange-approve') {
+   if(serviceReviewer(actor))fail('BUYER_REQUIRED','A currently entitled company purchaser must approve the exact replacement price and freight.',403)
+   const latest=before!.exchanges?.at(-1)
+   if(!latest||latest.number!==p.number||p.basis!==latest.basis)fail('SERVICE_EXCHANGE_CHANGED','Review the latest numbered replacement proposal and exact commercial basis.',409)
+   if(latest.freightCents===null)fail('SHIPPING_APPROVAL','Replacement freight is unknown. Ask the supplier for a binding freight proposal before approving.',409)
+   const current=await revalidateExchange(env,actor,order,before!,latest)
+   if(p.acknowledged!==true)fail('SERVICE_APPROVAL','Explicitly approve the exact merchandise difference and replacement freight. This is not exchange acceptance.',409)
+   if(latest.buyerApproval?.by===actor.id&&latest.buyerApproval.version===actor.version)return (await readServiceCases(env,actor,order.id)).cases.find(row=>row.id===before!.id)
+   if(before!.revision!==p.revision||p.orderRevision!==order.revision)fail('REVISION','The case or original order changed. Reload before approving.',409)
+   guards.push(...current.guards)
+   value={...before!,revision,exchanges:[...before!.exchanges!.slice(0,-1),{...latest,status:'price-approved',buyerApproval:{by:actor.id,version:actor.version,at,basis:latest.basis}}]}
+  } else {
+   review(actor)
+   if(before!.revision!==p.revision||p.orderRevision!==order.revision)fail('REVISION','The case or original order changed. Reload before responding.',409)
+   if(type!=='service.review')fail('COMMAND','Unknown service command.',400)
+   const ownerId=text(p.ownerId,'Active service owner'),responseDeadline=deadline(p.responseDeadline)
+   if(responseDeadline<calendarDate(new Date(at),timeZone))fail('INPUT','Choose today or a later supplier-calendar response deadline.',400)
+   const owner=await env.DB.prepare("SELECT id,version FROM oa_operators WHERE id=? AND status='active' AND role IN ('owner','admin')").bind(ownerId).first<{id:string;version:number}>()
+   if(!owner)fail('SERVICE_OWNER','Assign an active supplier owner or admin.',400)
+   guards.push(env.DB.prepare("INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM oa_operators WHERE id=? AND version=? AND status='active' AND role IN ('owner','admin')) THEN 1 ELSE 0 END").bind(ownerId,owner.version))
+   value={...before!,ownerId,responseDeadline,timeZone,revision}
+  }
  }
- const reason=type==='service.report'?value.reason:text(p.response,'Buyer-visible response',2000)
+ const reason=type==='service.report'?value.reason:type==='service.exchange-offer'?value.exchanges!.at(-1)!.reason:type==='service.exchange-approve'?'Buyer approved the exact replacement merchandise difference and recorded freight. Tax remains unverified; no exchange is accepted.':text(p.response,'Buyer-visible response',2000)
  value.history=[...value.history,{action:type,by:actor.id,at,reason,revision}]
  const statements=[...guards]
  if(before)statements.push(env.DB.prepare('UPDATE bw_service_cases SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(value),revision,value.id,before.revision),changed(env.DB))

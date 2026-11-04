@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {replacementCatalogue,replacementShipping} from './service-resolution-fixture.mjs';
 import {returnClaimsFixture} from './return-claims-fixture.mjs';
 import {activateStaff,archive,installation,restore} from './harness.mjs';
 const email=number=>['synthetic-barrow-'+number,'example.test'].join('@');
@@ -7,6 +8,7 @@ const stockFacts=state=>Object.fromEntries(['orders','movements','returns','ship
 
 test('service cases retain original orders and disputed RMAs, current purchaser authority, owned calendar escalation and unresolved replacement history without stock or money effects, with scoped export and erased inert restore',async t=>{
  const f=await returnClaimsFixture(t,{bindings:{BARROW_TEST_CLOCK:'2035-01-15T12:00:00Z'}}),{h,pier,buyer,other,order}=f;
+ await replacementCatalogue(h,pier);
  let rma=await f.request();
  rma=await h.command('return.decide',{id:rma.id,revision:rma.revision,orderRevision:order.revision,quantity:2,instructions:'Bring two units to the supplier.',reason:'One unit remains disputed.'});
  const original=await h.api('/api/barrow/orders/'+order.id),inventory=stockFacts(await pier.api('/api/pier/state')),financial=await h.api('/api/barrow/credits?orderId='+order.id);
@@ -35,6 +37,49 @@ test('service cases retain original orders and disputed RMAs, current purchaser 
  value=await h.command('service.review',{...review,ownerId:adminId});assert.equal(value.ownerId,adminId);assert.equal(value.history.length,2);assert.equal(value.history[1].by,owner);assert.equal(value.history[1].reason,response);
  await h.command('service.review',review,{status:409});
  await h.command('service.close',{id:value.id,revision:value.revision,orderRevision:order.revision},{status:409});
+ // Different-value replacement pricing is a proposal, never exchange acceptance.
+ const offerReason='synthetic-barrow-975 supplier replacement proposal';
+ const baseOffer={id:value.id,revision:value.revision,orderRevision:order.revision,requestId:'synthetic-barrow-976',sku:'OAT-2',quantity:1,reason:offerReason};
+ await h.command('service.exchange-preview',baseOffer,{...buyer,status:403});
+ await h.command('service.exchange-offer',baseOffer,{...buyer,status:403});
+ await h.command('service.exchange-preview',baseOffer,{...other,status:403});
+ await h.command('service.exchange-offer',baseOffer,{...operations,status:403});
+ await h.command('service.exchange-offer',baseOffer,{...agent,status:403});
+ let priceOnly=await h.command('service.exchange-offer',baseOffer),offer=priceOnly.exchanges.at(-1);
+ assert.equal(offer.originalMerchandiseCents,6500);assert.equal(offer.merchandiseCents,7900);assert.equal(offer.priceDifferenceCents,1400);assert.equal(offer.freightCents,null);assert.equal(offer.currency,'USD');assert.equal(offer.termsDays,30);
+ await h.command('service.exchange-approve',{id:value.id,revision:priceOnly.revision,orderRevision:order.revision,number:offer.number,basis:offer.basis,acknowledged:true},{...buyer,status:409});
+ await replacementShipping(h);
+ const priced={...baseOffer,revision:priceOnly.revision,requestId:'synthetic-barrow-977',methodId:'replacement-parcel'};
+ const simultaneous=await Promise.all([1,2].map(()=>h.request('/api/barrow/commands',{method:'POST',body:{type:'service.exchange-offer',payload:priced}})));
+ assert.ok(simultaneous.some(row=>row.status===200));assert.ok(simultaneous.every(row=>[200,409].includes(row.status)));
+ value=await h.command('service.exchange-offer',priced);offer=value.exchanges.at(-1);assert.equal(value.exchanges.length,2);assert.equal(offer.freightCents,1000);assert.equal(offer.delivery.name,'Replacement parcel');assert.equal(offer.proposedBy,owner);
+ const offeredSnapshot=JSON.stringify(value.exchanges),approval={id:value.id,revision:value.revision,orderRevision:order.revision,number:offer.number,basis:offer.basis,acknowledged:true};
+ await h.command('service.exchange-offer',{...priced,quantity:2},{status:409});
+ await h.command('service.exchange-approve',approval,{status:403});
+ await h.command('service.exchange-approve',approval,{...other,status:404});
+ await h.command('service.exchange-approve',{...approval,number:1},{...buyer,status:409});
+ await h.command('service.exchange-approve',{...approval,basis:'synthetic-barrow-978'},{...buyer,status:409});
+ await h.command('service.exchange-approve',{...approval,acknowledged:false},{...buyer,status:409});
+ assert.equal(JSON.stringify((await read()).cases.find(row=>row.id===value.id).exchanges),offeredSnapshot);
+ value=await h.command('service.exchange-approve',approval,buyer);offer=value.exchanges.at(-1);
+ assert.equal(offer.status,'price-approved');assert.equal(offer.buyerApproval.by,value.createdBy);assert.equal(offer.buyerApproval.basis,approval.basis);assert.equal(value.state,'unresolved');
+ assert.equal((await h.command('service.exchange-approve',approval,buyer)).revision,value.revision);
+ for(const type of ['service.exchange-accept','service.exchange-execute','service.close']) {
+  const refusal=await h.command(type,{id:value.id,revision:value.revision,orderRevision:order.revision,tax:{verified:true,cents:0},delivery:{verified:true}},{status:409});
+  assert.ok(['SERVICE_TAX_UNVERIFIED','SERVICE_UNRESOLVED'].includes(refusal.error.code));
+ }
+ // A reviewed freight quote can be approved by the buyer without acquiring supplier authority.
+ const freightPayload={...baseOffer,revision:value.revision,requestId:'synthetic-barrow-979',methodId:'replacement-freight',freightQuote:{methodId:'replacement-freight',warehouse:'',cents:2000,windowStart:'2035-01-16',windowEnd:'2035-01-18',reason:'synthetic-barrow-980 freight review'}};
+ value=await h.command('service.exchange-offer',freightPayload);offer=value.exchanges.at(-1);assert.equal(offer.freightCents,2175);
+ value=await h.command('service.exchange-approve',{id:value.id,revision:value.revision,orderRevision:order.revision,number:offer.number,basis:offer.basis,acknowledged:true},buyer);assert.equal(value.exchanges.at(-1).status,'price-approved');
+ const preChange=JSON.stringify((await read()).cases.find(row=>row.id===value.id).exchanges);
+ const currentAccount=await h.api('/api/barrow/accounts/by-id/cedar');
+ await h.command('account.save',{id:currentAccount.id,revision:currentAccount.revision,value:{...currentAccount.value,prices:currentAccount.value.prices.map(row=>row.sku==='OAT-2'?{...row,unitCents:8900}:row)}});
+ await h.command('service.exchange-approve',{id:value.id,revision:value.revision,orderRevision:order.revision,number:offer.number,basis:offer.basis,acknowledged:true},{...buyer,status:409});
+ assert.equal(JSON.stringify((await read()).cases.find(row=>row.id===value.id).exchanges),preChange);
+ const repriced={...baseOffer,revision:value.revision,requestId:'synthetic-barrow-981',methodId:'replacement-parcel'};
+ value=await h.command('service.exchange-offer',repriced);offer=value.exchanges.at(-1);assert.equal(offer.priceDifferenceCents,2400);assert.equal(offer.originalMerchandiseCents,6500);assert.equal(offer.buyerApproval,undefined);
+ const configured=await h.api('/api/barrow/shipping/settings');await h.command('shipping.settings',{revision:configured.revision,methods:[]});
  await h.configure({BARROW_TEST_CLOCK:'2035-01-17T04:59:00Z'}); // Still Jan 16 in the supplier calendar.
  assert.equal((await read()).cases.find(row=>row.id===value.id).overdue,false);
  await h.command('followup.refresh',{});
@@ -57,17 +102,17 @@ test('service cases retain original orders and disputed RMAs, current purchaser 
  const partial=await h.command('service.report',{...partialPayload,rmaId:undefined},buyer);assert.equal(partial.evidence.dispatchedBaseQuantity,'2');assert.equal(partial.evidence.orderedBaseQuantity,'4');assert.equal(partial.evidence.sourceLineId,dispatched.lines[0].orderLineId);assert.equal(partial.state,'unresolved');
  const currentRma=(await f.claims()).claims.find(row=>row.id===rma.id);assert.equal(currentRma.disputedQuantity,1);assert.equal(currentRma.tasks.find(row=>row.id==='return-dispute:'+rma.id).status,'open');
  let exported=await h.api('/api/barrow/export.json');assert.equal(exported.servicecases.length,3);assert.equal(exported.servicecases[0].accountId,'cedar');assert.ok(exported.servicecases.some(row=>row.id===value.id&&row.revision===value.revision&&JSON.parse(row.basis).unitCents===6500));
- const csv=await(await h.request('/api/barrow/export/servicecases.csv')).text();assert.ok(csv.includes(value.id));assert.ok(csv.includes(rma.id));assert.ok(csv.includes(response));
- const buyerExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(buyerExport.servicecases.length,3);assert.equal(buyerExport.servicecases.find(row=>row.id===value.id).ownerId,'supplier');assert.ok(!JSON.stringify(buyerExport.servicecases).includes(adminId));assert.equal((await h.api('/api/barrow/export.json',undefined,other)).servicecases.length,0);
+ const csv=await(await h.request('/api/barrow/export/servicecases.csv')).text();assert.ok(csv.includes(value.id));assert.ok(csv.includes(rma.id));assert.ok(csv.includes(response));assert.ok(csv.includes('2400'));assert.ok(csv.includes('price-approved'));
+ const buyerExport=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(buyerExport.servicecases.length,3);assert.equal(buyerExport.servicecases.find(row=>row.id===value.id).ownerId,'supplier');assert.ok(!JSON.stringify(buyerExport.servicecases).includes(adminId));assert.ok(!buyerExport.servicecases.find(row=>row.id===value.id).exchanges.includes(owner));assert.equal((await h.api('/api/barrow/export.json',undefined,other)).servicecases.length,0);
  assert.ok(JSON.stringify(await h.api('/api/barrow/audit?search='+value.id)).includes('service.review'));
  const saved=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,saved);
  exported=await restored.api('/api/barrow/export.json');assert.equal(exported.servicecases.find(row=>row.id===value.id).restored,true);
- await restored.command('service.review',{...review,revision:value.revision},{status:409});
+ await restored.command('service.review',{...review,revision:value.revision},{status:409});await restored.command('service.exchange-offer',{...repriced,revision:value.revision},{status:409});
  // Removing current purchaser rights closes reads, reports and stable retries immediately.
  let member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.userId===value.createdBy);
  const policy={rights:['administrator','finance'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null};
  member=await h.command('company.update',{accountId:'cedar',memberId:member.id,revision:member.revision,policy,reason:'Remove purchasing authority for the service report.'});
- await h.api(path,undefined,{...buyer,status:403});await h.command('service.report',payload,{...buyer,status:403});assert.equal((await h.api('/api/barrow/export.json',undefined,buyer)).servicecases.length,0);
+ await h.api(path,undefined,{...buyer,status:403});await h.command('service.report',payload,{...buyer,status:403});await h.command('service.exchange-approve',approval,{...buyer,status:403});assert.equal((await h.api('/api/barrow/export.json',undefined,buyer)).servicecases.length,0);
  // Person erasure removes only their contribution and fences replay, retaining the supplier response.
  const successor=email(971);
  await h.command('company.invite',{accountId:'cedar',email:successor,name:'Successor administrator',policy:{rights:['administrator'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Retain an administrator before erasing the service requester.'});
@@ -82,9 +127,9 @@ test('service cases retain original orders and disputed RMAs, current purchaser 
  await h.command('retention.request',{accountId:'cedar',requester:'Buyer',channel:'Verified request',verificationNote:'Supplier verified the service requester.',held:false,reason:'Review service narrative erasure.'});
  const preview=await h.command('retention.preview',{accountId:'cedar'});assert.ok(preview.items.some(row=>row.id==='service:'+value.id));
  await h.command('retention.erase-account',{accountId:'cedar',accountRevision:preview.accountRevision,requestRevision:preview.requestRevision,policyRevision:preview.policyRevision,reviewHash:preview.reviewHash,confirm:'ERASE',reason:'Erase service report and response narratives.'});
- const erased=(await h.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(erased.reason,'[Erased service text]');assert.equal(erased.restored,true);assert.ok(!erased.history.includes(response));assert.equal(JSON.parse(erased.basis).unitCents,6500);assert.equal(erased.rmaId,rma.id);
+ const erased=(await h.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(erased.reason,'[Erased service text]');assert.equal(erased.restored,true);assert.ok(!erased.history.includes(response));assert.ok(!erased.exchanges.includes(offerReason));assert.ok(!erased.exchanges.includes('synthetic-barrow-980'));assert.equal(JSON.parse(erased.basis).unitCents,6500);assert.equal(erased.rmaId,rma.id);
  const audit=await h.api('/api/barrow/audit?orderId='+order.id+'&limit=200');assert.ok(!JSON.stringify(audit).includes(reason));assert.ok(!JSON.stringify(audit).includes(response));
  const later=await installation();t.after(()=>later.close());await restore(later,saved,{journalSource:h});
- const fenced=(await later.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(fenced.reason,'[Erased service text]');assert.ok(!fenced.history.includes(response));assert.equal(fenced.restored,true);await later.command('service.review',{...review,revision:fenced.revision},{status:409});
+ const fenced=(await later.api('/api/barrow/export.json')).servicecases.find(row=>row.id===value.id);assert.equal(fenced.reason,'[Erased service text]');assert.ok(!fenced.history.includes(response));assert.ok(!fenced.exchanges.includes(offerReason));assert.ok(!fenced.exchanges.includes('synthetic-barrow-980'));assert.equal(fenced.restored,true);await later.command('service.review',{...review,revision:fenced.revision},{status:409});
  const auditReplay=await later.api('/api/barrow/audit?orderId='+order.id+'&limit=200');assert.ok(!JSON.stringify(auditReplay).includes(reason));assert.ok(!JSON.stringify(auditReplay).includes(response));
 });

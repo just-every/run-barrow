@@ -1,4 +1,4 @@
-import { readServiceCases, serviceCommand } from './service-resolution'
+import { readServiceCases, serviceCommand, previewServiceExchange } from './service-resolution'
 import { agentHttp } from './agent-door/http.ts'
 import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
@@ -373,7 +373,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    await staffCommandGate(env,actor,body.type,body.payload)
    if(['tracking.bind','tracking.refresh','tracking.dispute'].includes(body.type))return json({result:await trackingCommand(env,actor,body.type,body.payload)})
    let result
-   if(['service.report','service.review','service.close'].includes(body.type))return json({result:await serviceCommand(env,actor,body.type,body.payload)})
+   if(body.type==='service.exchange-preview')return json({result:await previewServiceExchange(env,actor,body.payload)})
+   if(['service.report','service.review','service.close','service.exchange-offer','service.exchange-approve','service.exchange-accept','service.exchange-execute'].includes(body.type))return json({result:await serviceCommand(env,actor,body.type,body.payload)})
    if(['return.request','return.revise','return.decide','return.reconcile'].includes(body.type))return json({result:await returnClaimCommand(env,actor,body.type,body.payload)})
    if(['prebook.season','prebook.prepare','prebook.commit'].includes(body.type))return json({result:await prebookCommand(env,actor,body.type,body.payload)})
    if(body.type==='prebook.close'&&typeof body.payload?.id==='string'&&typeof body.payload?.revision==='string'&&await env.DB.prepare('SELECT 1 FROM bw_prebook_seasons WHERE id=? AND revision=?').bind(body.payload.id,body.payload.revision).first())return json({result:await prebookCommand(env,actor,body.type,body.payload)})
