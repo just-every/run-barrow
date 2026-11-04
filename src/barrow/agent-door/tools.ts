@@ -34,10 +34,10 @@ export function tools(env:Bindings):ToolDefinition[] {
   inputSchema:object({accountId:str,shipToId:str,billToId:str,reference:{type:'string',maxLength:100},lines:{type:'array',minItems:1,maxItems:100,items:object({sku:str,unit:str,quantity:{type:'number',exclusiveMinimum:0},unitCents:{type:'number',description:'Advisory input only; native current prices always determine the draft.'},buyerSku:str,profileId:str,brandId:str,requestedDate:str,cancelAfter:str},['sku','quantity'])}},['accountId','lines']),outputSchema:{type:'object'},untrusted:true,revisionType:'string',
   revision:async(a,c)=>(await readAccount(env,String(a.accountId),c)).revision,
   target:async(a,c)=>({kind:'account',id:(await readAccount(env,String(a.accountId),c)).id}),
-  classify:async(a,c)=>{await readAccount(env,String(a.accountId),c);await native(async()=>authorizeDraft(env,await nativeActor(env,c),a));return [{class:'standard',facts:{measure:Array.isArray(a.lines)?a.lines.length:0}}]},
+  classify:async(a,c)=>{await readAccount(env,String(a.accountId),c);await native(async()=>authorizeDraft(env,await nativeActor(env,c),a,c.idempotencyKey));return [{class:'standard',facts:{measure:Array.isArray(a.lines)?a.lines.length:0}}]},
   summary:async(a,c)=>{const value=await readAccount(env,String(a.accountId),c);return {target:{id:value.id,name:value.value.name},items:(a.lines as {sku:string;quantity:number}[]).map(line=>`${line.quantity} × ${line.sku}`)}},
   run:async(a,c)=>native(async()=>{const actor=await nativeActor(env,c),selected=await readAccount(env,String(a.accountId),c)
-   await authorizeDraft(env,actor,a)
+   await authorizeDraft(env,actor,a,c.idempotencyKey)
    const value=await orderCommand(env,actor,'order.prepare',a,{accountRevision:selected.revision,currency:selected.value.currency??'USD'})
    c.emit('order.prepared',`barrow://orders/${(value as {id:string}).id}`,{operationId:c.operationId})
    return {result:value,resources:[{uri:`barrow://orders/${(value as {id:string}).id}`,name:'Prepared draft'}]}

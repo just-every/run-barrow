@@ -31,11 +31,20 @@ export async function authorizedRead<T>(env:Bindings,actor:Actor,path:string,rea
  } catch {throw new ToolRefusal('authority_changed')}
  return value
 }
-export async function authorizeDraft(env:Bindings,actor:Actor,args:Record<string,unknown>) {
+export async function authorizeDraft(env:Bindings,actor:Actor,args:Record<string,unknown>,idempotencyKey?:string|null) {
  await staffCommandGate(env,actor,'order.prepare',args)
  await requireCompanyRight(env.DB,actor,String(args.accountId),'purchaser',typeof args.shipToId==='string'?args.shipToId:undefined)
  if(actor.company&&actor.door?.operationId) {
-  const prior=await env.DB.prepare("SELECT subject_id FROM bw_audit WHERE action='order.prepared' AND json_extract(context_json,'$.operationId')=?").bind(actor.door.operationId).first<{subject_id:string}>()
-  if(prior)await readOrder(env.DB,actor,prior.subject_id)
+  // A replay classifier has a fresh call identity. Resolve the original native
+  // effect from the retained agent call, including its actual default ship-to.
+  await authorizedRead(env,actor,'/api/barrow/commands',async()=>{
+   const prior=await env.DB.prepare(`SELECT subject_id FROM bw_audit WHERE action='order.prepared'
+    AND json_extract(context_json,'$.preparedBy.person')=?
+    AND json_extract(context_json,'$.operationId')=COALESCE((
+     SELECT json_extract(a.row,'$.operation_id') FROM agent_door_calls c
+     JOIN agent_door_audit a ON a.id=c.decision_id WHERE c.agent=? AND c.key=?),?)`)
+    .bind(actor.id,actor.door!.agentId,idempotencyKey??null,actor.door!.operationId).first<{subject_id:string}>()
+   if(prior)await readOrder(env.DB,actor,prior.subject_id)
+  })
  }
 }

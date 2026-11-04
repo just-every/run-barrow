@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "8feeac250ae0581a36e4e72c7a5a0a6a82cb722c6d4705b4c90cee710dcc069a",
+      "sha256": "26559d44295c8fc29f0d395025c67cc3f7857dfe14a4708fb72b743a53206ccb",
       "executable": false
     },
     "DEMO.md": {
@@ -1819,11 +1819,11 @@
       "executable": false
     },
     "src/barrow/agent-door/staff-authority.ts": {
-      "sha256": "9d34542c2e62e03ae1149fbe830b6e6d35aeed51c4fc1fa711c1bf94dbd132d3",
+      "sha256": "0a237b21dbf4c1c99c28ea42cd42f9bf49f0b33474a38b606a747552fcfee897",
       "executable": false
     },
     "src/barrow/agent-door/tools.ts": {
-      "sha256": "3a9fbd054d9f21b3db2bee7ac96f33f09b2ddf0838d52bcdb836381482fe2ee3",
+      "sha256": "d7060eb1432279986c2f2230224b9cdea65206b2cb8190c1a3806dfc30534b28",
       "executable": false
     },
     "src/barrow/agent-door/trust.ts": {
@@ -5819,7 +5819,7 @@
       "executable": false
     },
     "tests/agent-door/staff-parity.mjs": {
-      "sha256": "49b6edb83eb71a68f7a09cb4c704d0b2c5b9878fb96fbfcfdb8a3d45645b7cc6",
+      "sha256": "2ee97392bd0830c6ee80eee26bbafe79bec46a74c0361cc01e473bd8919e3750",
       "executable": false
     },
     "tests/agent-door/staff-screens.mjs": {

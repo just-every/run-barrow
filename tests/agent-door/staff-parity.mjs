@@ -127,6 +127,40 @@ export async function proveStaffParity({request,origin,cookie,database,phase}) {
   }
  }
  if(phase) {
+  const buyer=staffFixtures.get('buyer'),locations=[]
+  for(const name of ['Synthetic default store','Synthetic permitted store'])locations.push(await command('location.save',{accountId:'juniper',kind:'ship-to',makeDefault:locations.length===0,value:{name,line1:'101 Main Street',city:'Columbia',state:'SC',zip:'29201'}}))
+  const update=async policy=>buyer.grant={...await command('company.update',{accountId:'juniper',memberId:buyer.grant.id,revision:buyer.grant.revision,policy,reason:'Owner reviews current buyer location access.'}),userId:buyer.grant.userId}
+  await update({...buyer.policy,locations:locations.map(row=>row.id)})
+  // Omitted ship-to resolves to the native default and is retained in the draft.
+  const args={accountId:'juniper',lines,reference:'Synthetic default location '+phase,idempotency_key:randomUUID()}
+  const draft=result(await mcp(buyer,'barrow.orders.prepare',args))
+  assert.equal(draft.shipTo.id,locations[0].id)
+  assert.deepEqual(result(await mcp(buyer,'barrow.orders.prepare',args)),draft)
+  assert.deepEqual((await http('/api/barrow/orders/'+draft.id,undefined,buyer.cookie)).body,draft)
+  assert.deepEqual(result(await mcp(buyer,'barrow.orders.read',{id:draft.id})),draft)
+  await update({...buyer.policy,locations:[locations[1].id]})
+  const beforeRevokedReplay=(await http('/api/barrow/state')).body.orders
+  assert.equal((await http('/api/barrow/orders/'+draft.id,undefined,buyer.cookie)).status,403)
+  assert.equal(error(await mcp(buyer,'barrow.orders.read',{id:draft.id})),'FORBIDDEN')
+  const refused=await mcp(buyer,'barrow.orders.prepare',args)
+  assert.equal(error(refused),'FORBIDDEN','Revoked default location must prevent cached draft replay under '+phase)
+  assert.equal(refused.body.result.structuredContent,undefined)
+  assert.ok(refused.body.result.content.every(item=>item.type!=='resource_link'))
+  assert.ok(!JSON.stringify(refused.body.result).includes(draft.id))
+  assert.deepEqual((await http('/api/barrow/state')).body.orders,beforeRevokedReplay)
+  const allowedArgs={...args,shipToId:locations[1].id,idempotency_key:randomUUID()}
+  const allowed=result(await mcp(buyer,'barrow.orders.prepare',allowedArgs))
+  assert.equal(allowed.shipTo.id,locations[1].id)
+  assert.deepEqual(result(await mcp(buyer,'barrow.orders.prepare',allowedArgs)),allowed)
+  // Regaining the recorded location restores the same receipt without a write.
+  await update(buyer.policy)
+  const beforeRestoredReplay=(await http('/api/barrow/state')).body.orders
+  assert.deepEqual(result(await mcp(buyer,'barrow.orders.prepare',args)),draft)
+  assert.deepEqual((await http('/api/barrow/state')).body.orders,beforeRestoredReplay)
+  for(const location of locations)await command('location.archive',{accountId:'juniper',id:location.id,revision:location.revision})
+  console.log('PROBE BASE-AGENT-005 B '+phase+': prepare with default ship-to, remove that location -> native read, MCP read and same-key replay refuse with no draft data or writes; permitted location and restored-access replay return the exact draft')
+ }
+ if(phase) {
   const claims={act:{sub:'synthetic-barrow-scope-'+phase,name:'Synthetic scope narrowing',specialist:'wholesale account operator'}}
   const options={claims},scopeArgs={scope_id:'orders:prepare',idempotency_key:randomUUID()}
   assert.deepEqual(result(await mcp(manager,'barrow.scopes.read',{scope_id:'orders:prepare'},options)).grants,['orders:prepare'])
