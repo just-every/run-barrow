@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7b2cb4365300feac98d120aa2605764bcaee3a7690203a57f9e6d356d2491efb",
+      "sha256": "d0fa8d1c9753624824f9911a68788211b6e16130d7fe2b09371062306d77a7e7",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "64e001bcc1e1fdbceb7d27b83bcb089ad26e6c73eab93ca8e8103b286f15881f",
+      "sha256": "0a41007724b47caacfd1f5efd5c0615413df00c3c423ba1bb8b8a3ec90aee756",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -5803,7 +5803,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "e7531475ed4b6dc326871253c97649b79cd12b9f0b459cb2af012465b414728a",
+      "sha256": "f6f8571cd344850d63f841f1a843ed82102bb6ba74e257a9a9b66b7f9807808c",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5812,6 +5812,10 @@
     },
     "tests/agent-door/screens.mjs": {
       "sha256": "a852cdceeca9867f8d987e78c99c8ce1bc379734d762384280658c9fe38b784e",
+      "executable": false
+    },
+    "tests/agent-door/write-recovery.mjs": {
+      "sha256": "76370a00f3fe4e35da3203496a312ee8db82a8bf3e70d244acf0e9ac41be9a5a",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {

@@ -3,6 +3,7 @@ import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
+import {proveWriteRecovery} from './write-recovery.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
@@ -87,4 +88,12 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+}
+
+/** Run the native retry proof while each supported company policy is active. */
+export async function afterStep(context) {
+ if(context.step.id==='proposal_read'&&['autonomous','held'].includes(context.phase)) {
+  try {await proveWriteRecovery(context)}
+  catch(error) {console.error('WRITE RECOVERY '+context.phase+' failed: '+error.message);throw error}
+ }
 }
