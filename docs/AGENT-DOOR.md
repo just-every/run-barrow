@@ -56,7 +56,35 @@ discards completed MCP response bodies, and reconciles recovered results with
 native state, proposal history and paginated preparation audit. Concurrent
 requests must leave one draft or proposal revision and one native preparation
 audit effect. Native person edits supply the stale account and original-order
-revision cases. This proof does not qualify the explicit 24-hour retention and
-expiry boundary, long-running job handles and status isolation, complete tool
-and role coverage, or custody across coordinated clients. Those remain owed by
-BASE-AGENT-012.
+revision cases. The additional retention journey below qualifies local
+credential retention and expiry. Long-running job handles and status isolation,
+complete wider tool and role coverage, and custody across coordinated clients
+remain owed by BASE-AGENT-012.
+
+
+### Retention and credential expiry
+
+A completed preparation outcome is retained for thirty days from completion.
+Identical retries do not extend that horizon. A credential is still checked on
+every retry: the local draft and proposal credentials expire after seven days,
+and revocation, Pause and current native authority can refuse access earlier.
+Retained evidence never extends a credential or grants a new permission.
+
+`tests/agent-door/write-retention.mjs` runs the built application through public
+HTTP doors under autonomous and held policies. Its disposable Worker clock moves
+past 24 hours and to the last millisecond of the credential lifetime, retaining
+the database and independent journal across Worker restarts. It asserts equal
+saved outcomes and unchanged native records and preparation audit effects for
+owner drafts, admin drafts and owner proposals. Buyer credential issuance,
+non-owner proposal grants and an admin credential's proposal call are refused
+without preparation. Only the external stock and mail boundaries are isolated;
+no retained call, identity, grant or native record is written by the test.
+
+After seven days, the same credentials return HTTP 401 while the outcomes remain
+retained. The real scheduled handler keeps the records just before thirty days
+and removes them just after that horizon, preserving drafts, proposals and
+preparation audit history. Existing credentials remain expired. The test reads
+the replay expiry metadata to reconcile cleanup, and never edits that metadata.
+This clock-qualified local proof does not establish renewed signed Business
+admission after the thirty-day horizon. No long-running job or status tool is
+introduced, and no provider retention or erasure is claimed.

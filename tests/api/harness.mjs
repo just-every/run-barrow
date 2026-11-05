@@ -26,7 +26,7 @@ export async function configurePierRouting(pier) {
  rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});
  await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
 }
-export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock,socketEdge=false}={}) {
+export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock,wallClock,socketEdge=false}={}) {
  const connected=nativePiers.get(bindings.PIER_ORIGIN);
  if(!pier&&connected&&connected.cookie===bindings.PIER_SESSION)await configurePierRouting(connected);
  const root=pier?await pierSource():resolve('.');
@@ -56,7 +56,10 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
   return new Response(await response.arrayBuffer(),{status:response.status,headers:Object.fromEntries(response.headers)});
  };
  let origin='http://localhost';
- const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),...(tls?{httpsCert:tls.httpsCert,httpsKey:tls.httpsKey}:{}),modules:true,script:bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['ERASURE_JOURNAL'],bindings:{AUTH_LOCAL:pier?'false':'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},outboundService:mailEdge}),resourcePersistencePath:directory,...(logger?{log:logger}:{})});
+ // Test-only wall-clock rollover restarts the real Worker with its persisted store.
+ // No production clock door, retained-call edit or credential override is added.
+ const wallClockBanner=()=>wallClock?'const NativeDate=Date;globalThis.Date=class extends NativeDate{constructor(...args){if(args.length)super(...args);else super('+JSON.stringify(wallClock)+')}static now(){return new NativeDate('+JSON.stringify(wallClock)+').getTime()}};\n':'';
+ const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),...(tls?{httpsCert:tls.httpsCert,httpsKey:tls.httpsKey}:{}),modules:true,script:wallClockBanner()+bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['ERASURE_JOURNAL'],bindings:{AUTH_LOCAL:pier?'false':'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},outboundService:mailEdge}),resourcePersistencePath:directory,...(logger?{log:logger}:{})});
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
@@ -98,7 +101,7 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
    assert.equal(confirmed.status,303);
    return confirmed.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
   };
-  const harness={mf,logs,certificatePath:tls?.certificatePath,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;nativePiers.delete(origin);await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  const harness={mf,logs,certificatePath:tls?.certificatePath,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async setWallClock(instant){assert.ok(wallClock,'Wall-clock control must be opted into at installation');assert.ok(Number.isFinite(Date.parse(instant)),'A valid test instant is required');wallClock=instant;await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;nativePiers.delete(origin);await mf.dispose();await rm(directory,{recursive:true,force:true})}};
   if(pier)nativePiers.set(origin,harness);
   return harness;
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}
