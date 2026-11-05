@@ -69,7 +69,8 @@
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-campaign-screens timeout 1200 node --test --test-concurrency=1 --test-name-pattern='supplier resumes a campaign draft' tests/journeys/line-sheets.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-faire-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/faire.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-sellthrough-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/reorder.test.mjs",
-        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-currency-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs"
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-currency-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/pricing.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-proposal-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/agent-proposals.test.mjs"
       ]
     },
     {

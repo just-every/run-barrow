@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "82ad15cf9e0aa34a66d25a32e5f736bd211c00ce68009beb16825bf59165275b",
+      "sha256": "4e44601fcd946b3f0c1914aae1dd1297a1bb9b2e41d397e47332a412bc5a3e77",
       "executable": false
     },
     "DEMO.md": {
@@ -2447,7 +2447,7 @@
       "executable": false
     },
     "src/barrow/preparation-attribution.ts": {
-      "sha256": "adffd99079c7dc97df8c160a8e66552dfd31205ca0c65244e315925b7d2d617d",
+      "sha256": "25058a0377a31bc34594c10521a430fa035bb5bca9b4de7b1da52571f2e858cf",
       "executable": false
     },
     "src/barrow/presentation.ts": {
@@ -2667,7 +2667,7 @@
       "executable": false
     },
     "src/barrow/substitutions.ts": {
-      "sha256": "e41c836e2139e2d7ce1427d10880b61bcdf4e24f9be8f77a3708aa68a4a7ab7c",
+      "sha256": "f18a694de5548bd17ee09af55c8b77beeabf1287be6cad9656e2950610adffea",
       "executable": false
     },
     "src/barrow/timeline.ts": {
@@ -5795,7 +5795,7 @@
       "executable": false
     },
     "tests/agent-door/attribution.mjs": {
-      "sha256": "5b91fa9df4e6573733489efab12cfb957c3327ba9417596be2b42541d01c7f7e",
+      "sha256": "0d3edfb27cbef97d5890222047ca2c18462871bcebcd6e58371ab9959641db40",
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
@@ -5811,7 +5811,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "23528c7a9aa31e13c831a79a8c6f67b724d8aa13f55e8b655a92cb0ed5d4e504",
+      "sha256": "a155be00016fab0a35971ba49b68188e2e5ab7219afe43690fdfcf4acab10b54",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5819,7 +5819,7 @@
       "executable": false
     },
     "tests/agent-door/screens.mjs": {
-      "sha256": "9d7c84ded9c973b44bbcfc16d1066cba9f1d9be94805f419d62be8cfd3ba0fe6",
+      "sha256": "f83fe6b9fe174c72fb146900c5b5a76c7b2a472ad233e7a77590371264e3f906",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
@@ -6135,7 +6135,7 @@
       "executable": false
     },
     "tests/api/substitutions.test.mjs": {
-      "sha256": "bdde6a37b2748666671aaced9de29f03848992e2531aaefb67d656e07766e5fa",
+      "sha256": "76f2d64290d6db790764478ba7c01f6ce060d5da02531c1c24eb12502a22962c",
       "executable": false
     },
     "tests/api/timeline.test.mjs": {
@@ -6195,7 +6195,7 @@
       "executable": false
     },
     "tests/journeys/agent-proposals.test.mjs": {
-      "sha256": "39bb66beb67579b045050e852d35a79ede066b76610bede5d1432de0cf5850b6",
+      "sha256": "027fa7f21eeba76a2362fbdf21e3395887ef2502bc249ff6f884e847dcf44441",
       "executable": false
     },
     "tests/journeys/application-routing.test.mjs": {
@@ -6371,7 +6371,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "7f014f5fbaf8c0af41da17ff919cfed72d5186f572354ad6ec6864d33cf63837",
+      "sha256": "e5ba5df9487d385cd851219e376698e1d3dba605519f216f03ff484ea9678cfb",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

@@ -276,6 +276,23 @@ test('approval-bound agent proposals preserve provenance and refusals, then reau
  const offered=(await f.history()).proposals[0];assert.equal(offered.buyerApproval.status,'accepted');assert.ok(offered.managerApproval.by);assert.ok(offered.buyerApproval.by);
  await h.command('substitution.execute',{orderId:f.order.id,number:proposal.offerNumber},{status:409});
  const oldReplacement=(await h.api('/api/barrow/orders/'+f.order.id)).substitutions.at(-1).replacementId;
+ const replacement=await h.api('/api/barrow/orders/'+oldReplacement);
+ assert.deepEqual(replacement.agentPreparation,offered.preparedBy,'Buyer acceptance must retain the agent who prepared the reviewed basket');
+ assert.equal(replacement.preparedBy,offered.managerApproval.by,'Keep the historical native manager identity');
+ assert.equal(replacement.submittedBy,offered.buyerApproval.by,'Only the buyer session submits the replacement');
+ // Older native replacements carry the exact proposal link, without the typed field.
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_remove(value_json,'$.agentPreparation') WHERE id=?").bind(oldReplacement).run();
+ const historical=await h.api('/api/barrow/orders/'+oldReplacement,undefined,f.buyer);
+ assert.deepEqual(historical.agentPreparation,offered.preparedBy);assert.equal(historical.preparedBy,replacement.preparedBy);
+ assert.equal(JSON.parse((await h.db.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(oldReplacement).first()).value_json).agentPreparation,undefined,'Reading historical attribution must not rewrite its snapshot');
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.fromSubstitution.orderId','synthetic-barrow-unrelated') WHERE id=?").bind(oldReplacement).run();
+ assert.equal((await h.api('/api/barrow/orders/'+oldReplacement)).agentPreparation,undefined,'A mismatched native source must not borrow another proposal identity');
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_set(value_json,'$.fromSubstitution.orderId',?) WHERE id=?").bind(f.order.id,oldReplacement).run();
+ const exported=await h.api('/api/barrow/export.json');
+ assert.deepEqual(JSON.parse(exported.orders.find(row=>row.id===oldReplacement).agentPreparation),offered.preparedBy);
+ const acceptance=exported.audit.find(row=>row.subjectId===oldReplacement&&row.action==='substitution.replacement');
+ assert.equal(acceptance.actorId,offered.buyerApproval.by);assert.equal(acceptance.actorKind,'human');
+ console.log('PROBE BASE-AGENT-008 replacement: scoped proposal, manager offer and buyer acceptance -> agent preparation retained beside separate human identities and scoped export');
  await h.command('order.approve',{orderId:oldReplacement},{status:409});
  const before=(await pier.api('/api/pier/state')).orders;
  await f.execute(proposal,{idempotencyKey:'synthetic-barrow-103'},{status:409});
@@ -289,6 +306,9 @@ test('approval-bound agent proposals preserve provenance and refusals, then reau
  const fresh=await f.grant();proposal=await f.submit(fresh,{id:withdrawn.id,number:withdrawn.number,revision:withdrawn.revision,runId:'synthetic-barrow-104'});
  assert.equal(proposal.number,withdrawn.number+1);proposal=await f.offer(proposal);await f.approve(proposal);
  const result=await f.execute(proposal);assert.equal(result.state,'completed');assert.ok(result.replacementId);
+ const completed=await h.api('/api/barrow/orders/'+result.replacementId);
+ assert.deepEqual(completed.agentPreparation,proposal.preparedBy);
+ assert.equal(completed.approvedBy,proposal.managerApproval.by);assert.equal(completed.submittedBy,offered.buyerApproval.by);
  const source=(await pier.api('/api/pier/state')).orders;assert.equal(source.length,before.length+1);
  const original=source.find(row=>row.id===f.order.pierOrderId);assert.ok(original.lines.every(line=>line.reserved==='0'&&line.cancelled===line.quantity));
  const mailCount=h.mail.deliveries.length;assert.deepEqual(await f.execute(proposal),result);assert.deepEqual((await pier.api('/api/pier/state')).orders,source);assert.equal(h.mail.deliveries.length,mailCount);
@@ -296,6 +316,8 @@ test('approval-bound agent proposals preserve provenance and refusals, then reau
  history=await f.history();assert.equal(history.proposals.length,2);assert.equal(history.proposals.at(-1).state,'completed');assert.ok(history.proposals[0].managerApproval.by);assert.equal(history.proposals.at(-1).runId,'synthetic-barrow-104');
  const {archive,restore}=await import('./harness.mjs'),backup=await archive(h),target=await installation();t.after(()=>target.close());await restore(target,backup);
  const restored=await target.api(`/api/barrow/orders/${f.order.id}/agent-proposals`);assert.ok(restored.proposals.every(row=>row.state==='superseded'&&!row.grantActive));assert.equal(target.mail.deliveries.length,0);
+ assert.deepEqual((await target.api('/api/barrow/orders/'+result.replacementId)).agentPreparation,proposal.preparedBy);
+ await target.command('proposal.execute',{id:result.id,number:result.number,revision:result.revision,idempotencyKey:result.executionKey},{status:409});
  const {verifiedRequest,erasurePreview,erasurePayload}=await import('./retention-fixture.mjs');await verifiedRequest(h,'cedar');
  const eraseReview=await erasurePreview(h);assert.equal(eraseReview.classes.find(row=>row.kind==='agent proposals').count,(await f.history()).proposals.length);assert.ok(eraseReview.custody.agents.includes('separate custody'));await h.command('retention.erase-account',erasurePayload(eraseReview));
  assert.equal((await h.api('/api/barrow/proposal-grants?accountId=cedar')).grants.length,0);assert.equal((await f.history()).proposals.length,0);
