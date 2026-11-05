@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 
 /** Owner erasure through native HTTP, with SELECT-only retained-state witnesses. */
-export async function proveCustodyErasure({request,origin,cookie,database}) {
+export async function proveCustodyErasure({request,origin,cookie,database,beforeErase,beforeErasedReplay}) {
  const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
  async function native(path,body) {
   const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
@@ -10,7 +10,7 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
  }
  const command=async(type,payload)=>(await native('/api/barrow/commands',{type,payload})).result
  console.log('NATIVE custody fixture begins')
- const db=await database('DB'),peer={}
+ let db=await database('DB');const peer={}
  for(const table of ['agent_door_calls','agent_door_audit','agent_door_approvals','agent_door_reviews','agent_door_events','agent_door_usage'])peer[table]=(await db.prepare(`SELECT rowid AS retained_rowid,* FROM ${table} ORDER BY rowid`).all()).results
 
  const accountId='custody-review',personal='synthetic-custody-buyer@example.test'
@@ -37,12 +37,14 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
 
  const usage=async()=>(await db.prepare('SELECT decision_id,at,seed,agent,classes FROM agent_door_usage WHERE agent=? ORDER BY decision_id').bind(agentId).all()).results
  const counts=await usage();assert.ok(counts.length>0)
+ if(beforeErase){await beforeErase();db=await database('DB')}
  await command('retention.request',{accountId,requester:'Verified account representative',channel:'In-app owner review',verificationNote:'Owner verified identity and scope.',reason:'Owner reviewed erasure of unexecuted agent preparation.',held:false})
  console.log('NATIVE custody verified erasure request ready')
  const preview=await command('retention.preview',{accountId})
  const receipt=await command('retention.erase-account',{accountId,accountRevision:preview.accountRevision,requestRevision:preview.requestRevision,policyRevision:preview.policyRevision,reviewHash:preview.reviewHash,confirm:'ERASE',reason:'Owner authorizes personal redaction while preserving commercial evidence.'})
  console.log('NATIVE custody erasure applied')
  assert.equal(receipt.mode,'erase');assert.equal(JSON.stringify(receipt).includes(personal),false)
+ if(beforeErasedReplay){await beforeErasedReplay();db=await database('DB')}
  assert.deepEqual(await native('/api/barrow/orders/'+order.id),original)
  for(const [table,rows] of Object.entries(peer))for(const row of rows)assert.deepEqual(await db.prepare(`SELECT rowid AS retained_rowid,* FROM ${table} WHERE rowid=?`).bind(row.retained_rowid).first(),row,'Unrelated peer retained artifact must stay byte for byte')
  const erasedDraft=await tool('barrow.orders.prepare',draftArgs,draftGrant.token)
