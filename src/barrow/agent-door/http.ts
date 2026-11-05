@@ -12,9 +12,9 @@ const refuse = (code: string, status = 403, fields: Record<string, unknown> = {}
  * all enter the same production MCP handler as an ordinary company client. */
 export async function agentHttp(request: Request, env: Bindings, actor: Actor): Promise<Response> {
  const url = new URL(request.url), path = url.pathname
- let name: string, args: Record<string, unknown>, command = false
+ let name: string, args: Record<string, unknown>, command = false, requestState: unknown
  if (request.method === 'POST' && path === '/api/barrow/commands') {
-  const body = await boundedJson(request, 1500000) as { type?: string; payload?: Record<string, unknown> }
+  const body = await boundedJson(request, 1500000) as { type?: string; payload?: Record<string, unknown>; requestState?: unknown }
   const names: Record<string, string> = {
    'order.prepare': 'barrow.orders.prepare', 'cart.preview': 'barrow.cart.preview',
    'cart.form': 'barrow.cart.form', 'proposal.submit': 'barrow.proposals.submit',
@@ -23,8 +23,10 @@ export async function agentHttp(request: Request, env: Bindings, actor: Actor): 
   if (!Object.hasOwn(names,body.type) || actor.agentScope === 'proposal' && body.type !== 'proposal.submit') return refuse('PERSON_REQUIRED')
   name = names[body.type]!
   args = { ...body.payload, ...(body.type === 'proposal.submit' ? { grantId: actor.grantId } : {}) }
+  requestState = body.requestState
   command = true
  } else if (request.method === 'GET') {
+  requestState = url.searchParams.has('requestState') ? url.searchParams.get('requestState') : undefined
   const account = /^\/api\/barrow\/accounts\/by-id\/([^/]+)$/.exec(path)
   const order = /^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)$/.exec(path)
   if (path === '/api/barrow/state') { name = 'barrow.workspace.read'; args = {} }
@@ -36,14 +38,21 @@ export async function agentHttp(request: Request, env: Bindings, actor: Actor): 
   else if (path === '/api/barrow/lists') { name = 'barrow.lists.list'; args = { accountId: url.searchParams.get('accountId') ?? '' } }
   else return refuse('PERSON_REQUIRED')
  } else return refuse('PERSON_REQUIRED')
- const headers = new Headers({ 'content-type': 'application/json', 'mcp-protocol-version': '2025-11-25' })
+ const version = '2026-07-28'
+ const headers = new Headers({ 'content-type': 'application/json', 'mcp-protocol-version': version, 'mcp-method': 'tools/call', 'mcp-name': name })
  headers.set('authorization', request.headers.get('authorization') ?? '')
  if (request.headers.has('origin')) headers.set('origin', request.headers.get('origin')!)
  const response = (await agentDoor(env).handle(new Request(env.AUTH_ORIGIN + '/mcp', {
-  method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args } }),
+  method: 'POST', headers, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name, arguments: args,
+   ...(requestState === undefined ? {} : { requestState }), _meta: { 'io.modelcontextprotocol/protocolVersion': version,
+    'io.modelcontextprotocol/clientCapabilities': { elicitation: { url: {} } } } } }),
  })))!
  const rpc = await response.json() as any
  if (rpc.error) return refuse(rpc.error.data?.code ?? (response.status === 401 ? 'AUTH' : 'door_refused'), response.ok ? 403 : response.status)
+ if (rpc.result?.resultType === 'input_required') return refuse('approval_required', 403, {
+  resultType: 'input_required', requestState: rpc.result.requestState, approval: rpc.result._meta?.['com.runeditrun/approval'],
+  inputRequests: rpc.result.inputRequests, decision: rpc.result._meta?.['com.runeditrun/decision'],
+ })
  const error = rpc.result?._meta?.['com.runeditrun/error']
  if (error) {
   const status = Number.isInteger(error.native_status) && error.native_status >= 400 && error.native_status < 600 ? error.native_status : error.code === 'NOT_FOUND' || error.code === 'not_found' ? 404
@@ -51,6 +60,10 @@ export async function agentHttp(request: Request, env: Bindings, actor: Actor): 
    : /^(policy_|agents_paused|paused|approval_required|review_required|insufficient_scope)/.test(error.code) ? 403 : 409
   return refuse(error.code, status, error)
  }
- return Response.json(command ? { result: rpc.result.structuredContent } : rpc.result.structuredContent,
-  { headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } })
+ const resultHeaders = new Headers({ 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' })
+ for (const field of ['decision', 'receipt']) {
+  const value = rpc.result?._meta?.[`com.runeditrun/${field}`]
+  if (value) resultHeaders.set(`x-rer-agent-${field}`, JSON.stringify(value))
+ }
+ return Response.json(command ? { result: rpc.result.structuredContent } : rpc.result.structuredContent, { headers: resultHeaders })
 }
