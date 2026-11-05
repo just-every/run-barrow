@@ -10,7 +10,8 @@ import { readAccount, readCatalog, order, list, workspace, sharedLists, director
 const str={type:'string',minLength:1}, object=(properties:Record<string,JsonSchema>,required:string[]=[]):JsonSchemaObject=>({type:'object',properties,required,additionalProperties:false})
 const quantity={anyOf:[{type:'number',exclusiveMinimum:0},str]}
 const cartLine=object({sku:str,unit:str,quantity,buyerSku:str},['sku','quantity'])
-const cartSchema=object({accountId:str,listId:str,profileId:str,csv:str,paste:str,layout:{type:'string',enum:['vertical','matrix']},mode:{type:'string',enum:['merge','replace']},cart:{type:'array',maxItems:100,items:cartLine},skip:{type:'array',items:str},set:{type:'object',additionalProperties:quantity}})
+const cartLines:JsonSchema={type:'array',maxItems:100,items:cartLine}
+const cartSchema=object({accountId:str,listId:str,profileId:str,csv:str,paste:str,layout:{type:'string',enum:['vertical','matrix']},mode:{type:'string',enum:['merge','replace']},cart:cartLines,skip:{type:'array',items:str},set:{type:'object',additionalProperties:quantity}})
 async function cartAccount(env:Bindings,a:Record<string,unknown>,c:Parameters<ToolDefinition['run']>[1]) {
  return a.listId ? (await list(env,String(a.listId),c)).accountId : String(a.accountId??'')
 }
@@ -27,7 +28,7 @@ export function tools(env:Bindings):ToolDefinition[] {
   read('lists','read','lists:read',['ORD-002'],object({id:str},['id']),(a,c)=>list(env,a.id,c)),
   read('lists','list','lists:read',['ORD-002'],object({accountId:str},['accountId']),async(a,c)=>({lists:await sharedLists(env,a.accountId,c)})),
   read('cart','preview','catalog:read',['ORD-001','BAR-003'],cartSchema,async(a,c)=>native(async()=>{await readAccount(env,await cartAccount(env,a,c),c);return cartCommand(env,await nativeActor(env,c),'cart.preview',a)})),
-  read('cart','form','catalog:read',['ORD-001','BAR-003'],object({accountId:str,layout:{type:'string',enum:['vertical','matrix']},cart:{type:'array',maxItems:100,items:cartLine}},['accountId','layout']),async(a,c)=>native(async()=>{await readAccount(env,a.accountId,c);return cartCommand(env,await nativeActor(env,c),'cart.form',a)}),object({filename:str,currency:{type:'string',pattern:'^[A-Z]{3}$'},csv:{type:'string'}},['filename','currency','csv']))
+  read('cart','form','catalog:read',['ORD-001','BAR-003'],object({accountId:str,layout:{type:'string',enum:['vertical','matrix']},cart:cartLines},['accountId','layout']),async(a,c)=>native(async()=>{await readAccount(env,a.accountId,c);return cartCommand(env,await nativeActor(env,c),'cart.form',a)}),object({filename:str,currency:{type:'string',pattern:'^[A-Z]{3}$'},csv:{type:'string'}},['filename','currency','csv']))
  ]
  records.push({name:'barrow.orders.prepare',title:'Prepare a current-price order draft',description:'Prepare a validated draft only. A person must submit and approve it; no reservation, message, payment or provider charge occurs.',
   scope:'orders:prepare',readOnly:false,classes:['standard'],clauses:['BAR-003','AGT-001','ORD-001'],

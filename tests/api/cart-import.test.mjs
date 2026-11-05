@@ -113,15 +113,12 @@ test('ORD-001: barcode/SKU paste and an 80-line CSV preview resolve duplicates, 
  const populated=(await tool('barrow.cart.form',{accountId:'cedar',layout:'vertical',cart:formCart})).result.structuredContent;
  validateFormResult(definition.outputSchema,populated);
  assert.ok(populated.csv.includes('"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","each","10.00","12"'));
- for(const malformed of [null,{},[null],[{sku:'ST01-S'}],[{sku:'ST01-S',quantity:0}],[{sku:'ST01-S',quantity:{}}],Array.from({length:101},()=>({sku:'ST01-S',quantity:1}))]) {
-  const refused=await tool('barrow.cart.form',{accountId:'cedar',layout:'vertical',cart:malformed});
-  assert.equal(errorCode(refused),'invalid_arguments');assert.equal(refused.result?.structuredContent,undefined);
- }
  // Admitted selling units and current account prices come from the unchanged native service.
  let current=await h.api('/api/barrow/accounts/by-id/cedar');
  await h.command('account.save',{id:current.id,revision:current.revision,value:{...current.value,prices:current.value.prices.map(price=>price.sku==='ST01-S'?{...price,unitCents:1234,units:[{code:'case',baseQuantity:'6',unitCents:6999,packContents:'Six tees'}]}:price)}});
  const command=nativeCommands({request,origin:h.origin,cookie:h.cookie});
  const selling={accountId:'cedar',layout:'vertical',cart:[{sku:'ST01-S',unit:'case',quantity:'2'}]};
+ await proveCartFormParity({request,origin:h.origin,cookie:h.cookie,tool,accountId:'cedar',cart:formCart,selling:{line:selling.cart[0],row:'"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","case","69.99","2"'}});
  const nativeSelling=await command('cart.form',selling),toolSelling=await tool('barrow.cart.form',selling);
  assert.deepEqual(toolSelling.result.structuredContent,nativeSelling.result);
  assert.ok(toolSelling.result.structuredContent.csv.includes('"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","case","69.99","2"'));

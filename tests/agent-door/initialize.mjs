@@ -13,7 +13,7 @@ export default async function({request,origin,email,claim,token,fixtures,reviewe
   if(!response.ok)throw new Error('Native fixture preparation failed: '+type)
   return response.json()
  }
- await command('account.save',{id:'juniper',value:{name:'Juniper Market',email:'synthetic-buyer@example.com',pierCustomerId:'juniper',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:2400,minQty:1},{sku:'HEMP',unitCents:2500,minQty:1}]}})
+ await command('account.save',{id:'juniper',value:{name:'Juniper Market',email:'synthetic-buyer@example.com',pierCustomerId:'juniper',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:2400,minQty:1,units:[{code:'case',baseQuantity:'6',unitCents:13900,packContents:'Six runners'}]},{sku:'HEMP',unitCents:2500,minQty:1}]}})
  await command('list.save',{accountId:'juniper',name:'Replenishment',shared:true,lines:[{sku:'LINEN',quantity:'2'}]})
  const prepared=await command('order.prepare',{accountId:'juniper',lines:[{sku:'LINEN',quantity:2}]})
  const original=prepared.result??prepared
