@@ -1,5 +1,6 @@
 import { eraseAccountAgentArtifacts } from './agent-door/erasure.ts'
 import { campaignErasureStatements } from './campaign-custody'
+import { nativePersonEventErasureStatements } from './agent-door/native-events'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { deltaErasure } from './imports/delta-custody'
 import { cutoverErasure } from './imports/cutover-custody'
@@ -30,6 +31,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
   put('DELETE FROM bw_applications WHERE id=?',p.id)
  }
  if(kind==='company-user') {
+  statements.push(...nativePersonEventErasureStatements(p.userId))
   statements.push(...campaignErasureStatements('recipient_id',p.userId))
   const current=await env.DB.prepare('SELECT email,display_name FROM oa_operators WHERE id=?').bind(p.userId).first<any>(),membership=await env.DB.prepare('SELECT email,display_name FROM bw_company_members WHERE user_id=? LIMIT 1').bind(p.userId).first<any>(),subjects=(await env.DB.prepare('SELECT subject FROM oa_external_identities WHERE operator_id=?').bind(p.userId).all<any>()).results.map(row=>row.subject)
   const id=p.userId,email=`former-${id.replace(/[^A-Za-z0-9-]/g,'')}@invalid.invalid`

@@ -1807,7 +1807,7 @@
       "executable": false
     },
     "src/barrow/agent-door/native-events.ts": {
-      "sha256": "0ea8989214124b3ef02fa103911ddab3c1e4878df50f9d9e398ae67461a9a94b",
+      "sha256": "1ca66a644a4c6506cb08be3415051948d2f2dcbaa5ad1eb7fb8ee0dd2ebab33d",
       "executable": false
     },
     "src/barrow/agent-door/native.ts": {
@@ -2039,7 +2039,7 @@
       "executable": false
     },
     "src/barrow/company-members.ts": {
-      "sha256": "13f2a9c5104dd50a8ce44000678518f1e6c02e4c8960230ca72228d8d0107888",
+      "sha256": "a15f5b7644831cdf29965237ee8de311c5f2e5e3e336b964ed0a6507152b612b",
       "executable": false
     },
     "src/barrow/company-policy.ts": {
@@ -2379,7 +2379,7 @@
       "executable": false
     },
     "src/barrow/legacy-erasure-journal.ts": {
-      "sha256": "159ee512e3a05be6f2496e56e00c8be8a6c8b8eaa339bb3dbc0c3595a9f2cfbd",
+      "sha256": "2ef153efe5261e5dbcf5a9ee344904fad00bf704e78bcd87304978853526cb6e",
       "executable": false
     },
     "src/barrow/line-sheets.ts": {
