@@ -127,7 +127,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "9ce0f482961b7df0eb50cca4d506a24d68b2ed58f59285ea8c674b93457e65c5",
+      "sha256": "1f889f08918383410479606ca024fdecb8b240a9707ed79ffbc8ee55acc156ff",
       "executable": false
     },
     "agent-surface.json": {
@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d3d38ea13016a57814b2e27596f1b259c369d8675d63d86e18cfd42598d2c1cc",
+      "sha256": "d04559de0cecb6e09054f6f0f2fb514c88b8afe1db1d91cc811114f6147a0a18",
       "executable": false
     },
     "DEMO.md": {
@@ -203,7 +203,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "c6ae46090fc77cffb434d02c8905dc79374d23e14c43debb8d467e797fb1e38a",
+      "sha256": "41f49a7d241461afea535ccbfdbd36d7b9f70c59c1940a362c85ea820e1adb14",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -212,6 +212,10 @@
     },
     "docs/CONNECTORS.md": {
       "sha256": "c10caad030c578a8c9fa5709bea74ecef3545b375c1f1e7abac536db6058634a",
+      "executable": false
+    },
+    "docs/contract/SHIP-006-rubric.md": {
+      "sha256": "7f1845f734b01f433e5b8a9999bb816992285816e7f8a98938125e1c05767c83",
       "executable": false
     },
     "docs/CUTOVER-DELTA.md": {
@@ -951,7 +955,7 @@
       "executable": false
     },
     "RULINGS.md": {
-      "sha256": "b8381f6668f7c2decaa4f241e39b365e857f53d3d63aeb6262cd483efed2ef1c",
+      "sha256": "c97ca86c2e5bbc5cea92a49800c71334c7ea8dd3f2bd2dbcb7ebe4cddf33afc2",
       "executable": false
     },
     "RUN-LOCALLY.md": {
@@ -971,7 +975,7 @@
       "executable": false
     },
     "scripts/contract-docs.mjs": {
-      "sha256": "05895826d62442530462b67dd5e5c67dd9a19d0426684fc50abb09b6bb0bf8f9",
+      "sha256": "ba5a1d3cd7824a7d11f14985f642f7a18f6985eb3c1a5f1332553eb402c0a784",
       "executable": false
     },
     "scripts/delivery/base/artifact.mjs": {
@@ -6359,7 +6363,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "7f014f5fbaf8c0af41da17ff919cfed72d5186f572354ad6ec6864d33cf63837",
+      "sha256": "d472430b617b3e5e4d5d765eaae083e633fe1ea5e7426efd9a1cc85c3b8b049f",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {

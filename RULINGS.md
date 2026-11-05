@@ -15,3 +15,11 @@ CT ruled SPLIT after the two FIX verdicts on INT-012, preserving candidate `06f1
 These are the gate’s unique probe IDs; its verdict did not assign separate numeric finding IDs. Source: sx-barrow-c-f20-gate-1, VERDICT.md, “Blocking findings”; the earlier sx-barrow-c-f18-gate-1 warehouse-query finding was already repaired in the pinned candidate and is not transferred. INT-021 retains INT-012’s human commercial authority and attributed audit boundaries. No acceptance obligation is deleted: only these three cases of configured quote exchange and exact commercial review move to INT-021. All other INT-012 sentences and the existing journeys remain. Counts become 70 done, 28 partial and 42 missing of 140.
 
 CT requires regeneration and relocking, then a fresh judge of the changed INT-012 text and the new INT-021 row. INT-021 has its own future round and two-FIX budget. This split authorizes no third INT-012 repair round and no broader scope.
+
+### RL-101 — Defer personal erasure of service snapshots to SHIP-006
+
+Date: 4 November 2026. Ruler: ct. Clauses: SHIP-005 and SHIP-006.
+
+After the SHIP-005 f34/f35 two-FIX loop, ct defers the service-snapshot erasure finding from `sx-barrow-c-f35` gate-1 blocking B into one new Core build requirement, SHIP-006. It covers purchaser acceptance names and every other personal snapshot field, owner erasure after retention, safe service export and case read after erasure, and retention-period refusal without change. The frozen rubric is `docs/contract/SHIP-006-rubric.md`.
+
+SHIP-005 keeps all existing acceptance, status, Gap and judgment text. Its two blocking A findings remain with SHIP-005; this split does not land `sx-barrow-c-f35` or authorize another repair loop. SHIP-006 starts missing with no evidence. Its outcomes are a build requirement, not a proof claim or a field-proof exclusion. Existing rulings remain in force. The supported hold pending independent Opus review of these exact additive clauses remains; this change releases no hold and submits no landing.
