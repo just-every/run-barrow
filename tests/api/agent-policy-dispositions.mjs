@@ -184,7 +184,18 @@ async function proveReadContinuation(f,c,draft) {
  const stale=await c.legacy(path,null,draft.token,pending.requestState);assert.equal(policyCode(stale),'approval_required');assert.equal(stale.body.result,undefined);
  const approved=c.pending(await c.legacy(path,null,draft.token));await c.decide(approved);
  assert.equal((await c.legacy(path,null,draft.token,approved.requestState)).body.id,args.id);
+ const stable=await c.witness();
+ await h.api('/agents/api/pause',{paused:true});
+ const paused=await c.legacy(path,null,draft.token,approved.requestState);assert.equal(policyCode(paused),'agents_paused');assert.equal(paused.body.id,undefined);
+ await h.api('/agents/api/pause',{paused:false});
+ assert.equal((await c.legacy(path,null,draft.token,approved.requestState)).body.id,args.id);
+ const blockedRevision=await c.setPolicy('blocked'),blocked=await c.legacy(path,null,draft.token,approved.requestState);
+ assert.equal(policyCode(blocked),'policy_blocked');assert.equal(blocked.body.revision,blockedRevision);assert.equal(blocked.body.id,undefined);
+ await c.setPolicy('approval');
+ const oldReceipt=await c.legacy(path,null,draft.token,approved.requestState);assert.equal(policyCode(oldReceipt),'approval_required');assert.equal(oldReceipt.body.id,undefined);
+ const fresh=c.pending(await c.legacy(path,null,draft.token));await c.decide(fresh);assert.equal((await c.legacy(path,null,draft.token,fresh.requestState)).body.id,args.id);
+ assert.deepEqual(await c.witness(),stable);
  await h.api('/api/barrow/agent-token/revoke',{});
- assert.equal((await c.legacy(path,null,draft.token,approved.requestState)).status,401);
+ assert.equal((await c.legacy(path,null,draft.token,fresh.requestState)).status,401);
  console.log('PROBE BASE-AGENT-007 recovery: changed tool or inputs, peer credential, foreign handle and origin, rejection, new policy and revocation withheld content through the compatibility read door');
 }
