@@ -131,7 +131,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "bfc5b67dda921a36fa0ab01a19fa9e0d4e16dbf7ae27ef0f0fb302b71d13e76a",
+      "sha256": "37e67d70112a12ab55f9d3c9ef1aa8e26a5b586d7026d9e0e879dadea597af3f",
       "executable": false
     },
     "AGENTS.md": {
@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d04559de0cecb6e09054f6f0f2fb514c88b8afe1db1d91cc811114f6147a0a18",
+      "sha256": "1fe68a7a5866e5ee9ae1504bcb4de063b5d6a96b5b3f8715f4854b043ae86b06",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "64e001bcc1e1fdbceb7d27b83bcb089ad26e6c73eab93ca8e8103b286f15881f",
+      "sha256": "c233a2b45d68b59b2b072aa30ed792789f9e07e073080c97b29649f1428a1d10",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1819,7 +1819,7 @@
       "executable": false
     },
     "src/barrow/agent-door/tools.ts": {
-      "sha256": "1376fd7136392b4c208b65af1c96b8a4153d66ca49106a292e002f3550aebfa1",
+      "sha256": "33b58cf69cc44a1bc69a2a4270a47e019f62ae8a1199e690baa87c3ed6941bab",
       "executable": false
     },
     "src/barrow/agent-door/trust.ts": {
@@ -5790,6 +5790,10 @@
       "sha256": "a57501fa2c3518def4dc2f827c84b8e73c718246d989236e8aab03641568dd42",
       "executable": false
     },
+    "tests/agent-door/cart-form-parity.mjs": {
+      "sha256": "9aeb1599d79a2dc253dba0e41ba7b74685a106555b172a2d70c8978a1e83c836",
+      "executable": false
+    },
     "tests/agent-door/custody.mjs": {
       "sha256": "f093651a2256b836ae4c995e1376bb481cde7ccaeae0a6f679ce3f8da722f361",
       "executable": false
@@ -5803,7 +5807,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "e7531475ed4b6dc326871253c97649b79cd12b9f0b459cb2af012465b414728a",
+      "sha256": "9474045a2e9aec9c5794eea54fe07796c81d2d872c6d0a950d3d99a0fb8ba347",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5847,7 +5851,7 @@
       "executable": false
     },
     "tests/api/cart-import.test.mjs": {
-      "sha256": "d4c521194d8fa155dcfa862da75bf0e29b99f901649f84a8a84167b2dbbc0370",
+      "sha256": "59e1fcfa6f21f767c009085c76d227f66aa01088c53bc65803d0fc90ca1403a9",
       "executable": false
     },
     "tests/api/case-packs.test.mjs": {

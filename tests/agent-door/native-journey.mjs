@@ -3,6 +3,7 @@ import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
+import {proveCartFormParity} from './cart-form-parity.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
@@ -87,4 +88,11 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+}
+
+// Compare the actual fixture under both autonomous and held Business policy.
+export async function afterStep({request,origin,cookie,tool,step,args,phase}) {
+ if(step.id!=='form')return
+ await proveCartFormParity({request,origin,cookie,tool,accountId:args.accountId,cart:args.cart})
+ console.log('NATIVE PASS cart-form parity under '+phase+' policy')
 }
