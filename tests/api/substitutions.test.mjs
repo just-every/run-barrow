@@ -314,6 +314,9 @@ test('approval-bound agent proposals preserve provenance and refusals, then reau
  const mailCount=h.mail.deliveries.length;assert.deepEqual(await f.execute(proposal),result);assert.deepEqual((await pier.api('/api/pier/state')).orders,source);assert.equal(h.mail.deliveries.length,mailCount);
  const grants=await h.api('/api/barrow/proposal-grants?accountId=cedar');assert.equal(grants.grants.find(row=>row.id===fresh.grant.id).spentContacts,3);
  history=await f.history();assert.equal(history.proposals.length,2);assert.equal(history.proposals.at(-1).state,'completed');assert.ok(history.proposals[0].managerApproval.by);assert.equal(history.proposals.at(-1).runId,'synthetic-barrow-104');
+ // Keep both the superseded and in-floor replacement in their historical shape.
+ await h.db.prepare("UPDATE bw_orders SET value_json=json_remove(value_json,'$.agentPreparation') WHERE id=?").bind(result.replacementId).run();
+ const historicalReplacements=[{...replacement,status:'superseded'},completed];
  const {archive,restore}=await import('./harness.mjs'),backup=await archive(h),target=await installation();t.after(()=>target.close());await restore(target,backup);
  const restored=await target.api(`/api/barrow/orders/${f.order.id}/agent-proposals`);assert.ok(restored.proposals.every(row=>row.state==='superseded'&&!row.grantActive));assert.equal(target.mail.deliveries.length,0);
  assert.deepEqual((await target.api('/api/barrow/orders/'+result.replacementId)).agentPreparation,proposal.preparedBy);
@@ -323,6 +326,16 @@ test('approval-bound agent proposals preserve provenance and refusals, then reau
  assert.equal((await h.api('/api/barrow/proposal-grants?accountId=cedar')).grants.length,0);assert.equal((await f.history()).proposals.length,0);
  const erasedRestore=await installation();t.after(()=>erasedRestore.close());await restore(erasedRestore,backup);
  assert.equal((await erasedRestore.api(`/api/barrow/orders/${f.order.id}/agent-proposals`)).proposals.length,0);assert.equal(erasedRestore.mail.deliveries.length,0);
+ for(const store of [h,erasedRestore]) {
+  const exported=await store.api('/api/barrow/export.json');
+  for(const original of historicalReplacements) {
+   const retained=await store.api('/api/barrow/orders/'+original.id);
+   assert.deepEqual(retained.agentPreparation,original.agentPreparation,'Erasure and later-journal restore must retain historical proposal preparation');
+   for(const field of ['preparedBy','submittedBy','approvedBy'])assert.equal(retained[field],original[field],'Preserve each genuine human decision identity');
+   assert.deepEqual(JSON.parse(exported.orders.find(row=>row.id===original.id).agentPreparation),original.agentPreparation);
+  }
+ }
+ console.log('PROBE BASE-AGENT-008 BLOCKING-A: owner erasure of historical replacements and older-archive restore -> exact agent and sponsor attribution retained in order history and exports beside unchanged human decisions');
 
 });
 
