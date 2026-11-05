@@ -1767,7 +1767,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "0ce9e3290e250f4ced26b1a4274221520c7cd3fc6cca3c83b6dd653226afcaaf",
+      "sha256": "b5530496dd23ee029dc43ebe904240497ee7d90b1def6283d583ff80e147af96",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {

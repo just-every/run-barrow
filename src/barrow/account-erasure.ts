@@ -1,4 +1,4 @@
-import { recordedPreparation } from './preparation-attribution'
+import { recordedPreparation, withPreparation } from './preparation-attribution'
 import { eraseAccountAgentArtifacts, checkAccountAgentArtifacts } from './agent-door/erasure.ts'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
@@ -188,11 +188,16 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
  }
  for(const row of r.bw_order_commissions.filter(row=>orders.some(order=>order.id===row.order_id)))add('commissions and confirmations','commission:'+row.order_id,'keep financial attribution','Order commission values and opaque attribution remain; an explicitly deleted post-floor order records its totals',[],orderFloors.get(row.order_id)??null)
  for(const row of r.bw_confirmations.filter(row=>orders.some(order=>order.id===row.order_id)))add('commissions and confirmations','confirmation:'+row.order_id+':'+row.number,'keep within floor; redact personal details afterward','Confirmation numbers, amounts and opaque attribution stay with the order',[],orderFloors.get(row.order_id)??null)
+ // Recover from trusted native records before this transaction deletes proposals.
+ // Journal replay uses the same path against the restored historical snapshot.
+ const preparedOrders=new Map((await withPreparation(env.DB,orders.map(row=>row.value))).map(order=>[order.id,order]))
  for(const row of orders) {
+  const prepared=preparedOrders.get(row.id)!
+  const recovered=prepared!==row.value
   const floor=orderFloors.get(row.id)??null,keep=retainedOrder(row.id),remove=op.deleteOrderIds.includes(row.id)
   if(remove&&keep)fail('RETENTION','A selected order is still inside its seven-year financial floor.')
-  const value=redactSnapshot(row.value,people,op.accountEmail,'',personal)
-  add('commercial history','order:'+row.id,keep?'keep unchanged':remove?'delete order; retain reconcilable receipt':'redact personal snapshot details',keep?'Seven calendar years from the latest recorded financial event':'Default after the floor is personal redaction; deletion needs a separate explicit choice',keep?[]:remove?[
+  const value=redactSnapshot(prepared,people,op.accountEmail,'',personal)
+  add('commercial history','order:'+row.id,keep?'keep unchanged':remove?'delete order; retain reconcilable receipt':'redact personal snapshot details',keep?'Seven calendar years from the latest recorded financial event':'Default after the floor is personal redaction; deletion needs a separate explicit choice',keep?(recovered?[sql("UPDATE bw_orders SET value_json=json_set(value_json,'$.agentPreparation',json(?)) WHERE id=?",JSON.stringify(prepared.agentPreparation),row.id)]:[]):remove?[
    ...['bw_order_documents','bw_terms_signatures','bw_order_commissions','bw_confirmations'].map(table=>sql(`DELETE FROM ${table} WHERE order_id=?`,row.id)),sql('DELETE FROM bw_orders WHERE id=?',row.id),
   ]:[sql('UPDATE bw_orders SET value_json=?,revision=? WHERE id=?',JSON.stringify(value),op.id,row.id),...r.bw_confirmations.filter(c=>c.order_id===row.id).map(c=>sql('UPDATE bw_confirmations SET value_json=? WHERE order_id=? AND number=?',JSON.stringify(redactSnapshot(JSON.parse(c.value_json),people,op.accountEmail,'',personal)),row.id,c.number))],floor)
   const signature=r.bw_terms_signatures.find(signature=>signature.order_id===row.id)
