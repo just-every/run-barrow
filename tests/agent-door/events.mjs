@@ -18,6 +18,67 @@ export async function retainedEvents(tool) {
  assert.fail('Retained event pagination did not terminate')
 }
 
+/** The same native commands used by the UI publish only retained record identity. */
+export async function proveNativeChanges({request,origin,cookie,tool}) {
+ const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
+ const native=async(path,body)=>{
+  const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
+  assert.ok(response.ok,'Native event fixture HTTP '+response.status)
+  return response.json()
+ }
+ const command=async(type,payload)=>(await native('/api/barrow/commands',{type,payload})).result
+ const person=(await native('/api/barrow/state')).actor
+ const account=await command('account.save',{id:'event-native',value:{name:'Native event market',email:person.email.replace('@','+events@'),pierCustomerId:'juniper',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:2400,minQty:1}]},actor:{id:'synthetic-barrow-1'}})
+ const draft=await command('order.prepare',{accountId:account.id,lines:[{sku:'LINEN',quantity:1}],reference:'Private native draft body',actor:{id:'synthetic-barrow-1'}})
+ let shared=await command('list.save',{accountId:account.id,name:'Private native list body',shared:true,lines:[{sku:'LINEN',quantity:'1'}]})
+ const first=await retainedEvents(tool)
+ for(const [type,uri,revision] of [
+  ['account.saved','barrow://accounts/'+account.id,account.revision],
+  ['catalog.changed','barrow://catalogs/'+account.id,account.revision],
+  ['order.prepared','barrow://orders/'+draft.id,draft.revision],
+  ['list.saved','barrow://lists/'+shared.id,shared.revision]
+ ]) {
+  const matches=first.events.filter(event=>event.type===type&&event.uri===uri)
+  assert.equal(matches.length,1)
+  assert.equal(matches[0].revision,revision)
+  assert.equal(matches[0].actor.kind,'person');assert.equal(matches[0].actor.person.id,person.id)
+  assert.notEqual(matches[0].actor.person.id,'synthetic-barrow-1')
+  assert.ok(Number.isFinite(Date.parse(matches[0].at)))
+  assert.equal(JSON.stringify(matches).includes('Private native'),false)
+ }
+ const submitted=await command('order.submit',{orderId:draft.id})
+ assert.equal(submitted.status,'submitted')
+ const after=await retainedEvents(tool),changed=after.events.filter(event=>event.uri==='barrow://orders/'+draft.id)
+ assert.deepEqual(changed.map(event=>event.type),['order.prepared','order.submitted'])
+ assert.equal(changed[1].revision,submitted.revision)
+ await command('order.submit',{orderId:draft.id})
+ assert.deepEqual((await retainedEvents(tool)).events,after.events,'A no-change retry produces no record-change event')
+ const cursor=changed[0].id
+ const resumed=content(await tool('barrow.events.list',{after:cursor,limit:200}))
+ assert.deepEqual(resumed,content(await tool('barrow.events.list',{after:cursor,limit:200})))
+ assert.ok(resumed.events.some(event=>event.id===changed[1].id))
+
+ // One guarded edit wins; the refused stale edit must not publish an event.
+ const edits=await Promise.all(['2','3'].map(quantity=>request(origin+'/api/barrow/commands',{method:'POST',headers,body:JSON.stringify({type:'list.save',payload:{listId:shared.id,revision:shared.revision,lines:[{sku:'LINEN',quantity}]}})})))
+ assert.deepEqual(edits.map(response=>response.status).sort(),[200,409])
+ for(const response of edits){const value=await response.json();if(response.ok)shared=value.result}
+ const edited=(await retainedEvents(tool)).events.filter(event=>event.uri==='barrow://lists/'+shared.id)
+ assert.equal(edited.length,2);assert.equal(edited.at(-1).revision,shared.revision)
+ const hidden=await command('list.save',{listId:shared.id,revision:shared.revision,shared:false})
+ const filtered=await retainedEvents(tool)
+ assert.equal(JSON.stringify(filtered).includes(shared.id),false,'Making the list private withholds all earlier event ids and URIs')
+ const privateList=await command('list.save',{accountId:account.id,name:'Never shared',shared:false,lines:[{sku:'LINEN',quantity:'1'}]})
+ assert.equal(JSON.stringify(await retainedEvents(tool)).includes(privateList.id),false)
+ shared=await command('list.save',{listId:shared.id,revision:hidden.revision,shared:true})
+ assert.ok((await retainedEvents(tool)).events.some(event=>event.uri==='barrow://lists/'+shared.id))
+ await command('list.delete',{listId:shared.id,revision:shared.revision})
+ const removed=await retainedEvents(tool)
+ assert.equal(JSON.stringify(removed).includes(shared.id),false,'A removed native resource reveals neither its retained ids nor a cursor')
+ assert.equal(JSON.stringify(removed).includes(privateList.id),false)
+ assert.ok(removed.events.some(event=>event.uri==='barrow://orders/'+draft.id))
+ console.log('PROBE BASE-AGENT-010 native changes: public account, draft, submission and list commands -> exact revisions, native person actors, stable replay, one concurrent edit, private and deleted records withheld')
+}
+
 /** The descriptor runs these real writes under both autonomous and held policy. */
 export async function proveEventStep({phase,step,result,args,tool,database}) {
  if(!['autonomous','held'].includes(phase)||!['prepare','proposal'].includes(step.id))return

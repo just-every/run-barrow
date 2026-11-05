@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
-import {proveEventStep,proveEventAdmission,proveDecisionEvents} from './events.mjs'
+import {proveEventStep,proveEventAdmission,proveDecisionEvents,proveNativeChanges} from './events.mjs'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
@@ -89,6 +89,7 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveDecisionEvents()
+ await proveNativeChanges({request,origin,cookie,tool})
  await proveEventAdmission({request,origin,cookie,tool,local})
  try {await proveCustodyErasure({request,origin,cookie,database,tool})}
  catch(error){console.error('Custody proof failed',error.code,error.operator,String(error.stack).split('\n').filter(line=>/^\s+at /.test(line)).join('\n'));throw error}

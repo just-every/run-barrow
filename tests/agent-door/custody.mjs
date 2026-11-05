@@ -38,8 +38,10 @@ export async function proveCustodyErasure({request,origin,cookie,database,tool:b
 
  const retained=await retainedEvents(businessTool)
  const subjectUris=['barrow://proposals/'+prepared.body.result.structuredContent.id,'barrow://orders/'+retainedDraft.body.result.structuredContent.id]
+ assert.equal(retained.events.filter(event=>subjectUris.includes(event.uri)).length,2,'Both real preparations must be visible before owner erasure')
+ subjectUris.push('barrow://accounts/'+accountId,'barrow://catalogs/'+accountId,'barrow://orders/'+order.id)
  const personalEvents=retained.events.filter(event=>subjectUris.includes(event.uri))
- assert.equal(personalEvents.length,2,'Both real preparations must be visible before owner erasure')
+ for(const uri of subjectUris)assert.ok(personalEvents.some(event=>event.uri===uri),'Native and agent changes must be visible before erasure')
  const {archive,restore,installation}=await import('../api/harness.mjs')
  const source={api:async(path,body)=>{
   const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})

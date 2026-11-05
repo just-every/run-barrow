@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "9423bea27d10fc4b4de52eae6ef09411ad27d9b6664bde83af126156348a6149",
+      "sha256": "bf64714999b1c9b81dc2c2066391080eb6acb8984c29b90af2866b80bc219b61",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "6d5014340f02f0ce33bdd5cfee6daec1bafaa8027570fadbcb8114e5031684cb",
+      "sha256": "4372bc649e678298385e14da3753b3b7f654bf380d740d9d788fa7b3eb0921f8",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1783,7 +1783,7 @@
       "executable": false
     },
     "src/barrow/accounts.ts": {
-      "sha256": "52f1feb0f2abc075e771621c0926a52d2de350bf7ae6fa829ee9f0924fb787cf",
+      "sha256": "8624e4288a61a787ee052fab59cc32fc86c9e8ad9e3b44819a2bf46b4b7c490f",
       "executable": false
     },
     "src/barrow/agent-door/business.ts": {
@@ -2383,7 +2383,7 @@
       "executable": false
     },
     "src/barrow/lists.ts": {
-      "sha256": "2692306ce060d51aa6bff9441bed9227fe7e11f518b3a1ab18756805a7558e83",
+      "sha256": "979b8050061096fcb1d6c76268c262f65150ee8a72c3aad174aabe7030c46fcb",
       "executable": false
     },
     "src/barrow/locations.ts": {
@@ -2407,7 +2407,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "9e1302689fccccf10c1cf0618c267a77f28fcb8e3a832fcfd1e79e3c40ce8d19",
+      "sha256": "4473daa499d0e87ba46d797bb8f59aa6889c0d53c17ae8950a0ad41f5c89ca2c",
       "executable": false
     },
     "src/barrow/payment-promises.ts": {
@@ -5791,11 +5791,11 @@
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
-      "sha256": "82c6fb89e0a9b2d6bc6ead4d5ebe0b16680de07c20895586b2d7ed47c4575522",
+      "sha256": "05155154fe0ed2b7aa0e1281c1c90ceb8542ad6f08a0ce3c55af61157fa3ab62",
       "executable": false
     },
     "tests/agent-door/events.mjs": {
-      "sha256": "6170e954fe0cb47f27edba1b78c3580653405213580c417c09ec33b378a24835",
+      "sha256": "512943eca1967b9d05ef7b383ee1b315f7837ae2f59d4e02122bebe05bdc3a47",
       "executable": false
     },
     "tests/agent-door/initialize-admin.mjs": {
@@ -5807,7 +5807,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "fdd25d7c75e6807837eda1a73cee1648e881c5bbaf4d9e342550757cf1561331",
+      "sha256": "fdbed87f3221f9ec7ef4e5e738d94302592ab63fa4ad5c4b4d4d3b4cf8f553c6",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {

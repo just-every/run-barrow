@@ -1,4 +1,5 @@
 import { campaignErasureStatements } from './campaign-custody'
+import { nativeRecordEvents } from './agent-door/native-events'
 import { deltaErasure } from './imports/delta-custody'
 import { cutoverErasure } from './imports/cutover-custody'
 import { prepareLegacyErasure } from './legacy-erasure-journal'
@@ -56,7 +57,7 @@ export async function prepareAccountSave(env:Bindings,actor:Actor,p:any) {
   const previousPrices=prior?JSON.parse(prior.value_json).prices:[]
   const priceEvents=value.prices.filter(price=>JSON.stringify(previousPrices.find((before:any)=>before.sku===price.sku))!==JSON.stringify(price)).map(price=>audit(env.DB,actor,`${id}:${price.sku}`,'price.approved',{...context,reason:p.reason!==undefined?reason:price.pricing?.override?.reason??`Supplier approved the agreed price and rules for ${price.sku}.`}))
   const removed=previousPrices.filter((price:any)=>!value.prices.some(current=>current.sku===price.sku)).map((price:any)=>audit(env.DB,actor,`${id}:${price.sku}`,'price.removed',{...context,reason:p.reason!==undefined?reason:`Supplier removed ${price.sku} from the agreed assortment.`}))
-  const statements=[guard,statement,changed(env.DB),audit(env.DB,actor,id,'account.saved',context),...priceEvents,...removed,...(reviews.length?[audit(env.DB,actor,id,duplicateReviewAction(reviews),{...context,reason:'Supplier reviewed possible duplicates as separate companies without merging identities.'})]:[])]
+  const statements=[guard,statement,changed(env.DB),audit(env.DB,actor,id,'account.saved',context),...priceEvents,...removed,...(reviews.length?[audit(env.DB,actor,id,duplicateReviewAction(reviews),{...context,reason:'Supplier reviewed possible duplicates as separate companies without merging identities.'})]:[]),...nativeRecordEvents(env.DB,actor,'account.saved','accounts',id,revision),...nativeRecordEvents(env.DB,actor,'catalog.changed','catalogs',id,revision)]
   return {record:{id,value,revision},statements}
 
 }

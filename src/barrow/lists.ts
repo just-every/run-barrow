@@ -1,4 +1,5 @@
 import { requireCompanyRight } from './company-policy'
+import { nativeRecordEvents } from './agent-door/native-events'
 // ORD-002: saved shopping lists. A list belongs to one trade account and keeps only desired SKUs, selling units and
 // quantities: never a price, stock figure or promise. A private list is seen by its creator alone; a shared list by
 // everyone who can act for the account today (its buyer and the supplier owner/admin) and by agents, who only read it.
@@ -61,7 +62,7 @@ async function insert(db: D1Database, actor: Actor, accountId: string, value: Om
  if ((count?.n ?? 0) >= maxLists) fail('LISTS', `Keep at most ${maxLists} lists per account; delete one first.`)
  await nameFree(db, accountId, actor.id, value.name)
  const id = crypto.randomUUID(), revision = crypto.randomUUID()
- await commit(db, actor, [db.prepare('INSERT INTO bw_lists(id,account_id,name,created_by,value_json,revision) VALUES(?,?,?,?,?,?)').bind(id, accountId, value.name, actor.id, JSON.stringify(value), revision)])
+ await commit(db, actor, [db.prepare('INSERT INTO bw_lists(id,account_id,name,created_by,value_json,revision) VALUES(?,?,?,?,?,?)').bind(id, accountId, value.name, actor.id, JSON.stringify(value), revision),...nativeRecordEvents(db,actor,'list.saved','lists',id,revision)])
  return { ...value, id, accountId, revision }
 }
 
@@ -81,7 +82,7 @@ export async function listCommand(db: D1Database, actor: Actor, type: string, p:
  if (p.revision !== list.revision) fail('CHANGED', 'This list changed. Refresh it before saving.')
  if (type === 'list.delete') {
   if (!mine) fail('FORBIDDEN', 'Only the person who created this list can delete it.', 403)
-  await commit(db, actor, [db.prepare('DELETE FROM bw_lists WHERE id=? AND revision=?').bind(list.id, list.revision), changed(db)])
+  await commit(db, actor, [db.prepare('DELETE FROM bw_lists WHERE id=? AND revision=?').bind(list.id, list.revision), changed(db),...nativeRecordEvents(db,actor,'list.deleted','lists',list.id,list.revision)])
   return { deleted: list.id }
  }
  if (type !== 'list.save') fail('COMMAND', 'Unknown list command.', 404)
@@ -90,6 +91,6 @@ export async function listCommand(db: D1Database, actor: Actor, type: string, p:
  const value = { name: p.name === undefined ? list.name : name(), shared, createdBy: list.createdBy, createdAt: list.createdAt, updatedBy: actor.id, updatedAt: at, ...(list.duplicatedFrom ? { duplicatedFrom: list.duplicatedFrom } : {}), lines: p.lines === undefined ? list.lines : lines(p.lines) }
  await nameFree(db, list.accountId, list.createdBy, value.name, list.id)
  const revision = crypto.randomUUID()
- await commit(db, actor, [db.prepare('UPDATE bw_lists SET name=?,value_json=?,revision=? WHERE id=? AND revision=?').bind(value.name, JSON.stringify(value), revision, list.id, list.revision), changed(db)])
+ await commit(db, actor, [db.prepare('UPDATE bw_lists SET name=?,value_json=?,revision=? WHERE id=? AND revision=?').bind(value.name, JSON.stringify(value), revision, list.id, list.revision), changed(db),...nativeRecordEvents(db,actor,'list.saved','lists',list.id,revision)])
  return { ...value, id: list.id, accountId: list.accountId, revision }
 }
