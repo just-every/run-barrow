@@ -1,4 +1,5 @@
-import { agentErasureStatements, checkAgentArtifacts, type AgentArtifactMap, type ToolContext } from '../../modules/agent-door/index.ts'
+import { agentErasureStatements, checkAgentArtifacts, ToolRefusal, type AgentArtifactMap, type ToolContext } from '../../modules/agent-door/index.ts'
+import { erasureRestoreResponse } from '../erasure-journal.ts'
 import type { Bindings } from '../../auth.server.ts'
 import { toD1Sql } from '@runeditrun/rer/modules/erasure/fence'
 
@@ -25,6 +26,10 @@ const mentions = (table: string, columns: string[]) => 'EXISTS(SELECT 1 FROM jso
   const column = table + '.' + name
   return "(subject.type='text' AND instr(CAST(" + column + " AS TEXT),CAST(subject.value AS TEXT))>0) OR (subject.type='object' AND (CAST(" + column + " AS TEXT)=(" + sourceId + ') OR ' + sourceMention(column) + '))'
 }).join(' OR ') + ')'
+// A native URI is structured identity. Free-text token boundaries deliberately
+// do not treat a slash inside arbitrary prose as a native subject selector.
+const recordEvents = "EXISTS(SELECT 1 FROM json_each(?1) subject WHERE subject.type='object' AND agent_door_events.uri IN (" +
+ ['accounts','catalogs','orders','lists','proposals'].map(kind=>"'barrow://"+kind+"/'||("+sourceId+")").join(',') + '))'
 const calls = mentions('agent_door_calls', ['key', 'outcome']), approvals = mentions('agent_door_approvals', ['saved', 'approvals', 'result']), reviews = mentions('agent_door_reviews', ['saved', 'marked_by']), audits = mentions('agent_door_audit', ['row', 'evidence'])
 const decisions = "SELECT decision_id FROM agent_door_calls WHERE " + calls + " UNION SELECT json_extract(saved,'$.decision_id') FROM agent_door_approvals WHERE " + approvals + " UNION SELECT json_extract(saved,'$.decision_id') FROM agent_door_reviews WHERE " + reviews + " UNION SELECT id FROM agent_door_audit WHERE " + audits + " UNION SELECT json_extract(context_json,'$.operationId') FROM bw_audit WHERE subject_id IN (SELECT json_extract(value,'$.sourceUserId') FROM json_each(?1))"
 const match = (sql: string) => ({ sql, params: ['values'] })
@@ -36,7 +41,7 @@ export const accountAgentArtifacts: AgentArtifactMap = { artifacts: [
   { table: 'agent_door_audit', columns: ['sequence','id','at','agent','classes','row','evidence'], match: match('id IN (' + decisions + ') OR json_extract(row,\'$.decision_id\') IN (' + decisions + ') OR json_extract(row,\'$.replay_of\') IN (' + decisions + ')') },
   { table: 'agent_door_approvals', columns: ['id','state','saved','approvals','result','version'], match: match('json_extract(saved,\'$.decision_id\') IN (' + decisions + ') OR ' + approvals) },
   { table: 'agent_door_reviews', columns: ['id','state','saved','marked_by','marked_at'], match: match('json_extract(saved,\'$.decision_id\') IN (' + decisions + ') OR ' + reviews) },
-  { table: 'agent_door_events', columns: ['sequence','id','uri','event'], match: match(mentions('agent_door_events', ['uri','event']) + ' OR json_extract(event,\'$.decision_id\') IN (' + decisions + ')') },
+  { table: 'agent_door_events', columns: ['sequence','id','uri','event'], match: match(recordEvents + ' OR ' + mentions('agent_door_events', ['uri','event']) + ' OR json_extract(event,\'$.decision_id\') IN (' + decisions + ')') },
   { table: 'agent_door_usage', columns: ['decision_id','at','seed','specialist','agent','classes'], match: match('decision_id IN (' + decisions + ')') },
   { table: 'agent_door_replay_aliases', columns: ['agent','alias','call_id','tombstone'], unrelated: 'Installation-private, value-free replay aliases; excluded from archives and exports.' },
 ] }
@@ -54,7 +59,9 @@ export async function eraseAccountAgentArtifacts(env:Bindings,subject:{accountId
  return (await agentErasureStatements({db:env.DB,map:accountAgentArtifacts,subject:{values:JSON.stringify([...new Set(values.filter(Boolean))].map(sourceUserId=>({sourceUserId})))},secret:env.SESSION_SECRET,
   tombstone:{erasure_id:operation.id,at:operation.at},checkpoint:async()=>[]})).map(toD1Sql)
 }
-export async function accountErasureFenced(env:Bindings,name:string,args:Record<string,unknown>,_ctx:ToolContext) {
+export async function accountErasureFenced(env:Bindings,name:string,args:Record<string,unknown>,_ctx:Pick<ToolContext,'person'|'agent'|'scopes'>) {
+ // Listing must reconcile the independent journal even when only policy events remain.
+ if(name==='barrow.events.list'&&await erasureRestoreResponse(env))throw new ToolRefusal('restore_fenced')
  const parent=async(table:string,key:unknown)=>typeof key==='string'?(await env.DB.prepare(`SELECT account_id FROM ${table} WHERE id=? LIMIT 1`).bind(key).first<{account_id:string}>())?.account_id:undefined
  let id=args.accountId
  if(name==='barrow.accounts.read'||name==='barrow.catalog.read')id=args.id

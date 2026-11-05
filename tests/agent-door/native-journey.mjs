@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
+import {proveEventStep,proveEventAdmission,proveDecisionEvents} from './events.mjs'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
+export const afterStep=proveEventStep
+
 export default async function({request,origin,cookie,tool,database}) {
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
@@ -85,6 +88,9 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal((await local('tools/list')).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
- await proveCustodyErasure({request,origin,cookie,database})
+ await proveDecisionEvents()
+ await proveEventAdmission({request,origin,cookie,tool,local})
+ try {await proveCustodyErasure({request,origin,cookie,database,tool})}
+ catch(error){console.error('Custody proof failed',error.code,error.operator,String(error.stack).split('\n').filter(line=>/^\s+at /.test(line)).join('\n'));throw error}
  await captureAgents({request,origin,cookie})
 }

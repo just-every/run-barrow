@@ -158,6 +158,17 @@
       "clauses": [
         "AGT-008"
       ]
+    },
+    {
+      "name": "barrow.events.list",
+      "scope": "events:read",
+      "readOnly": true,
+      "classes": [
+        "standard"
+      ],
+      "clauses": [
+        "BASE-AGENT-010"
+      ]
     }
   ],
   "resources": [],
@@ -474,6 +485,21 @@
           }
         }
       ]
+    },
+    {
+      "id": "events",
+      "tool": "barrow.events.list",
+      "args": {
+        "limit": 200
+      },
+      "expect": [
+        {
+          "class": "standard",
+          "facts": {
+            "measure": 1
+          }
+        }
+      ]
     }
   ],
   "verification": {
@@ -509,6 +535,7 @@
     "policy",
     "pause",
     "audit",
-    "idempotency"
+    "idempotency",
+    "events"
   ]
 }

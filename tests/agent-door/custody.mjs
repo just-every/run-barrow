@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
+import {retainedEvents} from './events.mjs'
 import {randomUUID} from 'node:crypto'
 
 /** Owner erasure through native HTTP, with SELECT-only retained-state witnesses. */
-export async function proveCustodyErasure({request,origin,cookie,database}) {
+export async function proveCustodyErasure({request,origin,cookie,database,tool:businessTool}) {
  const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
  async function native(path,body) {
   const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
@@ -35,6 +36,18 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
  const retainedDraft=await tool('barrow.orders.prepare',draftArgs,draftGrant.token)
  assert.equal(retainedDraft.status,200);assert.ok(!retainedDraft.body.result.isError)
 
+ const retained=await retainedEvents(businessTool)
+ const subjectUris=['barrow://proposals/'+prepared.body.result.structuredContent.id,'barrow://orders/'+retainedDraft.body.result.structuredContent.id]
+ const personalEvents=retained.events.filter(event=>subjectUris.includes(event.uri))
+ assert.equal(personalEvents.length,2,'Both real preparations must be visible before owner erasure')
+ const {archive,restore,installation}=await import('../api/harness.mjs')
+ const source={api:async(path,body)=>{
+  const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
+  assert.ok(response.ok,'Archive fixture HTTP '+response.status)
+  return response.json()
+ },request:path=>request(origin+path,{headers})}
+ const older=await archive(source)
+
  const usage=async()=>(await db.prepare('SELECT decision_id,at,seed,agent,classes FROM agent_door_usage WHERE agent=? ORDER BY decision_id').bind(agentId).all()).results
  const counts=await usage();assert.ok(counts.length>0)
  await command('retention.request',{accountId,requester:'Verified account representative',channel:'In-app owner review',verificationNote:'Owner verified identity and scope.',reason:'Owner reviewed erasure of unexecuted agent preparation.',held:false})
@@ -62,5 +75,34 @@ export async function proveCustodyErasure({request,origin,cookie,database}) {
  assert.ok([401,403].includes(replay.status));assert.equal(JSON.stringify(replay.body).includes(personal),false)
  const account=await native('/api/barrow/accounts/by-id/'+accountId)
  assert.match(account.value.email,/@erased\.invalid$/)
+ const erasedEvents=await retainedEvents(businessTool)
+ for(const event of personalEvents) {
+  assert.equal(JSON.stringify(erasedEvents).includes(event.id),false)
+  assert.equal(JSON.stringify(erasedEvents).includes(event.uri),false)
+  const row=await db.prepare('SELECT event FROM agent_door_events WHERE id=?').bind(event.id).first()
+  assert.ok(JSON.parse(row.event).tombstone)
+ }
+ const after=await archive(source)
+ const target=await installation()
+ try {
+  await restore(target,after,{journalSource:source})
+  const restoredGrant=await target.api('/api/barrow/agent-token',{})
+  async function restoredEvents(token) {
+   return target.api('/mcp',{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'barrow.events.list',arguments:{limit:200},_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}},{headers:{authorization:'Bearer '+token,'MCP-Protocol-Version':'2026-07-28','Mcp-Method':'tools/call','Mcp-Name':'barrow.events.list'}})
+  }
+  const restored=await restoredEvents(restoredGrant.token)
+  assert.ok(!restored.result.isError)
+  for(const event of personalEvents)assert.equal(JSON.stringify(restored).includes(event.uri),false)
+  assert.equal(JSON.stringify(restored).includes('Identifier-linked retained draft'),false)
+  const old=await target.request('/mcp',{method:'POST',headers:{authorization:'Bearer '+draftGrant.token,'MCP-Protocol-Version':'2026-07-28','Mcp-Method':'tools/call','Mcp-Name':'barrow.events.list'},body:{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'barrow.events.list',arguments:{}}}})
+  assert.equal(old.status,401);await old.body?.cancel()
+ } finally {await target.close()}
+ const stale=await installation()
+ try {
+  const refused=await restore(stale,older,{status:400,laterJournal:{sourceIdentity:after[0].sourceIdentity,epoch:after[0].epoch,journal:after[0].journal},journalSource:source})
+  assert.match(JSON.stringify(refused),/eras|redact|journal/i)
+  assert.equal((await stale.api('/api/barrow/state')).orders.length,0)
+ } finally {await stale.close()}
+ console.log('PROBE BASE-AGENT-010 erasure: owner erasure and public archive restore -> event content withheld, prior credential refused, later journal refuses older archive')
  console.log('NATIVE PASS owner erasure removes proposal content and personal retained results; preserves Base tombstones, exact commercial history and usage; revoked replay refuses')
 }
