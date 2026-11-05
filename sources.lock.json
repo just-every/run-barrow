@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "875ec197deabc5f7100047c8f4bafeddeef37c65ad17f8760f3d7b79b0da16f8",
+      "sha256": "5b5af91d83b550f352de0d82fc764c4aa749fb6b99536751d39a05072d73f169",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -671,7 +671,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "f0dd31494469d592aa1228a94692f6cc690af728bba3fbc2eddafb627b3f8328",
+      "sha256": "5049594619c03ff25b40cd967f0c43ba866efd2bc560e204f6bb2600bbdd189e",
       "executable": false
     },
     "packaging.json": {
@@ -679,7 +679,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "cbea837a1bd1877f0d88a1b0afb48dd3361eb7bff3a22822757d949c5583d650",
+      "sha256": "7cfff7c86d06d6e0ec75eea6a870fbea21e07bd8cbc4066a980515866abf9a9d",
       "executable": false
     },
     "public/apple-touch-icon.png": {
@@ -1786,6 +1786,10 @@
       "sha256": "52f1feb0f2abc075e771621c0926a52d2de350bf7ae6fa829ee9f0924fb787cf",
       "executable": false
     },
+    "src/barrow/agent-door/audit-export.ts": {
+      "sha256": "2954211a50d8980f7d0611ccf036ed616f2b8511b48a42ffc5dd67089e7768ab",
+      "executable": false
+    },
     "src/barrow/agent-door/business.ts": {
       "sha256": "5167f8f67af0a15369cde7fa3e142d40e009d76a31cca4412f99b115a3814ca4",
       "executable": false
@@ -1828,6 +1832,10 @@
     },
     "src/barrow/agent-door/trust.ts": {
       "sha256": "e0a1a5551980282679378fdbe629c5edb2d516b3ba397c280112fae38c4aa4ad",
+      "executable": false
+    },
+    "src/barrow/agent-door/undo.ts": {
+      "sha256": "e0338ef1bcba88a7b64ce6d0ff954d10a3695639d97504cb331e328f01312e61",
       "executable": false
     },
     "src/barrow/agent-proposal-model.ts": {
@@ -5795,11 +5803,11 @@
       "executable": false
     },
     "tests/agent-door/audit-targets.mjs": {
-      "sha256": "486f326e970c05cedb67074b35c3bb00b68b4b8bdb779b92750c087f64266907",
+      "sha256": "5617ca2a27542f4bc1324819e2c62457f6df8f8af20ebbc57e9c17e8ad6e23c7",
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
-      "sha256": "c3156686e68c256c7013307391db80445bf1484dacff3b99c5c8758ce7840433",
+      "sha256": "448cc5c9d3ea983b8e24792e8940588dd589016499d7464e34216fd652388e38",
       "executable": false
     },
     "tests/agent-door/initialize-admin.mjs": {
@@ -5819,7 +5827,7 @@
       "executable": false
     },
     "tests/agent-door/screens.mjs": {
-      "sha256": "9953822081042aac7bda09a9e1b3736d11fcb1cf000c641d9605f3ed300a2fb8",
+      "sha256": "5c9275675326c0dd32fceb45f0f918ba8ce03fea12201d4028aee7dddab83dd1",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {

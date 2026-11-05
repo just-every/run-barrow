@@ -1,3 +1,4 @@
+import {proveAuditManagement} from './audit-management.mjs'
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {installation,accountValue} from '../api/harness.mjs'
@@ -62,7 +63,7 @@ export async function proveRecordedTargets({request,origin,cookie,tool}) {
 export async function proveTargetPolicies() {
  const provider='https://rer-hosted-check.invalid',session='synthetic-barrow-1'
  console.log('NATIVE target policy fixture begins')
- const h=await installation({built:true,bindings:{PIER_ORIGIN:provider,PIER_SESSION:session},networkEdge:request=>new URL(request.url).origin===provider?pier.fetch(request,{fixture:{cookie:session}}):undefined})
+ const h=await installation({built:true,clock:'2026-11-04T12:00:00.000Z',bindings:{PIER_ORIGIN:provider,PIER_SESSION:session},networkEdge:request=>new URL(request.url).origin===provider?pier.fetch(request,{fixture:{cookie:session}}):undefined})
  try {
   console.log('NATIVE target policy installation ready')
   const value={...accountValue('juniper'),minimumCents:0,prices:[{sku:'LINEN',unitCents:2400,minQty:1},{sku:'HEMP',unitCents:2500,minQty:1}]}
@@ -76,7 +77,7 @@ export async function proveTargetPolicies() {
   const draftGrant=await h.api('/api/barrow/agent-token',{})
   const grant=await h.api('/api/barrow/proposal-grants',{accountId:account.id,costLimitCents:0,contactLimit:9,approvedSubstitutes:[{fromSku:'LINEN',skus:['HEMP']}],consent:true,reason:'Owner permits only native draft alternatives for target audit proof.'})
   async function call(name,args,token=name.startsWith('barrow.proposals.')?grant.token:draftGrant.token,extra={}) {
-   const response=await h.request('/mcp',{method:'POST',as:'',headers:{authorization:'Bearer '+token,'MCP-Protocol-Version':'2026-07-28','Mcp-Method':'tools/call','Mcp-Name':name},body:{jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args,...extra,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28'}}}})
+   const response=await h.request('/mcp',{method:'POST',as:'',headers:{authorization:'Bearer '+token,'MCP-Protocol-Version':'2026-07-28','Mcp-Method':'tools/call','Mcp-Name':name},body:{jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args,...extra,_meta:{'io.modelcontextprotocol/protocolVersion':'2026-07-28',...extra._meta}}}})
    return {status:response.status,...await response.json()}
   }
   const proposalArgs=()=>({grantId:grant.grant.id,orderId:original.id,model:'synthetic-barrow-2',runId:'synthetic-barrow-3',reportedCostCents:0,candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:2}]}],idempotency_key:randomUUID()})
@@ -163,6 +164,7 @@ export async function proveTargetPolicies() {
   assert.equal(revoked.status,401);assert.equal(revoked.result?.structuredContent,undefined)
   assert.equal(JSON.stringify(revoked).includes(nativeProposal.id),false)
   console.log('PROBE BASE-AGENT-009 refusals: missing, private, foreign and revoked native records -> no content and null audit target')
+  await proveAuditManagement({h,call,policy,account,token:draftGrant.token,summaryTargets})
   await captureAgents({request:(url,init)=>h.raw(new URL(url).pathname+new URL(url).search,init),origin:h.origin,cookie:h.cookie,summaryTargets,prefix:'targets-'})
  } catch(error) {console.error('Native target proof: '+error.message);throw error}
  finally {await h.close()}
