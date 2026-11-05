@@ -55,8 +55,12 @@ credentials and proposal fixtures through the owner's existing HTTP doors,
 discards completed MCP response bodies, and reconciles recovered results with
 native state, proposal history and paginated preparation audit. Concurrent
 requests must leave one draft or proposal revision and one native preparation
-audit effect. Native person edits supply the stale account and original-order
-revision cases. The additional retention journey below qualifies local
+audit effect. The proposal cases also withdraw an unexecuted basket through the
+owner door, then recover its next numbered revision under the same native
+proposal identity. Native person edits supply the stale account and original-order
+revision cases. After those edits, successful keys still return their first
+outcome and receipt, while changing their expected revision conflicts; newly
+keyed work against the old source revision is refused without preparation. The additional retention journey below qualifies local
 credential retention and expiry. Long-running job handles and status isolation,
 complete wider tool and role coverage, and custody across coordinated clients
 remain owed by BASE-AGENT-012.

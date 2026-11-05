@@ -57,7 +57,14 @@ export default async function({request,origin,cookie,tool,database}) {
  await pause(false)
  assert.deepEqual((await legacy('/api/barrow/commands',legacyArgs)).body.result,legacyDraft.body.result)
  assert.equal((await legacy('/api/barrow/commands',{...legacyArgs,reference:'Changed'})).body.code,'idempotency_conflict')
- const doorAudit=await(await request(origin+'/agents/api/audit',{headers})).json()
+ const doorAudit={rows:[],differs_from_policy:0};let auditCursor
+ do {
+  const page=await(await request(origin+'/agents/api/audit'+(auditCursor?'?after='+encodeURIComponent(auditCursor):''),{headers})).json()
+  assert.ok(Array.isArray(page.rows),'Every native audit page is readable')
+  doorAudit.rows.push(...page.rows);doorAudit.differs_from_policy+=page.differs_from_policy
+  if(!page.cursor||page.cursor===auditCursor)break
+  auditCursor=page.cursor
+ } while(true)
  assert.equal(doorAudit.differs_from_policy,0)
  assert.ok(doorAudit.rows.some(row=>row.agent.name==='Barrow scoped agent'&&row.code==='agents_paused'))
  console.log('NATIVE PASS legacy HTTP enters shared policy, Pause, audit and once-only replay; missing key and changed arguments refuse')
