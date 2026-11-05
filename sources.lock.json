@@ -1763,7 +1763,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "70597e603fe5494c5a1f8d173e1c3ab5595748e1011836ec786b1a2d1950c2fb",
+      "sha256": "db5bcb03d46dbbc87fc33717aebe63565dc83e85c219f09f23f42e4cb6965325",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -6059,7 +6059,7 @@
       "executable": false
     },
     "tests/api/retention.test.mjs": {
-      "sha256": "e82c8760f117294e23b145fabef91cbcc7d9a577768500b9ed6b92c386b18b65",
+      "sha256": "46b0c2b3ce0ef144e46b2c27649b1343c6962cb5bf15bcad0add3b0e0d016b54",
       "executable": false
     },
     "tests/api/return-claims-fixture.mjs": {

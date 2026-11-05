@@ -72,6 +72,9 @@ function replaceText(value:string,people:ErasureOperation['people'],accountEmail
  return result
 }
 function redactSnapshot(value:any,people:ErasureOperation['people'],email:string,key='',personal:PersonalValue[]=[]):any {
+ // Native agent attribution is a display string, unlike an opaque human ID.
+ // Redact its exact personal values in both owner erasure and journal replay.
+ if(typeof value==='string'&&/By$/.test(key))return people.some(person=>person.id===value)?value:replaceText(value,people,email,personal)
  if(/^(id|sku|reference|sha256|currency|unit|pierReference|customerName|name)$|Id$|By$|At$/.test(key))return value
  if(typeof value==='string')return replaceText(value,people,email,personal)
  if(Array.isArray(value))return value.map(item=>redactSnapshot(item,people,email,key,personal))
