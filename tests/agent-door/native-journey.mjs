@@ -6,7 +6,13 @@ import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
-export const afterStep=proveEventStep
+export async function afterStep(context) {
+ await proveEventStep(context)
+ if(['autonomous','held'].includes(context.phase)&&context.step.id==='events') {
+  try {await proveNativeChanges(context)}
+  catch(error){console.error('Native event proof failed',error.code,error.operator,String(error.stack).split('\n').filter(line=>/^\s+at /.test(line)).join('\n'));throw error}
+ }
+}
 
 export default async function({request,origin,cookie,tool,database}) {
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
@@ -89,7 +95,6 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveDecisionEvents()
- await proveNativeChanges({request,origin,cookie,tool})
  await proveEventAdmission({request,origin,cookie,tool,local})
  try {await proveCustodyErasure({request,origin,cookie,database,tool})}
  catch(error){console.error('Custody proof failed',error.code,error.operator,String(error.stack).split('\n').filter(line=>/^\s+at /.test(line)).join('\n'));throw error}

@@ -1,4 +1,5 @@
 import type { Bindings } from '../auth.server'
+import { nativeRecordEvents } from './agent-door/native-events'
 import { account } from './accounts'
 import { audit, changed, commit } from './access'
 import { fail, requirePerson, requireSupplier, type Actor } from './model'
@@ -16,8 +17,8 @@ export async function readProposal(env: Bindings, actor: Actor, id: string, numb
 export function proposalGuard(env: Bindings, proposal: AgentProposal) {
  return env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_agent_proposals WHERE id=? AND number=? AND revision=?) THEN 1 ELSE 0 END').bind(proposal.id,proposal.number,proposal.revision)
 }
-export function proposalUpdate(env: Bindings, before: AgentProposal, after: AgentProposal) {
- return [env.DB.prepare('UPDATE bw_agent_proposals SET state=?,value_json=?,revision=? WHERE id=? AND number=? AND revision=? AND state=?').bind(after.state,JSON.stringify(after),after.revision,after.id,after.number,before.revision,before.state),changed(env.DB)]
+export function proposalUpdate(env: Bindings, actor:Actor, before: AgentProposal, after: AgentProposal) {
+ return [env.DB.prepare('UPDATE bw_agent_proposals SET state=?,value_json=?,revision=? WHERE id=? AND number=? AND revision=? AND state=?').bind(after.state,JSON.stringify(after),after.revision,after.id,after.number,before.revision,before.state),changed(env.DB),...nativeRecordEvents(env.DB,actor,`proposal.${after.state}`,'proposals',after.id,after.revision)]
 }
 export function proposalManager(actor: Actor, totalCents?: number, differenceCents=0) {
  requirePerson(actor);requireSupplier(actor)

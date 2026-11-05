@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "bf64714999b1c9b81dc2c2066391080eb6acb8984c29b90af2866b80bc219b61",
+      "sha256": "3229677908290bac9c02d0de9db58130d12f599de6afeb905aaa21a9189f710f",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "4372bc649e678298385e14da3753b3b7f654bf380d740d9d788fa7b3eb0921f8",
+      "sha256": "cdef71baa4cb62fedac1555a11aff3928a1743e61952046c1dc1edffce94dc5e",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1806,6 +1806,10 @@
       "sha256": "2e8bb7777ed5bbbeb8b7daa7e0c3661648af29a88ec6abb6d509938098da3954",
       "executable": false
     },
+    "src/barrow/agent-door/native-events.ts": {
+      "sha256": "0ea8989214124b3ef02fa103911ddab3c1e4878df50f9d9e398ae67461a9a94b",
+      "executable": false
+    },
     "src/barrow/agent-door/native.ts": {
       "sha256": "df3007e8b1e43d400413853d01b6879902e8b94b918a7f973a91aea1d5833793",
       "executable": false
@@ -1831,7 +1835,7 @@
       "executable": false
     },
     "src/barrow/agent-proposals.ts": {
-      "sha256": "6dcade52ccc0d3fb411ffbf9023a67c26c2075df81d3ab07849fcaf468cf2255",
+      "sha256": "49ef6b1997a77b4264089aae1f5a2fc73dde50d6214d7b2033e368a01deb5a93",
       "executable": false
     },
     "src/barrow/api.ts": {
@@ -2483,7 +2487,7 @@
       "executable": false
     },
     "src/barrow/proposal-store.ts": {
-      "sha256": "eae6b28c56fa9866fa9b626d3c467dc7c0a9d4a97338330aa390104215a91616",
+      "sha256": "f9625150887bd95bb214d13f6f53ca986523f2b4c6622ca2c1bc2a9f97de5602",
       "executable": false
     },
     "src/barrow/purchase.ts": {
@@ -2663,7 +2667,7 @@
       "executable": false
     },
     "src/barrow/substitutions.ts": {
-      "sha256": "e41c836e2139e2d7ce1427d10880b61bcdf4e24f9be8f77a3708aa68a4a7ab7c",
+      "sha256": "414e0a7a143b7c77d0769fa5dc16ceefd78e47947bfd8d19827667972031a82f",
       "executable": false
     },
     "src/barrow/timeline.ts": {
@@ -5795,7 +5799,7 @@
       "executable": false
     },
     "tests/agent-door/events.mjs": {
-      "sha256": "512943eca1967b9d05ef7b383ee1b315f7837ae2f59d4e02122bebe05bdc3a47",
+      "sha256": "b53f6ad69225d10701f5894998d211b8ea10712ca7f13456680df5bcb28f3872",
       "executable": false
     },
     "tests/agent-door/initialize-admin.mjs": {
@@ -5807,7 +5811,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "fdbed87f3221f9ec7ef4e5e738d94302592ab63fa4ad5c4b4d4d3b4cf8f553c6",
+      "sha256": "2ab22302da61da1d8b02a6b5147c694946ebc19a5aa0315f279948354326b79e",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {

@@ -1,3 +1,4 @@
+import { nativeRecordEvents } from './agent-door/native-events'
 import {proposalReplacementBasis} from './proposal-approval'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
@@ -72,7 +73,7 @@ export async function agentProposalCommand(env: Bindings, actor: Actor, type: st
    const at=(await now()).toISOString(),reason=text(p.reason,'Manager approval reason',240)
    const updated:AgentProposal={...proposal,state:'offered',selected:candidate,managerApproval:{by:actor.id,version:actor.version,staffRevision:actor.staff?.revision,at,reason,candidate},executionKey:`proposal-${proposal.id}-${proposal.number}`,offerNumber:(order.substitutions?.at(-1)?.number??0)+1}
    await substitutionCommand(env,actor,'substitution.propose',{orderId:order.id,orderRevision:order.revision,lines:basket.lines,delivery:basket.delivery,reason},
-    {proposal:updated,statements:[...grantSpendStatements(env.DB,grant,0,3),...proposalUpdate(env,proposal,updated)]})
+    {proposal:updated,statements:[...grantSpendStatements(env.DB,grant,0,3),...proposalUpdate(env,actor,proposal,updated)]})
    return updated
   }
   if (p.idempotencyKey!==proposal.executionKey||!proposal.executionKey) fail('PROPOSAL_KEY','Use the execution key belonging to the exact approved revision.')
@@ -96,14 +97,14 @@ export async function agentProposalCommand(env: Bindings, actor: Actor, type: st
   if (proposal.state==='offered') {
    if ((await proposalFingerprint(env,actor,order)).fingerprint!==proposal.source.fingerprint) fail('PROPOSAL_STALE','The reviewed inventory, price, units or delivery source changed.')
    const updated:AgentProposal={...proposal,state:'executing',replacementId:offer.replacementId}
-   await commit(env.DB,actor,[...grantSpendStatements(env.DB,grant,0,0),...proposalUpdate(env,proposal,updated),audit(env.DB,actor,proposal.id,'proposal.execution-started',{accountId:proposal.accountId,orderId:proposal.orderId,revision:proposal.revision,source:'proposal.execute',reason:'Exact manager and buyer approvals bound to one proposal execution key; native release/reservation identities are retained.'})])
+   await commit(env.DB,actor,[...grantSpendStatements(env.DB,grant,0,0),...proposalUpdate(env,actor,proposal,updated),audit(env.DB,actor,proposal.id,'proposal.execution-started',{accountId:proposal.accountId,orderId:proposal.orderId,revision:proposal.revision,source:'proposal.execute',reason:'Exact manager and buyer approvals bound to one proposal execution key; native release/reservation identities are retained.'})])
   } else {
    const selected=await account(env.DB,actor,proposal.accountId)
    if (selected.revision!==proposal.source.accountRevision) fail('PROPOSAL_STALE','The account changed during recovery. Preserve the pending handoff for owner review.')
   }
   const replacement=await substitutionCommand(env,actor,'substitution.execute',{orderId:order.id,number:offer.number},{proposal}) as Order
   const current=await readProposal(env,actor,proposal.id,proposal.number),updated:AgentProposal={...current,state:'completed',replacementId:replacement.id,completedAt:(await now()).toISOString()}
-  await commit(env.DB,actor,[...proposalUpdate(env,current,updated),audit(env.DB,actor,proposal.id,'proposal.completed',{accountId:proposal.accountId,orderId:proposal.orderId,revision:proposal.revision,source:'proposal.execute',reason:`Acknowledged replacement ${replacement.id}; one original release and one replacement reservation, without a second earning or contact on replay.`})])
+  await commit(env.DB,actor,[...proposalUpdate(env,actor,current,updated),audit(env.DB,actor,proposal.id,'proposal.completed',{accountId:proposal.accountId,orderId:proposal.orderId,revision:proposal.revision,source:'proposal.execute',reason:`Acknowledged replacement ${replacement.id}; one original release and one replacement reservation, without a second earning or contact on replay.`})])
   return updated
  } catch (error) {
   if (error instanceof Problem) await proposalRefusal(env,actor,proposal,error.code)
@@ -121,12 +122,12 @@ async function withdraw(env: Bindings, actor: Actor, proposal: AgentProposal, re
    const replacement=await readOrder(env.DB,actor,offer.replacementId)
    if (replacement.approvedAt||replacement.pierOrderId||!['submitted','awaiting-company-approval'].includes(replacement.status)) fail('PROPOSAL_PENDING','The replacement already started; preserve and recover its handoff.')
    const revision=crypto.randomUUID()
-   statements.push(env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replacement,status:'superseded',revision}),revision,replacement.id,replacement.revision),changed(env.DB))
+   statements.push(env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify({...replacement,status:'superseded',revision}),revision,replacement.id,replacement.revision),changed(env.DB),...nativeRecordEvents(env.DB,actor,'order.superseded','orders',replacement.id,revision))
   }
   const revision=crypto.randomUUID(),updated={...order,revision,substitutions:order.substitutions!.map(item=>item.number===offer.number?{...item,status:'withdrawn',withdrawnBy:actor.id,withdrawnAt:new Date().toISOString(),withdrawalReason:reason}:item)}
-  statements.push(env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(updated),revision,order.id,order.revision),changed(env.DB))
+  statements.push(env.DB.prepare('UPDATE bw_orders SET value_json=?,revision=? WHERE id=? AND revision=?').bind(JSON.stringify(updated),revision,order.id,order.revision),changed(env.DB),...nativeRecordEvents(env.DB,actor,'substitution.withdrawn','orders',order.id,revision))
  }
  const updated:AgentProposal={...proposal,state:'superseded'}
- await commit(env.DB,actor,[...statements,...proposalUpdate(env,proposal,updated),audit(env.DB,actor,proposal.id,'proposal.withdrawn',{accountId:proposal.accountId,orderId:proposal.orderId,revision:proposal.revision,source:'proposal.withdraw',reason})])
+ await commit(env.DB,actor,[...statements,...proposalUpdate(env,actor,proposal,updated),audit(env.DB,actor,proposal.id,'proposal.withdrawn',{accountId:proposal.accountId,orderId:proposal.orderId,revision:proposal.revision,source:'proposal.withdraw',reason})])
  return updated
 }

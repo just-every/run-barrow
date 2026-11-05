@@ -19,7 +19,7 @@ export async function retainedEvents(tool) {
 }
 
 /** The same native commands used by the UI publish only retained record identity. */
-export async function proveNativeChanges({request,origin,cookie,tool}) {
+export async function proveNativeChanges({request,origin,cookie,tool,phase}) {
  const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
  const native=async(path,body)=>{
   const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
@@ -27,8 +27,9 @@ export async function proveNativeChanges({request,origin,cookie,tool}) {
   return response.json()
  }
  const command=async(type,payload)=>(await native('/api/barrow/commands',{type,payload})).result
- const person=(await native('/api/barrow/state')).actor
- const account=await command('account.save',{id:'event-native',value:{name:'Native event market',email:person.email.replace('@','+events@'),pierCustomerId:'juniper',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:2400,minQty:1}]},actor:{id:'synthetic-barrow-1'}})
+ const state=await native('/api/barrow/state'),person=state.actor
+ const duplicateReviews=state.accounts.filter(row=>row.value.pierCustomerId==='juniper').map(({id,revision})=>({id,revision}))
+ const account=await command('account.save',{id:'zz-event-native-'+phase,duplicateReviews,value:{name:'Native event market '+phase,email:person.email.replace('@','+events-'+phase+'@'),pierCustomerId:'juniper',termsDays:30,minimumCents:0,currency:'USD',prices:[{sku:'LINEN',unitCents:2400,minQty:1}]},actor:{id:'synthetic-barrow-1'}})
  const draft=await command('order.prepare',{accountId:account.id,lines:[{sku:'LINEN',quantity:1}],reference:'Private native draft body',actor:{id:'synthetic-barrow-1'}})
  let shared=await command('list.save',{accountId:account.id,name:'Private native list body',shared:true,lines:[{sku:'LINEN',quantity:'1'}]})
  const first=await retainedEvents(tool)
@@ -76,7 +77,7 @@ export async function proveNativeChanges({request,origin,cookie,tool}) {
  assert.equal(JSON.stringify(removed).includes(shared.id),false,'A removed native resource reveals neither its retained ids nor a cursor')
  assert.equal(JSON.stringify(removed).includes(privateList.id),false)
  assert.ok(removed.events.some(event=>event.uri==='barrow://orders/'+draft.id))
- console.log('PROBE BASE-AGENT-010 native changes: public account, draft, submission and list commands -> exact revisions, native person actors, stable replay, one concurrent edit, private and deleted records withheld')
+ console.log('PROBE BASE-AGENT-010 '+phase+' native changes: public account, draft, submission and list commands -> exact revisions, native person actors, stable replay, one concurrent edit, private and deleted records withheld')
 }
 
 /** The descriptor runs these real writes under both autonomous and held policy. */
@@ -130,6 +131,12 @@ export async function proveEventAdmission({request,origin,cookie,tool,local}) {
  const uri='barrow://proposals/'+prepared.result.structuredContent.id
  const visible=await retainedEvents(tool),event=visible.events.find(row=>row.uri===uri)
  assert.ok(event)
+ const proposal=prepared.result.structuredContent
+ await native('/api/barrow/commands',{type:'proposal.withdraw',payload:{id:proposal.id,number:proposal.number,revision:proposal.revision,reason:'Owner withdraws the unexecuted event fixture.'}})
+ const withdrawn=(await retainedEvents(tool)).events.find(row=>row.uri===uri&&row.type==='proposal.superseded')
+ assert.ok(withdrawn,'A native person decision retains the same proposal URI')
+ assert.equal(withdrawn.actor.kind,'person');assert.equal(withdrawn.actor.person.id,state.actor.id)
+ assert.equal(withdrawn.revision,proposal.revision)
  // A draft grant already has events:read, but no proposal read authority.
  const draft=await native('/api/barrow/agent-token',{})
  const draftRead=await local('tools/call',{name:'barrow.events.list',arguments:{after:visible.events[0].id,limit:200}},draft.token)
@@ -152,7 +159,7 @@ export async function proveEventAdmission({request,origin,cookie,tool,local}) {
  await native('/agents/api/pause',{paused:false})
  await native('/api/barrow/agent-token/revoke',{})
  assert.equal((await local('tools/call',{name:'barrow.events.list',arguments:{}},draft.token)).status,401)
- console.log('PROBE BASE-AGENT-010 admission: public grants and MCP -> missing scope, unreadable proposal, withdrawn grant, Pause and revocation disclose no event or hidden cursor')
+ console.log('PROBE BASE-AGENT-010 admission: public grants, proposal withdrawal and MCP -> native decision event; missing scope, unreadable proposal, withdrawn grant, Pause and revocation disclose no event or hidden cursor')
 }
 
 /** Exercise existing person decision events through a fresh standalone door. */
