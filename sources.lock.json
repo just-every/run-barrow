@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d04559de0cecb6e09054f6f0f2fb514c88b8afe1db1d91cc811114f6147a0a18",
+      "sha256": "7f3ce772ca37ad3003d6ed23256f5d96b33a38cab524c4fff4e3f3f2965ab836",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "64e001bcc1e1fdbceb7d27b83bcb089ad26e6c73eab93ca8e8103b286f15881f",
+      "sha256": "7c837c203110fa0bea284e46f578c03523ccebf4184fba05ed1f51007a83d4a9",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1799,7 +1799,7 @@
       "executable": false
     },
     "src/barrow/agent-door/http.ts": {
-      "sha256": "e4b3e017af9a997a1116fdc214dd52fbcb151eb5dd69938ada5e4ed23c378eef",
+      "sha256": "9cd22c38b8061177e0d4e69a344014ba5fe0512acf81651b92924ca40c25334a",
       "executable": false
     },
     "src/barrow/agent-door/index.ts": {
@@ -5818,6 +5818,10 @@
       "sha256": "8ac30a8ef8d6db60df0cf4d3dbd4f15f050f0176178bd0892772c7ff06d0189e",
       "executable": false
     },
+    "tests/api/agent-policy-dispositions.mjs": {
+      "sha256": "409c18b1a53fc7a3c607f247393431070b92821fbdc5c3cc557e7196cb600ec6",
+      "executable": false
+    },
     "tests/api/application-fixture.mjs": {
       "sha256": "b847cd479f370ba8ba85e4694367d15b7ea5ff6e1a5566c3ea7da6f621e98a6f",
       "executable": false
@@ -5939,7 +5943,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "6fc9fa8f7bf6b2d2e85d8ab66f933462c65d4c140fde2200babdf13a9a29c517",
+      "sha256": "3f186e192946c76fe057580dbcfa6dd8809fd0599b1bf1615da1599ef8834a10",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
@@ -6023,7 +6027,7 @@
       "executable": false
     },
     "tests/api/proposal-fixture.mjs": {
-      "sha256": "27547d5014ceda630a51ca73acd09f61a759f6e79f5d11b362f978b74ebb7de7",
+      "sha256": "a3555867809ae65e17577d7dfea6671e885690726d8f4a59085ef73764ba5dce",
       "executable": false
     },
     "tests/api/purchase.test.mjs": {
@@ -6127,7 +6131,7 @@
       "executable": false
     },
     "tests/api/substitutions.test.mjs": {
-      "sha256": "bdde6a37b2748666671aaced9de29f03848992e2531aaefb67d656e07766e5fa",
+      "sha256": "b4383696faf95420f848ab3afb23299f48a89834857754dff3ffd8b9321bb9c5",
       "executable": false
     },
     "tests/api/timeline.test.mjs": {
@@ -6187,7 +6191,7 @@
       "executable": false
     },
     "tests/journeys/agent-proposals.test.mjs": {
-      "sha256": "39bb66beb67579b045050e852d35a79ede066b76610bede5d1432de0cf5850b6",
+      "sha256": "b23a5bbe1a9b1c117ccfe27f45a0a5378d988e23b0768aae570847808dcca584",
       "executable": false
     },
     "tests/journeys/application-routing.test.mjs": {
@@ -6363,7 +6367,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "d472430b617b3e5e4d5d765eaae083e633fe1ea5e7426efd9a1cc85c3b8b049f",
+      "sha256": "dd464578541a108cb1fe5e35cecb2fae95985039d3a9a9f9a56fa1bb7f0b6e0c",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
