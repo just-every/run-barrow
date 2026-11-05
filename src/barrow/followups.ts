@@ -1,3 +1,4 @@
+import {qboExceptionSources} from './accounting/reconciliation'
 import { trackingExceptionSources } from './shipment-tracking'
 import { financialGuard } from './credit-ledger'
 import { orderExceptionSources } from './order-followthrough'
@@ -63,6 +64,7 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
   if(!actor.staff||actor.staff.role==='finance')await reconcilePaymentPromises(env,actor)
   const financial=await financialGuard(env.DB)
   const [sources, existing] = await Promise.all([followupSources(env.DB, new Date(at)), allTasks(env.DB)])
+  const qboSources=await qboExceptionSources(env);sources.candidates.push(...qboSources.candidates);for(const [id,resolution] of qboSources.resolved)sources.resolved.set(id,resolution)
   const trackingSources=await trackingExceptionSources(env)
   sources.candidates.push(...trackingSources.candidates)
   for(const [id,resolution] of trackingSources.resolved)sources.resolved.set(id,resolution)

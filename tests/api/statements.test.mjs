@@ -1,3 +1,4 @@
+import {qboAccounting} from './qbo-accounting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation, stock, accountValue } from './harness.mjs';
@@ -82,4 +83,5 @@ test('PAY-007: a dated statement of invoices with opening and closing balances b
   assert.equal(held.status, 200); assert.equal((await held.json()).sections[0].closingCents, usd.closingCents);
   assert.equal((await read('.pdf')).status, 200);
  }
+ await qboAccounting(t);
 });
