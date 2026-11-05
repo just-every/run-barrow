@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "4e44601fcd946b3f0c1914aae1dd1297a1bb9b2e41d397e47332a412bc5a3e77",
+      "sha256": "e6c15c7bf67ca08595f39713bf5092aaf8c2cb2a404173b6ff8785cb40147018",
       "executable": false
     },
     "DEMO.md": {
@@ -5811,7 +5811,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "a155be00016fab0a35971ba49b68188e2e5ab7219afe43690fdfcf4acab10b54",
+      "sha256": "5726245768b2e5d2db017e1e6af34bbeb8b5350dd8c03d5798f59c563a894304",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
