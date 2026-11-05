@@ -107,6 +107,7 @@
         "node scripts/edition-authoring/cli.mjs check",
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
         "BARROW_TEST_SHARD=1/16 pnpm run test:api",
+        "BARROW_TEST_SHARD=11/16 pnpm run test:api",
         "BARROW_TEST_SHARD=7/16 pnpm run test:api",
         "BARROW_TEST_SHARD=14/16 pnpm run test:api",
         "pnpm exec rer build --site",
@@ -150,7 +151,6 @@
         "node scripts/edition-authoring/cli.mjs check",
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
         "BARROW_TEST_SHARD=10/16 pnpm run test:api",
-        "BARROW_TEST_SHARD=11/16 pnpm run test:api",
         "pnpm exec rer build --site",
         "node --test tests/site.test.mjs"
       ]
