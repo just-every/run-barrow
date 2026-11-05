@@ -3,9 +3,12 @@ import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
+import {proveRecordedTargets,proveTargetPolicies} from './audit-targets.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
+ await proveRecordedTargets({request,origin,cookie})
+ await proveTargetPolicies()
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
  const stale=await tool('barrow.orders.prepare',{...args,expected_revision:randomUUID()})
