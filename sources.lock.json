@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "d04559de0cecb6e09054f6f0f2fb514c88b8afe1db1d91cc811114f6147a0a18",
+      "sha256": "bd2a853ce9b2e4315026da3d7c7318b4c4edb29408e7666a49fc78579c591a28",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "64e001bcc1e1fdbceb7d27b83bcb089ad26e6c73eab93ca8e8103b286f15881f",
+      "sha256": "cd451566c4b8c464022ed5a55942b0851b70801919e471c0a85b6ab4725d69af",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -5803,7 +5803,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "e7531475ed4b6dc326871253c97649b79cd12b9f0b459cb2af012465b414728a",
+      "sha256": "0e55022f4ea7b47c7229d39054883e53d105cef5c09666a8db7b6d71769128b2",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5811,11 +5811,15 @@
       "executable": false
     },
     "tests/agent-door/screens.mjs": {
-      "sha256": "a852cdceeca9867f8d987e78c99c8ce1bc379734d762384280658c9fe38b784e",
+      "sha256": "91d1ba530981576b8e718a1b9e97f177dc30c1a22872d98f723045e2a1d13817",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
       "sha256": "8ac30a8ef8d6db60df0cf4d3dbd4f15f050f0176178bd0892772c7ff06d0189e",
+      "executable": false
+    },
+    "tests/api/agent-limits.mjs": {
+      "sha256": "99ec387dfec92ef81768e47233f3ebbe29ccb1c5e6d3194be56791788e4dc1b0",
       "executable": false
     },
     "tests/api/application-fixture.mjs": {
@@ -5927,7 +5931,7 @@
       "executable": false
     },
     "tests/api/flows.test.mjs": {
-      "sha256": "618cefb79069f5d3ac2249e68ea48be2521058c3f025429e580a7ee087cd04ed",
+      "sha256": "8bbb87b63d5288f780fdc540f0b177b3c2d7bcf5f0b16ab92a7d039519e4a168",
       "executable": false
     },
     "tests/api/followups.test.mjs": {
