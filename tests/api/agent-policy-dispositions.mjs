@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,webcrypto} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
+import {accessToken,policyEnvelope,renewalEnvelope,signJws} from '../../node_modules/@runeditrun/rer/modules/agent-door/conformance/crypto.mjs';
 import {proposalFixture} from './proposal-fixture.mjs';
 
 const version='2026-07-28';
@@ -23,6 +25,7 @@ export function policyClient(f) {
  };
  const setPolicy=async(disposition)=>{
   const document={schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[{id:'standard-'+disposition,class:'standard',do:disposition,...(disposition==='approval'?{approver:['sponsor'],wait:'PT1H'}:{})}],spend:{none:true}};
+  if(f.adoptPolicy)return f.adoptPolicy(document);
   await h.api('/agents/api/policy',{document},{method:'PUT'});
   return (await h.api('/agents/api/state')).policy.revision;
  };
@@ -37,7 +40,7 @@ export function policyClient(f) {
   assert.equal(result.inputRequests.approval.params.mode,'url');
   assert.equal(result.inputRequests.approval.params.url,approval.url);
   assert.equal(new URL(approval.url).origin,h.origin);
-  assert.ok(Date.parse(approval.expires_at)>Date.now());
+  assert.ok(Date.parse(approval.expires_at)>(h.runtimeClock?Date.parse(h.runtimeClock):Date.now()));
   return {approval,requestState:result.requestState,decision:result.decision??result._meta['com.runeditrun/decision']};
  };
  const decide=async(held,action='approve',options={})=>{
@@ -69,8 +72,8 @@ function receipt(value,held,person,decisionId=held.decision.id) {
 }
 
 /** Registered substitution journeys call these public-door qualification steps. */
-export async function proveStandardApprovals(t) {
- const f=await proposalFixture(t,{clock}),{h}=f,c=policyClient(f);
+export async function proveStandardApprovals(t,{business=false}={}) {
+ const f=await proposalFixture(t,{clock,...(business?{built:true,https:true}:{})}),{h}=f,c=policyClient(f);
  const draft=await h.api('/api/barrow/agent-token',{}),proposalGrant=await f.grant(),existing=await f.submit(proposalGrant);
  const list=await h.command('list.save',{accountId:'cedar',name:'Policy qualification',shared:true,lines:[{sku:'HONEY-1',quantity:'2'}]});
  const definitions=[
@@ -94,13 +97,14 @@ export async function proveStandardApprovals(t) {
   }],
   ['proposals.read',{id:existing.id},null,async value=>assert.deepEqual(value,storedProposal((await f.history()).proposals.find(row=>row.id===existing.id)))],
  ];
+ const signed=business?await bindBusinessPolicy(f):null;
  const revision=await c.setPolicy('approval');
  for(const [suffix,args,route,check] of definitions) {
-  const name='barrow.'+suffix,token=suffix.startsWith('proposals.')?proposalGrant.token:draft.token;
+  const name='barrow.'+suffix,legacyToken=suffix.startsWith('proposals.')?proposalGrant.token:draft.token,token=signed?await signed.token():legacyToken;
   const before=await c.witness(),held=c.pending(await c.mcp(name,args,token));
   assert.equal(held.decision.revision,revision);assert.equal(held.decision.disposition,'approval');
   assert.deepEqual(held.decision.classes.map(row=>[row.class,row.rule,row.do]),[['standard','standard-approval','approval']]);
-  const compatibility=route?(route.startsWith('/')?await c.legacy(route,null,token):await c.command(route,args,token)):null;
+  const compatibility=route&&!business?(route.startsWith('/')?await c.legacy(route,null,legacyToken):await c.command(route,args,legacyToken)):null;
   const legacyHeld=compatibility?c.pending(compatibility):null;
   if(legacyHeld)assert.deepEqual(comparable(legacyHeld.decision),comparable(held.decision));
   assert.deepEqual(await c.witness(),before,name+' pending must not change commercial records');
@@ -119,7 +123,7 @@ export async function proveStandardApprovals(t) {
   const once=await c.witness();await c.decide(held);await c.mcp(name,args,token,held.requestState);assert.deepEqual(await c.witness(),once,name+' replay must execute once');
   if(legacyHeld) {
    if(!args.idempotency_key)assert.equal((await c.decide(legacyHeld)).approval.state,'executed');
-   const recovered=route.startsWith('/')?await c.legacy(route,null,token,legacyHeld.requestState):await c.command(route,args,token,legacyHeld.requestState);
+   const recovered=route.startsWith('/')?await c.legacy(route,null,legacyToken,legacyHeld.requestState):await c.command(route,args,legacyToken,legacyHeld.requestState);
    assert.equal(recovered.status,200,JSON.stringify(recovered.body));
    const native=route.startsWith('/')?recovered.body:recovered.body.result;
    assert.deepEqual(native,result.structuredContent);
@@ -132,17 +136,19 @@ export async function proveStandardApprovals(t) {
   await c.decide(rejected,'reject');
   const refusal=await c.mcp(name,rejectArgs,token,rejected.requestState);assert.equal(policyCode(refusal),'approval_rejected');assert.equal(refusal.body.result.structuredContent,undefined);
   assert.deepEqual(await c.witness(),unchanged,name+' rejected must not change commercial records');
-  console.log('PROBE BASE-AGENT-007 approval '+name+': pending withheld; exact sponsor decision recovered native result and receipt; rejection and replay preserved commercial effects');
+  console.log('PROBE BASE-AGENT-007 '+(business?'signed Business':'standalone')+' approval '+name+': pending withheld; exact sponsor decision recovered native result and receipt; rejection and replay preserved commercial effects');
  }
+ if(signed)await proveApprovalExpiry(f,c,signed,proposalGrant);
 }
 
-export async function proveStandardBlocked(t) {
- const f=await proposalFixture(t,{clock}),{h}=f,c=policyClient(f),draft=await h.api('/api/barrow/agent-token',{}),g=await f.grant(),proposal=await f.submit(g);
+export async function proveStandardBlocked(t,{business=false}={}) {
+ const f=await proposalFixture(t,{clock,...(business?{built:true,https:true}:{})}),{h}=f,c=policyClient(f),draft=await h.api('/api/barrow/agent-token',{}),g=await f.grant(),proposal=await f.submit(g);
  const list=await h.command('list.save',{accountId:'cedar',name:'Blocked policy witness',shared:true,lines:[{sku:'HONEY-1',quantity:'2'}]});
  const inputs=[['workspace.read',{}],['accounts.list',{}],['accounts.read',{id:'cedar'}],['catalog.read',{accountId:'cedar'}],['orders.read',{id:f.order.id}],['lists.read',{id:list.id}],['lists.list',{accountId:'cedar'}],['cart.preview',{accountId:'cedar',paste:'HONEY-1 2'}],['cart.form',{accountId:'cedar',layout:'vertical'}],['orders.prepare',{accountId:'cedar',lines:[{sku:'HONEY-1',quantity:2}],idempotency_key:randomUUID()}],['proposals.grants',{accountId:'cedar'}],['proposals.submit',{grantId:g.grant.id,orderId:f.order.id,model:'synthetic-barrow-204',runId:'synthetic-barrow-205',reportedCostCents:1,candidates:f.candidates,id:proposal.id,number:proposal.number,revision:proposal.revision,idempotency_key:randomUUID()}],['proposals.read',{id:proposal.id}]];
+ const signed=business?await bindBusinessPolicy(f):null;
  const revision=await c.setPolicy('blocked'),before=await c.witness();
  for(const [suffix,args] of inputs) {
-  const answer=await c.mcp('barrow.'+suffix,args,suffix.startsWith('proposals.')?g.token:draft.token);
+  const answer=await c.mcp('barrow.'+suffix,args,signed?await signed.token():suffix.startsWith('proposals.')?g.token:draft.token);
   assert.equal(policyCode(answer),'policy_blocked');assert.equal(answer.body.result.structuredContent,undefined);
   const error=answer.body.result._meta['com.runeditrun/error'];assert.deepEqual([error.class,error.rule,error.revision],['standard','standard-blocked',revision]);
   assert.deepEqual(answer.body.result.content.map(item=>JSON.parse(item.text)),[{code:'policy_blocked',class:'standard',rule:'standard-blocked',revision}]);
@@ -159,7 +165,7 @@ export async function proveStandardBlocked(t) {
   const answer=await c.command(type,args,suffix.startsWith('proposals.')?g.token:draft.token);assert.equal(policyCode(answer),'policy_blocked');assert.deepEqual([answer.body.class,answer.body.rule,answer.body.revision],['standard','standard-blocked',revision]);
  }
  assert.deepEqual(await c.witness(),before);
- console.log('PROBE BASE-AGENT-007 blocked: all thirteen MCP tools and ten supported compatibility mappings refused standard with the actual rule and revision; no commercial content or effects');
+ console.log('PROBE BASE-AGENT-007 '+(business?'signed Business':'standalone')+' blocked: all thirteen MCP tools and ten supported compatibility mappings refused standard with the actual rule and revision; no commercial content or effects');
  await proveReadContinuation(f,c,draft);
 }
 
@@ -198,4 +204,64 @@ async function proveReadContinuation(f,c,draft) {
  await h.api('/api/barrow/agent-token/revoke',{});
  assert.equal((await c.legacy(path,null,draft.token,fresh.requestState)).status,401);
  console.log('PROBE BASE-AGENT-007 recovery: changed tool or inputs, peer credential, foreign handle and origin, rejection, new policy and revocation withheld content through the compatibility read door');
+}
+
+/** Use the published verifier's disposable signer and the real Business binding door. */
+async function bindBusinessPolicy(f) {
+ const {h}=f,pair=await webcrypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},false,['sign','verify']);
+ const kid=randomUUID(),issuer='https://synthetic-barrow.invalid',installationId=randomUUID();
+ const publicKeys={[kid]:await webcrypto.subtle.exportKey('jwk',pair.publicKey)};
+ const owner=(await h.api('/auth/operators')).find(person=>person.role==='owner');
+ assert.ok(owner?.id);
+ const context={signer:{privateKey:pair.privateKey,kid,issuer,installationId},origin:h.origin,person:{sub:randomUUID(),email:owner.email},
+  agentId:'synthetic-barrow-'+randomUUID(),business:'synthetic-barrow-'+randomUUID(),consent:randomUUID(),revision:0,seq:0,
+  now:()=>Date.parse(clock),surface:JSON.parse(await readFile(new URL('../../agent-surface.json',import.meta.url),'utf8'))};
+ await h.configure({RER_OWNER_CLAIM_ISSUER:issuer,RER_OWNER_CLAIM_INSTALLATION_ID:installationId,RER_OWNER_CLAIM_PUBLIC_KEYS:JSON.stringify(publicKeys)});
+ const iat=Math.floor(context.now()/1000);
+ const settings=await signJws(pair.privateKey,kid,'rer-business-settings+jwt',{v:1,iss:issuer,aud:h.origin,sub:installationId,business:context.business,
+  email:owner.email,owner_id:context.person.sub,jti:randomUUID(),iat,exp:iat+300,rev:1,values:{},logo:null,team:null});
+ const bound=await h.api('/api/rer/business-settings',{settings});assert.equal(bound.rev,1);
+ let adopted;
+ f.adoptPolicy=async document=>{
+  const signed=await policyEnvelope(context,document);
+  const ack=await h.api('/api/rer/agent-policy',{policy:signed.policy});
+  assert.deepEqual(ack.adopted,{seq:signed.payload.seq,revision:signed.payload.revision});
+  context.seq=signed.payload.seq;context.revision=signed.payload.revision;adopted=signed.payload;
+  assert.equal((await h.api('/agents/api/state')).policy.source,'business');
+  return context.revision;
+ };
+ return {token:()=>accessToken(context),context,async advanceClock(instant){
+  await h.setRuntimeClock(instant);context.now=()=>Date.parse(instant);
+  const renewed=await renewalEnvelope(context,adopted);
+  await h.api('/api/rer/agent-policy',{policy:renewed.policy});adopted=renewed.payload;
+ }};
+}
+
+async function proveApprovalExpiry(f,c,signed,grant) {
+ const {h}=f,readArgs={id:'cedar'},before=await c.witness();
+ const steps=[
+  ['barrow.accounts.read',readArgs],
+  ['barrow.orders.prepare',{accountId:'cedar',reference:'Expired draft must remain absent',lines:[{sku:'HONEY-1',quantity:2}],idempotency_key:randomUUID()}],
+  ['barrow.proposals.submit',{grantId:grant.grant.id,orderId:f.order.id,model:'synthetic-barrow-207',runId:'synthetic-barrow-208',reportedCostCents:1,candidates:f.candidates,idempotency_key:randomUUID()}],
+ ];
+ const pending=[];
+ for(const [name,args] of steps)pending.push({name,args,held:c.pending(await c.mcp(name,args,await signed.token()))});
+ const timely=c.pending(await c.mcp('barrow.accounts.read',readArgs,await signed.token()));
+ const expires=Date.parse(timely.approval.expires_at);
+ await signed.advanceClock(new Date(expires-1).toISOString());
+ assert.equal((await c.decide(timely)).approval.state,'executed');
+ const completed=await c.mcp('barrow.accounts.read',readArgs,await signed.token(),timely.requestState);
+ assert.equal(completed.body.result.structuredContent.id,'cedar');
+ receipt(completed.body.result._meta['com.runeditrun/receipt'],timely,(await h.api('/agents/api/approvals/'+timely.approval.id)).approval.prepared_by.for.id);
+ await signed.advanceClock(new Date(expires).toISOString());
+ for(const {name,args,held} of pending) {
+  const view=(await h.api('/agents/api/approvals/'+held.approval.id)).approval;
+  assert.equal(view.state,'expired');
+  const refused=await c.decide(held,'approve',{status:409});assert.equal(refused.code,'approval_expired');
+  const retry=await c.mcp(name,args,await signed.token(),held.requestState);
+  assert.equal(policyCode(retry),'approval_expired');assert.equal(retry.body.result.structuredContent,undefined);
+  assert.equal(retry.body.result._meta['com.runeditrun/receipt'],undefined);
+ }
+ assert.deepEqual(await c.witness(),before,'Expired reads, drafts and proposals must not reveal results or change commercial state');
+ console.log('PROBE BASE-AGENT-007 expiry: signed approval one millisecond before its deadline succeeds; at the exact deadline read, draft and proposal approvals refuse with approval_expired, no result, receipt or commercial effect');
 }

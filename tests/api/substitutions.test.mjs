@@ -272,6 +272,7 @@ import {proposalFixture} from './proposal-fixture.mjs';
 import {proveStandardApprovals,proveStandardBlocked} from './agent-policy-dispositions.mjs';
 test('approval-bound agent proposals preserve provenance and refusals, then reauthorize a newly reviewed revision and execute its exact key once',async t=>{
  await proveStandardApprovals(t);
+ await proveStandardApprovals(t,{business:true});
  const f=await proposalFixture(t),{h,pier}=f,g=await f.grant();
  let proposal=await f.submit(g);assert.equal(proposal.candidates.length,2);assert.ok(proposal.candidates.every(row=>row.deliveryOptions.length===2));for(const basket of proposal.candidates)assert.equal(basket.freightDifferenceCents,basket.delivery.totalCents-f.order.delivery.totalCents);assert.ok(proposal.candidates[0].totalCents<proposal.candidates[1].totalCents);assert.equal(proposal.source.orderRevision,f.order.revision);assert.equal(proposal.model,'synthetic-barrow-101');assert.ok(proposal.source.observedAt);assert.ok(proposal.effects.length);assert.ok(proposal.source.toolPermissions.includes('document-bytes:never'));
  proposal=await f.offer(proposal);await f.approve(proposal);
@@ -308,6 +309,7 @@ test('approval-bound agent proposals preserve provenance and refusals, then reau
 
 test('scoped proposal authority refuses foreign doors, injected instructions and over-budget work without inventory effects',async t=>{
  await proveStandardBlocked(t);
+ await proveStandardBlocked(t,{business:true});
  const f=await proposalFixture(t),{h,pier}=f,g=await f.grant({costLimitCents:5,contactLimit:2}),agent=f.agent(g);
  for(const path of ['/api/barrow/state','/api/barrow/export.json','/api/barrow/agent-token','/api/barrow/retention'])assert.equal((await h.request(path,agent)).status,403);
  assert.equal((await h.request('/api/barrow/catalogue?accountId=foreign',agent)).status,404);

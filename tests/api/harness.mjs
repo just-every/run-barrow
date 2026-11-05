@@ -26,13 +26,15 @@ export async function configurePierRouting(pier) {
  rule=await pier.command('routing.preview',{ruleId:rule.id,version:rule.version});
  await pier.command('routing.activate',{ruleId:rule.id,version:rule.version});
 }
-export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock,socketEdge=false}={}) {
+export async function installation({pier=false,bindings={},https=pier,built=false,captureLogs=false,networkEdge,clock,socketEdge=false,standalonePolicy=true}={}) {
  const connected=nativePiers.get(bindings.PIER_ORIGIN);
  if(!pier&&connected&&connected.cookie===bindings.PIER_SESSION)await configurePierRouting(connected);
  const root=pier?await pierSource():resolve('.');
  const directory=await mkdtemp(join(tmpdir(),'barrow-api-'));
  const tls=pier?await localTls(directory):undefined;
- const bundled=await build({...(clock&&(built||pier)?{banner:{js:'const NativeDate=Date;globalThis.Date=class extends NativeDate{constructor(...args){if(args.length)super(...args);else super('+JSON.stringify(clock)+')}static now(){return new NativeDate('+JSON.stringify(clock)+').getTime()}};'}}:{}),entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'},plugins:(socketEdge?[{name:'tls-network-edge',setup(builder){builder.onResolve({filter:/^cloudflare:sockets$/},()=>({path:resolve('tests/api/socket-edge.ts')}))}}]:[]).concat(clock?[{name:'fixed-business-clock',setup(builder){builder.onLoad({filter:/\/src\/barrow\/clock\.ts$/},()=>({contents:'export const now = async () => new Date('+JSON.stringify(clock)+')',loader:'ts'}))}}]:!pier&&!built&&bindings.BARROW_TEST_CLOCK?[{name:'test-clock',setup(plugin){plugin.onLoad({filter:/[\/]src[\/]barrow[\/]clock\.ts$/},()=>({contents:'export {now} from '+JSON.stringify(resolve('tests/api/clock.ts')),loader:'ts'}))}}]:[])});
+ let runtimeClock=clock;
+ const clockBanner=()=>runtimeClock&&(built||pier)?'const NativeDate=Date;globalThis.Date=class extends NativeDate{constructor(...args){if(args.length)super(...args);else super('+JSON.stringify(runtimeClock)+')}static now(){return new NativeDate('+JSON.stringify(runtimeClock)+').getTime()}};\n':'';
+ const bundled=await build({entryPoints:[join(root,built?'dist/server/index.js':'tests/api/worker.ts')],bundle:true,write:false,format:'esm',platform:'neutral',mainFields:['browser','module','main'],alias:{crypto:'node:crypto'},target:'es2022',external:['node:*','cloudflare:*'],nodePaths:[resolve('node_modules')],loader:{'.css':'text','.svg':'text'},plugins:(socketEdge?[{name:'tls-network-edge',setup(builder){builder.onResolve({filter:/^cloudflare:sockets$/},()=>({path:resolve('tests/api/socket-edge.ts')}))}}]:[]).concat(clock?[{name:'fixed-business-clock',setup(builder){builder.onLoad({filter:/\/src\/barrow\/clock\.ts$/},()=>({contents:'export const now = async () => new Date('+JSON.stringify(clock)+')',loader:'ts'}))}}]:!pier&&!built&&bindings.BARROW_TEST_CLOCK?[{name:'test-clock',setup(plugin){plugin.onLoad({filter:/[\/]src[\/]barrow[\/]clock\.ts$/},()=>({contents:'export {now} from '+JSON.stringify(resolve('tests/api/clock.ts')),loader:'ts'}))}}]:[])});
  const setup=randomBytes(32).toString('hex'),key=randomBytes(32).toString('hex'),secret=randomBytes(32).toString('hex');
  const logs=[];class CapturedLog extends Log {log(message){logs.push(String(message))}}
  const logger=captureLogs?new CapturedLog(LogLevel.DEBUG):undefined;
@@ -56,7 +58,7 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
   return new Response(await response.arrayBuffer(),{status:response.status,headers:Object.fromEntries(response.headers)});
  };
  let origin='http://localhost';
- const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),...(tls?{httpsCert:tls.httpsCert,httpsKey:tls.httpsKey}:{}),modules:true,script:bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['ERASURE_JOURNAL'],bindings:{AUTH_LOCAL:pier?'false':'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},outboundService:mailEdge}),resourcePersistencePath:directory,...(logger?{log:logger}:{})});
+ const options=port=>({...convertV4MiniflareOptions({host:'127.0.0.1',port,https:Boolean(https),...(tls?{httpsCert:tls.httpsCert,httpsKey:tls.httpsKey}:{}),modules:true,script:clockBanner()+bundled.outputFiles[0].text,...(built?{assets:{directory:join(root,'dist/client'),binding:'ASSETS',run_worker_first:true,routerConfig:{has_user_worker:true}}}:{}),compatibilityDate:'2026-09-08',compatibilityFlags:['nodejs_compat'],d1Databases:['DB'],r2Buckets:['ERASURE_JOURNAL'],bindings:{AUTH_LOCAL:pier?'false':'true',AUTH_ORIGIN:origin,OWNER_EMAIL:'owner@example.test',SESSION_SECRET:secret,SETUP_TOKEN:setup,MAIL_PROVIDER:'resend',MAIL_API_KEY:'synthetic-barrow-1',MAIL_FROM:'auth@example.test',RER_DEV_KEY:key,...bindings},outboundService:mailEdge}),resourcePersistencePath:directory,...(logger?{log:logger}:{})});
  const originalCwd=process.cwd();if(pier)process.chdir(root);
  const mf=new Miniflare(options(0));
  try {
@@ -78,7 +80,7 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
   cookie=boot.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
   // Existing commercial journeys now start with the owner's explicit standalone policy.
   // The production conformance journey separately proves unset/held/blocked policy.
-  if(!pier){const policy=await request('/agents/api/policy',{method:'PUT',body:{document:{schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[{id:'native-fixture',class:'*',do:'autonomous'}],spend:{none:true}}}});assert.equal(policy.status,200,await policy.text());}
+  if(!pier&&standalonePolicy){const policy=await request('/agents/api/policy',{method:'PUT',body:{document:{schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[{id:'native-fixture',class:'*',do:'autonomous'}],spend:{none:true}}}});assert.equal(policy.status,200,await policy.text());}
   const api=async(path,body,opts={})=>{
    const response=await request(path,{...(body===undefined?{}:{method:'POST',body}),...opts});const value=await response.json();
    if(opts.status!==undefined) assert.equal(response.status,opts.status,JSON.stringify(value)); else assert.ok(response.ok,JSON.stringify(value));
@@ -98,7 +100,7 @@ export async function installation({pier=false,bindings={},https=pier,built=fals
    assert.equal(confirmed.status,303);
    return confirmed.headers.getSetCookie().map(v=>v.split(';')[0]).join('; ');
   };
-  const harness={mf,logs,certificatePath:tls?.certificatePath,get db(){return db},origin,cookie,request,raw,api,command,signIn,mail,async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;nativePiers.delete(origin);await mf.dispose();await rm(directory,{recursive:true,force:true})}};
+  const harness={mf,logs,certificatePath:tls?.certificatePath,get db(){return db},get runtimeClock(){return runtimeClock&&(built||pier)?runtimeClock:undefined},origin,cookie,request,raw,api,command,signIn,mail,async setRuntimeClock(instant){if(!clock||!built)throw Error('Runtime clock requires a built clocked installation');if(!Number.isFinite(Date.parse(instant)))throw Error('Invalid runtime clock');runtimeClock=instant;await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async configure(next){for(const [name,value] of Object.entries(next)){if(value===undefined)delete bindings[name];else bindings[name]=value}await mf.setOptions(options(Number(new URL(localOrigin).port)));await mf.ready;db=await mf.getD1Database('DB')},async close(){if(closed)return;closed=true;nativePiers.delete(origin);await mf.dispose();await rm(directory,{recursive:true,force:true})}};
   if(pier)nativePiers.set(origin,harness);
   return harness;
  }catch(error){process.chdir(originalCwd);await mf.dispose();await rm(directory,{recursive:true,force:true});throw error}

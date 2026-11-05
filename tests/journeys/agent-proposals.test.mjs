@@ -6,10 +6,26 @@ import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
 import {policyClient,policyCode} from '../api/agent-policy-dispositions.mjs';
 
 test('owner scopes an external agent, manager and buyer review exact replacements, revoked execution is refused and a fresh revision completes once at desktop and phone',async t=>{
- const f=await proposalFixture(t,{built:true,https:true}),{h}=f;
+ const f=await proposalFixture(t,{built:true,https:true,clock:'2026-11-05T12:00:00.000Z',standalonePolicy:false}),{h}=f;
  const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const context=await signedContext(browser,h);t.after(()=>context.close());const page=await context.newPage();await page.goto(h.origin+'/app');
  if(new URL(page.url()).pathname==='/setup'){await page.getByLabel('Your name').fill('Supplier owner');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Finish setup',exact:true}).click()}
+ const setupClient=policyClient(f),setupToken=await h.api('/api/barrow/agent-token',{}),beforePolicy=await setupClient.witness();
+ await page.goto(h.origin+'/agents');
+ const question=page.locator('[data-policy-class="standard"]');await expect(question).toHaveValue('');await expect(page.locator('[data-paid-ai] input:checked')).toHaveCount(0);
+ const unanswered=await setupClient.mcp('barrow.workspace.read',{},setupToken.token);assert.equal(policyCode(unanswered),'policy_unset');
+ assert.equal(unanswered.body.result.structuredContent,undefined);assert.equal(unanswered.body.result._meta['com.runeditrun/error'].setup_url,h.origin+'/agents');
+ const incomplete=await h.api('/agents/api/policy',{document:{schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[],spend:{none:true}}},{method:'PUT',status:409});assert.equal(incomplete.code,'policy_incomplete');
+ await captureRegionWidths(page,page.getByRole('region',{name:'Agent policy',exact:true}),'policy-setup-unanswered');
+ assert.deepEqual(await setupClient.witness(),beforePolicy);
+ await question.selectOption('autonomous');await page.locator('[data-paid-ai] input[value="no"]').check();await page.getByRole('button',{name:'Save policy',exact:true}).click();
+ await expect(page.locator('[data-create-policy]')).toHaveCount(0);
+ const admitted=await setupClient.mcp('barrow.workspace.read',{},setupToken.token);assert.equal(admitted.body.result.isError,false);assert.ok(admitted.body.result.structuredContent.accounts.some(row=>row.id==='cedar'));
+ // The wildcard document is independently accepted by the same owner door.
+ await h.api('/agents/api/policy',{document:{schema:'rer-agent-policy/1',catalogue:'rer-agent-classes/1',rules:[{id:'synthetic-barrow-209',class:'*',do:'autonomous'}],spend:{none:true}}},{method:'PUT'});
+ assert.equal((await h.api('/agents/api/state')).policy.complete,true);
+ console.log('PROBE BASE-AGENT-007 setup: unanswered standard choice and incomplete policy withhold content and effects; explicit owner answer and wildcard admit the existing workspace tool');
+ await page.goto(h.origin+'/app');
  async function grantScreen() {
   await page.getByRole('button',{name:'Data',exact:true}).click();const section=page.getByRole('region',{name:'Account-scoped proposal authority',exact:true});
   await section.getByLabel('Trade account',{exact:true}).selectOption('cedar');return section.getByRole('region',{name:'External agent proposal grants',exact:true});
