@@ -6,7 +6,7 @@ import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
 
 test('owner scopes an external agent, manager and buyer review exact replacements, revoked execution is refused and a fresh revision completes once at desktop and phone',async t=>{
  const f=await proposalFixture(t,{built:true,https:true}),{h}=f;
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const context=await signedContext(browser,h);t.after(()=>context.close());const page=await context.newPage();await page.goto(h.origin+'/app');
  if(new URL(page.url()).pathname==='/setup'){await page.getByLabel('Your name').fill('Supplier owner');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Finish setup',exact:true}).click()}
  async function grantScreen() {
@@ -18,6 +18,11 @@ test('owner scopes an external agent, manager and buyer review exact replacement
  const credential=grants.getByLabel('Private proposal credential',{exact:true});await credential.waitFor();const token=await credential.inputValue(),grant=(await h.api('/api/barrow/proposal-grants?accountId=cedar')).grants[0];
  await captureRegionWidths(page,grants,'proposal-scoped-credential');
  let proposal=await f.submit({token,grant});
+ const preparer=proposal.preparedBy;
+ const registered=(await h.api('/agents/api/agents')).agents.find(row=>row.id===preparer.agent);
+ assert.equal(preparer.agent,'barrow-local:'+grant.id);
+ assert.equal(preparer.person,(await h.api('/api/barrow/state')).actor.id);
+ assert.equal(preparer.label,registered.name+' for '+registered.sponsor.name);
  async function managerScreen() {
   await page.getByRole('button',{name:'Orders',exact:true}).click();
   const panel=page.getByRole('region',{name:'Agent substitution proposals',exact:true}).filter({hasText:'synthetic-barrow-101'});await panel.getByRole('heading',{name:/Proposal [12] ·/}).first().waitFor();return panel;
@@ -26,13 +31,26 @@ test('owner scopes an external agent, manager and buyer review exact replacement
   const latest=panel.getByRole('article').last();await latest.locator('summary').filter({hasText:`Candidate ${candidate} ·`}).click();await latest.getByRole('button',{name:`Select candidate ${candidate} for buyer review`,exact:true}).click();await latest.getByLabel('Manager’s reason for this exact offer',{exact:true}).fill('Reviewed the original PO, current inventory, exact case prices and the unavailable tax comparison.');await latest.getByRole('checkbox').check();await captureRegionWidths(page,latest,'proposal-manager-review');await latest.getByRole('button',{name:'Offer selected candidate to buyer',exact:true}).click();
   await expect(latest.getByRole('heading')).toContainText('offered');
  }
- let panel=await managerScreen();await offer(panel);proposal=(await f.history()).proposals.at(-1);
+ let panel=await managerScreen();
+ await expect(panel.getByText('Prepared by '+preparer.label,{exact:true})).toBeVisible();
+ await offer(panel);proposal=(await f.history()).proposals.at(-1);
  const buyerContext=await signedContext(browser,h,f.buyer.as);t.after(()=>buyerContext.close());const buyerPage=await buyerContext.newPage();
  async function buyerAccept(number) {
   await buyerPage.goto(h.origin+'/app');await buyerPage.getByRole('button',{name:'Orders',exact:true}).click();const details=buyerPage.locator('details').filter({has:buyerPage.locator('summary').filter({hasText:`Substitution ${number}: offered`})});await details.locator('summary').click();
   await captureRegionWidths(buyerPage,details,'proposal-buyer-basket');buyerPage.once('dialog',dialog=>dialog.accept());await details.getByRole('button',{name:'Accept exact substitution',exact:true}).click();await expect(buyerPage.getByText(`Substitution ${number}: accepted`,{exact:false})).toBeVisible();
  }
  await buyerAccept(proposal.offerNumber);
+ const accepted=await h.api('/api/barrow/orders/'+f.order.id),replacementId=accepted.substitutions.at(-1).replacementId;
+ const replacement=await h.api('/api/barrow/orders/'+replacementId,undefined,f.buyer);
+ assert.deepEqual(replacement.agentPreparation,preparer);
+ assert.equal(replacement.preparedBy,proposal.managerApproval.by);
+ assert.equal(replacement.submittedBy,(await h.api('/api/barrow/state',undefined,f.buyer)).actor.id);
+ const buyerReplacement=buyerPage.locator('.br-order').filter({has:buyerPage.locator('.br-order-id',{hasText:replacementId})});
+ await buyerReplacement.getByText('Order history & Pier details',{exact:true}).click();
+ await expect(buyerReplacement.locator('dt').filter({hasText:'Prepared by'}).locator('..').locator('dd')).toHaveText(preparer.label);
+ await expect(buyerReplacement.locator('dt').filter({hasText:'Submitted by'}).locator('..').locator('dd')).toHaveText('You');
+ await captureRegionWidths(buyerPage,buyerReplacement,'proposal-replacement-attribution');
+ console.log('PROBE BASE-AGENT-008 replacement screens: actual buyer acceptance -> exact agent label and separate buyer submission in built history at 1440, with captures at 1440 and 390');
  const currentAccount=await h.api('/api/barrow/accounts/by-id/cedar');await h.command('account.save',{id:'cedar',revision:currentAccount.revision,value:{...currentAccount.value,prices:currentAccount.value.prices.map(price=>({...price,unitCents:price.unitCents+100}))}});
  const grantPanel=await grantScreen();await grantPanel.getByLabel('Reason to revoke this grant',{exact:true}).fill('Owner revoked the changed source scope before stock execution.');await grantPanel.getByRole('button',{name:'Revoke proposal grant',exact:true}).click();await expect(grantPanel.getByRole('heading',{name:'Proposal grant · revoked',exact:true})).toBeVisible();await captureRegionWidths(page,grantPanel,'proposal-owner-revoked');
  const before=(await f.pier.api('/api/pier/state')).orders;await f.execute(proposal,{}, {status:409});assert.deepEqual((await f.pier.api('/api/pier/state')).orders,before);

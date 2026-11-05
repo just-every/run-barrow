@@ -10,7 +10,8 @@ export async function afterStep(ctx) {try {await attributionStep(ctx)} catch(err
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
- const attribution=await proveHumanAttribution({request,origin,cookie,database})
+ const admin=takeLocalAdmin()
+ const attribution=await proveHumanAttribution({request,origin,cookie,database,reviewer:admin})
  await captureAttribution({request,origin,cookie,...attribution})
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
@@ -74,7 +75,7 @@ export default async function({request,origin,cookie,tool,database}) {
  const denied=await local('tools/call',{name:'barrow.proposals.grants',arguments:{accountId:'juniper'}});console.log('NATIVE local scope refusal HTTP '+denied.status);assert.equal(denied.status,403)
  const recognizable=Buffer.from(JSON.stringify({alg:'ES256',typ:'at+jwt',kid:'unknown'})).toString('base64url')+'.e30.invalid'
  const failedBusiness=await local('tools/list',{},recognizable);console.log('NATIVE recognizable Business refusal HTTP '+failedBusiness.status);assert.equal(failedBusiness.status,401)
- const admin=takeLocalAdmin(),adminHeaders={Cookie:admin.cookie,Origin:origin,'Content-Type':'application/json'}
+ const adminHeaders={Cookie:admin.cookie,Origin:origin,'Content-Type':'application/json'}
  for(const path of ['/agents/api/state','/agents/api/audit']) {
   const response=await request(origin+path,{headers:adminHeaders});assert.equal(response.status,403);await response.body?.cancel()
  }

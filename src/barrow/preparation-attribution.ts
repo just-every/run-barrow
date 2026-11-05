@@ -25,5 +25,20 @@ export async function withPreparation(db: D1Database, orders: Order[]): Promise<
   if (preparation && row.actor_id === `agent:${preparation.agent}` && !recorded.has(row.subject_id))
    recorded.set(row.subject_id, preparation)
  }
+ // A buyer-accepted replacement retains its manager's historical preparer ID.
+ // Its exact native proposal link supplies the agent's separate preparation.
+ const linked=missing.filter(order=>!recorded.has(order.id)&&order.agentProposal&&order.fromSubstitution)
+ if(linked.length) {
+  const proposals=(await db.prepare(`SELECT id,number,account_id,order_id,value_json FROM bw_agent_proposals
+   WHERE id IN (SELECT value FROM json_each(?))`)
+   .bind(JSON.stringify([...new Set(linked.map(order=>order.agentProposal!.id))]))
+   .all<{id:string;number:number;account_id:string;order_id:string;value_json:string}>()).results
+  for(const order of linked) {
+   const row=proposals.find(row=>row.id===order.agentProposal!.id&&row.number===order.agentProposal!.number
+    &&row.account_id===order.accountId&&row.order_id===order.fromSubstitution!.orderId)
+   const preparation=recordedPreparation(row?JSON.parse(row.value_json).preparedBy:null)
+   if(preparation)recorded.set(order.id,preparation)
+  }
+ }
  return orders.map(order => order.agentPreparation || !recorded.has(order.id) ? order : {...order, agentPreparation: recorded.get(order.id)})
 }
