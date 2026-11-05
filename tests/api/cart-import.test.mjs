@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation } from './harness.mjs';
-import {publicMcp,nativeCommands,proveCartFormParity,proveCartFormDownloads,validateFormResult,errorCode} from '../agent-door/cart-form-parity.mjs';
+import {publicMcp,nativeCommands,proveCartFormParity,proveCartFormScope,proveCartFormDownloads,validateFormResult,errorCode} from '../agent-door/cart-form-parity.mjs';
 
 const sizes = ['S', 'M', 'L', 'XL'];
 const skus = Array.from({ length: 20 }, (_, n) => sizes.map(size => `ST${String(n + 1).padStart(2, '0')}-${size}`)).flat();
@@ -105,6 +105,7 @@ test('ORD-001: barcode/SKU paste and an 80-line CSV preview resolve duplicates, 
  const mcp=publicMcp(request,h.origin,token),tool=(name,args)=>mcp('tools/call',{name,arguments:args});
  const formCart=[{sku:'ST01-S',quantity:12},{sku:'ST02-M',quantity:6}];
  await proveCartFormParity({request,origin:h.origin,cookie:h.cookie,tool,accountId:'cedar',cart:formCart});
+ await proveCartFormScope({h,pier,accountId:'cedar',cart:formCart});
  const listed=await mcp('tools/list'),definition=listed.result.tools.find(item=>item.name==='barrow.cart.form');
  assert.equal(definition.annotations.readOnlyHint,true);
  assert.equal(definition._meta['com.runeditrun/scope'],'catalog:read');
