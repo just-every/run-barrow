@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { installation, accountValue, archive, restore } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore } from './harness.mjs';
 const financialCard=payment=>Object.fromEntries(['id','accountId','orderId','currency','amountCents','surchargeCents','state','createdAt','updatedAt','latestFinancialAt','capturedAt','providerPaymentId'].filter(key=>payment[key]!==undefined).map(key=>[key,payment[key]]));
 function erasedCardHistory(bundle,card) {
  const items=bundle.flatMap(part=>part.items??[]),row=items.find(item=>item.table==='bw_card_payments'&&item.row.id===card.payment.id)?.row;
@@ -216,4 +216,52 @@ test('owner upgrades existing erasure receipts into the independent journal; mal
  assert.equal((await h.request('/api/barrow/state')).status,503);
  const initialized=await h.api('/api/barrow/erasure-journal',{initialize:true,confirm:'JOURNAL',reason:'Owner reviewed existing receipts and established their outside-D1 journal before upgrade use.'});assert.equal(initialized.operations,1);
  const saved=await h.api('/api/barrow/erasure-journal');assert.equal(saved.entries.length,1);await h.db.prepare('DELETE FROM bw_account_erasure_journal').run();await h.db.prepare('INSERT INTO bw_order_documents VALUES(?,?,?,?,?,?)').bind('cedar-expired','old.pdf','application/pdf',f.bytes.length,f.sha256,f.bytes.toString('base64')).run();assert.equal((await h.request('/api/barrow/orders/cedar-expired/document')).status,404);
+});
+
+
+test('account erasure redacts duplicated native agent labels in draft orders, commercial exports and later-journal restore',async t=>{
+ const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier);
+ const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
+ const email='synthetic-erasure-buyer@example.test';
+ const account=await h.command('account.save',{id:'label-erasure',value:accountValue(inventory.customer.id,email)});
+ const buyer={as:await h.signIn(email)},person=(await h.api('/auth/session',undefined,buyer)).operator;
+ await h.api('/auth/display-name',{displayName:person.displayName+' <'+email+'>'});
+ const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
+ const draft=await h.command('order.prepare',{accountId:account.id,lines:[{sku:'OAT-1',quantity:2}]},agent);
+ assert.equal(draft.preparedBy,'Barrow scoped agent for '+person.displayName+' <'+email+'>');
+ assert.equal(draft.status,'draft');
+ // The same native door must preserve people and labels unrelated to the erasure.
+ await h.api('/auth/display-name',{displayName:'Supplier'});
+ const peer=await h.command('order.prepare',{accountId:account.id,lines:[{sku:'OAT-1',quantity:2}]},agent);
+ const human=await h.command('order.prepare',{accountId:account.id,lines:[{sku:'OAT-1',quantity:2}]},buyer);
+ assert.equal(human.preparedBy,person.id);
+ const peerAudit=await h.db.prepare('SELECT * FROM bw_audit WHERE subject_id=? AND action=?').bind(peer.id,'order.prepared').first();
+ assert.ok(peerAudit);assert.equal(JSON.parse(peerAudit.context_json).preparedBy.label,peer.preparedBy);
+ await verifiedRequest(h,account.id);
+ const preview=await erasurePreview(h,account.id);
+ assert.equal(preview.items.find(row=>row.id==='order:'+draft.id).floorUntil,null);
+ const before=await archive(h);
+ const receipt=await h.command('retention.erase-account',erasurePayload(preview));
+ assert.equal(receipt.exclusions.length,0);
+ const target=await installation();t.after(()=>target.close());await restore(target,before);
+ const witnesses=[];
+ for(const [stage,app] of [['erasure',h],['journal-replay',target]]) {
+  // The first public read reconciles the later journal before serving the archive.
+  const order=await app.api('/api/barrow/orders/'+draft.id);
+  const raw=JSON.parse((await app.db.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(draft.id).first()).value_json);
+  const exported=(await app.api('/api/barrow/export.json')).orders.find(row=>row.id===draft.id);
+  const csv=await(await app.request('/api/barrow/export/orders.csv')).text();
+  witnesses.push({stage,raw,order,exported,csv});
+  assert.equal((await app.api('/api/barrow/orders/'+human.id)).preparedBy,person.id);
+  assert.equal((await app.api('/api/barrow/orders/'+peer.id)).preparedBy,peer.preparedBy);
+  assert.deepEqual(await app.db.prepare('SELECT * FROM bw_audit WHERE id=?').bind(peerAudit.id).first(),peerAudit);
+  assert.equal(raw.status,'draft');assert.equal(raw.totalCents,draft.totalCents);assert.deepEqual(raw.lines,draft.lines);
+  assert.equal((await app.api('/api/barrow/retention')).accountReceipts.at(-1).id,receipt.id);
+ }
+ t.diagnostic('PROBE native-label '+JSON.stringify(witnesses.map(({stage,raw,order,exported,csv})=>({stage,raw:JSON.stringify(raw).includes(email),order:JSON.stringify(order).includes(email),export:JSON.stringify(exported).includes(email),csv:csv.includes(email)}))));
+ for(const witness of witnesses)for(const [door,value] of Object.entries(witness).filter(([key])=>key!=='stage')) {
+  const text=JSON.stringify(value);
+  assert.equal(text.includes(email),false,witness.stage+' '+door+' must not carry the erased email');
+  assert.equal(text.includes(person.displayName),false,witness.stage+' '+door+' must not carry the erased name');
+ }
 });
