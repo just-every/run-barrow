@@ -20,7 +20,7 @@ export async function auditRows(read) {
 }
 
 /** Independent native session reads establish the descriptor's recorded targets. */
-export async function proveRecordedTargets({request,origin,cookie}) {
+export async function proveRecordedTargets({request,origin,cookie,tool}) {
  const read=async path=>{
   const response=await request(origin+path,{headers:{Cookie:cookie}})
   assert.equal(response.status,200);return response.json()
@@ -39,16 +39,35 @@ export async function proveRecordedTargets({request,origin,cookie}) {
   assert.deepEqual(review?.summary?.nativeTarget,row.resource)
  }
  console.log('PROBE BASE-AGENT-009 signed policies: native account session and paginated audit -> resolved account targets under autonomous, review, unset and Pause; directory and workspace stay null')
+ const write=async(path,body)=>{
+  const response=await request(origin+path,{method:'POST',headers:{Cookie:cookie,Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)})
+  assert.equal(response.status,200);return response.json()
+ }
+ const order=(await read('/api/barrow/state')).orders.find(order=>order.status==='approved')
+ assert.ok(order)
+ const {grant}=await write('/api/barrow/proposal-grants',{accountId:account.id,costLimitCents:0,contactLimit:9,approvedSubstitutes:[{fromSku:'LINEN',skus:['HEMP']}],consent:true,reason:'Owner permits a native target revocation proof.'})
+ const prepared=await tool('barrow.proposals.submit',{grantId:grant.id,orderId:order.id,model:'synthetic-barrow-4',runId:'synthetic-barrow-5',reportedCostCents:0,candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:2}]}],idempotency_key:randomUUID()})
+ assert.ok(!prepared.result.isError)
+ const id=prepared.result.structuredContent.id
+ await write('/api/barrow/proposal-grants/revoke',{grantId:grant.id,revision:grant.revision,reason:'Owner revokes native proposal access while the Business credential remains valid.'})
+ const before=new Set((await auditRows(read)).map(row=>row.id))
+ const refused=await tool('barrow.proposals.read',{id})
+ assert.equal(code(refused.body),'proposal_revoked');assert.equal(refused.result?.structuredContent,undefined)
+ const added=(await auditRows(read)).filter(row=>!before.has(row.id))
+ assert.equal(added.length,1);assert.equal(added[0].resource,null)
+ console.log('PROBE BASE-AGENT-009 native revocation: valid Business principal reads a proposal after grant revocation -> proposal_revoked and one audit with null target')
 }
 
 /** All existing tools exercise standalone policies through the built HTTP door. */
 export async function proveTargetPolicies() {
  const provider='https://rer-hosted-check.invalid',session='synthetic-barrow-1'
+ console.log('NATIVE target policy fixture begins')
  const h=await installation({built:true,bindings:{PIER_ORIGIN:provider,PIER_SESSION:session},networkEdge:request=>new URL(request.url).origin===provider?pier.fetch(request,{fixture:{cookie:session}}):undefined})
  try {
+  console.log('NATIVE target policy installation ready')
   const value={...accountValue('juniper'),minimumCents:0,prices:[{sku:'LINEN',unitCents:2400,minQty:1},{sku:'HEMP',unitCents:2500,minQty:1}]}
   const account=await h.command('account.save',{id:'juniper',value})
-  const foreign=await h.command('account.save',{id:'foreign-target',value:{...value,email:value.email.replace('buyer','foreign')}})
+  const foreign=await h.command('account.save',{id:'foreign-target',value:{...value,name:'Other Market',pierCustomerId:'custody-review',email:value.email.replace('buyer','foreign')}})
   const shared=await h.command('list.save',{accountId:account.id,name:'Shared target',shared:true,lines:[{sku:'LINEN',quantity:'2'}]})
   const privateList=await h.command('list.save',{accountId:account.id,name:'Private target',shared:false,lines:[{sku:'LINEN',quantity:'2'}]})
   const original=await h.command('order.prepare',{accountId:account.id,lines:[{sku:'LINEN',quantity:2}]})
@@ -132,16 +151,19 @@ export async function proveTargetPolicies() {
    ['barrow.orders.read',{id:foreignOrder.id},grant.token],
    ['barrow.proposals.read',{id:'missing-target'}],
   ]) {
+   const before=new Set((await auditRows(path=>h.api(path))).map(row=>row.id))
    const refused=await call(name,args,token)
    assert.ok(code(refused),name+' must refuse')
    assert.equal(refused.result?.structuredContent,undefined)
-   const row=(await auditRows(path=>h.api(path))).find(row=>row.id===decision(refused)?.id)??(await auditRows(path=>h.api(path))).at(-1)
-   assert.equal(row.resource,null,name+' refusal must disclose no target')
+   const added=(await auditRows(path=>h.api(path))).filter(row=>!before.has(row.id))
+   assert.equal(added.length,1);assert.equal(added[0].resource,null,name+' refusal must disclose no target')
   }
   await h.api('/api/barrow/proposal-grants/revoke',{grantId:grant.grant.id,revision:grant.grant.revision,reason:'Owner revoked the proposal target grant.'})
-  const revoked=await call('barrow.proposals.read',{id:nativeProposal.id},draftGrant.token)
-  assert.ok(code(revoked));assert.equal((await auditRows(path=>h.api(path))).at(-1).resource,null)
+  const revoked=await call('barrow.proposals.read',{id:nativeProposal.id},grant.token)
+  assert.equal(revoked.status,401);assert.equal(revoked.result?.structuredContent,undefined)
+  assert.equal(JSON.stringify(revoked).includes(nativeProposal.id),false)
   console.log('PROBE BASE-AGENT-009 refusals: missing, private, foreign and revoked native records -> no content and null audit target')
   await captureAgents({request:(url,init)=>h.raw(new URL(url).pathname+new URL(url).search,init),origin:h.origin,cookie:h.cookie,summaryTargets,prefix:'targets-'})
- } finally {await h.close()}
+ } catch(error) {console.error('Native target proof: '+error.message);throw error}
+ finally {await h.close()}
 }
