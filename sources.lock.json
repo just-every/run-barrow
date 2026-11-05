@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ac732b5cb40a12064d3d0d49b3aad405d6770f1c446af8e8e349b6e205c684a6",
+      "sha256": "b7ef7f1d6cb876a331dc050f38831b08a2ddf358fe55babd80ffbdabe9db3354",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "c8fad530daeeade5debb32bc57a9ae8db1963eb7ced5e85bec46e698c9369a5f",
+      "sha256": "520299254354938ef94c8113b07777c809db94458f03e78e189237e4dcd1acf9",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -5819,7 +5819,7 @@
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
-      "sha256": "5349a4b750228f00259294550f4fed3bef9b5fa545a1a22fdbb9436044804e34",
+      "sha256": "7092ac5717269660cc9d1007337bd0c63e941928b11a135a66997327a5dd0f29",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
