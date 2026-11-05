@@ -101,7 +101,11 @@ export default async function({request,origin,cookie,tool,database}) {
 /** Run the native retry proof while each supported company policy is active. */
 export async function afterStep(context) {
  if(context.step.id==='proposal_read'&&['autonomous','held'].includes(context.phase)) {
-  try {await proveWriteRecovery(context);await proveWriteRetention(context.phase)}
+  try {
+   await proveWriteRecovery(context)
+   await proveWriteRecovery(context,{business:true})
+   await proveWriteRetention(context.phase)
+  }
   catch(error) {console.error('WRITE RECOVERY '+context.phase+' failed: '+error.message);throw error}
  }
 }

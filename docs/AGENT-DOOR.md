@@ -66,6 +66,27 @@ complete wider tool and role coverage, and custody across coordinated clients
 remain owed by BASE-AGENT-012.
 
 
+### Signed Business recovery
+
+The same recovery helper also calls the supported verifier's `tool()` hook.
+The verifier supplies a fresh signed Business credential and JSON-RPC id for
+each request, preserving the same agent, sponsor, consent and client identity.
+No signing key or credential minter enters Barrow's fixture. Under autonomous
+and held policies, the client discards the first completed answer, then recovers
+the exact native draft or proposal and its receipt with identical arguments.
+The proposal proof includes a withdrawn proposal's next numbered revision.
+Native person edits, changed arguments and changed expected revisions retain
+the same recovery and conflict rules as local credentials.
+
+Pause withholds every saved signed outcome. Resuming recovers the originals;
+revoking the native proposal grant refuses all its successful keys without a
+new proposal revision or preparation audit. Native state, proposal history and
+paginated audit reads reconcile these effects. The existing raw local transport
+still sends overlapping identical requests for both tools; signed hook calls
+remain sequential because the verifier's final audit check imposes response
+completion order. This proof establishes recovery across fresh signed tokens,
+not across an elapsed retention horizon or coordinated independent clients.
+
 ### Retention and credential expiry
 
 A completed preparation outcome is retained for thirty days from completion.

@@ -5,7 +5,12 @@ const error=answer=>answer.result?._meta?.['com.runeditrun/error']
 const receipt=answer=>answer.result?._meta?.['com.runeditrun/receipt']
 
 /** Real MCP requests and native person reads; no retained-call or table writes. */
-export async function proveWriteRecovery({request,origin,cookie,phase}) {
+export async function proveWriteRecovery({request,origin,cookie,phase,tool},{business=false}={}) {
+ const admission=business?'signed Business':'local credential'
+ // The signed verifier orders its own audits by response completion. Keep
+ // overlapping requests on the raw native transport, where the existing
+ // assertions reconcile their effects and audits without imposing that order.
+ const modes=business?['lost']:['lost','concurrent']
  const headers={Cookie:cookie,Origin:origin,'Content-Type':'application/json'}
  async function native(path,body) {
   const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
@@ -13,12 +18,12 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
   return response.json()
  }
  const command=async(type,payload)=>(await native('/api/barrow/commands',{type,payload})).result
- const accountId='synthetic-barrow-'+(phase==='autonomous'?12:13)
+ const accountId='synthetic-barrow-'+(phase==='autonomous'?12:13)+(business?'-business':'')
  const directory=await native('/api/barrow/state')
  const source=directory.accounts.find(row=>row.id==='juniper')
  let account=await command('account.save',{id:accountId,value:{...source.value,name:accountId,email:accountId+'@'+'example.invalid'},
   duplicateReviews:directory.accounts.filter(row=>row.value.pierCustomerId===source.value.pierCustomerId).map(({id,revision})=>({id,revision}))})
- const draftGrant=await native('/api/barrow/agent-token',{})
+ const draftGrant=business?{}:await native('/api/barrow/agent-token',{})
  const rpcIds=new Set()
  async function send(name,args,token) {
   const id=randomUUID()
@@ -28,6 +33,17 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
   return {response,id}
  }
  async function call(name,args,token) {
+  if(business) {
+   // The supported verifier supplies and renews the signed credential. Each
+   // call uses its real MCP transport and a new JSON-RPC id; no signer enters
+   // this native fixture.
+   const answer=await tool(name,args)
+   assert.equal(answer.status,200,'Signed recovery MCP transport '+name)
+   assert.ok(answer.message.id!==undefined)
+   assert.ok(!rpcIds.has(answer.message.id),'Signed retries need new JSON-RPC ids')
+   rpcIds.add(answer.message.id)
+   return answer.message
+  }
   const {response,id}=await send(name,args,token)
   assert.equal(response.status,200,'Recovery MCP transport '+name)
   const answer=await response.json()
@@ -64,11 +80,16 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
    assert.equal(error(missing)?.code,'idempotency_key_required')
    assert.equal(missing.result.structuredContent,undefined)
    assert.deepEqual(await snapshot(),before,'Missing keys cannot prepare a native record')
-   const {response:lost}=await send(name,args,token)
-   assert.equal(lost.status,200)
-   // The server has completed the mutation. Consume and discard every byte;
-   // recovery never sees or parses the first result or its JSON-RPC id.
-   await lost.arrayBuffer()
+   if(business) {
+    // Discard the verifier's completed answer at the client boundary. Native
+    // reads below establish the effect before any result is recovered.
+    await call(name,args)
+   } else {
+    const {response:lost}=await send(name,args,token)
+    assert.equal(lost.status,200)
+    // Consume and discard every byte without parsing the first response.
+    await lost.arrayBuffer()
+   }
   } else {
    answers=await Promise.all([call(name,args,token),call(name,args,token)])
    assert.ok(answers.some(answer=>!error(answer)),'At least one concurrent request must complete')
@@ -104,7 +125,7 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
    assert.equal(refused.result.structuredContent,undefined)
   }
   assert.deepEqual(await snapshot(),after,'Recovery, conflicts and later retries leave the native effect unchanged')
-  console.log('PROBE BASE-AGENT-012 '+phase+' '+name+' '+mode+(args.id?' proposal revision':'')+': MCP new JSON-RPC ids and one key -> one native revision, one preparation audit, saved retries and changed-input conflicts')
+  console.log('PROBE BASE-AGENT-012 '+phase+' '+admission+' '+name+' '+mode+(args.id?' proposal revision':'')+': MCP new JSON-RPC ids and one key -> one native revision, one preparation audit, saved retries and changed-input conflicts')
   return {name,token,args,saved,receipt:receipt(recovered)}
  }
  async function replayAfterSourceChange(items,currentRevision) {
@@ -118,7 +139,7 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
    assert.equal(changed.result.structuredContent,undefined)
   }
   assert.deepEqual(await snapshot(),before,'Replay after a person edits the source cannot prepare another native revision')
-  console.log('PROBE BASE-AGENT-012 '+phase+' '+items[0].name+' source edit: successful keys keep their saved outcome and receipt; a changed expected revision conflicts without preparation')
+  console.log('PROBE BASE-AGENT-012 '+phase+' '+admission+' '+items[0].name+' source edit: successful keys keep their saved outcome and receipt; a changed expected revision conflicts without preparation')
  }
  async function stale(name,args,token,currentRevision) {
   const before=await snapshot(),answer=await call(name,{...args,idempotency_key:randomUUID()},token)
@@ -126,10 +147,10 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
   assert.equal(error(answer).current_revision,currentRevision)
   assert.equal(answer.result.structuredContent,undefined)
   assert.deepEqual(await snapshot(),before,'Stale expected revision cannot prepare another record')
-  console.log('PROBE BASE-AGENT-012 '+phase+' '+name+' stale: native person changes source revision -> revision_conflict with the current revision and zero preparation')
+  console.log('PROBE BASE-AGENT-012 '+phase+' '+admission+' '+name+' stale: native person changes source revision -> revision_conflict with the current revision and zero preparation')
  }
  const drafts=[]
- for(const mode of ['lost','concurrent'])drafts.push(await once({name:'barrow.orders.prepare',token:draftGrant.token,mode,
+ for(const mode of modes)drafts.push(await once({name:'barrow.orders.prepare',token:draftGrant.token,mode,
   args:{accountId,lines:[{sku:'LINEN',quantity:2}],reference:'synthetic-barrow-'+phase+'-'+mode,idempotency_key:randomUUID(),expected_revision:account.revision},changed:{lines:[{sku:'LINEN',quantity:3}]}}))
  const oldRevision=account.revision
  account=await command('account.save',{id:accountId,revision:account.revision,value:{...account.value,termsDays:31}})
@@ -145,7 +166,7 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
  const proposalArgs={grantId:proposalGrant.grant.id,orderId:original.id,model:'synthetic-barrow-12',reportedCostCents:0,
   candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:2}]}],expected_revision:original.revision}
  const proposals=[]
- for(const mode of ['lost','concurrent']) {
+ for(const mode of modes) {
   const first=await once({name:'barrow.proposals.submit',token:proposalGrant.token,mode,
    args:{...proposalArgs,runId:'synthetic-barrow-'+phase+'-'+mode,idempotency_key:randomUUID()},changed:{candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:1}]}]}})
   proposals.push(first)
@@ -160,5 +181,31 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
  assert.notEqual(revised.revision,original.revision)
  await replayAfterSourceChange(proposals,revised.revision)
  await stale('barrow.proposals.submit',{...proposalArgs,runId:'synthetic-barrow-stale'},proposalGrant.token,revised.revision)
- console.log('NATIVE PASS '+phase+' lost-response and concurrent recovery for both existing mutating tools; current-revision conflicts leave native preparation unchanged')
+ if(business) {
+  const before=await snapshot()
+  const pause=async paused=>{
+   const response=await request(origin+'/agents/api/pause',{method:'POST',headers,body:JSON.stringify({paused})})
+   assert.equal(response.status,200);await response.body?.cancel()
+  }
+  await pause(true)
+  try {
+   for(const item of [...drafts,...proposals]) {
+    const refused=await call(item.name,item.args)
+    assert.equal(error(refused)?.code,'agents_paused')
+    assert.equal(refused.result.structuredContent,undefined)
+   }
+   assert.deepEqual(await snapshot(),before,'Pause withholds signed saved outcomes without another effect')
+  } finally {await pause(false)}
+  for(const item of [...drafts,...proposals])assert.deepEqual(completed(await call(item.name,item.args)),item.saved)
+  assert.deepEqual(await snapshot(),before,'Resuming signed retries preserves the original preparations')
+  await native('/api/barrow/proposal-grants/revoke',{grantId:proposalGrant.grant.id,revision:proposalGrant.grant.revision,reason:'Owner withdraws proposal authority before a signed Business replay.'})
+  for(const item of proposals) {
+   const refused=await call(item.name,item.args)
+   assert.ok(['not_found','proposal_revoked'].includes(error(refused)?.code),'Signed replay must recheck the native proposal grant')
+   assert.equal(refused.result.structuredContent,undefined)
+  }
+  assert.deepEqual(await snapshot(),{...before,proposals:before.proposals.map(row=>({...row,grantActive:false}))},'Revocation cannot expose or repeat a signed saved proposal')
+  console.log('PROBE BASE-AGENT-012 '+phase+' signed authority: Pause withholds saved drafts and proposals; resume recovers originals; revoked native proposal grant refuses every successful key with no new preparation')
+ }
+ console.log('NATIVE PASS '+phase+' '+admission+(business?' renewed-credential recovery':' lost-response and concurrent recovery')+' for both existing mutating tools; current-revision conflicts leave native preparation unchanged')
 }
