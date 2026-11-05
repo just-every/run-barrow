@@ -28,7 +28,7 @@ export default async function({phase,request,origin,cookie}) {
  const inactiveHeaders={Cookie:session.cookie,Origin:origin}
  const signedOut=await request(origin+'/auth/session',{headers:inactiveHeaders})
  assert.equal(signedOut.status,401)
- assert.equal((await signedOut.json()).error,'unauthenticated')
+ assert.deepEqual(await signedOut.json(),{error:'unauthenticated'})
  const refused=await request(origin+'/agents/api/state',{headers:inactiveHeaders})
  assert.equal(refused.status,401)
  assert.deepEqual(await refused.json(),{code:'unauthenticated'})
