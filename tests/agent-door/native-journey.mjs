@@ -4,6 +4,7 @@ import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 import {proveWriteRecovery} from './write-recovery.mjs'
+import {proveWriteRetention} from './write-retention.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
@@ -93,7 +94,7 @@ export default async function({request,origin,cookie,tool,database}) {
 /** Run the native retry proof while each supported company policy is active. */
 export async function afterStep(context) {
  if(context.step.id==='proposal_read'&&['autonomous','held'].includes(context.phase)) {
-  try {await proveWriteRecovery(context)}
+  try {await proveWriteRecovery(context);await proveWriteRetention(context.phase)}
   catch(error) {console.error('WRITE RECOVERY '+context.phase+' failed: '+error.message);throw error}
  }
 }
