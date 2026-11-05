@@ -25,20 +25,19 @@ export async function captureAgents({request,origin,cookie,summaryTargets=new Ma
   }
   const page=await context.newPage()
   async function capture(name,path) {
-   for(const width of directory?[1440,390]:[1440]) {
+   for(const width of [1440,390]) {
     await page.setViewportSize({width,height:1000})
     await page.goto(origin+path)
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
     if(width===1440) {
-     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
      const id=path.split('/').at(-1),target=summaryTargets.get(id)
      if(target)assert.ok((await page.locator('[data-approval-summary]').innerText()).includes(target.id),'Approval renders the resolved native target')
     }
-    if(width===1440){
-     const {default:AxeBuilder}=await import('@axe-core/playwright')
-     const result=await new AxeBuilder({page}).analyze()
-     assert.deepEqual(result.violations.filter(item=>['serious','critical'].includes(item.impact)).map(item=>({id:item.id,nodes:item.nodes.map(node=>node.target)})),[])
-     await inspect?.(page,path)
-    }
+    const {default:AxeBuilder}=await import('@axe-core/playwright')
+    const result=await new AxeBuilder({page}).analyze()
+    assert.deepEqual(result.violations.filter(item=>['serious','critical'].includes(item.impact)).map(item=>({id:item.id,nodes:item.nodes.map(node=>node.target)})),[])
+    console.log('PROBE BASE-AGENT-009 R7: '+prefix+name+' width='+width+' overflow=pass serious/critical-axe=0 evidence='+(directory?'set':'unset'))
+    if(width===1440)await inspect?.(page,path)
     if(directory)await page.screenshot({path:directory+'/'+prefix+name+'-'+width+'.png',fullPage:true})
    }
   }

@@ -5831,7 +5831,7 @@
       "executable": false
     },
     "tests/agent-door/screens.mjs": {
-      "sha256": "5c9275675326c0dd32fceb45f0f918ba8ce03fea12201d4028aee7dddab83dd1",
+      "sha256": "9de8f81b4a36497b96b9ec04575f8d2439da6f4d1a715733e80c4d104ff091ee",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
