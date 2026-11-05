@@ -164,7 +164,7 @@ export async function proveTargetPolicies() {
   assert.equal(revoked.status,401);assert.equal(revoked.result?.structuredContent,undefined)
   assert.equal(JSON.stringify(revoked).includes(nativeProposal.id),false)
   console.log('PROBE BASE-AGENT-009 refusals: missing, private, foreign and revoked native records -> no content and null audit target')
-  await proveAuditManagement({h,call,policy,account,token:draftGrant.token,summaryTargets})
+  await proveAuditManagement({h,call,policy,account,token:draftGrant.token,summaryTargets,auditRows})
   await captureAgents({request:(url,init)=>h.raw(new URL(url).pathname+new URL(url).search,init),origin:h.origin,cookie:h.cookie,summaryTargets,prefix:'targets-'})
  } catch(error) {console.error('Native target proof: '+error.message);throw error}
  finally {await h.close()}

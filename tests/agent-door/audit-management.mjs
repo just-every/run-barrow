@@ -1,10 +1,9 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
-import {auditRows} from './audit-targets.mjs'
 import {captureAgents} from './screens.mjs'
 
 /** Audit management uses real prepared drafts and the current person's HTTP doors. */
-export async function proveAuditManagement({h,call,policy,account,token,summaryTargets}) {
+export async function proveAuditManagement({h,call,policy,account,token,summaryTargets,auditRows}) {
  const trace='00-12345678901234567890123456789012-1234567890123456-01'
  const prepare=()=>({accountId:account.id,lines:[{sku:'LINEN',quantity:2}],idempotency_key:randomUUID()})
  await policy('review')

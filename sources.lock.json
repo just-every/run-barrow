@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "485e00bc635a3776be2ad8f287bbd07ba53fdac4b19d6225953dcfce11065ff0",
+      "sha256": "f04682549304e08d7480c5282156d96f3e764f4709a7d37e650cc1910c30f1d1",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "5b5af91d83b550f352de0d82fc764c4aa749fb6b99536751d39a05072d73f169",
+      "sha256": "fb1b4aac261b05ea2de327a8948e9fc8f81f1d2290bd9dbfdbf09e4f629c01fa",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -5802,8 +5802,12 @@
       "sha256": "a57501fa2c3518def4dc2f827c84b8e73c718246d989236e8aab03641568dd42",
       "executable": false
     },
+    "tests/agent-door/audit-management.mjs": {
+      "sha256": "2bca6bdce58f52a7a04c4b052b374f002597204e7f8f99171cbf8c6a9f8db3b7",
+      "executable": false
+    },
     "tests/agent-door/audit-targets.mjs": {
-      "sha256": "5617ca2a27542f4bc1324819e2c62457f6df8f8af20ebbc57e9c17e8ad6e23c7",
+      "sha256": "f16d080f2a308abc855a17e6662a15152c6fc2407be103321905987c91dec02e",
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
@@ -5819,7 +5823,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "c7d4fcfc680a8404942e1d68dd5f8407713cef775d34dba2ba38dfe11fb32e07",
+      "sha256": "fb47166b1e0fb182948817a3b42d80d2300aa530ac909d31e5493964ad88d0bd",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {

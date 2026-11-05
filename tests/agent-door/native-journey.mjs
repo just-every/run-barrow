@@ -72,7 +72,7 @@ export default async function({request,origin,cookie,tool,database}) {
  const recognizable=Buffer.from(JSON.stringify({alg:'ES256',typ:'at+jwt',kid:'unknown'})).toString('base64url')+'.e30.invalid'
  const failedBusiness=await local('tools/list',{},recognizable);console.log('NATIVE recognizable Business refusal HTTP '+failedBusiness.status);assert.equal(failedBusiness.status,401)
  const admin=takeLocalAdmin(),adminHeaders={Cookie:admin.cookie,Origin:origin,'Content-Type':'application/json'}
- for(const path of ['/agents/api/state','/agents/api/audit']) {
+ for(const path of ['/agents/api/state','/agents/api/audit','/api/barrow/agent-audit/export']) {
   const response=await request(origin+path,{headers:adminHeaders});assert.equal(response.status,403);await response.body?.cancel()
  }
  const adminGrantResponse=await request(origin+'/api/barrow/agent-token',{method:'POST',headers:adminHeaders,body:'{}'})
