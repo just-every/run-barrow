@@ -7,6 +7,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 const exec=promisify(execFile);
 import { installation,stock,accountValue,archive,restore } from './harness.mjs';
+import { proveDailyItemLimits } from './agent-limits.mjs';
 
 test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
  const pier=await installation({pier:true});t.after(()=>pier.close());
@@ -30,6 +31,7 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   const state=await pier.api('/api/pier/state');assert.equal(state.orders.length,0);
  });
  await t.test('agents prepare only and persons approve with recorded identity',async()=>{
+  await proveDailyItemLimits({pier,products});
   grant=await h.api('/api/barrow/agent-token',{});
   const agent={headers:{authorization:`Bearer ${grant.token}`},as:''};
   const directory=await mkdtemp(join(tmpdir(),'barrow-commands-'));let draft;

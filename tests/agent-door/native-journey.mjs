@@ -3,6 +3,7 @@ import {randomUUID} from 'node:crypto'
 import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
+import {proveRequestCapacity} from '../api/agent-limits.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
@@ -87,4 +88,13 @@ export default async function({request,origin,cookie,tool,database}) {
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
  await proveCustodyErasure({request,origin,cookie,database})
  await captureAgents({request,origin,cookie})
+}
+
+const capacityPhases=new Set()
+export async function beforeStep({phase,request,origin,cookie}) {
+ if(['autonomous','held'].includes(phase)&&!capacityPhases.has(phase)){
+  await proveRequestCapacity({request,origin,cookie})
+  capacityPhases.add(phase)
+  console.log('NATIVE PASS discovered request capacity under '+phase+' policy')
+ }
 }
