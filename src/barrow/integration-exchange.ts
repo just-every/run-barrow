@@ -10,20 +10,23 @@ import { applyCatalogMaintenance } from './catalog-maintenance'
 import { catalogWorkbook } from './catalog-maintenance-workbook'
 import { saveVariantAttributes, variantAttributes } from './variant-attributes'
 import { locationCommand, locationValue, type LocationKind } from './locations'
-import { importPriceBook, priceBookValue } from './price-books'
-import { quoteCommand } from './quotes'
+import { importPriceBook, priceBookChange } from './price-books'
+import { quoteCommand, quoteExchangeBasis } from './quotes'
 import { dispatchQuoteMail } from './quote-mail'
 import { catalogue } from './pier'
-import { prepareLines } from './unit-lines'
 import { requireUsageTerms } from './usage-terms'
 import { integrationAdmission, integrationGrantActor, integrationId, type IntegrationScope } from './integration-grants'
-import { fail, supplierDate, text, type Actor } from './model'
+import { fail, text, type Actor } from './model'
 
 const entities=['products','variants','accounts','locations','price-books','quotes'] as const
 type Entity=typeof entities[number]
 type Proposal={version:1;entity:Entity;accountId:string;accountRevision:string;currency:string;grantId:string;grantRevision:string;expiresAt:number;preparedBy:string;payload:any;basis:unknown}
-export type ExchangeAdmission={credential:Actor;accountRevision:string;fingerprint:string;entity:Entity;reason:string}
+export type ExchangeAdmission={credential:Actor;accountRevision:string;fingerprint:string;entity:Entity;reason:string;basis:unknown}
 const canonical=(value:any):string=>JSON.stringify(value&&typeof value==='object'?Array.isArray(value)?value.map(item=>JSON.parse(canonical(item))):Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>[key,JSON.parse(canonical(value[key]))])):value)
+/** Recheck the calculation used by the native effect, after exchange admission has validated the proposal. */
+export function assertExchangeBasis(actor:Actor,basis:unknown) {
+ if(actor.exchange&&canonical(actor.exchange.basis)!==canonical(basis))fail('CHANGED','The reviewed commercial effect changed. Prepare and review it again.')
+}
 async function fingerprint(env:Bindings,proposal:Proposal) {
  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.SESSION_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign'])
  return Array.from(new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(canonical(proposal)))),byte=>byte.toString(16).padStart(2,'0')).join('')
@@ -91,21 +94,14 @@ async function prepare(env:Bindings,credential:Actor,p:any) {
  } else if(entity==='price-books') {
   fields(payload,['accountId','revision','csv'])
   if(payload.accountId!==accountId)fail('FORBIDDEN','The price book must belong to the grant’s account.',403)
-  await priceBookValue(selected,payload)
+  basis=(await priceBookChange(selected,payload)).basis
  } else {
-  fields(payload,['type','accountId','quoteId','revision','lines','note','termsDays','shipping','validUntil'])
+  fields(payload,['type','accountId','quoteId','revision','lines','note','termsDays','shipping','validUntil','shippingMethodId','shippingWarehouse','ownCarrierAccount','freightQuote'])
   if(!['quote.request','quote.propose'].includes(payload.type)||payload.accountId!==accountId)fail('FORBIDDEN','Prepare a request or revision for the grant’s account only.',403)
-  if(payload.type==='quote.propose') {
-   integrationId(payload.quoteId,'Quote ID')
-   const prior=await env.DB.prepare('SELECT revision FROM bw_quotes WHERE id=? AND account_id=?').bind(payload.quoteId,accountId).first<{revision:string}>()
-   if(!prior)fail('NOT_FOUND','Quote not found.',404)
-   if(payload.revision!==prior.revision)fail('CHANGED','Refresh the quote before preparing a revision.')
-   basis=prior.revision
-  }
+  if(payload.type==='quote.propose')integrationId(payload.quoteId,'Quote ID')
   if(!Array.isArray(payload.lines)||!payload.lines.length||payload.lines.length>100)fail('LINES','Choose one to 100 quote lines.',400)
-  const offers=await catalogue(env,selected)
-  const lines=prepareLines(payload.lines,offers.items,supplierDate(await now()),false)
-  basis={revision:basis,lines}
+  // Resolve an existing quote's profile as the grant issuer only inside the scoped, read-only calculator.
+  basis=await quoteExchangeBasis(env,{...credential,agent:false},selected,payload)
  }
  const proposal:Proposal={version:1,entity,accountId,accountRevision:selected.revision,currency:p.currency,grantId:grant.id,grantRevision:grant.revision,expiresAt:grant.expiresAt,preparedBy:'agent:'+grant.id,payload,basis}
  return {proposal,fingerprint:await fingerprint(env,proposal)}
@@ -132,7 +128,7 @@ export async function applyIntegrationExchange(request:Request,env:Bindings,acto
  const reason=text(p.reason,'Exchange approval reason',1000)
  if(await env.DB.prepare('SELECT 1 FROM bw_audit WHERE id=?').bind(prepared.fingerprint).first())fail('ALREADY_APPLIED','This exact proposal was already applied; no second change is made.')
  const {entity,payload,accountRevision}=prepared.proposal
- const person:Actor={...actor,exchange:{credential,accountRevision,fingerprint:prepared.fingerprint,entity,reason}}
+ const person:Actor={...actor,exchange:{credential,accountRevision,fingerprint:prepared.fingerprint,entity,reason,basis:prepared.proposal.basis}}
  await requireUsageTerms(env,person,prepared.proposal.accountId)
  let result:unknown
  if(entity==='accounts')result=await accountCommand(request,env,person,'account.save',{...payload,reason})

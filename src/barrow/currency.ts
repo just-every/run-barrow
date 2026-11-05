@@ -6,6 +6,11 @@ export function effectiveBook(account:Account,at:Date):Account {
  const revision=account.value.priceRevisions?.filter(row=>row.effectiveFrom<=supplierDate(at)).at(-1)
  return revision?{...account,value:{...account.value,prices:revision.prices}}:account
 }
+/** The active commercial source can change at a calendar boundary without a saved revision. */
+export function commercialBookBasis(account:Account,at:Date) {
+ const revision=account.value.priceRevisions?.filter(row=>row.effectiveFrom<=supplierDate(at)).at(-1)
+ return {effectiveFrom:revision?.effectiveFrom??null,currency:account.value.currency??'USD',prices:effectiveBook(account,at).value.prices}
+}
 export function conversionSnapshot(account:Account,at:Date):UsdConversion|undefined {
  if((account.value.currency??'USD')==='USD')return {asOf:supplierDate(at),numerator:1,denominator:1,source:'Original USD transaction'}
  const basis=account.value.usdConversion
