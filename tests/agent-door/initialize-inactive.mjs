@@ -1,14 +1,20 @@
 import assert from 'node:assert/strict'
 
 let identity
+let nativeSession
 export function inactiveSponsor() {
  assert.ok(identity,'The negative sponsor must complete native initialization')
  return {...identity}
+}
+export function inactiveSponsorSession() {
+ assert.ok(nativeSession,'The negative sponsor must have a confirmed native session')
+ return {...nativeSession}
 }
 
 /** Confirm the native invitation created by the signed Business roster. */
 export default async function({request,origin,email,sub,mail}) {
  identity=undefined
+ nativeSession=undefined
  const messages=await mail.read(),message=messages.at(-1)
  const match=message?.text.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)
  const link=new URL(match?.[0]??message?.html.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)?.[1]?.replaceAll('&amp;','&'))
@@ -25,10 +31,13 @@ export default async function({request,origin,email,sub,mail}) {
  assert.equal(operator.email,email)
  assert.equal(operator.status,'active')
  assert.equal(operator.role,'admin')
+ assert.equal(typeof operator.id,'string')
+ assert.ok(operator.id)
  // Paired installations derive this admission from the durable Business binding.
  const state=await request(origin+'/agents/api/state',{headers})
  assert.equal(state.status,200)
  await state.body?.cancel()
  identity={sub,email:operator.email}
+ nativeSession={operatorId:operator.id,cookie}
  return response
 }
