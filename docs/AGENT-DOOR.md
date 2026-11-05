@@ -29,3 +29,34 @@ This adoption continues the existing native draft boundary. The ct surface at `1
 The released rer 0.2.96 CLI runs the CORE journey in the dedicated agent-door Verify shard through normal rer verify. Runtime agent-door and Business settings source is recorded at Base 8b925fa5ffaa577df9f2e4ebab6ede8af5155baa. The harness checks unknown subjects and changed token email; signed inactive/allow-list-excluded fixture states remain undeclared. Native deactivation and local credential revocation are covered by the specialist journey. Queued continuation, mail, timed history and multiple-sponsor jobs remain outside this CORE adoption.
 
 The connected Business pulls bounded decision projections through the signed `/api/rer/agent-decisions` door. Those projections are external custody: erasure-aware tombstone pulls and the Business authority, stop and unreachable rules purge them. The relay holds value-free decision ids and the installation Business id. The adoption backfill covers existing consented MCP audits under the current Business; it cannot reconstruct older pairing authority, and Business drops pre-join history.
+
+## Recovering native preparation writes
+
+Both `barrow.orders.prepare` and `barrow.proposals.submit` require a stable
+`idempotency_key`. Keep the complete arguments, including any `expected_revision`,
+unchanged when retrying an uncertain response. A retry uses a new JSON-RPC id and
+returns the recorded preparation outcome. Concurrent identical requests can
+return `call_in_progress` while the first execution is active; retry that same
+key and payload to recover its completed result. Never choose a fresh key just
+because the response was lost. A changed payload or expected revision under a
+successful key returns `idempotency_conflict` without another preparation.
+
+For draft preparation, `expected_revision` names the account revision read from
+`barrow.accounts.read`. For proposal submission it names the original order
+revision from `barrow.orders.read`. With a fresh key, an outdated revision returns
+`revision_conflict` with `current_revision` and no preparation. Read current
+sources and review them before starting newly keyed work. Current policy, Pause,
+sponsor, scope and native proposal-grant checks still apply before replay; a
+saved result grants no new authority.
+
+The native journey's `afterStep` hook runs
+`tests/agent-door/write-recovery.mjs` under autonomous and held policies. It gets
+credentials and proposal fixtures through the owner's existing HTTP doors,
+discards completed MCP response bodies, and reconciles recovered results with
+native state, proposal history and paginated preparation audit. Concurrent
+requests must leave one draft or proposal revision and one native preparation
+audit effect. Native person edits supply the stale account and original-order
+revision cases. This proof does not qualify the explicit 24-hour retention and
+expiry boundary, long-running job handles and status isolation, complete tool
+and role coverage, or custody across coordinated clients. Those remain owed by
+BASE-AGENT-012.
