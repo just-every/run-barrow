@@ -1803,7 +1803,7 @@
       "executable": false
     },
     "src/barrow/agent-door/index.ts": {
-      "sha256": "771bc8333b4ec10948eb31c3a1b22cd6cad6fefa999e2150a160dc8f1e942514",
+      "sha256": "549ed9fdaa063d8bc13abb0ad75dabfa56c70621b802a26c299474c07873cad2",
       "executable": false
     },
     "src/barrow/agent-door/native.ts": {
@@ -1823,7 +1823,7 @@
       "executable": false
     },
     "src/barrow/agent-door/tools.ts": {
-      "sha256": "9512c9f8745b3a1314281459f855f141c8b32b802a95777b25bc54d7e87074b1",
+      "sha256": "fa66152b45b0361b018a5db011b357e84f34d8ad118e19c5b436f72d988a1ea5",
       "executable": false
     },
     "src/barrow/agent-door/trust.ts": {
@@ -1839,7 +1839,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "132e9961be2a07a68995cbb1a226298261a32ff70b62512b46d5312040136226",
+      "sha256": "6439999e1d6f9560428234cce90e6986771598b09b6888a2ad79dd565a844f6f",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -2411,7 +2411,7 @@
       "executable": false
     },
     "src/barrow/orders.ts": {
-      "sha256": "9e1302689fccccf10c1cf0618c267a77f28fcb8e3a832fcfd1e79e3c40ce8d19",
+      "sha256": "547c44de30557fcc20b0887d04a784e3fda046f65a5d0d613905b7439646fad6",
       "executable": false
     },
     "src/barrow/payment-promises.ts": {
@@ -5667,7 +5667,7 @@
       "executable": false
     },
     "src/server.ts": {
-      "sha256": "149949fdbbc70094148126d0e8b5471e49fdf423fc71b3dec0a96116f22a16d2",
+      "sha256": "a4ff436b56026b1a37c11acd747cce9e95d59f8d5dd9972130b3adb33df80840",
       "executable": false
     },
     "src/site/docs/content.ts": {
@@ -6167,7 +6167,7 @@
       "executable": false
     },
     "tests/api/worker.ts": {
-      "sha256": "336e3ad0325e1824c7037f836194591d44830d5525d4e43c47335b987c107cc8",
+      "sha256": "85143b1cfc2aa2c405131a0feb70aa825c892f7e33d373698fb55972da2cc3a8",
       "executable": false
     },
     "tests/eastern-day.mjs": {

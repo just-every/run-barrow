@@ -158,6 +158,12 @@ export async function orderCommand(env:Bindings,actor:Actor,type:string,p:any,ba
  if(type==='order.prepare') return prepareOrder(env,actor,p,undefined,undefined,basis)
  requirePerson(actor)
  let order=await readOrder(env.DB,actor,text(p.orderId,'Order'))
+ if(type==='order.discard') {
+  requireSupplier(actor)
+  if(actor.staff)fail('FORBIDDEN','Draft reversal requires the supplier owner or administrator.',403)
+  if(order.status!=='draft'||order.revision!==p.revision)fail('CHANGED','Only the unchanged, unsubmitted draft can be undone.')
+  return save(env,actor,{...order,status:'cancelled'},'order.draft-discarded',[], 'A person undid an unsubmitted draft; no stock, payment or submitted history changed.')
+ }
  if(type==='order.sellthrough-contact') {
   requireSupplier(actor)
   if(actor.staff&&!['rep','sales-manager'].includes(actor.staff.role))fail('FORBIDDEN','Only sales staff may review contact cadence.',403)

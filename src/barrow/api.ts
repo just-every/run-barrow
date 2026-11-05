@@ -1,3 +1,4 @@
+import { agentAuditExport } from './agent-door/audit-export.ts'
 import { agentHttp } from './agent-door/http.ts'
 import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
@@ -141,6 +142,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   })
   if(actor.integration&&!path.startsWith('/api/barrow/v1/'))fail('FORBIDDEN','Use the versioned integration API within the granted scopes.',403)
   if(actor.agent&&!actor.integration)return await agentHttp(request,env,actor)
+  if(path==='/api/barrow/agent-audit/export')return agentAuditExport(request,env)
   actor.staff=await readStaffGrant(env.DB,actor)
   if(!path.startsWith('/api/barrow/v1/'))await staffRequestGate(env,actor,path,request.method)
   await bootstrapLegacyCompanyMembers(env.DB)
@@ -418,7 +420,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
    else if(['terms.publish','terms.assign'].includes(body.type)) result=await salesTermsCommand(env,actor,body.type,body.payload)
    else if(['account.save','account.invite','account.erase'].includes(body.type)) result=await accountCommand(request,env,actor,body.type,body.payload)
-   else if(['order.sellthrough-contact','order.sellthrough-preview','order.sellthrough','order.sellthrough-outcomes','order.prepare','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
+   else if(['order.sellthrough-contact','order.sellthrough-preview','order.sellthrough','order.sellthrough-outcomes','order.prepare','order.discard','order.company-approve','order.submit','order.approve','order.refresh','order.cancel','order.attach','order.reorder-preview','order.reorder','order.stock-exception','order.withdraw','order.revise'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)
    else if(['substitution.preview','substitution.propose','substitution.accept','substitution.decline','substitution.execute'].includes(body.type)) result=await substitutionCommand(env,actor,body.type,body.payload)
    else if(body.type==='shipping.settings') result=await saveShipping(env,actor,body.payload)
    else if(['shipping.select','shipping.quote'].includes(body.type)) result=await orderCommand(env,actor,body.type,body.payload)

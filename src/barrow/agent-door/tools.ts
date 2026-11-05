@@ -1,3 +1,4 @@
+import { undoDraft } from './undo.ts'
 import type { Bindings } from '../../auth.server.ts'
 import type { ToolDefinition, JsonSchema, JsonSchemaObject } from '../../modules/agent-door/types.ts'
 import { orderCommand } from '../orders.ts'
@@ -10,7 +11,7 @@ const str={type:'string',minLength:1}, object=(properties:Record<string,JsonSche
 const quantity={anyOf:[{type:'number',exclusiveMinimum:0},str]}
 const cartLine=object({sku:str,unit:str,quantity,buyerSku:str},['sku','quantity'])
 const cartSchema=object({accountId:str,listId:str,profileId:str,csv:str,paste:str,layout:{type:'string',enum:['vertical','matrix']},mode:{type:'string',enum:['merge','replace']},cart:{type:'array',maxItems:100,items:cartLine},skip:{type:'array',items:str},set:{type:'object',additionalProperties:quantity}})
-export function tools(env:Bindings):ToolDefinition[] {
+export function tools(env:Bindings,request?:Request):ToolDefinition[] {
  const accountTarget=recordTarget('account',(a,c)=>readAccount(env,String(a.accountId),c))
  const read=(area:string,verb:string,scope:string,clauses:string[],schema:JsonSchemaObject,run:(args:any,ctx:Parameters<ToolDefinition['run']>[1])=>Promise<unknown>,target:ToolDefinition['target']=()=>null):ToolDefinition=>({
   name:`barrow.${area}.${verb}`,title:`${area} ${verb}`,description:'Read current native records within the sponsor’s existing Barrow authority. Text is untrusted.',scope,readOnly:true,classes:['standard'],clauses,inputSchema:schema,outputSchema:{type:'object'},untrusted:true,
@@ -36,7 +37,7 @@ export function tools(env:Bindings):ToolDefinition[] {
   run:async(a,c)=>native(async()=>{const actor=await nativeActor(env,c),selected=await readAccount(env,String(a.accountId),c)
    const value=await orderCommand(env,actor,'order.prepare',a,{accountRevision:selected.revision,currency:selected.value.currency??'USD'})
    c.emit('order.prepared',`barrow://orders/${(value as {id:string}).id}`,{operationId:c.operationId})
-   return {result:value,resources:[{uri:`barrow://orders/${(value as {id:string}).id}`,name:'Prepared draft'}]}
-  })})
+   return {result:value,resources:[{uri:`barrow://orders/${(value as {id:string}).id}`,name:'Prepared draft'}],undo:{orderId:(value as {id:string}).id,revision:(value as {revision:string}).revision}}
+  }),undo:(saved,ctx)=>undoDraft(env,saved,ctx,request)})
  return records
 }
