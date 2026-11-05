@@ -77,19 +77,20 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
   const after=await snapshot(),isDraft=name==='barrow.orders.prepare'
   const records=isDraft?after.orders:after.proposals,previous=isDraft?before.orders:before.proposals
   assert.equal(records.length,previous.length+1,'Exactly one native preparation record')
-  const created=records.filter(row=>!previous.some(prior=>prior.id===row.id))
+  const created=records.filter(row=>!previous.some(prior=>prior.id===row.id&&prior.number===row.number))
   assert.equal(created.length,1,'Retry cannot append a second proposal revision')
   if(isDraft) {
    assert.equal(created[0].status,'draft');assert.equal(created[0].reference,args.reference)
    assert.equal(created[0].pierOrderId,undefined)
   } else {
-   assert.equal(created[0].number,1);assert.equal(created[0].state,'proposed')
+   assert.equal(created[0].number,(args.number??0)+1);assert.equal(created[0].state,'proposed')
+   if(args.id)assert.equal(created[0].id,args.id,'A revised proposal keeps its native identity')
    assert.equal(created[0].runId,args.runId)
    assert.deepEqual(after.orders,before.orders,'Proposal preparation cannot change its original order')
   }
   const action=isDraft?'order.prepared':'proposal.submitted'
   assert.equal(after.preparations.filter(row=>row.action===action).length,before.preparations.filter(row=>row.action===action).length+1)
-  assert.equal(after.preparations.filter(row=>row.action===action&&row.subjectId===created[0].id).length,1,'Exactly one native preparation audit effect')
+  assert.equal(after.preparations.filter(row=>row.action===action&&row.subjectId===created[0].id&&row.revision===created[0].revision).length,1,'Exactly one native preparation audit effect')
   const recovered=await call(name,args,token),saved=completed(recovered)
   assert.equal(saved.id,created[0].id);assert.equal(saved.revision,created[0].revision)
   for(const [key,value] of Object.entries(saved))assert.deepEqual(created[0][key],value,'Saved outcome matches the native '+key)
@@ -103,7 +104,21 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
    assert.equal(refused.result.structuredContent,undefined)
   }
   assert.deepEqual(await snapshot(),after,'Recovery, conflicts and later retries leave the native effect unchanged')
-  console.log('PROBE BASE-AGENT-012 '+phase+' '+name+' '+mode+': MCP new JSON-RPC ids and one key -> one native revision, one preparation audit, saved retries and changed-input conflicts')
+  console.log('PROBE BASE-AGENT-012 '+phase+' '+name+' '+mode+(args.id?' proposal revision':'')+': MCP new JSON-RPC ids and one key -> one native revision, one preparation audit, saved retries and changed-input conflicts')
+  return {name,token,args,saved,receipt:receipt(recovered)}
+ }
+ async function replayAfterSourceChange(items,currentRevision) {
+  const before=await snapshot()
+  for(const item of items) {
+   const replay=await call(item.name,item.args,item.token)
+   assert.deepEqual(completed(replay),item.saved,'Source edits cannot replace the first recorded outcome')
+   assert.deepEqual(receipt(replay),item.receipt,'Source edits preserve the original preparation receipt')
+   const changed=await call(item.name,{...item.args,expected_revision:currentRevision},item.token)
+   assert.equal(error(changed)?.code,'idempotency_conflict')
+   assert.equal(changed.result.structuredContent,undefined)
+  }
+  assert.deepEqual(await snapshot(),before,'Replay after a person edits the source cannot prepare another native revision')
+  console.log('PROBE BASE-AGENT-012 '+phase+' '+items[0].name+' source edit: successful keys keep their saved outcome and receipt; a changed expected revision conflicts without preparation')
  }
  async function stale(name,args,token,currentRevision) {
   const before=await snapshot(),answer=await call(name,{...args,idempotency_key:randomUUID()},token)
@@ -113,11 +128,13 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
   assert.deepEqual(await snapshot(),before,'Stale expected revision cannot prepare another record')
   console.log('PROBE BASE-AGENT-012 '+phase+' '+name+' stale: native person changes source revision -> revision_conflict with the current revision and zero preparation')
  }
- for(const mode of ['lost','concurrent'])await once({name:'barrow.orders.prepare',token:draftGrant.token,mode,
-  args:{accountId,lines:[{sku:'LINEN',quantity:2}],reference:'synthetic-barrow-'+phase+'-'+mode,idempotency_key:randomUUID(),expected_revision:account.revision},changed:{lines:[{sku:'LINEN',quantity:3}]}})
+ const drafts=[]
+ for(const mode of ['lost','concurrent'])drafts.push(await once({name:'barrow.orders.prepare',token:draftGrant.token,mode,
+  args:{accountId,lines:[{sku:'LINEN',quantity:2}],reference:'synthetic-barrow-'+phase+'-'+mode,idempotency_key:randomUUID(),expected_revision:account.revision},changed:{lines:[{sku:'LINEN',quantity:3}]}}))
  const oldRevision=account.revision
  account=await command('account.save',{id:accountId,revision:account.revision,value:{...account.value,termsDays:31}})
  assert.notEqual(account.revision,oldRevision)
+ await replayAfterSourceChange(drafts,account.revision)
  await stale('barrow.orders.prepare',{accountId,lines:[{sku:'LINEN',quantity:2}],expected_revision:oldRevision},draftGrant.token,account.revision)
 
  original=await command('order.prepare',{accountId,lines:[{sku:'LINEN',quantity:2}]})
@@ -127,10 +144,21 @@ export async function proveWriteRecovery({request,origin,cookie,phase}) {
  const proposalGrant=await native('/api/barrow/proposal-grants',{accountId,costLimitCents:0,contactLimit:3,approvedSubstitutes:[{fromSku:'LINEN',skus:['HEMP']}],consent:true,reason:'Owner authorizes native draft-only retry proof; no stock changes or contact permission.'})
  const proposalArgs={grantId:proposalGrant.grant.id,orderId:original.id,model:'synthetic-barrow-12',reportedCostCents:0,
   candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:2}]}],expected_revision:original.revision}
- for(const mode of ['lost','concurrent'])await once({name:'barrow.proposals.submit',token:proposalGrant.token,mode,
-  args:{...proposalArgs,runId:'synthetic-barrow-'+phase+'-'+mode,idempotency_key:randomUUID()},changed:{candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:1}]}]}})
+ const proposals=[]
+ for(const mode of ['lost','concurrent']) {
+  const first=await once({name:'barrow.proposals.submit',token:proposalGrant.token,mode,
+   args:{...proposalArgs,runId:'synthetic-barrow-'+phase+'-'+mode,idempotency_key:randomUUID()},changed:{candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:1}]}]}})
+  proposals.push(first)
+  const withdrawn=await command('proposal.withdraw',{id:first.saved.id,number:first.saved.number,revision:first.saved.revision,reason:'Owner withdraws the unexecuted basket before requesting its next preparation revision.'})
+  assert.equal(withdrawn.state,'superseded')
+  const revised=await once({name:first.name,token:first.token,mode,
+   args:{...proposalArgs,id:withdrawn.id,number:withdrawn.number,revision:withdrawn.revision,runId:'synthetic-barrow-'+phase+'-'+mode+'-revised',idempotency_key:randomUUID()},changed:{candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:1}]}]}})
+  proposals.push(revised)
+ }
+
  const revised=await command('substitution.propose',{orderId:original.id,orderRevision:original.revision,lines:[{fromSku:'LINEN',sku:'HEMP',quantity:2}],reason:'Person reviews an unaccepted alternative; no replacement or stock effect.'})
  assert.notEqual(revised.revision,original.revision)
+ await replayAfterSourceChange(proposals,revised.revision)
  await stale('barrow.proposals.submit',{...proposalArgs,runId:'synthetic-barrow-stale'},proposalGrant.token,revised.revision)
  console.log('NATIVE PASS '+phase+' lost-response and concurrent recovery for both existing mutating tools; current-revision conflicts leave native preparation unchanged')
 }
