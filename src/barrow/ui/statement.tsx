@@ -1,3 +1,5 @@
+import {QboComparisons} from './qbo-comparisons'
+import type {qboComparisons} from '../accounting/reconciliation'
 import { useEffect, useState } from 'react'
 import { request, errorMessage } from './api'
 import { AccountPicker, Notice } from './primitives'
@@ -5,7 +7,7 @@ import { money } from './types'
 import type { Account } from './types'
 
 type StatementEntry = { orderId: string; orderPath: string; date: string; amountCents: number } & ({ kind: 'invoice'; number: string; dueAt: string; reference: string; invoicePath: string } | { kind: 'card-payment' | 'card-surcharge' | 'credit-note' | 'refund' | 'card-allocation'; appliedCents?:number;providerPaymentId?:string; id: string; paymentPath: string })
-interface Statement { customer: string; from: string | null; to: string; dates: string; note: string; sections: { currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'; unappliedCents:number;openingCents: number; closingCents: number; entries: StatementEntry[] }[] }
+interface Statement { ledgerComparisons:Awaited<ReturnType<typeof qboComparisons>>; customer: string; from: string | null; to: string; dates: string; note: string; sections: { currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP'; unappliedCents:number;openingCents: number; closingCents: number; entries: StatementEntry[] }[] }
 
 // Dated cash effects match the CSV and PDF downloads.
 const entryLabel = { 'card-surcharge': 'Card surcharge', 'card-payment': 'Card receipt', 'credit-note': 'Credit note', refund: 'Refund','card-allocation':'Principal allocation' }
@@ -43,7 +45,7 @@ export function StatementCard({ accounts }: { accounts: Account[] }) {
           <tr><th scope="row">Unapplied principal</th><td colSpan={4}/><td>{money(section.unappliedCents,section.currency)}</td></tr>
           <tr><th scope="row">Closing balance</th><td colSpan={4} /><td>{money(section.closingCents, section.currency)}</td></tr>
         </tbody></table></div>)}
-      <Notice>{value.note}</Notice>
+      <QboComparisons rows={value.ledgerComparisons}/><Notice>{value.note}</Notice>
       <div className="br-actions"><a className="br-secondary" href={path('.pdf')} download>Statement (PDF)</a><a className="br-secondary" href={path('.csv')} download>Statement (CSV)</a></div>
     </>}
   </section>

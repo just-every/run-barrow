@@ -1,3 +1,4 @@
+import { QboSettings } from './qbo-settings'
 import { PaymentPromises } from './payment-promises'
 import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
@@ -60,7 +61,7 @@ export function BarrowApp() {
   const [signingOut, setSigningOut] = useState(false)
   const lock = useRef(false)
   const loaded = useRef(false)
-  const [tab, setTab] = useState('')
+  const [tab, setTab] = useState(() => typeof window!=='undefined'&&new URLSearchParams(window.location.search).has('qbo')?'Settings':'')
   const [accountId, setAccountId] = useState('')
   const [draftId, setDraftId] = useState('')
   const legacySupplier=state?.actor.role==='owner'||state?.actor.role==='admin',staff=state?.actor.staff,staffSelling=staff?.role==='sales-manager'||staff?.role==='rep'
@@ -238,6 +239,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><WizCommerceMoveIn reload={reload} /><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} />{legacySupplier&&<CatalogMaintenance />}</>}
+          {activeTab === 'Settings' && state.actor.role==='owner' && <QboSettings accounts={state.accounts}/>}
           {activeTab === 'Settings' && (state.actor.role==='owner'||staff?.entitlements?.includes('catalog-media')) && <CatalogMedia />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
