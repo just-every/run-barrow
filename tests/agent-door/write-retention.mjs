@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
 import {installation} from '../api/harness.mjs'
+import {proveCustodyErasure} from './custody.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.error?.data?.code
 
@@ -72,6 +73,27 @@ export async function proveWriteRetention(phase) {
    assert.deepEqual(await snapshot(owner),before,'Aged recovery adds no native revision or preparation audit effect')
    console.log('PROBE BASE-AGENT-012 '+phase+' retention '+offset+'ms: owner draft, admin draft and owner proposal -> equal saved outcomes, changed-revision conflicts and unchanged native effects')
   }
+  const activeOwner={as:await h.signIn('owner'+'@'+'example.test','existing')}
+  async function pause(paused) {
+   const response=await h.request('/agents/api/pause',{method:'POST',body:{paused},...activeOwner})
+   assert.equal(response.status,200);await response.body?.cancel()
+  }
+  await pause(true)
+  for(const item of cases) {
+   const stopped=await call(item)
+   assert.equal(stopped.status,200);assert.equal(code(stopped.answer),'agents_paused');assert.equal(stopped.answer.result.structuredContent,undefined)
+  }
+  assert.deepEqual(await snapshot(activeOwner.as),before,'Pause cannot recover retained payloads or change native preparations')
+  await pause(false)
+  for(const item of cases)assert.deepEqual(successful(await call(item)),item.saved,'Resume recovers the original outcome without another effect')
+  const operators=await h.api('/auth/operators',undefined,activeOwner),adminPerson=operators.find(row=>row.email==='synthetic-barrow-25'+'@'+'example.invalid')
+  assert.ok(adminPerson)
+  await h.api('/auth/operator/status',{operatorId:adminPerson.id,status:'inactive'},activeOwner)
+  const deactivated=await call(cases[0]);assert.equal(deactivated.status,401);assert.equal(deactivated.answer.result,undefined)
+  await h.api('/api/barrow/proposal-grants/revoke',{grantId:proposalGrant.grant.id,revision:proposalGrant.grant.revision,reason:'Owner revoked the current proposal authority before this retained replay.'},activeOwner)
+  const revoked=await call(cases[2]);assert.equal(revoked.status,401);assert.equal(revoked.answer.result,undefined)
+  assert.deepEqual(await snapshot(activeOwner.as),{...before,proposals:before.proposals.map(row=>({...row,grantActive:false}))},'Current revocation changes authority only, preserving the original native effect')
+  console.log('PROBE BASE-AGENT-012 '+phase+' aged authority: Pause withholds every saved outcome; resume recovers it once; inactive admin and revoked proposal grant -> 401 without another preparation')
   await h.setWallClock(new Date(start+7*day+1).toISOString())
   for(const item of cases) {
    const expired=await call(item)
@@ -97,5 +119,11 @@ export async function proveWriteRetention(phase) {
   owner=await h.signIn('owner'+'@'+'example.test','existing')
   assert.deepEqual(await snapshot(owner),expiredSnapshot,'Cleanup preserves native records and preparation audit history')
   console.log('PROBE BASE-AGENT-012 '+phase+' expiry: seven-day credentials -> 401; thirty-day native scheduled cleanup -> no replay rows, no revived credential or changed native effect')
+  // Reuse the native custody journey; every retained artifact is only read by tests.
+  await proveCustodyErasure({request:(url,init)=>h.raw(new URL(url).pathname+new URL(url).search,init),origin:h.origin,cookie:owner,
+   database:async binding=>{assert.equal(binding,'DB');return h.db},
+   beforeErase:()=>h.setWallClock(new Date(start+31*day+2).toISOString()),
+   beforeErasedReplay:()=>h.setWallClock(new Date(start+32*day+3).toISOString())})
+  console.log('PROBE BASE-AGENT-012 '+phase+' aged erasure: native preparation aged beyond 24 hours, owner erasure, another 24 hours -> value-free tombstone or revoked refusal; unchanged financial history, usage and peer artifacts')
  } finally {await h.close()}
 }

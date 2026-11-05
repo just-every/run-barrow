@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "3dc24765b29a3864d8458d2e5bc8fcd1b6091438fbb4bda00e2443fa924d6ca4",
+      "sha256": "90da18fe553dcf4e703dac8b97cd8368e51e8f0d68c58d428abb0712cfa3d326",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "b92c81995a8970c2291d2e7cbe9a753d1fce0dc55060cf523b574e4b45145c9b",
+      "sha256": "b7b059b6ddceb1558975131c85dd8ceed8c5132c7b742e3d2a35828ccb7678b7",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -5791,7 +5791,7 @@
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
-      "sha256": "f093651a2256b836ae4c995e1376bb481cde7ccaeae0a6f679ce3f8da722f361",
+      "sha256": "195ccb9b90bd95e4ffd1d632c88cf945a8a41968ae06b748d499e6d5f8950fdc",
       "executable": false
     },
     "tests/agent-door/initialize-admin.mjs": {
@@ -5819,7 +5819,7 @@
       "executable": false
     },
     "tests/agent-door/write-retention.mjs": {
-      "sha256": "5783ed87e71d4115dafddcd9f6bfcbd8e5ace19cd9daf7babf82b4dba17149d3",
+      "sha256": "976e8ba3fd78e1d1a99ec9265b14c94cc1f23589f94f03b791a29c06eae697b6",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
@@ -5947,7 +5947,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "9d14f07d03742a2313e4b5f27819d5ed88df58f27d29a380aed1ea873314be53",
+      "sha256": "e9a48941ad751e4ccfa9ad213bf08fba0eff8a6153d430bb338a1eb67f2d6f75",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {

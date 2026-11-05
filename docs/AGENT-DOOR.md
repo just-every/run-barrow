@@ -88,3 +88,12 @@ the replay expiry metadata to reconcile cleanup, and never edits that metadata.
 This clock-qualified local proof does not establish renewed signed Business
 admission after the thirty-day horizon. No long-running job or status tool is
 introduced, and no provider retention or erasure is claimed.
+
+Aged recovery also rechecks Pause, native sponsor activation and the proposal
+grant. Pause withholds all three saved outcomes, resume recovers the same
+results, and sponsor deactivation or proposal revocation refuses the next retry
+without changing its native preparation. The same native custody journey ages
+a preparation beyond 24 hours before owner-reviewed erasure, then waits another
+24 hours before replay. Draft replay returns only the value-free erasure
+tombstone, the erased proposal credential is refused, and financial history,
+usage measures and unrelated retained artifacts remain unchanged.
