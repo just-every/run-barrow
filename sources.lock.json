@@ -5795,11 +5795,11 @@
       "executable": false
     },
     "tests/agent-door/audit-targets.mjs": {
-      "sha256": "18f3dd8cb66159926c1c40a749345be57549447356a1172d2e9e61c46c56608d",
+      "sha256": "486f326e970c05cedb67074b35c3bb00b68b4b8bdb779b92750c087f64266907",
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
-      "sha256": "f093651a2256b836ae4c995e1376bb481cde7ccaeae0a6f679ce3f8da722f361",
+      "sha256": "c3156686e68c256c7013307391db80445bf1484dacff3b99c5c8758ce7840433",
       "executable": false
     },
     "tests/agent-door/initialize-admin.mjs": {
@@ -5811,7 +5811,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "18e52d10dc95c0e195c2cc3631ee1d10912ac151cf8baed9bbfd37bdc62ccab6",
+      "sha256": "c7d4fcfc680a8404942e1d68dd5f8407713cef775d34dba2ba38dfe11fb32e07",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
