@@ -127,7 +127,7 @@
       "executable": false
     },
     "ACCEPTANCE.md": {
-      "sha256": "741ebf1f947bf8415fb3ee972d777f9f0e8c965662cc1827b3aa6ba9ba07b10a",
+      "sha256": "caa5fdb1cc90f7fc4ba61bbaf89b544ff946bac960f1450fd22217fce9984b89",
       "executable": false
     },
     "agent-surface.json": {
@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ac732b5cb40a12064d3d0d49b3aad405d6770f1c446af8e8e349b6e205c684a6",
+      "sha256": "b7ef7f1d6cb876a331dc050f38831b08a2ddf358fe55babd80ffbdabe9db3354",
       "executable": false
     },
     "DEMO.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "64361bdb1232140d88f77bb517bcecdca56f45602ff0cb08790abe29d66bc7f1",
+      "sha256": "9c65bc7ae20ac0e7fbc0f1a2ed3598658c6f8eb4d7f949ffcaacd703318d1503",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -203,7 +203,7 @@
       "executable": false
     },
     "docs/CLAIMS.md": {
-      "sha256": "8543d94a2013da8218860618352115c41eb4d34b5ef711913523a3b0a96a507f",
+      "sha256": "3a68a677f804bdfdf5a7f514708f3a43b411f3ec18be91a85d7794b493ea8def",
       "executable": false
     },
     "docs/CONNECTION-SECURITY.md": {
@@ -5855,7 +5855,7 @@
       "executable": false
     },
     "tests/agent-door/sponsor-fixtures.mjs": {
-      "sha256": "5349a4b750228f00259294550f4fed3bef9b5fa545a1a22fdbb9436044804e34",
+      "sha256": "7092ac5717269660cc9d1007337bd0c63e941928b11a135a66997327a5dd0f29",
       "executable": false
     },
     "tests/api/account-followup-fixture.mjs": {
