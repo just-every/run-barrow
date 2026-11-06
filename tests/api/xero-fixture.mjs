@@ -3,7 +3,7 @@ import {installation,stock,accountValue} from './harness.mjs';
 export async function xeroFixture(t,options={}){
  const pier=await installation({pier:true});t.after(()=>pier.close());const products=await stock(pier,'500');
  const tenant='12345678-1234-4234-8234-123456789012',connectionId='12345678-1234-4234-8234-123456789013';
- const edge={tenant,count:1,fail:false,revoked:false,currency:'USD',total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',expiresIn:3600,calls:[],refreshes:0};
+ const edge={tenant,count:1,fail:false,revoked:false,currency:'USD',quantity:2,unitAmount:65,total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',expiresIn:3600,calls:[],refreshes:0};
  const bindings={PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,XERO_CLIENT_ID:'synthetic-barrow-901',XERO_CLIENT_SECRET:'synthetic-barrow-902'};
  const h=await installation({...options,https:true,clock:'2026-11-06T15:00:00Z',bindings,networkEdge:async request=>{
   const url=new URL(request.url);if(!['identity.xero.com','api.xero.com'].includes(url.hostname))return;
@@ -18,7 +18,7 @@ export async function xeroFixture(t,options={}){
   const references={Contacts:[{ContactID:'10',ContactStatus:'ACTIVE',UpdatedDateUTC:edge.referenceToken,EmailAddress:['must-not-retain','example.test'].join('@')}],Items:[{Code:'20',UpdatedDateUTC:edge.referenceToken,SalesDetails:{AccountCode:'30',TaxType:'40'}}],Accounts:[{AccountID:'30',Code:'30',Status:'ACTIVE',Type:'REVENUE',UpdatedDateUTC:edge.referenceToken}],TaxRates:[{TaxType:'40',Status:'ACTIVE',EffectiveRate:0,UpdatedDateUTC:edge.referenceToken}]};
   if(references[resource])return Response.json({[resource]:references[resource]});
   assert.equal(resource,'Invoices');assert.equal(url.searchParams.get('pageSize'),'50');assert.equal(url.searchParams.get('order'),'InvoiceID');assert.match(url.searchParams.get('where'),/ACCREC/);
-  const all=Array.from({length:edge.count},(_,i)=>({InvoiceID:String(100+i),Type:'ACCREC',Status:'AUTHORISED',Contact:{ContactID:'10',Name:'must-not-retain'},CurrencyCode:edge.currency,Date:'/Date('+Date.parse('2026-11-06T00:00:00Z')+')/',DueDate:'2026-12-06',Total:edge.total,AmountDue:edge.balance,LineItems:[{ItemCode:'20',AccountCode:'30',TaxType:'40'}],UpdatedDateUTC:date,Reference:'must not retain provider narratives'}));
+  const all=Array.from({length:edge.count},(_,i)=>({InvoiceID:String(100+i),Type:'ACCREC',Status:'AUTHORISED',Contact:{ContactID:'10',Name:'must-not-retain'},CurrencyCode:edge.currency,Date:'/Date('+Date.parse('2026-11-06T00:00:00Z')+')/',DueDate:'2026-12-06',Total:edge.total,AmountDue:edge.balance,LineItems:[{ItemCode:'20',AccountCode:'30',TaxType:'40',Quantity:edge.quantity,UnitAmount:edge.unitAmount,LineAmount:edge.total,TaxAmount:0}],UpdatedDateUTC:date,Reference:'must not retain provider narratives'}));
   return Response.json({Invoices:all.slice((position-1)*50,position*50)});
  }});t.after(()=>h.close());
  const email=['synthetic-barrow-906','example.test'].join('@');
