@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { installation, stock, accountValue, archive, restore } from './harness.mjs';
+import { invoiceDocuments, invoiceDownload } from './invoice-documents.mjs';
 
 const cells = text => {
  const [columns, ...rows] = text.trim().split('\r\n').map(row => row.slice(1, -1).split('","'));
@@ -66,6 +67,7 @@ test('BAR-002: USD and legacy AUD orders retain exact human snapshots, one ackno
   assert.equal(pending.status, 'reserving'); assert.equal(pending.pierOrderId, undefined); assert.equal(pending.invoice, undefined);
   assert.equal(pending.submittedBy, buyerId); assert.equal(pending.approvedBy, ownerId); assert.ok(pending.approvedAt);
   assert.equal((await h.request(`/api/barrow/invoices/${draft.id}.csv`, as)).status, 409);
+  assert.equal((await h.request(`/api/barrow/invoices/${draft.id}.pdf`, as)).status, 409);
   const upstreamBefore = (await pier.api('/api/pier/state')).orders;
   assert.equal(upstreamBefore.length, originals.length + 1);
   const created = upstreamBefore.filter(o => !originals.some(({ approved }) => approved.pierOrderId === o.id));
@@ -82,12 +84,13 @@ test('BAR-002: USD and legacy AUD orders retain exact human snapshots, one ackno
   const upstream = upstreamBefore.filter(o => o.id === approved.pierOrderId);
   assert.equal(upstream.length, 1); assert.equal(upstream[0].lines[0].quantity, '3'); assert.equal(upstream[0].lines[0].reserved, '3'); assert.equal(attempts.get(`barrow-${draft.id}`), 2);
   const text = await (await h.request(`/api/barrow/invoices/${draft.id}.csv`, as)).text(), [line] = await invoice(h, approved);
+  const document=await invoiceDownload(h,approved,as);
   assert.equal(line.currency, currency); assert.equal(line.quantity, '3'); assert.equal(line.unit_cents, unitCents);
   assert.equal(line.line_cents, totalCents); assert.equal(line.invoice_total_cents, totalCents); assert.equal(line.customer_reference, reference);
   const due = new Date(approved.invoice.issuedAt + 'T00:00:00Z'); due.setUTCDate(due.getUTCDate() + 30); assert.equal(approved.invoice.dueAt, due.toISOString().slice(0, 10));
   // Reopen for the next distinct order; the closed-account recovery was above.
   account = await h.command('account.save', { id, revision: account.revision, value: { ...account.value, lifecycle: 'active' } });
-  accounts.set(id, { account, as }); originals.push({ approved, text, as });
+  accounts.set(id, { account, as }); originals.push({ approved, text, as, document });
  }
  // PRI-007 rechecks stock at submission; later contention still yields shortfalls.
  const shorts = []; for (const currency of ['USD', 'AUD']) shorts.push(await prepare('cedar', currency, 10, `PO-${currency}-SHORT`));
@@ -97,6 +100,7 @@ test('BAR-002: USD and legacy AUD orders retain exact human snapshots, one ackno
   await h.command('order.approve', { orderId: draft.id }, { status: 503 }); const short = await h.command('order.approve', { orderId: draft.id });
   assert.equal(short.status, 'shortfall'); assert.equal(short.reservation[0].quantity, '10'); assert.equal(short.reservation[0].reserved, index === 0 ? '2' : '0');
   assert.equal(short.invoice, undefined); assert.equal((await h.request(`/api/barrow/invoices/${draft.id}.csv`, accounts.get('cedar').as)).status, 409);
+  assert.equal((await h.request(`/api/barrow/invoices/${draft.id}.pdf`, accounts.get('cedar').as)).status, 409);
  }
  for (const [id, { account, as }] of accounts) {
   const changed = await h.command('account.save', { id, revision: account.revision, value: { ...account.value, termsDays: 7, prices: [{ sku: 'OAT-1', unitCents: 9999, minQty: 1 }] } });
@@ -111,10 +115,12 @@ test('BAR-002: USD and legacy AUD orders retain exact human snapshots, one ackno
  const target = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => target.close());
  await restore(target, await archive(h));
  const restored = await target.api('/api/barrow/state');
- for (const { approved, text, as } of originals) {
+ for (const { approved, text, as, document } of originals) {
   assert.deepEqual((await h.api('/api/barrow/state', undefined, as)).orders.find(o => o.id === approved.id), approved);
   assert.equal(await (await h.request(`/api/barrow/invoices/${approved.id}.csv`, as)).text(), text);
   assert.equal(await (await target.request(`/api/barrow/invoices/${approved.id}.csv`)).text(), text);
+  assert.deepEqual((await invoiceDownload(h,approved,as)).bytes,document.bytes);
+  assert.deepEqual((await invoiceDownload(target,approved)).bytes,document.bytes);
   assert.deepEqual(restored.orders.find(o => o.id === approved.id), approved);
   assert.deepEqual(await invoice(target, approved), await invoice(h, approved));
   const before = (await pier.api('/api/pier/state')).orders;
@@ -126,4 +132,5 @@ test('BAR-002: USD and legacy AUD orders retain exact human snapshots, one ackno
  assert.deepEqual(await invoice(target, legacy), await invoice(h, legacy));
  assert.equal((await invoice(target, legacy))[0].currency, 'AUD');
  assert.equal((await pier.api('/api/pier/state')).orders.length, 6); assert.ok([...attempts.values()].every(n => n === 2));
+ await invoiceDocuments(t);
 });
