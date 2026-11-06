@@ -338,6 +338,10 @@
       "sha256": "23e2b10ebdd8ed76d14c083d5b372b50f640490ef35c21be09c9a5f7eb7e9b22",
       "executable": false
     },
+    "docs/XERO.md": {
+      "sha256": "8451809b370acbe13c3ed888f049e18746b47b314f8c0c38907659501c136049",
+      "executable": false
+    },
     "edition.json": {
       "sha256": "295f44a54c6c99a69975c67566c1bb729fb5037466b420d24a32d82d1975bdda",
       "executable": false
@@ -355,7 +359,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "f3d0c5230c964cbf22b09c26b97b80a85fcecd1470c8b4a0a479602763e78bc0",
+      "sha256": "9e9a907ca0f6f954399cf981ff2cddae21c709a26d67683380ca9d10533e71f6",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -664,6 +668,14 @@
     },
     "migrations/core/0077_qbo_accounting.sql": {
       "sha256": "7779461b2b6a37c846f96c01061ed2830b8250455d459c022bc59600c6c40fda",
+      "executable": false
+    },
+    "migrations/core/0078_xero_accounting.sql": {
+      "sha256": "bba3d5c4f725bcf40ee521e8636f40d50acfbc5526816503aefc157867465460",
+      "executable": false
+    },
+    "migrations/core/0079_xero_reviewed_basis.sql": {
+      "sha256": "e9ed5b781b499430fb23f2ec93eb4e2200a2129449b89a212d3dfdab382286f1",
       "executable": false
     },
     "ONBOARDING.md": {
@@ -1759,7 +1771,7 @@
       "executable": false
     },
     "src/auth.server.ts": {
-      "sha256": "40bf83f07134ee40bb57c239fcd460e564e74e05ac369516fdf2cd1ba98e66f3",
+      "sha256": "85995514b14da1273069f4f8cb219ae25132c58e868debaa48d1f0c52eebc21a",
       "executable": false
     },
     "src/barrow/access.ts": {
@@ -1775,7 +1787,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "a9332ce118b79f4655574af1e5413af48fc87abb4359222edd4d84dd74c0bb2c",
+      "sha256": "e8075f0c06a55073c8aa31c3a865b8875aad8a98f77527243e75cb237b868712",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1790,12 +1802,24 @@
       "sha256": "8470fbc972e9385e26ded7112ff5086daadc4700d87f5e188820e741702b89bd",
       "executable": false
     },
+    "src/barrow/accounting/ledger-comparisons.ts": {
+      "sha256": "1ac45ca4a0a99f6dd43c1205e0e194d8dc54821b2b7d4a2e8ff76c17c77da829",
+      "executable": false
+    },
     "src/barrow/accounting/qbo.ts": {
       "sha256": "6f561b82920e2b371a86aa8eee8f10176f2c3c8830f84bf636e21a0b283ef270",
       "executable": false
     },
     "src/barrow/accounting/reconciliation.ts": {
-      "sha256": "a05c87826750120584d0f63832ff9b037927f276439176295c4db9a77cf80995",
+      "sha256": "6a8d0a23cdb70bac9b7f9185e883524b35036ec543bb3b15232c555fd78b90cc",
+      "executable": false
+    },
+    "src/barrow/accounting/xero-reconciliation.ts": {
+      "sha256": "c68c0180b974a38f0d64747a8a30eda6d4f3e89029f26e81dd89e669ed0637df",
+      "executable": false
+    },
+    "src/barrow/accounting/xero.ts": {
+      "sha256": "7f735508407fd16949fe8ef80ed582b2e300d2c5805e00531ad8c150437c61f5",
       "executable": false
     },
     "src/barrow/accounts.ts": {
@@ -1855,7 +1879,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "81abc18a3de7028820d851dd043cc79b99b0395e499b2010af9913c5e2edba3a",
+      "sha256": "9d1a690146465b0bf2704554d1af9b5efbe8a53bb358b9d2c8f69d705da2a509",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -2123,7 +2147,7 @@
       "executable": false
     },
     "src/barrow/credit-retention.ts": {
-      "sha256": "a2e2311dd5926c4339a428da17e965e2b351abaea887ca62f814c9dbf6a73e27",
+      "sha256": "9804d9042c4301a8786b3d80e89b1c024bf4f65b70e49405d6656c1c35c0a33c",
       "executable": false
     },
     "src/barrow/currency.ts": {
@@ -2139,7 +2163,7 @@
       "executable": false
     },
     "src/barrow/diagnostics.ts": {
-      "sha256": "48a385ac3ecdd4ad8a060125212b16c3190fecd0114a7e434d2c8c12d6e2db07",
+      "sha256": "95c96cd6100b14a91d65ed99041ea456ed49a3fef0908b6706bed1be4cee443d",
       "executable": false
     },
     "src/barrow/digest.ts": {
@@ -2155,7 +2179,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "a0cf66d736491d8856b3ee6a18db98fdeb0e31354734e5e5e26b55ce309ab0a4",
+      "sha256": "eff4ba6dde85e744a26d73fbaae39bdff0b86952579e0e1d6075b5a1887a59d5",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -2203,15 +2227,15 @@
       "executable": false
     },
     "src/barrow/finance-report.ts": {
-      "sha256": "9e514d93e96a7d6b986c74d30ce375d9fb35d330ca93a49c2df21851253d8dda",
+      "sha256": "ea500989feab63a435ddb4f9a76be9ae321d617cfaf6d176a473abd3bc2b6a42",
       "executable": false
     },
     "src/barrow/followup-sources.ts": {
-      "sha256": "e3e3cef02b3096f865a162c3e93ded6967ebed2a677a2baf2f3eb427bca88bd1",
+      "sha256": "856fdeee8173d35e270703a75b65f99dafba45415c0a39bc64a7e24c337e5a25",
       "executable": false
     },
     "src/barrow/followups.ts": {
-      "sha256": "1183728b8e1684a1e7e337dfe8851bfb2813e6e0ebd2af199b195f1508a4a7de",
+      "sha256": "dfeb20db1e4064fb5e61a952f7ff381a5309ebf30049bcf6e9254ca7b42dd9ac",
       "executable": false
     },
     "src/barrow/freshness.ts": {
@@ -2451,7 +2475,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "5159bb58374de5ee0d064770670e169d8e24b52886209e51b03b7e8efbc00f7b",
+      "sha256": "0523b8a24d4659f5d9598a4509f956b597361ca9c8c5fbde339d9d144e93caca",
       "executable": false
     },
     "src/barrow/prebook-intake.ts": {
@@ -2607,7 +2631,7 @@
       "executable": false
     },
     "src/barrow/retention.ts": {
-      "sha256": "08fbe1232415213ea34f8e296a2dc443a566a51b56fcb4740293ffa2ed6d610d",
+      "sha256": "4e8fac7e9812afecfeb48f98b37ae39ea1652cb68fe8f3e72d17b0f4df2845a3",
       "executable": false
     },
     "src/barrow/return-claim-custody.ts": {
@@ -2651,7 +2675,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "56028777991f6634013be16d1fa60b4a073459011ecbcf2574884665d7b20075",
+      "sha256": "330eb145c7d03a31e3ff45c390b9edfe0020c853a4c35ffe9b9a4a66cb6b8636",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -2663,7 +2687,7 @@
       "executable": false
     },
     "src/barrow/statements.ts": {
-      "sha256": "b4d736dbfc2f03f33fd3da67458e9fbb18c476252c5886690bfbd691b14cf370",
+      "sha256": "5492d0f218a5b945502a95a36898454ea2c386d5d0a7012503ec4f5bc2f7e860",
       "executable": false
     },
     "src/barrow/stock-sync.ts": {
@@ -2731,7 +2755,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "c2cac17a173d192094d1268e4308fdf50f09b075d497616ed392e6d1c3ac9c65",
+      "sha256": "ef7ce8f33c0689d44d257d280388b9c05642d08f4b09fe0f567d04a465fe2e2f",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -2875,7 +2899,7 @@
       "executable": false
     },
     "src/barrow/ui/diagnostics.tsx": {
-      "sha256": "b7e4412c2d553d9ef968279e1c8a359b9fd52a9d03a8a1421161007225587c17",
+      "sha256": "7debe5182fd5a49adbef8f97c1b79fa49669b7cd5319894f59d4266408f2a1c5",
       "executable": false
     },
     "src/barrow/ui/dialog.tsx": {
@@ -2991,7 +3015,7 @@
       "executable": false
     },
     "src/barrow/ui/qbo-comparisons.tsx": {
-      "sha256": "5594aba4af4e507cb38a5cf0b32c00d08a4d935b7c59fa6a75f15727d555e0bf",
+      "sha256": "48fdbde0e7c484534121c95294e331a3cc6ca7b5c6126bb87d9809c5e8d85510",
       "executable": false
     },
     "src/barrow/ui/qbo-settings.tsx": {
@@ -3079,7 +3103,7 @@
       "executable": false
     },
     "src/barrow/ui/statement.tsx": {
-      "sha256": "ff2620fc83ec4bc0316c7d4c9cc72ec54a206d72a24b01426b06c0ad6a7ad19c",
+      "sha256": "da495c96741ec137b52f3ae65adaaf9b888dc4afaa1e8b855db871c9f2ea810e",
       "executable": false
     },
     "src/barrow/ui/stock-alerts.tsx": {
@@ -3128,6 +3152,10 @@
     },
     "src/barrow/ui/wizcommerce.tsx": {
       "sha256": "b9417ab5ffcca9cd2a9c6777b880163c016da372c1c850b411dc1e4be2b157da",
+      "executable": false
+    },
+    "src/barrow/ui/xero-settings.tsx": {
+      "sha256": "04b60fcab3cb19faa69fe54cfd1a7b3130df874b2aad0ed8bd80a628073019b1",
       "executable": false
     },
     "src/barrow/unit-lines.ts": {
@@ -6159,7 +6187,7 @@
       "executable": false
     },
     "tests/api/statements.test.mjs": {
-      "sha256": "89b70184d18b788500804505acf59f318a99731349f7c19f4bc589bc19818b3e",
+      "sha256": "42b868283b9c45283912332bfb0f3ff7f008ca608b4156367b88272a87d25fef",
       "executable": false
     },
     "tests/api/stock-promise.test.mjs": {
@@ -6204,6 +6232,14 @@
     },
     "tests/api/worker.ts": {
       "sha256": "336e3ad0325e1824c7037f836194591d44830d5525d4e43c47335b987c107cc8",
+      "executable": false
+    },
+    "tests/api/xero-accounting.mjs": {
+      "sha256": "986a328dcffa64b13bb8ab4b9659d40e18b39487009f7de5a5686fae33f32e3e",
+      "executable": false
+    },
+    "tests/api/xero-fixture.mjs": {
+      "sha256": "b2dcfc120921528a7e06d48295f8d1e9469ae6846b34615cbe52a903c8efd28f",
       "executable": false
     },
     "tests/eastern-day.mjs": {
@@ -6347,7 +6383,7 @@
       "executable": false
     },
     "tests/journeys/pricing.test.mjs": {
-      "sha256": "4f2aa5ca6cddf525df33efcd6cc152b8dfae17208b12d1d0902d7aa3d3130fd5",
+      "sha256": "3babfbf9a7dee49a882257b3fc4767a25b7c218b623f0538a3f17846a6379652",
       "executable": false
     },
     "tests/journeys/promotions.test.mjs": {
@@ -6396,6 +6432,10 @@
     },
     "tests/journeys/webhooks.test.mjs": {
       "sha256": "115569dc09ca8aac92dd6870761bbd3fed8aefb49abf3cd3c16a847e88c156b7",
+      "executable": false
+    },
+    "tests/journeys/xero-accounting.mjs": {
+      "sha256": "5e177c9b4681f09281e4c0c42dda2beed92067d00d286a0bbfa6d087eb97c100",
       "executable": false
     },
     "tests/pier-source.mjs": {
