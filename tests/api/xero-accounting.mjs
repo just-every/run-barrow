@@ -35,6 +35,11 @@ export async function xeroAccounting(t) {
  assert.equal((await h.request('/api/barrow/xero/observations/'+observation.id,foreign)).status,404);assert.equal((await h.request('/api/barrow/statements/cedar?to=2026-11-06',foreign)).status,404);
  assert.equal((await h.request('/api/barrow/xero/observations/'+observation.id,agent)).status,403);
  assert.deepEqual((await h.api('/api/barrow/statements/cedar?to=2026-11-05',undefined,buyer)).ledgerComparisons,[]);
+ // A same-total source line edit is a conflict against the original reviewed basis.
+ edge.quantity=1;edge.unitAmount=130;run=await f.resume(await f.start());state=await f.workspace();const edited=state.observations.find(o=>o.runId===run.id);
+ assert.equal((await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer)).ledgerComparisons[0].sources[0].status,'Upstream issued invoice changed');
+ await h.command('xero.link',{id:edited.id,revision:edited.revision,orderId:order.id,orderRevision:order.revision,reason:'A same-total line edit cannot silently replace the reviewed issued basis.'},{status:409});assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),order);
+ edge.quantity=2;edge.unitAmount=65;
  // Upstream edits and partial settlement are visible conflicts; no payment or issued snapshot changes.
  edge.total=140;edge.balance=75;edge.token='1';edge.updated='2028-02-29T12:34:56.789Z';run=await f.resume(await f.start());state=await f.workspace();observation=state.observations.find(o=>o.runId===run.id);
  statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);

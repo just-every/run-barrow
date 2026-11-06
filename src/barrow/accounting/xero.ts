@@ -104,7 +104,10 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
   if(kind==='Invoice'){
    if(r.Type!=='ACCREC'||!['AUTHORISED','PAID'].includes(r.Status))fail('XERO_RESPONSE','Only existing authorised receivable invoices are supported.',409)
    const canonical={Id:r.InvoiceID,ContactRef:{value:r.Contact?.ContactID},CurrencyRef:{value:r.CurrencyCode},TxnDate:day(r.Date),DueDate:day(r.DueDate??r.Date),TotalAmt:r.Total,Balance:r.AmountDue,Line:(r.LineItems??[]).map((l:any)=>({SalesItemLineDetail:{ItemRef:{value:l.ItemCode}},AccountRef:{value:l.AccountCode},TaxCodeRef:{value:l.TaxType}})),MetaData:{LastUpdatedTime:instant(r.UpdatedDateUTC)},Status:r.Status}
-   return {...canonical,SyncToken:await digest(JSON.stringify(canonical))}
+   const financialLines=(r.LineItems??[]).map((l:any)=>({item:l.ItemCode??null,account:l.AccountCode??null,taxType:l.TaxType??null,quantity:l.Quantity??null,unitAmount:l.UnitAmount??null,lineAmount:l.LineAmount??null,taxAmount:l.TaxAmount??null,discountRate:l.DiscountRate??null,discountAmount:l.DiscountAmount??null}))
+   const narrativeToken=await digest(JSON.stringify({reference:r.Reference??null,number:r.InvoiceNumber??null,descriptions:(r.LineItems??[]).map((l:any)=>l.Description??null)}))
+   const commercial={narrativeToken,contact:canonical.ContactRef.value,currency:r.CurrencyCode,date:canonical.TxnDate,due:canonical.DueDate,total:r.Total,subTotal:r.SubTotal??null,totalTax:r.TotalTax??null,lineAmountTypes:r.LineAmountTypes??null,lines:financialLines}
+   return {...canonical,CommercialToken:await digest(JSON.stringify(commercial)),SyncToken:await digest(JSON.stringify({...canonical,financialLines}))}
   }
   const Id=kind==='Contact'?r.ContactID:kind==='Item'?r.Code:kind==='Account'?r.Code:r.TaxType
   const active=kind==='Contact'?r.ContactStatus==='ACTIVE':kind==='Account'?r.Status==='ACTIVE':kind==='TaxCode'?r.Status==='ACTIVE':true
