@@ -1,22 +1,34 @@
 import assert from 'node:assert/strict';
 import { inflateSync } from 'node:zlib';
 import { PDFDocument } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import { installation, stock, accountValue, activateStaff, archive, restore } from './harness.mjs';
 import { erasurePreview, erasurePayload, verifiedRequest } from './retention-fixture.mjs';
 
 // Read actual PDF content streams and their Unicode character maps, independently
 // of invoice formatting. These are the bytes returned by the public download.
 export async function readPdf(bytes) {
- const document=await PDFDocument.load(bytes),streams=[];
+ const document=await PDFDocument.load(bytes),streams=[],fonts=[];
  for(const match of Buffer.from(bytes).toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
-  try { streams.push(inflateSync(Buffer.from(match[1],'latin1')).toString('utf8')); } catch { streams.push(match[1]); }
+  let data=Buffer.from(match[1],'latin1');try { data=inflateSync(data); } catch {}
+  if(data.length>=4&&[0x00010000,0x74727565].includes(data.readUInt32BE(0)))fonts.push(fontkit.create(data));
+  else streams.push(data.toString('utf8'));
  }
  const mapping=new Map();
  for(const stream of streams)for(const section of stream.matchAll(/beginbfchar([\s\S]*?)endbfchar/g))for(const pair of section[1].matchAll(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g)) {
   mapping.set(pair[1].toUpperCase(),String.fromCharCode(...pair[2].match(/.{4}/g).map(hex=>parseInt(hex,16))));
  }
+ assert.ok(fonts.length,'Invoice embeds readable glyph outlines');
  const lines=[];
- for(const stream of streams)for(const text of stream.matchAll(/<([0-9A-Fa-f]+)>\s*Tj/g))lines.push(text[1].match(/.{4}/g).map(hex=>mapping.get(hex.toUpperCase())??'').join(''));
+ for(const stream of streams)for(const text of stream.matchAll(/<([0-9A-Fa-f]+)>\s*Tj/g)) {
+  const glyphs=text[1].match(/.{4}/g);
+  assert.ok(glyphs.every(hex=>parseInt(hex,16)!==0),'PDF text uses a missing glyph instead of the retained character');
+  lines.push(glyphs.map(hex=>{
+   const value=mapping.get(hex.toUpperCase())??'';
+   if(value.trim())assert.ok(fonts[0].getGlyph(parseInt(hex,16)).path.commands.length,`Downloaded PDF has no outline for ${value}`);
+   return value;
+  }).join(''));
+ }
  return {pages:document.getPageCount(),text:lines.join('\n')};
 }
 export async function invoiceDownload(h,order,who={}) {
@@ -44,7 +56,7 @@ export async function invoiceFixture(t,options={}) {
  await pier.command('po.approve',{poId:po.id,version:po.version});await pier.command('po.commit',{poId:po.id,version:po.version});
  await pier.command('receipt.create',{poId:po.id,supplierReference:'synthetic-barrow-752',lines:po.lines.map(line=>({poLineId:line.id,locationId:source.location.id,quantity:'20',cost:'20.00'}))});
  const h=await installation({...options,https:true,bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
- let account=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),name:('Épicerie Łódź '+ 'Long retained buyer identity '.repeat(4)).trim(),minimumCents:0,prices:items.map((item,index)=>({sku:item.sku,unitCents:6501+index,minQty:1}))}});
+ let account=await h.command('account.save',{id:'cedar',value:{...accountValue(source.customer.id),name:('王氏食品 Wáng Family Foods Épicerie Łódź '+ 'Long retained buyer identity '.repeat(4)).trim(),minimumCents:0,prices:items.map((item,index)=>({sku:item.sku,unitCents:6501+index,minQty:1}))}});
  const buyer={as:await h.signIn(account.value.email)};
  const seller=await h.command('seller.identity',{revision:null,legalName:'Société Ω des récoltes',address:'12 rue de la Récolte, Montréal '+ 'Long retained address '.repeat(8),registration:'synthetic-barrow-753'});
  const bill=await h.command('location.save',{accountId:'cedar',kind:'bill-to',value:{name:'Retained billing',line1:'101 Original Avenue',city:'New York',state:'NY',zip:'10004'}});
