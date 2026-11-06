@@ -1,4 +1,16 @@
-Copyright 2010, 2012-2020 Google Inc. and Google LLC.
+Barrow Invoice Regular is derived from Noto Sans Regular and Noto Sans SC.
+Original Latin, Greek and Cyrillic glyphs and shaping are retained.
+Noto Sans SC adds its remaining character repertoire as a static Regular instance
+(weight 400), with horizontal outlines and no additional layout features.
+Glyph records are aligned to four bytes for PDF subset offsets.
+The combined font is renamed Barrow Invoice Regular and encoded as gzip-compressed TrueType.
+
+Noto Sans Regular: Copyright 2010, 2012-2020 Google Inc. and Google LLC.
+Noto Sans SC version 2.004: Copyright 2014-2021 Adobe
+(http://www.adobe.com/), with Reserved Font Name 'Source'.
+Noto Sans SC source:
+https://github.com/notofonts/noto-cjk/blob/main/Sans/Variable/TTF/Subset/NotoSansSC-VF.ttf
+
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
 
 PREAMBLE
