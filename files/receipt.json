@@ -1,0 +1,96 @@
+{
+  "after": {
+    "done": 73,
+    "missing": 37,
+    "partial": 44
+  },
+  "before": {
+    "done": 73,
+    "missing": 38,
+    "partial": 43
+  },
+  "branch": "cloud/sx-barrow-c-f69",
+  "clauseChanges": {
+    "INT-002": [
+      "missing",
+      "partial"
+    ]
+  },
+  "githubCalls": 6,
+  "head": "892803c0552e47aaf5c77d9e2f576a3db398d1f7",
+  "landing": {
+    "candidateRunSite": "not run; Mac lander duty",
+    "doneClaim": false,
+    "mainChanged": false,
+    "publicationScan": "not run; Mac lander duty"
+  },
+  "mechanical": {
+    "baseCopiesOfflineCheck": true,
+    "deploymentSpecCheck": 0,
+    "firstPartyCheck": 0,
+    "ledger": {
+      "appended": "0077_qbo_accounting.sql",
+      "command": "python3 check-migration-ledger.py",
+      "exit": 0,
+      "parentMigrationsUnchanged": 76
+    },
+    "lock": {
+      "command": "node scripts/edition-authoring/cli.mjs check",
+      "exit": 0,
+      "sha256": "5b5407e01ee220194dda42675a4c46682c6aa42734958826bb532abe9f63f791"
+    },
+    "typecheck": 0,
+    "views": {
+      "command": "node scripts/contract-docs.mjs write then check; restore both views from origin/main",
+      "exit": 0,
+      "restoredCheckExit": 1,
+      "restoredCheckExpected": true
+    }
+  },
+  "proof": [
+    {
+      "fail": 0,
+      "file": "api-proof.log",
+      "pass": 1,
+      "tests": 1
+    },
+    {
+      "fail": 0,
+      "file": "browser-proof.log",
+      "pass": 1,
+      "tests": 1
+    },
+    {
+      "fail": 0,
+      "file": "regression-proof.log",
+      "pass": 6,
+      "tests": 6
+    },
+    {
+      "fail": 0,
+      "file": "retention-recheck.log",
+      "pass": 1,
+      "tests": 1
+    }
+  ],
+  "recordedAt": "2026-11-06T11:02:34.805515+00:00",
+  "remaining": "Local QBO sandbox consent and full provider receipt; financial writes and verified synchronization; complete receiving duties and functional reconciliation delegation.",
+  "repository": "just-every/run-barrow",
+  "status": "pushed; local proof passed; generated-view CI exception",
+  "tag": "sx-barrow-c-f69",
+  "unchangedTestRegistrations": true,
+  "verify": {
+    "conclusion": "failure",
+    "event": "push",
+    "exception": "ACCEPTANCE.md stale; generated views intentionally not committed",
+    "head": "892803c0552e47aaf5c77d9e2f576a3db398d1f7",
+    "inspectedFailedJobs": [
+      127854330419,
+      127854330401
+    ],
+    "productTestsInVerify": "not reached after generator check",
+    "runId": 42206469379,
+    "shardSourceLockSteps": "all success",
+    "status": "completed"
+  }
+}

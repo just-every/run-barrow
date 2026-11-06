@@ -1,0 +1,4 @@
+shards (barrow-3)	Run this shard	2026-11-06T10:57:12.8603585Z > node scripts/contract-docs.mjs check
+shards (barrow-3)	Run this shard	2026-11-06T10:57:12.9209312Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-3)	Run this shard	2026-11-06T10:57:12.9380111Z  ELIFECYCLE  Command failed with exit code 1.
+shards (barrow-3)	Run this shard	2026-11-06T10:57:12.9648992Z ##[error]Process completed with exit code 1.

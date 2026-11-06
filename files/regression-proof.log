@@ -1,0 +1,23 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ OPS-001: owner diagnostics show live Pier health and each interrupted handoff by correlation ID until the same order resumes; export holds no secrets (6022.444662ms)
+✔ owner inspects connector samples, repairs missing mappings, retains exact source differences and private audit after credential revocation (7009.329853ms)
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ RPT-004: invoice aging reconciles frozen source cents and due dates at every bucket boundary, keeps currencies separate and refuses unauthorized reports (7328.375585ms)
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ AUTO-005: source-linked next actions retain failed contacts, ownership and snoozes; acceptance resolves its quote once while unanswered work remains (6519.095052ms)
+✔ AUTO-005: native archives restore durable tasks, contacts and resolutions while excluding installation credentials (8572.334087ms)
+✔ AGT-007: grounded account plan puts late fulfillment first, reviews exact outreach, sends once and retains ownership until a buyer response or human resolution (17972.898278ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 56269.017202

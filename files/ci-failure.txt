@@ -1,0 +1,15 @@
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.6978656Z > node scripts/verify-app.mjs
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.7263810Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.7844736Z file://[REDACTED]/scripts/contract-docs.mjs:26
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.7845692Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.7847100Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.7847601Z     at file://[REDACTED]/scripts/contract-docs.mjs:26:100
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.8041945Z  ELIFECYCLE  Command failed with exit code 1.
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.8964708Z > node scripts/verify-app.mjs
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.8965072Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.8965497Z file://[REDACTED]/scripts/contract-docs.mjs:26
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.8966453Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.8967973Z ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.8969021Z  ELIFECYCLE  Command failed with exit code 1.
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.9230368Z  ELIFECYCLE  Command failed with exit code 1.
+shards (agent-door)	Run this shard	2026-11-06T10:57:17.9462024Z ##[error]Process completed with exit code 1.

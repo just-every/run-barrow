@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "record": "base-copies.json",
+  "origin": "not checked (--offline): local bytes against recorded SHA-256 only",
+  "drift": [],
+  "unrecordedCopies": []
+}
