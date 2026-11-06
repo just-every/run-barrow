@@ -2995,7 +2995,7 @@
       "executable": false
     },
     "src/barrow/ui/qbo-settings.tsx": {
-      "sha256": "adea9fc58435f5d43deeed25e18b0f15b9e4ef9d413c4e750dc94ed2f0a3b280",
+      "sha256": "ff6cc4c8d147f0d5ffea34a5412b1d332388f7520cb99c0a9252fcecc711ede0",
       "executable": false
     },
     "src/barrow/ui/quote-report.tsx": {
@@ -6351,7 +6351,7 @@
       "executable": false
     },
     "tests/journeys/qbo-accounting.mjs": {
-      "sha256": "9d9f6e753950ceee22e459458f4a408530f0b589518a1129623d49590015e987",
+      "sha256": "3f2c4989a478cae22e646ccf8f62ad49cbde444b5ac53343a32ca71e8182277e",
       "executable": false
     },
     "tests/journeys/reorder.test.mjs": {

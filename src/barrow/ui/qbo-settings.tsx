@@ -13,7 +13,7 @@ export function QboSettings({accounts}:{accounts:Account[]}) {
  useEffect(()=>{void reload().catch(e=>setError(errorMessage(e)))},[])
  async function command(type:string,payload:Record<string,unknown>) {
   setBusy(true);setError('');setMessage('')
-  try {const response=await request<{result:any}>('/api/barrow/commands',{type,payload:{...payload,reason}});if(type==='qbo.begin'){window.location.assign(response.result.authorizationUrl);return}await reload();setMessage(response.result.note??'QuickBooks review saved.');if(type==='qbo.references')setPosition(response.result.nextPosition??1)}catch(e){setError(errorMessage(e));await reload().catch(()=>{})}finally{setBusy(false)}
+  try {const response=await request<{result:any}>('/api/barrow/commands',{type,payload:{...payload,reason}});if(type==='qbo.begin'){window.location.assign(response.result.authorizationUrl);return}await reload();setMessage(type==='qbo.link'?`Linked QBO invoice ${response.result.sourceId} to native ${response.result.orderId}.`:response.result.note??'QuickBooks review saved.');if(type==='qbo.references')setPosition(response.result.nextPosition??1)}catch(e){setError(errorMessage(e));await reload().catch(()=>{})}finally{setBusy(false)}
  }
  const ref=value?.references.find((r:any)=>r.realm===value.connection?.realm&&r.kind===kind&&r.source_id===sourceId) as any
  const map=value?.mappings.find(m=>m.realm===value.connection?.realm&&m.kind===kind&&m.source_id===sourceId)
