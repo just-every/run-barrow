@@ -161,7 +161,7 @@ export async function qboComparisons(db:D1Database,accountId:string,asOf:string,
   return {id:value.id,sourceId:value.sourceId,sourceToken:value.sourceToken,realm:value.realm,accountId,currency:value.currency,amountCents:value.amountCents,ledgerCents:value.balanceCents,nativeCents,orderId:order?.id??'',status:conflict,path:`/api/barrow/qbo/observations/${value.id}`}
  }))
  const currencies=[...new Set([...native.keys(),...details.map(row=>row.currency)])]
- return currencies.map(currency=>{const mine=details.filter(row=>row.currency===currency),ledgerCents=mine.reduce((sum,row)=>sum+row.ledgerCents,0),nativeCents=native.get(currency)??0;return {accountId,realm:run.realm,runId:run.id,asOf,observedAt:run.updated_at,currency,nativeCents,ledgerCents,differenceCents:nativeCents-ledgerCents,status:mine.some(row=>row.status!=='Matched')||nativeCents!==ledgerCents?'Conflict':'Matched',sources:mine}})
+ return currencies.map(currency=>{const mine=details.filter(row=>row.currency===currency),ledgerCents=mine.reduce((sum,row)=>sum+row.ledgerCents,0),nativeCents=native.get(currency)??0;return {provider:'qbo' as const,accountId,realm:run.realm,runId:run.id,asOf,observedAt:run.updated_at,currency,nativeCents,ledgerCents,differenceCents:nativeCents-ledgerCents,status:mine.some(row=>row.status!=='Matched')||nativeCents!==ledgerCents?'Conflict':'Matched',sources:mine}})
 }
 export async function qboWorkspace(env:Bindings,actor:Actor) {
  qboOwner(actor);const connection=await qboConnection(env.DB)

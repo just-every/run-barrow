@@ -1,3 +1,5 @@
+import {xeroBegin,xeroCallback,xeroDisconnect} from './accounting/xero'
+import {xeroWorkspace,xeroObservation,readReferences as xeroReferences,saveMapping as xeroMapping,startRead as xeroStart,resumeRead as xeroResume,linkInvoice as xeroLink} from './accounting/xero-reconciliation'
 import {qboBegin,qboCallback,qboDisconnect} from './accounting/qbo'
 import {qboWorkspace,qboObservation,readReferences,saveMapping,startRead,resumeRead,linkInvoice} from './accounting/reconciliation'
 import { agentHttp } from './agent-door/http.ts'
@@ -148,6 +150,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
   if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
+  if(path==='/api/barrow/xero/callback'&&request.method==='GET')return await xeroCallback(env,actor,url)
+  if(path==='/api/barrow/xero'&&request.method==='GET')return json(await xeroWorkspace(env,actor))
+  if(path.startsWith('/api/barrow/xero/observations/')&&request.method==='GET')return json(await xeroObservation(env,actor,path.slice('/api/barrow/xero/observations/'.length)))
   if(path==='/api/barrow/qbo/callback'&&request.method==='GET')return await qboCallback(env,actor,url)
   if(path==='/api/barrow/qbo'&&request.method==='GET')return json(await qboWorkspace(env,actor))
   if(path.startsWith('/api/barrow/qbo/observations/')&&request.method==='GET')return json(await qboObservation(env,actor,path.slice('/api/barrow/qbo/observations/'.length)))
@@ -390,6 +395,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
+   if(body.type.startsWith('xero.')) {const handlers:any={'xero.begin':xeroBegin,'xero.disconnect':xeroDisconnect,'xero.references':xeroReferences,'xero.mapping':xeroMapping,'xero.start':xeroStart,'xero.resume':xeroResume,'xero.link':xeroLink};if(!handlers[body.type])fail('COMMAND','Unknown Xero command.',400);return json({result:await handlers[body.type](env,actor,body.payload)})}
    if(body.type.startsWith('qbo.')) {const handlers:any={'qbo.begin':qboBegin,'qbo.disconnect':qboDisconnect,'qbo.references':readReferences,'qbo.mapping':saveMapping,'qbo.start':startRead,'qbo.resume':resumeRead,'qbo.link':linkInvoice};if(!handlers[body.type])fail('COMMAND','Unknown QBO command.',400);return json({result:await handlers[body.type](env,actor,body.payload)})}
    if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})
    if(['refund.request','refund.refresh'].includes(body.type))return json({result:await refundCommand(env,actor,body.type,body.payload)})
