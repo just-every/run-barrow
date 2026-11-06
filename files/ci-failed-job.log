@@ -1,0 +1,29 @@
+shards (barrow-6)	Run this shard	﻿2026-11-06T13:18:19.5790796Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5791122Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5808061Z shell: /usr/bin/bash -e {0}
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5808272Z env:
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5808431Z   CI: true
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5808601Z   WRANGLER_SEND_METRICS: false
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5808986Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5809260Z   PLAYWRIGHT_BROWSERS_PATH: /home/runner/work/_temp/ms-playwright
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5809558Z   SHARD: barrow-6
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.5809737Z ##[endgroup]
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.6088788Z > pnpm run verify:app
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8227798Z 
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8228593Z > @wholesale/barrow@0.1.2 verify:app /home/runner/work/run-barrow/run-barrow
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8229188Z > node scripts/verify-app.mjs
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8229393Z 
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8471772Z > node scripts/contract-docs.mjs check
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8944175Z file:///home/runner/work/run-barrow/run-barrow/scripts/contract-docs.mjs:26
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8945346Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8946011Z                                                                                                    ^
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8946233Z 
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8946472Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8946929Z     at file:///home/runner/work/run-barrow/run-barrow/scripts/contract-docs.mjs:26:100
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8947375Z     at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8947792Z     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8948262Z     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8948509Z 
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.8948593Z Node.js v22.20.0
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.9106384Z  ELIFECYCLE  Command failed with exit code 1.
+shards (barrow-6)	Run this shard	2026-11-06T13:18:19.9392703Z ##[error]Process completed with exit code 1.

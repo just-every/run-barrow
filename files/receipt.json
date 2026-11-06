@@ -1,0 +1,205 @@
+{
+  "artifacts": [
+    {
+      "bytes": 261846,
+      "path": "screens/invoice-USD-1440.png",
+      "sha256": "3d31739fe5af36c7b53a736221fd20d8a8ab62d928ba5336b386e9c490c08101"
+    },
+    {
+      "bytes": 205296,
+      "path": "screens/invoice-USD-390.png",
+      "sha256": "8829746d87b796d0f26cd4597cb5fa936433667e8474707c0b11daf65a72dda4"
+    },
+    {
+      "bytes": 18697,
+      "path": "screens/invoice-USD.pdf",
+      "sha256": "309d4cc3d820ffcee1e9f355719ac3923a3f2ea2a520bd9c244345da1969c69c"
+    },
+    {
+      "bytes": 11633,
+      "path": "screens/invoice-USD.csv",
+      "sha256": "7246b77639ee9d8043cb3efc4a0672798be4d0c6314f9f73c3f7224030452de8"
+    },
+    {
+      "bytes": 258500,
+      "path": "screens/invoice-AUD-1440.png",
+      "sha256": "c18f8167596b838b534bae6690cbd12140fa43171f5ed5a9dd930f137f1a6d5f"
+    },
+    {
+      "bytes": 207337,
+      "path": "screens/invoice-AUD-390.png",
+      "sha256": "82aca5512f92d76bc0ac5b3d9c0384c9f2225a8eeda0267736b974ea8e95eddc"
+    },
+    {
+      "bytes": 18210,
+      "path": "screens/invoice-AUD.pdf",
+      "sha256": "d932499b0b75cae0a59d8eb66097d7f0d340ef0b786d8dd180903103f48c7272"
+    },
+    {
+      "bytes": 8396,
+      "path": "screens/invoice-AUD.csv",
+      "sha256": "2dac514669d00fe34ee877d162c20b8203dda13267609b641796bff461c236e6"
+    }
+  ],
+  "base": "297b78740b0037045e0da786340b24bb8079ca57",
+  "branch": "cloud/sx-barrow-c-f73",
+  "checks": [
+    {
+      "command": "node --test --test-concurrency=1 tests/api/order-guarantee.test.mjs",
+      "exit": 0,
+      "head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "log": "api.log",
+      "name": "api"
+    },
+    {
+      "command": "timeout 1200 node --test --test-concurrency=1 --test-name-pattern='buyer books a spring season' tests/journeys/confirmations.test.mjs",
+      "exit": 0,
+      "head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "log": "journey.log",
+      "name": "browser"
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "execution_head": "34c17f24820d1a30307bd5cb458203ac0c33741f",
+      "exit": 0,
+      "log": "build.log",
+      "name": "build",
+      "product_code_equivalent_to_head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "tree_state": "final PDF wrapping present in worktree before final commit"
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0,
+      "head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "log": "typecheck.log",
+      "name": "typecheck"
+    },
+    {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0,
+      "head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "log": "first-party.log",
+      "name": "first-party"
+    },
+    {
+      "command": "node scripts/contract-docs.mjs write",
+      "contract_source_equivalent_to_head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "exit": 0,
+      "log": "views-write.log",
+      "name": "views-write",
+      "tree_state": "locally generated views; restored before commit as required"
+    },
+    {
+      "command": "node scripts/contract-docs.mjs check",
+      "contract_source_equivalent_to_head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "exit": 0,
+      "log": "views-check.log",
+      "name": "views-check",
+      "tree_state": "locally generated views; restored before commit as required"
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs check",
+      "exit": 0,
+      "head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+      "log": "lock-check.json",
+      "name": "lock"
+    }
+  ],
+  "ci": {
+    "runs": [
+      {
+        "conclusion": "failure",
+        "event": "push",
+        "head_sha": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+        "html_url": "https://github.com/just-every/run-barrow/actions/runs/42224331045",
+        "id": 42224331045,
+        "name": "Verify",
+        "status": "completed"
+      }
+    ]
+  },
+  "ci_classification": {
+    "all_shards_first_command": "node scripts/contract-docs.mjs check",
+    "candidate_reproduction_command": "node scripts/contract-docs.mjs check",
+    "candidate_reproduction_exit": 1,
+    "conclusion": "failure",
+    "event": "push",
+    "head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+    "observed_error": "ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "observed_job": 127913957870,
+    "permitted_exception": "generated contract view freshness",
+    "product_ci_tests_executed": false,
+    "repair_rounds": 0,
+    "reruns": 0,
+    "run_id": 42224331045,
+    "status": "completed"
+  },
+  "clause": {
+    "after": "partial",
+    "before": "partial",
+    "id": "PAY-008"
+  },
+  "counts": {
+    "after": {
+      "done": 73,
+      "missing": 37,
+      "partial": 44
+    },
+    "before": {
+      "done": 73,
+      "missing": 37,
+      "partial": 44
+    }
+  },
+  "created_at": "2026-11-06T13:21:06.045755+00:00",
+  "external_remainder": [
+    "ORD-009 eligible splits and Pier edit command",
+    "TAX-001 and TAX-002 verified tax accounts not held",
+    "TAX-003 and TAX-004 ct-held",
+    "INT-002 and INT-003 accounting issue and void authority",
+    "connected sandbox split-shipment and tracked PDF-delivery journey with one accounting invoice ID"
+  ],
+  "full_history_publication_scan": "not run in cloud; guarded lander required",
+  "github_budget": {
+    "calls": 5,
+    "scope": "one pinned Pier archive, two CI discoveries separated by 301 seconds, one job list, one failed-job archive invocation"
+  },
+  "head": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+  "identity": {
+    "all_authors_and_committers_fleet": true,
+    "candidate_commits": 2,
+    "trailers": []
+  },
+  "mechanical": {
+    "committed_candidate_views_check_exit": 1,
+    "generator_check_exit": 0,
+    "generator_write_exit": 0,
+    "migration_ledger": "not applicable; no migration",
+    "source_lock_exit": 0,
+    "views_committed": false,
+    "views_restored_from_main": true
+  },
+  "pr": null,
+  "product_checkout_clean": true,
+  "product_push": {
+    "exit": 0,
+    "log": "product-push.log"
+  },
+  "ready_basis": "permitted generated-view-only Verify exception; local touched checks pass; guarded lander must regenerate and rerun",
+  "remote_refs": {
+    "refs/heads/cloud/sx-barrow-c-f73": "4b193fde21ffd691dbee7b4ec1b892ff47d98a6f",
+    "refs/heads/main": "7f9f666c0fa53f81729bdb99e74e5834f3263ca4"
+  },
+  "repository": "just-every/run-barrow",
+  "run_site": "not run; main was not pushed",
+  "schema": 1,
+  "tag": "sx-barrow-c-f73",
+  "test_registrations": {
+    "api_after": 152,
+    "api_before": 152,
+    "browser_after": 46,
+    "browser_before": 46,
+    "existing_seed_cap": 200,
+    "new_registrations": 0
+  }
+}
