@@ -1,0 +1,226 @@
+{
+  "files": [
+    {
+      "blob": "0e1a7c4103cb61720e713f0a367b723afab27bf2",
+      "bytes": 1200,
+      "path": "PLAN.md",
+      "sha256": "d303839c43273373fcd1b0b5b8a0aaa9a5fd91fef191e3f5e2750cf560ca3236"
+    },
+    {
+      "blob": "e86592135bc6ddfd1fe2d3e94bf3f47f63ba7375",
+      "bytes": 6619,
+      "path": "REPORT.md",
+      "sha256": "fe19d4448efb5d6f19f23ede971552928529ace906a8de79d24409874b9e140f"
+    },
+    {
+      "blob": "210c055b6e6d0be0a24da1cf8bb530497dad009c",
+      "bytes": 5148,
+      "path": "build.log",
+      "sha256": "6bfbdc3d7cfbd064757044d952001d2ae47ad713981fee095cb425d92dbfe8cc"
+    },
+    {
+      "blob": "83e88329dc961e844d9a3ab077f27f31ef3a172e",
+      "bytes": 226,
+      "path": "ci-discovery.json",
+      "sha256": "a24979a367331f4f1e3c5b7ce1d0d52f1b618738a83a86f8a71b14f38a3a3a37"
+    },
+    {
+      "blob": "92144792bb1af99d5cee75cf0cd86452ad6f27cc",
+      "bytes": 2972,
+      "path": "ci-failure-evidence.json",
+      "sha256": "1b6e9aec8782ec1165dc7d03ea640381c0b06cd9b43776430bfe343dd031d468"
+    },
+    {
+      "blob": "2c77d3cd918df88fa1bd8667a53a31b047a638a3",
+      "bytes": 15747,
+      "path": "ci-jobs.json",
+      "sha256": "b3c25de7da866c31031cb34df882c337e19e6d37da797a929c8a5abdf8a84f89"
+    },
+    {
+      "blob": "3f9f6cc066999a1cc5dab074456f2eabe665cb96",
+      "bytes": 179,
+      "path": "ci-status.json",
+      "sha256": "0cf7db70681bba823e46cf2f7bea6587f75575f05fd9e3b50e7887cb7a3f3d1e"
+    },
+    {
+      "blob": "2d9a684ce334ae160b0a97d85c7ea6784b1ec9b3",
+      "bytes": 264731,
+      "path": "final-lock-check.log",
+      "sha256": "a8e4edb526c86c016e32434a2852a8c6aacee88d586736637982bdd0fd1ad9d6"
+    },
+    {
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "path": "first-party.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "blob": "582c87b16dc90c186bef4ef432379c23f2e7c303",
+      "bytes": 675,
+      "path": "identity-check.log",
+      "sha256": "bd33bb0ff9fbf01b8d1e08a70fdce209407badd55f797276522eeb5d46b42f3e"
+    },
+    {
+      "blob": "214edf9bb0e36626e1ccb88626f0d232f59e8c28",
+      "bytes": 119417,
+      "path": "journey.log",
+      "sha256": "e7ae854218dbe6b88fa778484268c6ed61b90b19ae46ed9aa8b95257ba983f29"
+    },
+    {
+      "blob": "6316b2308a36792c0f290cbc9e2b09829aebb295",
+      "bytes": 529622,
+      "path": "mechanical.log",
+      "sha256": "b5c28996ea15142a7b01e257ad443b0a2b39975ef81b580da96e6ec92d3a80ce"
+    },
+    {
+      "blob": "9f6c0a6d0fe3ef1e6cd875daf530a3fddb74cf2e",
+      "bytes": 1577,
+      "path": "product-push.log",
+      "sha256": "f9bd5593fc32666f57ef4aa5c13b823567b83d146bf01bee4a6fa5ff74a8babf"
+    },
+    {
+      "blob": "a261319ed1ed593fce1e5f922e8900c0dd91b873",
+      "bytes": 4890,
+      "path": "receipt.json",
+      "sha256": "6d2ddb8e0b3fc6dace9e8959dbd7591e3c6efe55f4ce1b5b35a3f60fd70a896f"
+    },
+    {
+      "blob": "46b80167614537d33baa883da6335e2a7f1bd97f",
+      "bytes": 4234,
+      "path": "reproduction-summary.txt",
+      "sha256": "a5b8086cb606dcd8d9a46c11a252a41f5531dc0f35de918eb6887d8316973c64"
+    },
+    {
+      "blob": "45adbf76616dba7bf66115320ecfe7ef1f9e4d71",
+      "bytes": 108189,
+      "path": "reproduction.log",
+      "sha256": "dc0ddea37f29186afa515c476c422efa2ced92b3c3803483d5d60f6e02973aec"
+    },
+    {
+      "blob": "4e9f67dc413f1333b7104723b06eb4d688d795af",
+      "bytes": 571508,
+      "path": "screens/storefront-buyer-confirmation-1440.png",
+      "sha256": "e7377c1c9dac2d8f7ef09d96f3583b13f0a16f0c8d44783fe3c3e13920c2f99b"
+    },
+    {
+      "blob": "cf821f4581f1b821246b8c0d0354b9866aa0e905",
+      "bytes": 521374,
+      "path": "screens/storefront-buyer-confirmation-390.png",
+      "sha256": "f3af6fef9328ccf713731524fe02299ff5e91ea7b83c9b2d11293b28f3b9f9f3"
+    },
+    {
+      "blob": "718ba8923ced2f0eb9b5385d6ef72aa74e37c7b1",
+      "bytes": 249123,
+      "path": "screens/storefront-buyer-validation-1440.png",
+      "sha256": "a77e37ee2d0f6b478060e7762c5af1963cc042d1ac76065a705b9e1f43f32a6b"
+    },
+    {
+      "blob": "678faabe91c50469547dbcc532f0777356b6aa93",
+      "bytes": 213447,
+      "path": "screens/storefront-buyer-validation-390.png",
+      "sha256": "b19a5e1415436bad8da7260cc0bd0cd448b549c00a46b913b5db850a829c4e6d"
+    },
+    {
+      "blob": "d36fb01e4b3d479abb32705d1b534f454deb1a8f",
+      "bytes": 235727,
+      "path": "screens/storefront-collections-both-1440.png",
+      "sha256": "f708038684efc5bd5c1517d987f28e2034cc6db8cd4900f4cc8cf8d17e20f823"
+    },
+    {
+      "blob": "3b91bf51a77a225cde3276e50c7a0821f1576b98",
+      "bytes": 206518,
+      "path": "screens/storefront-collections-both-390.png",
+      "sha256": "0e8d05b2ae64b216020ae44e4cda87004df485169447d0792f42902f89322370"
+    },
+    {
+      "blob": "34d07e7a56c1656d138083427673e596a9bd69e2",
+      "bytes": 186369,
+      "path": "screens/storefront-owner-merchandising-1440.png",
+      "sha256": "386b11d942f0b6d6051aff68e6e0eadca48c52cc6f74f0fe33836aff5f0cac12"
+    },
+    {
+      "blob": "6f04a6573a52381dce8e9df4cb2376580c5e3ff0",
+      "bytes": 157870,
+      "path": "screens/storefront-owner-merchandising-390.png",
+      "sha256": "2deb30418db3c1bff6dda2ca1ebf05cff537885b63d505abaddffadb4f0fb27b"
+    },
+    {
+      "blob": "61f13ed798454b2f460476dfcfe28052a16ab22f",
+      "bytes": 263149,
+      "path": "screens/storefront-owner-published-1440.png",
+      "sha256": "3203394b881f969e1e2365ad99b81df2bc5df2b21792bb5bc0900cc916309d91"
+    },
+    {
+      "blob": "3b2d72de0a4071cb75a76d17d06f49d56a06fac1",
+      "bytes": 241775,
+      "path": "screens/storefront-owner-published-390.png",
+      "sha256": "f8e38e19cc3beb94f92a5d26b397d6dec8159018fc2ba4a2cf39e9f013e8be56"
+    },
+    {
+      "blob": "6fe5bb1b742b5c07ff445cd069e930c028799258",
+      "bytes": 219439,
+      "path": "screens/storefront-retail-missing-1440.png",
+      "sha256": "d961eba6763985b2e15df50f48579f65c8e4b759b7bd4a7272fbad3ec4d32595"
+    },
+    {
+      "blob": "483a0eac5db49328838a7788283ef468dd375bbd",
+      "bytes": 189961,
+      "path": "screens/storefront-retail-missing-390.png",
+      "sha256": "7e05602919811df409a3731738d05edf7a001e3457ac7b00ff6ddb8141f796ee"
+    },
+    {
+      "blob": "c318ae1f337ebaca1d4ae6b7c3e0337a05d1407e",
+      "bytes": 210636,
+      "path": "screens/storefront-second-buyer-1440.png",
+      "sha256": "e14837e145029c8706e498f90fe8962c4e07664385ddc8fc7b915e660c1962e0"
+    },
+    {
+      "blob": "fee64f379132866b9ab9f00a194f4f1bf0c084c4",
+      "bytes": 180690,
+      "path": "screens/storefront-second-buyer-390.png",
+      "sha256": "021eb51f713bac4260e700b805a646916eea1809d80518e1ec969f933e4dbe73"
+    },
+    {
+      "blob": "45f8e7a7d0f66adec091579ae605fc963af56eec",
+      "bytes": 265904,
+      "path": "screens/storefront-unit-retail-1440.png",
+      "sha256": "9ef1435634698b1171968d9249daa24f7bdee1177637ca85494d4638f0ab2cfd"
+    },
+    {
+      "blob": "e78b41613c0058788c6018dd75f00f97b773173e",
+      "bytes": 185371,
+      "path": "screens/storefront-unit-retail-390.png",
+      "sha256": "e4decec5d1c3a5ade768d0a071dd9f8b5cc51d52082c687645f9fd8b4d412388"
+    },
+    {
+      "blob": "71c9cc082bb588640cee080184c6680077ce8a65",
+      "bytes": 264559,
+      "path": "screens/storefront-unit-retail-absent-1440.png",
+      "sha256": "6bb47ba5f628279b3f1164b4f31cfe245046073e2a80daae2bcd8f8e76ecf09e"
+    },
+    {
+      "blob": "a7b852b9428fb43b4dee43610c5d8ecc40eaffbe",
+      "bytes": 185967,
+      "path": "screens/storefront-unit-retail-absent-390.png",
+      "sha256": "397dfba33e4f301a62bb498c81eac14a6784f629038a2ac3bce1cce555028a00"
+    },
+    {
+      "blob": "d035fe3f88c4bd2c8b9eb01ea39c976a65a3b8d6",
+      "bytes": 234,
+      "path": "typecheck.log",
+      "sha256": "642fdd57b2301e1a6458a83b6f5ff9335b9d3e58209bad52c5d540241b6251b1"
+    },
+    {
+      "blob": "56c44b3328931fd9e0e9f8843bb1e2a06f103973",
+      "bytes": 379,
+      "path": "units-api.log",
+      "sha256": "7c28048277e1a3651b738199f7a244bb569edbd7ac817838ddf0623330e56755"
+    }
+  ],
+  "product_branch": "cloud/sx-barrow-c-f72",
+  "product_head": "9f806bfff6a91a7cc8471ddbecca5cc5c8a9c95c",
+  "ref": "refs/heads/evidence/sx-barrow-c-f72",
+  "repository": "just-every/run-barrow",
+  "schema": 1,
+  "tag": "sx-barrow-c-f72"
+}

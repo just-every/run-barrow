@@ -1,0 +1,87 @@
+{
+  "source": "gh run view 42221644749 --repo just-every/run-barrow --job 127904958994 --log-failed (cached complete workflow log archive)",
+  "head": "9f806bfff6a91a7cc8471ddbecca5cc5c8a9c95c",
+  "run_id": 42221644749,
+  "jobs": [
+    {
+      "file": "verify/2_Require the selected coverage and its proof.txt",
+      "errors": [
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": false
+    },
+    {
+      "file": "shards (barrow-5)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    },
+    {
+      "file": "shards (barrow-1)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    },
+    {
+      "file": "shards (barrow-4)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    },
+    {
+      "file": "shards (barrow-8)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    },
+    {
+      "file": "shards (barrow-3)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    },
+    {
+      "file": "shards (barrow-6)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    },
+    {
+      "file": "shards (agent-door)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "> node scripts/contract-docs.mjs check",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    },
+    {
+      "file": "shards (barrow-2)/14_Run this shard.txt",
+      "errors": [
+        "> node scripts/contract-docs.mjs check",
+        "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+        "##[error]Process completed with exit code 1."
+      ],
+      "stale_view": true
+    }
+  ]
+}

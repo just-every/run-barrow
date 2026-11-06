@@ -1,0 +1,153 @@
+{
+  "base": "15d3b6af52f73b3f1413bcd9bf463e2c6e0461ec",
+  "branch": "cloud/sx-barrow-c-f72",
+  "checks": [
+    {
+      "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+      "exit": 0,
+      "receipt": "setup completed before work; no secret local settings selected"
+    },
+    {
+      "command": "cloud_run npx -y @runeditrun/rer build",
+      "exit": 0,
+      "file": "build.log"
+    },
+    {
+      "command": "cloud_run timeout 1200 node --test --test-concurrency=1 tests/journeys/storefront-branding.test.mjs",
+      "exit": 0,
+      "failed": 0,
+      "file": "journey.log",
+      "passed": 1,
+      "screens": [
+        1440,
+        390
+      ]
+    },
+    {
+      "command": "cloud_run timeout 600 node --test --test-concurrency=1 tests/api/units.test.mjs",
+      "exit": 0,
+      "failed": 0,
+      "file": "units-api.log",
+      "passed": 1
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0,
+      "file": "typecheck.log"
+    },
+    {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0,
+      "file": "first-party.log"
+    },
+    {
+      "command": "node scripts/contract-docs.mjs write; node scripts/contract-docs.mjs check",
+      "exit": 0,
+      "file": "mechanical.log",
+      "generated_views_restored_from": "origin/main"
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs lock; node scripts/edition-authoring/cli.mjs check",
+      "exit": 0,
+      "file": "mechanical.log"
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs check",
+      "exit": 0,
+      "file": "final-lock-check.log"
+    },
+    {
+      "candidate_pipe_rows": 178,
+      "command": "git diff --cached --check",
+      "exit": 0,
+      "parent_pipe_rows": 178,
+      "status_rows_retained": 154
+    },
+    {
+      "command": "python3 /tmp/inspect-fleet-commits.py",
+      "commits": 7,
+      "exit": 0,
+      "file": "identity-check.log",
+      "includes_side_parents": true
+    },
+    {
+      "attempts": 1,
+      "command": "python3 $HOME/rer-consolidation/.tools/cloud-push.py origin cloud/sx-barrow-c-f72",
+      "exit": 0,
+      "file": "product-push.log"
+    }
+  ],
+  "ci": [
+    {
+      "conclusion": null,
+      "event": "push",
+      "head_sha": "9f806bfff6a91a7cc8471ddbecca5cc5c8a9c95c",
+      "html_url": "https://github.com/just-every/run-barrow/actions/runs/42221644749",
+      "id": 42221644749,
+      "name": "Verify",
+      "status": "in_progress"
+    }
+  ],
+  "ci_classification": "Permitted generated-view freshness only: all 8 shards stopped on ACCEPTANCE.md stale; final verify guard failed consequently. Counts as eligible for READY under the explicit cloud exception; no CI success is claimed.",
+  "ci_failure_evidence": "ci-failure-evidence.json",
+  "ci_terminal": {
+    "conclusion": "failure",
+    "head_sha": "9f806bfff6a91a7cc8471ddbecca5cc5c8a9c95c",
+    "html_url": "https://github.com/just-every/run-barrow/actions/runs/42221644749",
+    "status": "completed"
+  },
+  "clause_changes": [],
+  "counts_after": {
+    "done": 73,
+    "missing": 37,
+    "partial": 44
+  },
+  "counts_before": {
+    "done": 73,
+    "missing": 37,
+    "partial": 44
+  },
+  "deleted_or_weakened_assertions": 0,
+  "gate_findings_closed": [
+    "A"
+  ],
+  "github_cli_call_breakdown": [
+    "Pinned Pier API tarball",
+    "exact-SHA Verify discovery",
+    "Verify terminal status after 300 seconds",
+    "completed-run job metadata",
+    "one failed-job archive read; all shard failures examined locally from its cached complete workflow archive"
+  ],
+  "github_cli_calls": 5,
+  "head": "9f806bfff6a91a7cc8471ddbecca5cc5c8a9c95c",
+  "main": "297b78740b0037045e0da786340b24bb8079ca57",
+  "migration_ledger": "not applicable; no migration change",
+  "new_test_registrations": 0,
+  "product_check_executed_in_ci": false,
+  "publication_scan": "Mac lander; not run in cloud",
+  "recorded_at": "2026-11-06T12:59:07.607182+00:00",
+  "repository": "just-every/run-barrow",
+  "run_site": "main-only; Mac lander after landing",
+  "runtime": {
+    "browser_args": [
+      "--no-sandbox",
+      "--use-mock-keychain",
+      "--password-store=basic"
+    ],
+    "chromium": "/usr/bin/chromium",
+    "node": "24.19.0",
+    "pinned_pier_source": "60fde60ffa1f44c2ae6a3ef47225117f36cf546a",
+    "pinned_pier_transport": "GitHub API tarball, no clone",
+    "pnpm": "10.12.4",
+    "private_values_selected": false,
+    "rer_pin": "0.2.96"
+  },
+  "same_committed_bytes_as_local_validation": {
+    "sources.lock.json": "0bc75a3324da65f395acc1eb76f0f5bc98103ebdccd0a768460c1a3d4ae34305",
+    "src/barrow/ui/unit-order.tsx": "0725c513d5674a46597e433e7309d706bd9c7eff069df27de47d64f9c4266c37",
+    "tests/journeys/storefront-branding.test.mjs": "04776ac33966c864ae9da238327a5a880bb45081926a8c19f700e3264f253081"
+  },
+  "schema": 1,
+  "tag": "sx-barrow-c-f72",
+  "worktree_clean": true
+}

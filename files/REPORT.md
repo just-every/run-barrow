@@ -1,0 +1,33 @@
+# sx-barrow-c-f72: FIX A
+
+Product candidate: `9f806bfff6a91a7cc8471ddbecca5cc5c8a9c95c` on `cloud/sx-barrow-c-f72` in just-every/run-barrow. The product branch was pushed once successfully through the required guard. No PR is required: the push triggered Verify run 42221644749 on this exact SHA. It completed with failure solely on generated-view freshness, the explicit permitted READY exception. No green CI result is claimed here.
+
+CAT-005 stays PARTIAL → PARTIAL. Contract counts stay 73 DONE, 44 PARTIAL, 37 MISSING. This is the brief's narrow FIX round, so no clause acceptance, status, Gap, policy, homepage, workflow or dependency pin was changed. No other plan target was taken.
+
+The complete plan is in PLAN.md. I reproduced the gate defect in the existing built storefront journey, reused the shared display formatter in the alternate ordering door, extended that same journey, validated the touched behavior and mechanical checks, reconciled current main, inspected every candidate commit and pushed the named branch. Reports, receipts and screenshots are separate from the product tree.
+
+## Finding A: closed locally
+
+With Retail only published through the native storefront settings door, the selling-unit selector previously showed `USD 55.01 per case` and `USD 100.00 per pair`, with no MSRP. The regression assertion failed against the original built implementation at the pinned base. See reproduction-summary.txt and the complete reproduction.log. An initial locator setup mistake was corrected before the meaningful failure was recorded.
+
+The selector and its readable selected-unit price now use the same price-display formatter as the catalog. Variant MSRP is converted to the selected selling unit using existing exact quantity arithmetic. Missing MSRP remains absent; Both shows the existing margin semantics. Order line arithmetic, commercial authority, grants, prices and command payloads are unchanged. Retail-only informational MSRP of USD 220.02 per pair still prepares a USD 100.00 wholesale draft; a separate buyer retains its own USD 140.00 total with missing MSRP.
+
+Source: `src/barrow/ui/unit-order.tsx`, lines 12, 13, 40, 43 and 44. The existing commercial calculation remains at lines 24 to 31.
+
+Proof: `tests/journeys/storefront-branding.test.mjs`, existing journey “owner publishes and revises merchant identity, unsafe saves change nothing, and two buyers keep exact prices through validation and supplier confirmation”, lines 168 to 206. It exercises native owner publication, buyer unit selection, both configured pack prices, absent MSRP, wholesale-only display, exact margin and a real draft followed by submission. The original authority, assortment, validation, seller, immutable confirmation and archive assertions remain. No test registration was added and no assertion was removed, narrowed or put behind a width or branch condition.
+
+PROBE CAT-005 A: native storefront Retail only, buyer opens Order by selling unit for FIELD-S → MSRP USD 110.01 per case and USD 220.02 per pair; one pair prepares and submits at USD 100.00 wholesale. Peer missing-MSRP choices show MSRP absent with USD 140.00 wholesale total. Both includes exact 54.55% pack margin; wholesale omits MSRP.
+
+Assertions run at 1440. Browser proof captures the changed panel at 1440 and 390; no horizontal page overflow, and the full selected price remains readable below the phone selector. The screenshot files are actual captures from this passing journey. They depict synthetic native identities only. Existing dialog controls are text controls; no new icon-only control was introduced. Existing font sizes and complete field borders were retained.
+
+## Validation and custody
+
+The built storefront journey passed, 1 test. The existing units API journey passed, 1 test, retaining mixed units, exact base stock, measured conversion and immutable invoice bases. Build, typecheck and first-party command checks passed. Logs and machine-readable receipt.json record the actual commands and exits. The validated source and test hashes equal the committed candidate bytes; only generated lock hashes changed after the build.
+
+MECHANICAL lock=node scripts/edition-authoring/cli.mjs lock and check exit=0; views=node scripts/contract-docs.mjs write and check exit=0; ledger=none exit=0. ACCEPTANCE.md and docs/CLAIMS.md were restored whole from origin/main and are absent from this commit. The final source-lock check passed after the final edit. All 154 parent status rows and 178 pipe rows were retained.
+
+Current main `297b78740b0037045e0da786340b24bb8079ca57` was fetched immediately before committing and was already an ancestor. Merging it reported Already up to date. The pinned published base and its other writers' history were retained without rebasing or force pushing. The final commit changes only the unit-order component, the existing storefront journey and sources.lock.json. Every one of the 7 commits above main, including side parents, has fleet author and committer identity with no trailers; the pre-push hook repeats this check on any retry.
+
+Verify run 42221644749, event push, exact candidate SHA, completed with failure. All eight shard logs stop at the first contract generator check: “Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.” The final verify guard failed as a consequence. This is the brief's explicit generated-view-only exception and is eligible for READY, with views left for the lander; it is not an application test failure or a CI success. The touched storefront journey is wired into Verify barrow-6, but this candidate run stopped before running it. Local proof passed on identical committed source and test bytes. The publication scan, regenerated views and exact-SHA follow-up Verify, and main-only Run site remain the guarded Mac lander's duties. No result is inferred from an earlier SHA. The failed barrow-6 job is 127904958994; one gh archive read supplied the complete cached workflow archive, from which every shard's failure was inspected locally without more API calls. The exact per-job excerpts are in ci-failure-evidence.json. Five GitHub CLI invocations were used in total, within the ten-call budget. No workflow dispatch, retry or repair was performed. This report makes no DONE claim, so the eleven DONE-RIDERS rows are not newly claimed as satisfied. The clause's existing unproved remainder and other holds remain unchanged.
+
+Plan row to update on the fleet: CAT-005 evidence only, gate FIX A corrected; status and counts unchanged. No additional target, follow-up or policy request. No product blocker found.
