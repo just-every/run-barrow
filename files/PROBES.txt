@@ -1,0 +1,7 @@
+PROBE CAT-005 authority: native commands with stale, concurrent, buyer, admin, staff, agent and foreign-origin saves -> one current owner effect, unsafe attempts refused
+PROBE CAT-005 shopping: native buyer pages and supplier approval -> USD 65.00 and USD 72.00 isolated prices, linked quantity refusal, approved USD 130.00 confirmation with the original legal seller
+PROBE CAT-005 custody: native archive restore -> exact published logo, collections and navigation retained; stale approval remains refused
+PROBE CAT-005 collections: owner publication -> exact approved SKU intersections; buyer settings refused, hidden ranges omitted, collection switching retains the USD 112.01 cart
+PROBE CAT-005 prices: configured wholesale, retail and both -> per-size USD 55.01 and USD 57.00, optional MSRP and exact margins; supplier confirmation remains USD 112.01 wholesale
+PROBE CAT-005 logo and navigation: accepted stored JPEG and reviewed page order -> decoded logo after product removal and Orders, Shop collections, Line sheets; old confirmation bytes unchanged
+PROBE CAT-005 branding: native Settings -> Mill House Wholesale, persisted support https://support.synthetic-barrow.test/help, eight rendered color combinations meet contrast 4.5; revoked owner session refused

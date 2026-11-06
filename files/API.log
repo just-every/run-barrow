@@ -1,0 +1,33 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ ORD-014: numbered submitted and accepted confirmations retain exact commercial snapshots through edits, retry and cancellation (16129.915798ms)
+✔ ORD-014: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore (13781.193216ms)
+✔ ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with named layouts, source identities and unchanged selling-unit bases (18994.422194ms)
+✔ ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep (18548.354832ms)
+✔ ORD-014: fifty recorded orders of one season export per line and as style, color and size production totals equal to their lines (10288.295119ms)
+✔ seasonal prebook intake holds competing future demand atomically without reserving available stock or recording a payment (14244.527124ms)
+✔ seasonal prebook preparation enforces published opening and closing instants, required future windows, exact deposits and attributed closure (4900.233182ms)
+✔ seasonal prebook admission rechecks live commercial authority and preserves the accepted snapshot after later configuration changes (5276.366212ms)
+✔ seasonal prebook commitment refuses stale observations and company purchasing limits without losing the reviewed draft (4730.041635ms)
+✔ native seasonal orders and command-only intake share incoming capacity and preserve both closing doors (5134.058029ms)
+✔ command-only intake participates in owner erasure review and independent restore fencing without losing commercial commitments (15622.971874ms)
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ PRI-002 / PRI-007: dated volume/graduated breaks, account/group precedence and approved overrides explain and freeze exact commercial totals (20722.173625ms)
+✔ MSRP books import and edit exact USD/CAD cents and preserve configured sheet, PDF and order document prices without changing wholesale totals (6303.680537ms)
+✔ CAT-006: one company buyer deliberately selects approved brand price books; exact currencies, sellers and accepted terms survive orders, invoices and later seller edits (19087.866534ms)
+✔ promotion mix qualification, removal, exclusive precedence and source-priced partial returns reconcile once in the scoped conversion report (6524.003956ms)
+✔ fixed bundle requirements, dated account eligibility, ordered stacking and stale promotion drafts are enforced through public commands (7129.569547ms)
+✔ scheduled book revisions quote exact USD prices on either side of midnight Eastern and refuse stale cart and quote acceptance (25405.662079ms)
+✔ explicit foreign currency books preserve exact cents in every commercial document and disclose a frozen dated USD reporting basis (5744.475706ms)
+✔ seasonal brand profile requires current approval and keeps the exact CAD seller, deposit and linked invoice without mixing currencies (4692.005435ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 225274.179714

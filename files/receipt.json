@@ -1,0 +1,139 @@
+{
+  "added_test_registrations": 0,
+  "branch": "cloud/sx-barrow-c-f70",
+  "candidate_ci": {
+    "business_tests_loaded_in_ci": false,
+    "conclusion": "failure",
+    "error": "ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "event": "push",
+    "head_sha": "15d3b6af52f73b3f1413bcd9bf463e2c6e0461ec",
+    "id": 42211102024,
+    "inspected_job": 127869722453,
+    "log": "VERIFY-barrow-6.log",
+    "other_failed_jobs": "All other shards stopped at the same shared Run this shard step; each shard starts with the deterministic contract-docs check. Aggregate verify fails with that dependency.",
+    "permitted_generated_view_exception": true,
+    "shard": "barrow-6",
+    "source_lock_ci": "success on all eight shards",
+    "status": "completed",
+    "url": "https://github.com/just-every/run-barrow/actions/runs/42211102024"
+  },
+  "candidate_ci_file": "candidate-ci.json",
+  "checks": [
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0,
+      "log": "TYPECHECK.log"
+    },
+    {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0,
+      "log": "FIRST-PARTY.log"
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "exit": 0,
+      "log": "BUILD.log"
+    },
+    {
+      "assertion_width": 1440,
+      "capture_widths": [
+        1440,
+        390
+      ],
+      "command": "timeout 1200 node --test --test-concurrency=1 tests/journeys/storefront-branding.test.mjs",
+      "exit": 0,
+      "fail": 0,
+      "head": "15d3b6af52f73b3f1413bcd9bf463e2c6e0461ec",
+      "log": "JOURNEY.log",
+      "pass": 1,
+      "tests": 1
+    },
+    {
+      "command": "timeout 900 node --test --test-concurrency=1 tests/api/confirmations.test.mjs tests/api/pricing.test.mjs",
+      "exit": 0,
+      "fail": 0,
+      "log": "API.log",
+      "note": "Run before the final main merge; the final storefront journey was rerun on the exact merged candidate.",
+      "pass": 19,
+      "tests": 19
+    },
+    {
+      "command": "node scripts/contract-docs.mjs write && node scripts/contract-docs.mjs check",
+      "exit": 0,
+      "generated_views": "restored to origin/main; no builder-generated view change",
+      "log": "VIEWS.log"
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs lock && node scripts/edition-authoring/cli.mjs check",
+      "exit": 0,
+      "log": "LOCK-CHECK.json"
+    },
+    {
+      "command": "node scripts/contract-docs.mjs check after restoring main views",
+      "error": "ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+      "exit": 1,
+      "expected": true,
+      "log": "RESTORED-VIEWS-CHECK.log"
+    }
+  ],
+  "final_status_rows": 154,
+  "github_calls_used": 8,
+  "head": "15d3b6af52f73b3f1413bcd9bf463e2c6e0461ec",
+  "inherited_main_change": {
+    "INT-002": [
+      "missing",
+      "partial"
+    ]
+  },
+  "initial_counts": {
+    "done": 73,
+    "missing": 38,
+    "partial": 43
+  },
+  "integrated_counts": {
+    "done": 73,
+    "missing": 37,
+    "partial": 44
+  },
+  "ledger": {
+    "command": null,
+    "exit": 0,
+    "note": "No task-authored migration. Main supplied unchanged 0077_qbo_accounting.sql; fresh native journey installations applied the complete migration set."
+  },
+  "main_ci_file": "main-ci.json",
+  "merged_main": "297b78740b0037045e0da786340b24bb8079ca57",
+  "parent_status_rows": 154,
+  "publication_scan": {
+    "complete": false,
+    "findings": null,
+    "status": "delegated to maintained Mac lander"
+  },
+  "removed_test_registrations": 0,
+  "repository": "just-every/run-barrow",
+  "source_sha256": {
+    "CONTRACT.md": "5a3bec858e7580cffc08f050a91ff6c6a7f479517dc87933c9f4112d590c9262",
+    "public/barrow/storefront.css": "71b8247942898e26e77afb7eb6940b3c1af6bb3f907f693a0a8a5248285a517e",
+    "sources.lock.json": "d639df2cf804407218e4161db51b37880b26abefcec62a2459a82989b3cc4a2f",
+    "src/barrow/api.ts": "99fd4c5959f50e17e9ff78754fadeee2e6072989be82c01023952e05bc396f48",
+    "src/barrow/product-images.ts": "41266d0c7df869c3493892e5011c409d0237167e44a95586e2b55a57bb332786",
+    "src/barrow/storefront-branding-options.ts": "ee419df50f95947eba2d2de57187fec8600d4bb38474d3f34a4def2a42c9ee69",
+    "src/barrow/storefront-branding.ts": "31a25ebe09c83ef272e04a1bdf702b71fa35258727fca0b02ef4a1523b06e766",
+    "src/barrow/ui/app.tsx": "6c6785636005ce5e4c4b68098419980afd2b50800cd6122728a1fca45de98f6c",
+    "src/barrow/ui/order-pad.tsx": "3ea93c5f77bfe5494dd98f445789692b77f0aec2151280be19652a7348de4751",
+    "src/barrow/ui/storefront-branding.tsx": "e6adc4c97efea571312bb18ca85b13c14dc25fadf495452eccf388450cdb47bc",
+    "src/barrow/ui/storefront-price.tsx": "3fb824fd61dbb319b947313b43b49021cf941f579cf0af87a08e90aab57d6276",
+    "src/barrow/ui/style-card.tsx": "58db72a6da805cab9b981f43287654276492e8b2cc96e39d9f88a601711bae31",
+    "src/barrow/ui/style-matrix.tsx": "e3b3cacf19dcc04393fc0df72d6aca600136bd40a92bfdffff29db7d982553c5",
+    "src/barrow/ui/types.ts": "e887869e61ed5e95c5d1bd53b4bd6aaf7222642c04731d9f11f5eb6a0ee3afe0",
+    "src/routes/app.tsx": "653e40dccf29f508f0b45c7998e7a739017563736d76a67b9f2753949818b698",
+    "tests/api/flows.test.mjs": "ab9d8f680b885627078de851ab3ac9baf157b22ba3df1bfddcf8d8aaf37f03c0",
+    "tests/journeys/storefront-branding.test.mjs": "3dc6e92ccd75880b250b0171835cf056e02690d3a8b6d12fa9a2665aa5ce16da",
+    "verification.json": "d0bf14c5680b5adaf4d1da8d179315195b4a3a594ed83073fc9da05cd4110aee"
+  },
+  "status_change": {
+    "CAT-005": [
+      "partial",
+      "partial"
+    ]
+  }
+}

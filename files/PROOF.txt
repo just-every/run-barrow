@@ -1,0 +1,12 @@
+CAT-005 identity: tests/journeys/storefront-branding.test.mjs:40,49,50,51
+CAT-005 revision and authority: tests/journeys/storefront-branding.test.mjs:62
+CAT-005 account and snapshot isolation: tests/journeys/storefront-branding.test.mjs:66
+CAT-005 cart validation and confirmation: tests/journeys/storefront-branding.test.mjs:79
+CAT-005 logo and navigation: tests/journeys/storefront-branding.test.mjs:120
+CAT-005 collection isolation: tests/journeys/storefront-branding.test.mjs:141
+CAT-005 hidden quantity recovery: tests/journeys/storefront-branding.test.mjs:151
+CAT-005 exact per-size prices: tests/journeys/storefront-branding.test.mjs:148,164
+CAT-005 wholesale confirmation: tests/journeys/storefront-branding.test.mjs:158
+CAT-005 optional retail price: tests/journeys/storefront-branding.test.mjs:166
+CAT-005 archive custody: tests/journeys/storefront-branding.test.mjs:172
+CAT-005 revocation: tests/journeys/storefront-branding.test.mjs:183

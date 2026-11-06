@@ -1,0 +1,202 @@
+{
+  "files": [
+    {
+      "blob": "b4e6dde94e949412647a8930f6516cd96b673138",
+      "bytes": 3381,
+      "path": "API.log",
+      "sha256": "a73aaea09cefca7574cab1b8c796bd2805addb9548e0ef774cf080571b55fb5f"
+    },
+    {
+      "blob": "28baab5750f486010068d74e022170639d26f481",
+      "bytes": 5148,
+      "path": "BUILD.log",
+      "sha256": "d801aa6bd9d89a89946242a08501f1840b4b537423157ca4a479128731fd954b"
+    },
+    {
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "path": "FIRST-PARTY.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "blob": "b0db0654efa7acb8e496aab8c57091d4df61c101",
+      "bytes": 86775,
+      "path": "JOURNEY.log",
+      "sha256": "c0fdea3f4dd2654230e10476b68406ed00134d1cd04affd3e87764cf302e5c97"
+    },
+    {
+      "blob": "064c0c6d41b27410fe1ed1f2bfb0c8207680227f",
+      "bytes": 264731,
+      "path": "LOCK-CHECK.json",
+      "sha256": "5dbba595896f6f70ea963d851f4c23c06d1335e9784c1b4ce526f4c75b01ce17"
+    },
+    {
+      "blob": "49bab6eac7cd7499b581b5d3ab230bc51d43ad5f",
+      "bytes": 1270,
+      "path": "PROBES.txt",
+      "sha256": "af07a1b9ad93fdd6ca932d2e0de7e8e7a4b20d5122cefb6e614e370ef848a790"
+    },
+    {
+      "blob": "1f4eb88a1cbd6a277fcbb1a1fa3f337d9f21ec49",
+      "bytes": 949,
+      "path": "PROOF.txt",
+      "sha256": "bf1dbce00db1f005e01d9221a001674ca683091e0302987b34028612b4a5e5b5"
+    },
+    {
+      "blob": "901ce0a1065d86e5628bb8e585864b2a7bf2f2c8",
+      "bytes": 716,
+      "path": "PUSH.txt",
+      "sha256": "b666e78da0e793fb0def44ba675aec4c9101138288d0843cccdf038b1e7f4927"
+    },
+    {
+      "blob": "c974cc8183d0d2650244b757b73f7effdaa926ff",
+      "bytes": 11627,
+      "path": "REPORT.md",
+      "sha256": "0b655ec22413271aa8b87dc77e7e9e03ae122d26f30f3c6fcd3706e177cef006"
+    },
+    {
+      "blob": "dc030e9ca7a14259e9acdb481b889de96db0e38b",
+      "bytes": 693,
+      "path": "RESTORED-VIEWS-CHECK.log",
+      "sha256": "db8be9f1e46bb59d5b5ceb8fa0156411763e9202829ecda401434418ee8bad45"
+    },
+    {
+      "blob": "eff56296f955f4d44c32771a226c51919f5b4bc3",
+      "bytes": 195,
+      "path": "TYPECHECK.log",
+      "sha256": "9bc41de99dc5ee194240d067e19f8049211a1982ee0fe6c48f635bf6134ad87a"
+    },
+    {
+      "blob": "87cbb2380010ca76ea74635f9dd0f39c07aff5b6",
+      "bytes": 2592,
+      "path": "VERIFY-barrow-6.log",
+      "sha256": "ef81fbf28be407ec7b98374f3c6598aa5aeb47167a6901941b8aaa75c5f82372"
+    },
+    {
+      "blob": "614e87562744f8a466c39be186118bfc14ebc264",
+      "bytes": 94,
+      "path": "VIEWS.log",
+      "sha256": "3201b4ad3ef7262c27db3e698fabd74aec79a5f944f5fc832612adfbb38850d6"
+    },
+    {
+      "blob": "dcef5caf3eafde068da703d0f68fcf6ca875be4a",
+      "bytes": 229,
+      "path": "candidate-ci.json",
+      "sha256": "5293127c22e85b42b3e89e37d676ce1db4f3b149b2d6a79809b00e0b541a21d1"
+    },
+    {
+      "blob": "585fc167562ab9e7287274250b89a20620fffc75",
+      "bytes": 15747,
+      "path": "ci-jobs.json",
+      "sha256": "5f48678de605a021593fbb6ef117912cac6a2c4f1d19ae463b2c17cc6c5adda9"
+    },
+    {
+      "blob": "277aab8bf7752fc2e020fdbfc2380e882a600249",
+      "bytes": 1377,
+      "path": "initial-main-ci.json",
+      "sha256": "a7012d4debb7a5a9d453e11c1c2f53b0268bc7f3625d4492e82e1fdd403f9185"
+    },
+    {
+      "blob": "a940867bd163582b000da00490ecb7a0d82b2d25",
+      "bytes": 1150,
+      "path": "main-ci.json",
+      "sha256": "3fa36a49635a0b16189098f2a8af80720e56e9d7a5044bb93489289d13e1be79"
+    },
+    {
+      "blob": "77f2b7bef5189be74737a7c4470c3541069ae633",
+      "bytes": 5491,
+      "path": "receipt.json",
+      "sha256": "00af3ace1cb75716f0d1ce220b0d35affa074992a0b07bb24c53e65ffc0e5a06"
+    },
+    {
+      "blob": "54256c95551e3e05279fb37fa2ce31b955a95f7b",
+      "bytes": 571869,
+      "path": "screens/storefront-buyer-confirmation-1440.png",
+      "sha256": "e3cf1835a7f971f5f3c794e00a9a878401ab69dfe7b7a7c307886d548a744dcb"
+    },
+    {
+      "blob": "ccd0eca00c55e54698a25765f47ca073cb39ded6",
+      "bytes": 521686,
+      "path": "screens/storefront-buyer-confirmation-390.png",
+      "sha256": "3f93287b4f25976495ff3fbcea26993ed84e5c4031b866b33caeecb795c50124"
+    },
+    {
+      "blob": "48b198aaff58ddf834aef80d05bf308a3df23ba1",
+      "bytes": 248971,
+      "path": "screens/storefront-buyer-validation-1440.png",
+      "sha256": "a6c84b9a0d1ae14b840c0d99f74d3bb70e5cf1ae83bf96b5947f2c31d75b4deb"
+    },
+    {
+      "blob": "9d27f2a54453e37b1f12cc0831bfcf563052cbfd",
+      "bytes": 213532,
+      "path": "screens/storefront-buyer-validation-390.png",
+      "sha256": "f049fdc3e41a902e348f743136c851d954e856bd19d876c3f5cc0391b12b23fb"
+    },
+    {
+      "blob": "185b845aa6f000c8875ca890fbbcdbe0625381bc",
+      "bytes": 230198,
+      "path": "screens/storefront-collections-both-1440.png",
+      "sha256": "5802986a463be35c42b5b7a5a6a97dede5fe47b891d17890aacfdb3cea05ce40"
+    },
+    {
+      "blob": "de20be5a5f873d30fd68b32584d02dc27bdc0f14",
+      "bytes": 203574,
+      "path": "screens/storefront-collections-both-390.png",
+      "sha256": "76b2f1415760dbfbb123dadc5606f64c8f9ca18dab88a74736e2d7030f6f9e82"
+    },
+    {
+      "blob": "34d07e7a56c1656d138083427673e596a9bd69e2",
+      "bytes": 186369,
+      "path": "screens/storefront-owner-merchandising-1440.png",
+      "sha256": "386b11d942f0b6d6051aff68e6e0eadca48c52cc6f74f0fe33836aff5f0cac12"
+    },
+    {
+      "blob": "6f04a6573a52381dce8e9df4cb2376580c5e3ff0",
+      "bytes": 157870,
+      "path": "screens/storefront-owner-merchandising-390.png",
+      "sha256": "2deb30418db3c1bff6dda2ca1ebf05cff537885b63d505abaddffadb4f0fb27b"
+    },
+    {
+      "blob": "925a8d98eaa25b44156bbc5a3876fead3bddffba",
+      "bytes": 263003,
+      "path": "screens/storefront-owner-published-1440.png",
+      "sha256": "fcab7ab20c1af0b183cb59bf84531b85d8c5d41e1bfa9030a31f50468edc2546"
+    },
+    {
+      "blob": "e27f98d68a123c0f42adce75a7b8302566d297ba",
+      "bytes": 241789,
+      "path": "screens/storefront-owner-published-390.png",
+      "sha256": "462f78eaac0c4c424daba13336a40119a036d136aabb37139586830e3b3e5e01"
+    },
+    {
+      "blob": "ec39e53ac0d16644c9d119758c5e588c2259851f",
+      "bytes": 211751,
+      "path": "screens/storefront-retail-missing-1440.png",
+      "sha256": "526437022f15a3b60a66700148b3dc89013cf222b3b9f6d056ef408875b831c4"
+    },
+    {
+      "blob": "e84a83bffe6e3372a1fc257d59938952e46d3978",
+      "bytes": 186865,
+      "path": "screens/storefront-retail-missing-390.png",
+      "sha256": "76c038c657273f4b7e633b02f6c82af14b0ec2613120de55d16bd305c58c15d0"
+    },
+    {
+      "blob": "dddab73257738fa66d7defb3fcb58f2620ea92c0",
+      "bytes": 210524,
+      "path": "screens/storefront-second-buyer-1440.png",
+      "sha256": "97d8540dc5dba59432ac9aaef3ec24c046a394854998d00e09b0acd1d04da7e2"
+    },
+    {
+      "blob": "e34b170602338967ecd2fe2b44944cab4e609beb",
+      "bytes": 180773,
+      "path": "screens/storefront-second-buyer-390.png",
+      "sha256": "5414551406086a6e5646916ce8bfd62ae3261baa656c59df610da34b2fdadc48"
+    }
+  ],
+  "product_branch": "cloud/sx-barrow-c-f70",
+  "product_head": "15d3b6af52f73b3f1413bcd9bf463e2c6e0461ec",
+  "ref": "refs/heads/evidence/sx-barrow-c-f70",
+  "repository": "just-every/run-barrow",
+  "schema": 1,
+  "tag": "sx-barrow-c-f70"
+}
