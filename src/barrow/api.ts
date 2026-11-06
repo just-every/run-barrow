@@ -101,6 +101,7 @@ import { saveReportZone } from './report-zone'
 import { fulfillmentReport } from './fulfillment'
 import { catalogue, pierConfigured, pierState } from './pier'
 import { invoiceCsv } from './invoice'
+import { invoicePdf } from './invoice-pdf'
 import { Problem,fail,requirePerson,requireSupplier,supplier,text } from './model'
 import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport,type PierSkus } from './imports'
 import { previewCutover,applyCutover,listCutovers,readCutover,undoCutover } from './imports/cutover-service'
@@ -285,11 +286,14 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,(await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,id),url.searchParams.get('profileId'))).selected))}
   const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
   if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
-  const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
+  const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.(csv|pdf)$/.exec(path)
   if(invoice && request.method==='GET') {
    if(actor.agent) fail('FORBIDDEN','A person must download invoice exports.',403)
    const order=await readOrder(env.DB,actor,invoice[1]);await requireCompanyRight(env.DB,actor,order.accountId,'finance')
-   return new Response(invoiceCsv(order,!!await env.DB.prepare('SELECT 1 FROM bw_credit_notes WHERE order_id=? LIMIT 1').bind(order.id).first()),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','content-disposition':`attachment; filename="barrow-${order.id}.csv"`}})
+   const financialHistory=!!await env.DB.prepare('SELECT 1 FROM bw_credit_notes WHERE order_id=? LIMIT 1').bind(order.id).first()
+   const retainedSeller=(await readConfirmations(env.DB,order.id)).findLast(record=>record.stage==='accepted')?.snapshot.seller
+   const format=invoice[2]
+   return new Response(format==='pdf'?await invoicePdf(order,financialHistory,retainedSeller):invoiceCsv(order,financialHistory,retainedSeller),{headers:{'content-type':format==='pdf'?'application/pdf':'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename="barrow-${order.id}.${format}"`}})
   }
   const confirmation=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/confirmations(?:\/([1-9]\d*)\.(csv|pdf))?$/.exec(path)
   if(confirmation && request.method==='GET') {
