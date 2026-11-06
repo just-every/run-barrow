@@ -56,6 +56,35 @@ export function validateFormResult(schema,result) {
  }
 }
 
+/** The documented native invocation door uses the same registry and scope gate as MCP. */
+export async function proveCartFormScope({h,pier,accountId,cart}) {
+ const {build}=await import('esbuild')
+ const bindings=await h.mf.getBindings(),key=Symbol.for('synthetic-barrow-cart-bindings')
+ bindings.DB=h.db
+ const originalFetch=globalThis.fetch
+ globalThis[key]=bindings
+ try {
+  // Supply the real disposable Worker bindings when loading its public adapter in Node.
+  const compiled=await build({entryPoints:['src/barrow/agent-door/index.ts'],bundle:true,write:false,format:'esm',platform:'node',external:['node:*'],plugins:[{name:'native-bindings',setup(builder){
+   builder.onResolve({filter:/^cloudflare:workers$/},()=>({path:'bindings',namespace:'native-bindings'}))
+   builder.onLoad({filter:/.*/,namespace:'native-bindings'},()=>({contents:"export const env=globalThis[Symbol.for('synthetic-barrow-cart-bindings')]"}))
+  }}]})
+  const {agentDoor}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'))
+  // Retain the harness's certificate-verified transport to the real pinned Pier.
+  globalThis.fetch=(url,init)=>new URL(url).origin===pier.origin?pier.raw(new URL(url).pathname+new URL(url).search,init):originalFetch(url,init)
+  const person=(await h.api('/api/barrow/state')).actor
+  const door=agentDoor(bindings),args={accountId,layout:'vertical',cart}
+  const who={person:{id:person.id},agent:{id:'synthetic-barrow-cart-scope',name:'Cart scope probe'},scopes:[]}
+  const before=await h.api('/api/barrow/state'),refused=await door.invoke('barrow.cart.form',args,who)
+  assert.equal(refused.outcome,'refused');assert.equal(refused.code,'insufficient_scope');assert.equal(refused.result,undefined)
+  assert.deepEqual(await h.api('/api/barrow/state'),before)
+  const admitted=await door.invoke('barrow.cart.form',args,{...who,scopes:['catalog:read']})
+  assert.equal(admitted.outcome,'done');assert.deepEqual(admitted.result,await h.command('cart.form',args))
+  assert.deepEqual(await h.api('/api/barrow/state'),before)
+  console.log('PROBE BASE-AGENT-002 scope: native cart.form invocation without catalog:read -> insufficient_scope; current scoped invocation -> exact native form, no commercial change')
+ } finally {globalThis.fetch=originalFetch;delete globalThis[key]}
+}
+
 /** Real built-page downloads; assertions run at 1440, optional proof also at 390. */
 export async function proveCartFormDownloads({h,as,accountId,cart,mcp}) {
  const {chromium,expect}=await import('@playwright/test')

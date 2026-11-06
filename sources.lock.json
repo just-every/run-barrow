@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "9fa59592e492d56ac64fb26291abc0680e8a7e490e961e3764ed579cb5e00f82",
+      "sha256": "d682077e4ff36e0675953402bb0033c5e4eb0c42838b7f2499211ac34b3a3b98",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -5823,7 +5823,7 @@
       "executable": false
     },
     "tests/agent-door/cart-form-parity.mjs": {
-      "sha256": "9aeb1599d79a2dc253dba0e41ba7b74685a106555b172a2d70c8978a1e83c836",
+      "sha256": "1cf286b79e1879e619477b3c3eaed3daf77bcb1a48204e3a432cd61adcbf07a2",
       "executable": false
     },
     "tests/agent-door/custody.mjs": {
@@ -5887,7 +5887,7 @@
       "executable": false
     },
     "tests/api/cart-import.test.mjs": {
-      "sha256": "59e1fcfa6f21f767c009085c76d227f66aa01088c53bc65803d0fc90ca1403a9",
+      "sha256": "96d8a1e0fd4dd6a6288cb6744a9a140ae245f6c259711a1522583cb91d4f0dc4",
       "executable": false
     },
     "tests/api/case-packs.test.mjs": {
