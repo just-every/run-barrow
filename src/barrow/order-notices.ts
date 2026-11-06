@@ -21,7 +21,7 @@ export function orderNoticeStatements(db:D1Database,order:Order,fact:Fact):D1Pre
    SELECT ?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM bw_order_notice_accounts WHERE account_id=? AND active=1)`)
    .bind(crypto.randomUUID(),order.accountId,order.id,fact.kind,fact.sourceId,fact.sourceRevision,fact.sourceOrigin,JSON.stringify(fact.details),fact.at,order.accountId)]
 }
-const stock = (order:Order) => ({status:order.status,lines:order.reservation?.map(line=>({itemId:line.itemId,reserved:line.reserved,backorder:line.backorder})).sort((a,b)=>a.itemId.localeCompare(b.itemId))??[]})
+const stock = (order:Order) => ({status:order.status,lines:(Array.isArray(order.reservation)?order.reservation:[]).map((line:any)=>({itemId:line.itemId,reserved:line.reserved,backorder:line.backorder})).sort((a:{itemId:string},b:{itemId:string})=>a.itemId.localeCompare(b.itemId))??[]})
 export async function nativeOrderNoticeStatements(db:D1Database,order:Order,action:string,previous:Order) {
  const at=(await now()).toISOString()
  if(action==='order.approved')return orderNoticeStatements(db,order,{kind:'accepted',sourceId:order.id,sourceRevision:order.revision,sourceOrigin:'Barrow',details:{acceptedAt:order.approvedAt},at})
@@ -78,7 +78,8 @@ export async function readOrderNotices(env:Bindings,actor:Actor) {
 export async function noticePreferences(env:Bindings,actor:Actor) {
  person(actor)
  const rows=(await env.DB.prepare('SELECT account_id,kind,enabled FROM bw_order_notice_preferences WHERE user_id=?').bind(actor.id).all<{account_id:string;kind:OrderNoticeKind;enabled:number}>()).results
- return {accounts:(await accounts(env.DB,actor)).map(selected=>({id:selected.id,name:selected.value.name,kinds:orderNoticeKinds.map(kind=>({kind,title:titles[kind],enabled:rows.find(row=>row.account_id===selected.id&&row.kind===kind)?.enabled!==0}))}))}
+ const inactive=new Set((await env.DB.prepare('SELECT account_id FROM bw_order_notice_accounts WHERE active=0').all<{account_id:string}>()).results.map(row=>row.account_id))
+ return {accounts:(await accounts(env.DB,actor)).filter(selected=>!inactive.has(selected.id)).map(selected=>({id:selected.id,name:selected.value.name,kinds:orderNoticeKinds.map(kind=>({kind,title:titles[kind],enabled:rows.find(row=>row.account_id===selected.id&&row.kind===kind)?.enabled!==0}))}))}
 }
 async function notice(env:Bindings,actor:Actor,id:string) {
  const row=await env.DB.prepare('SELECT * FROM bw_order_notices WHERE id=?').bind(id).first<Row>()
@@ -99,13 +100,14 @@ export async function orderNoticeSource(env:Bindings,actor:Actor,id:string) {
   if(!result)fail('NOTICE_SOURCE','The return source is unavailable.',409)
   const claim=JSON.parse(result.value_json)
   current={revision:result.revision,requested:claim.quantity,approved:claim.decision?.quantity??null,restored:!!claim.restored}
- } else current={revision:order.revision,status:order.status,...(row.kind==='stock'?stock(order):{acceptedAt:order.approvedAt})}
+ } else current=row.kind==='stock'?{revision:order.revision,...stock(order)}:{revision:order.revision,status:order.status,acceptedAt:order.approvedAt}
  return {notice:shown(row,null),current,orderId:order.id}
 }
 export async function orderNoticeCommand(env:Bindings,actor:Actor,type:string,p:any) {
  person(actor)
  if(type==='order-notice.preferences') {
   const selected=await account(env.DB,actor,text(p.accountId,'Account')),kind=p.kind as OrderNoticeKind
+  if((await env.DB.prepare('SELECT active FROM bw_order_notice_accounts WHERE account_id=?').bind(selected.id).first<{active:number}>())?.active===0)fail('NOTICE_INACTIVE','Erased or restored notice settings are inactive.',409)
   if(!orderNoticeKinds.includes(kind)||typeof p.enabled!=='boolean')fail('INPUT','Choose a notice category and whether to show it.',400)
   await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_order_notice_preferences(user_id,account_id,kind,enabled) VALUES(?,?,?,?) ON CONFLICT(user_id,account_id,kind) DO UPDATE SET enabled=excluded.enabled').bind(actor.id,selected.id,kind,p.enabled?1:0),audit(env.DB,actor,actor.id,'order-notice.preferences',{accountId:selected.id,source:type,revision:await digest(JSON.stringify([kind,p.enabled])),reason:'The signed-in person changed their own in-app notice preference.'})])
   return noticePreferences(env,actor)

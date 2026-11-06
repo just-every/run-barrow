@@ -1,3 +1,4 @@
+import {proveOrderNoticeScreens} from './order-notices-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
@@ -29,6 +30,7 @@ test('buyer requests three damaged units and the supplier authorizes two, matche
  await captureRegionWidths(ownerPage,panel,'return-reconciled-proposal');
  assert.equal((await h.api('/api/barrow/credits?orderId='+order.id)).credits.length,0);
  await buyerPage.reload();panel=await open(buyerPage);await expect(panel).toContainText('Approved 2 of 3 · disputed 1');await expect(panel).toContainText('Bring two units');await expect(panel).toContainText('USD 130.00');
+ await proveOrderNoticeScreens({h,order,ownerPage,buyerPage});
  assert.equal(await panel.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
  assert.equal(await panel.locator('p,label,button,a').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&parseFloat(getComputedStyle(element).fontSize)<13).length),0);
 });
