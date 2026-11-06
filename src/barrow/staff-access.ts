@@ -49,6 +49,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
  if(method==='GET'&&relative==='payment-promises'&&role==='finance')return
+ if(method==='GET'&&(relative==='order-notice-preferences'||relative==='order-notices'||/^order-notices\/[-a-zA-Z0-9_]+\/source$/.test(relative))&&role!=='analyst')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return
  if(method==='GET'&&/^orders\/[-A-Za-z0-9_]+(?:\/(tracking|followthrough|timeline|document|terms-signature|confirmations(?:\/[1-9]\d*\.(csv|pdf))?))?$/.test(relative))return
@@ -68,6 +69,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
 }
 
 const commandRoles:Record<string,string[]>={
+ 'order-notice.preferences':['sales-manager','rep','operations','finance'],'order-notice.read':['sales-manager','rep','operations','finance'],
  'promise.record':['finance'],'promise.revise':['finance'],'promise.withdraw':['finance'],'promise.resolve':['finance'],'promise.pause':['finance'],'promise.refresh':['finance'],
  'segment.save':selling,'campaign.save':selling,'campaign.test':selling,'campaign.schedule':selling,'campaign.send':selling,
  'credit-policy.request':selling,'credit-policy.save':['finance'],'credit-policy.hold':['finance'],'credit-policy.release':['finance'],
