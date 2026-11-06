@@ -15,10 +15,10 @@ export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role=
 export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;warehouses?:string[]}) {
  const grant=actor.staff
  if(!grant)return true
- if(task.kind==='qbo')return grant.role==='finance'
  if(task.kind==='return')return false // Functional return admission remains owed by ACC-005.
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
+ if(task.kind==='qbo')return grant.role==='finance'
  if(task.kind==='fulfillment'&&grant.warehouses!=='all')return false
  if(task.kind==='tracking'&&grant.warehouses!=='all'&&(!task.warehouses?.length||task.warehouses.some(w=>!grant.warehouses.includes(w))))return false
  if(task.kind==='payment-promise')return grant.role==='finance'

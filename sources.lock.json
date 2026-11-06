@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ddb91433102e759c12b4fdf5d93edfb5e1407a751196b9d4d9f009fc82c645c4",
+      "sha256": "3f8c8e7e843572f985a968390ca0ba820912982ea3be44cd1657fb3669f58b99",
       "executable": false
     },
     "DEMO.md": {
@@ -1775,7 +1775,7 @@
       "executable": false
     },
     "src/barrow/account-erasure.ts": {
-      "sha256": "a9332ce118b79f4655574af1e5413af48fc87abb4359222edd4d84dd74c0bb2c",
+      "sha256": "33ad6bf572b9a708430af90d427c61bb0bc2d09caba8aba7f7060dd607935a82",
       "executable": false
     },
     "src/barrow/account-followup-sources.ts": {
@@ -1790,16 +1790,20 @@
       "sha256": "8470fbc972e9385e26ded7112ff5086daadc4700d87f5e188820e741702b89bd",
       "executable": false
     },
+    "src/barrow/accounting/custody.ts": {
+      "sha256": "b6d4255c8ddf80afebb1717887c90b4d0dfcab899ca91c9f893dcbbfd1f1fcbe",
+      "executable": false
+    },
     "src/barrow/accounting/qbo.ts": {
       "sha256": "6f561b82920e2b371a86aa8eee8f10176f2c3c8830f84bf636e21a0b283ef270",
       "executable": false
     },
     "src/barrow/accounting/reconciliation.ts": {
-      "sha256": "a05c87826750120584d0f63832ff9b037927f276439176295c4db9a77cf80995",
+      "sha256": "eaf9187c3b76f00ba24ca44fe30205185ac1d023cc1cda1088b414e3bcc8135d",
       "executable": false
     },
     "src/barrow/accounts.ts": {
-      "sha256": "52f1feb0f2abc075e771621c0926a52d2de350bf7ae6fa829ee9f0924fb787cf",
+      "sha256": "757f0396f1de4faf2b1eabc3097f484d941e3d395eaea3fe58627bba5f31c653",
       "executable": false
     },
     "src/barrow/agent-door/business.ts": {
@@ -2211,7 +2215,7 @@
       "executable": false
     },
     "src/barrow/followups.ts": {
-      "sha256": "1183728b8e1684a1e7e337dfe8851bfb2813e6e0ebd2af199b195f1508a4a7de",
+      "sha256": "9b25cf52f4165d953bf3c0672149176c928fafdcc7ac85c55b291c889aedbc96",
       "executable": false
     },
     "src/barrow/freshness.ts": {
@@ -2395,7 +2399,7 @@
       "executable": false
     },
     "src/barrow/legacy-erasure-journal.ts": {
-      "sha256": "159ee512e3a05be6f2496e56e00c8be8a6c8b8eaa339bb3dbc0c3595a9f2cfbd",
+      "sha256": "ad7662e9c1d3c622a488619716a1bb6f9ccbe8159dbdaab95b4dde4aa22c9661",
       "executable": false
     },
     "src/barrow/line-sheets.ts": {
@@ -2651,7 +2655,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "56028777991f6634013be16d1fa60b4a073459011ecbcf2574884665d7b20075",
+      "sha256": "e9a5d9e53641e8850e66726d697825536cc31786df9fbcc3793662aedede4e1d",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -6063,7 +6067,7 @@
       "executable": false
     },
     "tests/api/qbo-accounting.mjs": {
-      "sha256": "d08a92d0b10fce66e41d5050e92ff6b96a0507dfff5cd72cfbfd78a89abc377a",
+      "sha256": "9ad07dbdf2202bf58e9b4b94dfa68ef2a8c628013af7ce311cdb024c1282a046",
       "executable": false
     },
     "tests/api/qbo-fixture.mjs": {

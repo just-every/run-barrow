@@ -77,6 +77,15 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
    if(!staffTaskAllowed(actor,source))continue
    const existingTask = known.get(source.id)
    if (existingTask) {
+    // A source-confirmed match or supersession is not a permanent human acknowledgment.
+    // If that same QBO discrepancy recurs, restore owned work and remove its obsolete resolution.
+    if (source.kind === 'qbo' && existingTask.status === 'closed' && !existingTask.resolvedBy) {
+     const { revision: previous, resolution, resolvedAt, ...value } = existingTask
+     const eligible = await taskPeople(env.DB, source)
+     const ownerId = eligible.some(person => person.id === value.ownerId) ? value.ownerId : actor.id
+     statements.push(updateStatement(env.DB, existingTask, { ...value, ...source, ownerId, status: 'open', nextContactDate: today }, crypto.randomUUID()), changed(env.DB))
+     updated.push(source.id)
+    }
     if (existingTask.status === 'open' && (Object.keys(source) as (keyof FollowupSource)[]).some(key => JSON.stringify(existingTask[key]) !== JSON.stringify(source[key]))) {
      const { revision: previous, ...value } = existingTask
      statements.push(updateStatement(env.DB, existingTask, { ...value, ...source }, crypto.randomUUID()), changed(env.DB))

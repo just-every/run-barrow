@@ -1,3 +1,4 @@
+import { qboCustomerCustody, qboErasureStatements } from './accounting/custody'
 import { eraseAccountAgentArtifacts, checkAccountAgentArtifacts } from './agent-door/erasure.ts'
 import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
 import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
@@ -121,7 +122,9 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
   sql('DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',accountId),
   sql("UPDATE bw_agent_proposal_grants SET state='revoked',revision=?,revoked_at=?,revocation_reason='Owner-reviewed account access revocation' WHERE account_id=?",op.id,at,accountId),
  ])
- for(const map of [...new Map([...r.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===accountId),...(op.qboCustomers??[])].map(row=>[row.realm+':'+row.source_id,row])).values()])add('access','qbo-customer:'+map.source_id,'revoke source mapping','Erased provider customers stay fenced from later reads and remapping, including later-journal restore',[sql('INSERT OR IGNORE INTO bw_qbo_erased VALUES(?,?)',map.realm,map.source_id),sql('DELETE FROM bw_qbo_maps WHERE realm=? AND kind=? AND source_id=?',map.realm,map.kind,map.source_id),sql('DELETE FROM bw_qbo_links WHERE account_id=?',accountId)])
+ const qboCustomers=[...new Map([...r.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===accountId),...r.bw_qbo_invoices.filter(row=>row.account_id===accountId).map(row=>{const value=JSON.parse(row.value_json);return {realm:value.realm,source_id:value.customerId,kind:'Customer'}}),...(op.qboCustomers??[])].map(row=>[row.realm+':'+row.source_id,row])).values()]
+ for(const map of qboCustomers)add('access','qbo-customer:'+map.realm+':'+map.source_id,'revoke source mapping and account admission','Erased provider customers stay fenced from later reads and remapping, including later-journal restore')
+ statements.push(...qboErasureStatements(accountId,qboCustomers))
  for(const row of r.bw_profile_approvals.filter(row=>row.account_id===accountId))add('access',`profile-approval:${row.profile_id}:${row.user_id}`,'revoke and remove','Buying profile authority ends even under a hold',[sql('DELETE FROM bw_profile_approvals WHERE profile_id=? AND user_id=?',row.profile_id,row.user_id)])
  for(const row of r.bw_buying_profiles.filter(row=>row.account_id===accountId))add('buying profiles','buying-profile:'+row.id,'remove','Remove live account profiles; retained orders keep their agreed seller and price snapshots',[sql('DELETE FROM bw_buying_profiles WHERE id=?',row.id)])
  for(const row of r.bw_brands.filter(row=>r.bw_buying_profiles.some(profile=>profile.account_id===accountId&&JSON.parse(profile.value_json).brandId===row.id)))add('brand definitions','brand:'+row.id,'keep supplier configuration','Brand definitions contain supplier legal identity and remain available to other authorized accounts')
@@ -253,7 +256,7 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
 }
 export async function previewAccountErasure(env:Bindings,actor:Actor,p:any) {
  owner(actor);const state=await facts(env,text(p.accountId,'Account ID'))
- const op:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:'preview',accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason:'Preview only',mode:'erase',exclusions:[],deleteOrderIds:[],people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:state.rows.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===state.account.id).map(row=>({realm:row.realm,source_id:row.source_id,kind:row.kind})),receipt:null}
+ const op:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:'preview',accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason:'Preview only',mode:'erase',exclusions:[],deleteOrderIds:[],people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:await qboCustomerCustody(env.DB,state.account.id),receipt:null}
  const result=await plan(env,op,state)
  return {accountId:state.account.id,accountRevision:state.account.revision,requestRevision:state.request?.revision??null,policyRevision:state.policy?.revision??null,reviewHash:await digest(JSON.stringify([state.reviewHash,result.items])),held:state.held,request:state.request??null,items:result.items,classes:result.classes,custody:result.custody,platformBackupWindows:{paidUntil:new Date(Date.now()+30*86400000).toISOString(),freeUntil:new Date(Date.now()+7*86400000).toISOString()},outsideJournal:!!env.ERASURE_JOURNAL}
 }
@@ -287,7 +290,7 @@ export async function executeAccountErasure(env:Bindings,actor:Actor,p:any,mode:
  const exclusions=p.exclusions??[],deleteOrderIds=p.deleteOrderIds??[]
  if(!Array.isArray(exclusions)||exclusions.some(row=>!row||typeof row.id!=='string'||!text(row.reason,'Exclusion reason',1000))||new Set(exclusions.map(row=>row.id)).size!==exclusions.length)fail('INPUT','Supply unique reviewed exclusions with reasons.',400)
  if(!Array.isArray(deleteOrderIds)||deleteOrderIds.some(id=>typeof id!=='string')||new Set(deleteOrderIds).size!==deleteOrderIds.length)fail('INPUT','Supply unique reviewed order IDs for explicit deletion.',400)
- const operation:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:crypto.randomUUID(),accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason,mode,exclusions,deleteOrderIds,people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:state.rows.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===state.account.id).map(row=>({realm:row.realm,source_id:row.source_id,kind:row.kind})),receipt:null}
+ const operation:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:crypto.randomUUID(),accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason,mode,exclusions,deleteOrderIds,people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:await qboCustomerCustody(env.DB,state.account.id),receipt:null}
  const reviewPlan=await plan(env,{...operation,mode:'erase',exclusions:[],deleteOrderIds:[]},state)
  if(p.reviewHash!==await digest(JSON.stringify([state.reviewHash,reviewPlan.items])))fail('CHANGED','Refresh the erasure preview; its data or financial-floor decisions changed.')
  const result=await plan(env,operation,state)

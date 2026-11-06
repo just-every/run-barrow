@@ -127,8 +127,9 @@ export async function resumeRead(env:Bindings,actor:Actor,p:any) {
 export async function linkInvoice(env:Bindings,actor:Actor,p:any) {
  qboOwner(actor);const reason=text(p.reason,'Reconciliation review reason',1000),c=await qboConnection(env.DB)
  const row=await env.DB.prepare('SELECT * FROM bw_qbo_invoices WHERE id=?').bind(text(p.id,'Observation ID',100)).first<Stored>()
- if(!row||row.revision!==p.revision)fail('CHANGED','Review the current invoice observation.')
+ if(!row||!row.account_id||row.revision!==p.revision)fail('CHANGED','Review the current invoice observation.')
  const value=JSON.parse(row.value_json) as QboInvoice
+ if(await env.DB.prepare('SELECT 1 FROM bw_qbo_erased WHERE realm=? AND customer_id=?').bind(value.realm,value.customerId).first())fail('QBO_ERASED','An erased customer cannot be linked again.',409)
  if(!c||c.state!=='connected'||c.realm!==value.realm)fail('QBO_COMPANY','Reconnect the original QuickBooks company before linking.')
  const a=await account(env.DB,actor,value.accountId),native=await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE id=? AND account_id=?').bind(text(p.orderId,'Native order ID',100),a.id).first<{value_json:string;revision:string}>()
  if(!native||native.revision!==p.orderRevision)fail('CHANGED','Review the current native issued invoice.')
@@ -150,15 +151,21 @@ export async function qboComparisons(db:D1Database,accountId:string,asOf:string,
  const maps=(await values(db)).results,financial=await creditRecords(db)
  const details=await Promise.all(rows.map(async row=>{
   const value=JSON.parse(row.value_json) as QboInvoice
-  const linked=await db.prepare('SELECT order_id FROM bw_qbo_links WHERE realm=? AND source_id=? AND account_id=?').bind(value.realm,value.sourceId,accountId).first<{order_id:string}>()
-  const record=linked?await db.prepare('SELECT value_json FROM bw_orders WHERE id=? AND account_id=?').bind(linked.order_id,accountId).first<{value_json:string}>():null
+  const linked=await db.prepare('SELECT order_id,revision FROM bw_qbo_links WHERE realm=? AND source_id=? AND account_id=?').bind(value.realm,value.sourceId,accountId).first<{order_id:string;revision:string}>()
+  const record=linked?await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=? AND account_id=?').bind(linked.order_id,accountId).first<{value_json:string;revision:string}>():null
   const order=record?JSON.parse(record.value_json) as Order:null
   const refs=(await db.prepare('SELECT * FROM bw_qbo_refs WHERE realm=?').bind(value.realm).all<{kind:string;source_id:string;token:string;active:number}>()).results
   const a=await db.prepare('SELECT revision FROM bw_accounts WHERE id=?').bind(accountId).first<{revision:string}>()
   const stale=value.refs.some(ref=>!maps.some(m=>m.realm===value.realm&&m.kind===ref.kind&&m.source_id===ref.id&&refs.some(r=>r.kind===m.kind&&r.source_id===m.source_id&&r.token===m.token&&r.active===1)&&(m.kind!=='Customer'||m.native_revision===a?.revision)))
   const nativeCents=order?.invoice&&order.currency===value.currency?invoiceOutstanding(order.id,order.totalCents,{...financial,allocations:financial.allocations.filter(r=>supplierDate(new Date(r.createdAt))<=asOf),applications:financial.applications.filter(r=>supplierDate(new Date(r.createdAt))<=asOf)}):null
   const conflict=stale?'Reference mapping missing or stale':!order?'Unlinked ledger invoice':order.currency!==value.currency?'Currency mismatch':order.totalCents!==value.amountCents?'Upstream invoice total changed':order.invoice?.issuedAt!==value.issuedAt||order.invoice?.dueAt!==value.dueAt?'Invoice dates differ':nativeCents!==value.balanceCents?'Balance differs':'Matched'
-  return {id:value.id,sourceId:value.sourceId,sourceToken:value.sourceToken,realm:value.realm,accountId,currency:value.currency,amountCents:value.amountCents,ledgerCents:value.balanceCents,nativeCents,orderId:order?.id??'',status:conflict,path:`/api/barrow/qbo/observations/${value.id}`}
+  // An unchanged provider SyncToken says nothing about later native credits or mapping review.
+  // Bind exception work to the relevant native and reference revisions, not each read's correlation.
+  const reconciliationRevision=await digest(JSON.stringify([a?.revision,record?.revision,linked?.revision,
+   maps.filter(m=>m.realm===value.realm&&value.refs.some(ref=>ref.kind===m.kind&&ref.id===m.source_id)),
+   refs.filter(r=>value.refs.some(ref=>ref.kind===r.kind&&ref.id===r.source_id)),
+   financial.allocations.filter(r=>r.orderId===order?.id),financial.applications.filter(r=>r.orderId===order?.id)]))
+  return {id:value.id,sourceId:value.sourceId,sourceToken:value.sourceToken,realm:value.realm,accountId,currency:value.currency,amountCents:value.amountCents,ledgerCents:value.balanceCents,nativeCents,orderId:order?.id??'',status:conflict,reconciliationRevision,path:`/api/barrow/qbo/observations/${value.id}`}
  }))
  const currencies=[...new Set([...native.keys(),...details.map(row=>row.currency)])]
  return currencies.map(currency=>{const mine=details.filter(row=>row.currency===currency),ledgerCents=mine.reduce((sum,row)=>sum+row.ledgerCents,0),nativeCents=native.get(currency)??0;return {accountId,realm:run.realm,runId:run.id,asOf,observedAt:run.updated_at,currency,nativeCents,ledgerCents,differenceCents:nativeCents-ledgerCents,status:mine.some(row=>row.status!=='Matched')||nativeCents!==ledgerCents?'Conflict':'Matched',sources:mine}})
@@ -184,9 +191,13 @@ export async function qboExceptionSources(env:Bindings) {
  const existing=(await env.DB.prepare("SELECT id FROM bw_followups WHERE json_extract(value_json,'$.kind')='qbo'").all<{id:string}>()).results
  const accounts=(await env.DB.prepare('SELECT DISTINCT account_id FROM bw_qbo_invoices WHERE account_id<>?').bind('').all<{account_id:string}>()).results
  for(const a of accounts)for(const comparison of await qboComparisons(env.DB,a.account_id,run.as_of,new Map()))for(const source of comparison.sources) {
-  const prefix='qbo:'+source.realm+':'+source.sourceId+':',key=prefix+source.sourceToken
+  const prefix='qbo:'+source.realm+':'+source.sourceId+':',key=prefix+await digest(JSON.stringify([source.sourceToken,source.reconciliationRevision,source.status,source.currency,source.amountCents,source.ledgerCents,source.nativeCents,source.orderId]))
   if(source.status==='Matched'&&run.as_of===supplierDate(await now())) {for(const prior of existing.filter(row=>row.id.startsWith(prefix)))resolved.set(prior.id,'Source-linked QuickBooks invoice '+source.sourceId+' revision '+source.sourceToken+' and native outstanding match in dated observation '+run.as_of+'.')}
-  else candidates.push({id:key,kind:'qbo',accountId:a.account_id,sourceId:source.sourceId,sourcePath:source.path,title:'Review QuickBooks invoice '+source.sourceId,reason:`${run.as_of===supplierDate(await now())?source.status:'Dated ledger observation needs refresh'}; ${source.currency}, company ${source.realm}, correlation ${comparison.runId}, observed ${comparison.observedAt}.`,priority:1})
+  else {
+   candidates.push({id:key,kind:'qbo',accountId:a.account_id,sourceId:source.sourceId,sourcePath:source.path,title:'Review QuickBooks invoice '+source.sourceId,reason:`${run.as_of===supplierDate(await now())?source.status:'Dated ledger observation needs refresh'}; ${source.currency}, company ${source.realm}, correlation ${comparison.runId}, observed ${comparison.observedAt}.`,priority:1})
+   // Keep one current owned task per source. Supersession is not a claim that money matched.
+   for(const prior of existing.filter(row=>row.id.startsWith(prefix)&&row.id!==key))resolved.set(prior.id,'Superseded by current reconciliation task '+key+'; the source discrepancy still requires review.')
+  }
  }
  return {candidates,resolved}
 }
