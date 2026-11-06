@@ -430,8 +430,8 @@ Judged from the code and tests at commit `a7adfbe1d24919777c3c18022ce9c6f34b9b32
 | Clauses | Done | Partial | Missing | Total |
 | --- | ---: | ---: | ---: | ---: |
 | Published | 6 | 0 | 0 | 6 |
-| Target and push further | 67 | 43 | 38 | 148 |
-| All | 73 | 43 | 38 | 154 |
+| Target and push further | 67 | 44 | 37 | 148 |
+| All | 73 | 44 | 37 | 154 |
 
 | Clause | Title | Kind | Status | Evidence | Gap |
 | --- | --- | --- | --- | --- | --- |
@@ -519,7 +519,7 @@ Judged from the code and tests at commit `a7adfbe1d24919777c3c18022ce9c6f34b9b32
 | `SHIP-005` | Exchanges and service resolution | target | missing |  | Implement exchanges and service resolution and prove the stated journey. |
 | `SHIP-006` | Personal erasure of service snapshots | target | missing |  | Personal-field erasure across service snapshots and the original order, safe service export and case read after erasure, and retention-period refusal with no change are unbuilt and unproved. |
 | `INT-001` | Optional Pier inventory connection | target | partial | `src/barrow/pier.ts`; `scripts/connect-pier.mjs`; `tests/api/flows.test.mjs` | Real Pier HTTP catalog and reservations ship; it is currently mandatory for ordering and no alternate inventory adapter ships. |
-| `INT-002` | QuickBooks Online accounting | target | missing |  | Implement quickbooks online accounting and prove the stated journey. |
+| `INT-002` | QuickBooks Online accounting | target | partial | `tests/api/statements.test.mjs` — “PAY-007: a dated statement of invoices with opening and closing balances by currency, as JSON, CSV and PDF, for the buyer even after hold and close”, extended through `tests/api/qbo-accounting.mjs`: owner and company-bound OAuth, reviewed references, bounded interrupted invoice reads and exact checkpoint resume, dated per-currency statement and finance comparisons with source IDs, upstream edits and currency conflicts without native writes, scoped refusals, attributed audit, owned exceptions, latest-event floor, legal hold, explicit owner erasure and independent-journal restore. | Read-only foundation only, with conservative signed-in-owner connection, mapping and link review under the standing scope rule; functional finance reconciliation delegation remains owed. Live sandbox consent and the complete invoice, partial-payment, return-credit, replay and revocation receipt require the local held-key run; held client credentials establish no tenant authority, redirect setup or consent. Creating invoices at chosen billing events, credit-memo writes, verified payment and credit synchronization into native balances, complete PAY-007, RPT-004, AUTO-005 and DATA-003 receiving obligations remain owed. Current dated invoice balances are comparisons only; no historical provider balance or provider erasure is claimed. PAY-003, PAY-004, PAY-005, PAY-010 and all tax and provider holds retain their own judgments. |
 | `INT-003` | Xero accounting | target | missing |  | Implement xero accounting and prove the stated journey. |
 | `INT-004` | NetSuite ERP | target | missing |  | Implement netsuite erp and prove the stated journey. |
 | `INT-005` | Shopify commerce connection | target | missing |  | Implement shopify commerce connection and prove the stated journey. |
