@@ -1,0 +1,114 @@
+[
+  {
+    "archiveMember": "shards (barrow-8)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:32.0929611Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (barrow-8)",
+    "jobId": 127846111056,
+    "logSha256": "e5d86ab97a32f60b4cca9fb020f2364289748f8dacc16c2f9227c8a3c91260d5",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  },
+  {
+    "archiveMember": "shards (barrow-1)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:37.2649435Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (barrow-1)",
+    "jobId": 127846111071,
+    "logSha256": "9e0184ae95d58b6f475dc700245cb8aeb567c7cedc88ac9bda3d6e6579c76bd8",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  },
+  {
+    "archiveMember": "shards (agent-door)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:44.8461876Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (agent-door)",
+    "jobId": 127846111078,
+    "logSha256": "db0032cb5c5552c21680bb316c1cf0930867186113a0ee05ee7943ba02e7ad86",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  },
+  {
+    "archiveMember": "shards (barrow-5)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:41.9824206Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (barrow-5)",
+    "jobId": 127846111152,
+    "logSha256": "f6ca368ec0e9becf9a65eb831c8f4a1e3544a6c827067bbff42fbf3f19b28d59",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  },
+  {
+    "archiveMember": "shards (barrow-4)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:36.9237342Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (barrow-4)",
+    "jobId": 127846111190,
+    "logSha256": "26d7f859c6a96e6a458c9cdce350d3fb67a55e7e9c514fdb2b1efee841b01577",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  },
+  {
+    "archiveMember": "shards (barrow-2)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:36.3402914Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (barrow-2)",
+    "jobId": 127846111241,
+    "logSha256": "6848a3d072c9441232c09270537cdb1780471db5b9a45eafda0239f7581fcfbd",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  },
+  {
+    "archiveMember": "shards (barrow-6)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:41.5841077Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (barrow-6)",
+    "jobId": 127846111260,
+    "logSha256": "eb783371c5cb61b88ec3c1b5a4125fe866fb7af69973bf2c3796a043c2965fbd",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  },
+  {
+    "archiveMember": "shards (barrow-3)/14_Run this shard.txt",
+    "command": "node scripts/contract-docs.mjs check",
+    "errorLines": [
+      "2026-11-06T10:37:35.5195393Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write."
+    ],
+    "exit": 1,
+    "failure": "Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "job": "shards (barrow-3)",
+    "jobId": 127846111324,
+    "logSha256": "1f2eb336c3c1c94f0ea5719e230d67511956715706ce8467ca4518b66b56a9b4",
+    "onlyGeneratedViewFailure": true,
+    "sourceLockFreshness": "success"
+  }
+]

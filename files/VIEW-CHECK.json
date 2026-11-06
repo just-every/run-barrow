@@ -1,0 +1,7 @@
+{
+  "command": "node scripts/contract-docs.mjs check",
+  "exit": 1,
+  "expectedGeneratedViewFailure": true,
+  "head": "cf934caa5f4fc87ba7cc4cd8616e0ae76721fdf5",
+  "output": "file:///workspace/barrow-f68/scripts/contract-docs.mjs:26\n if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');\n                                                                                                   ^\n\nError: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.\n    at file:///workspace/barrow-f68/scripts/contract-docs.mjs:26:100\n    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)\n    at async node:internal/modules/esm/loader:643:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v24.19.0\n"
+}

@@ -1,0 +1,1 @@
+{"check": "append-only migration identities against origin/main", "exit": 0, "newMigrations": [{"path": "migrations/core/0077_order_notices.sql", "sha256": "2f9cc52aa2fd005cf60141b7784a509de41948dd9340dbbc6e8d9c4ccd53f421"}], "unchangedPublishedMigrations": 76}
