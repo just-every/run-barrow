@@ -110,7 +110,7 @@ test('owner publishes and revises merchant identity, unsafe saves change nothing
  const po=await pier.command('po.draft',{supplierId:source.supplier.id,promiseDate:'2027-03-01',reason:'Synthetic storefront assortment',lines:products.map(item=>({itemId:item.id,quantity:'20',price:'20.00'}))});
  await pier.command('po.approve',{poId:po.id,version:po.version});await pier.command('po.commit',{poId:po.id,version:po.version});
  await pier.command('receipt.create',{poId:po.id,supplierReference:'synthetic-barrow-701',lines:po.lines.map(line=>({poLineId:line.id,locationId:source.location.id,quantity:'20',cost:'20.00'}))});
- for(const [id,prices] of [['cedar',[{sku:'OAT-1',unitCents:6500,msrpCents:13000,minQty:2},{sku:'FIELD-S',unitCents:5501,msrpCents:11001,minQty:1},{sku:'FIELD-M',unitCents:5700,msrpCents:14250,minQty:1}]],['wren',[{sku:'OAT-1',unitCents:7200,minQty:1},{sku:'PRIVATE-S',unitCents:2000,msrpCents:5000,minQty:1}]]]) {
+ for(const [id,prices] of [['cedar',[{sku:'OAT-1',unitCents:6500,msrpCents:13000,minQty:2},{sku:'FIELD-S',unitCents:5501,msrpCents:11001,minQty:1,units:[{code:'pair',baseQuantity:'2',unitCents:10000,packContents:'Two cases'}]},{sku:'FIELD-M',unitCents:5700,msrpCents:14250,minQty:1}]],['wren',[{sku:'OAT-1',unitCents:7200,minQty:1,units:[{code:'pair',baseQuantity:'2',unitCents:14000,packContents:'Two cases'}]},{sku:'PRIVATE-S',unitCents:2000,msrpCents:5000,minQty:1}]]]) {
   const account=await h.api('/api/barrow/accounts/by-id/'+id);await h.command('account.save',{id,revision:account.revision,value:{...account.value,prices}});
  }
  let attributes=await h.command('variant.attributes',{revision:null,variants:[{sku:'OAT-1',style:'Oat',color:'Natural',size:'Case'}]});
@@ -165,8 +165,45 @@ test('owner publishes and revises merchant identity, unsafe saves change nothing
  await expect(customer.getByRole('region',{name:'Size matrix',exact:true})).not.toContainText('Wholesale');
  await wren.reload();await wren.getByRole('button',{name:'Shop collections',exact:true}).click();await wren.getByLabel('Collection',{exact:true}).selectOption('collection-2');await expect(wren.getByRole('region',{name:'Size matrix',exact:true}).locator('[data-storefront-price="OAT-1"]')).toHaveText('MSRP absent');
  await captureWidths(wren,'storefront-retail-missing');
+ // The alternate ordering door follows the same display, with MSRP on the selected pack basis.
+ await customer.getByRole('button',{name:'Order by selling unit',exact:true}).click();
+ const unitOrder=customer.getByRole('dialog',{name:'Order by selling unit',exact:true});
+ await unitOrder.getByRole('combobox',{name:/^SKU for line 1/}).selectOption('FIELD-S');
+ const unitChoices=unitOrder.getByRole('combobox',{name:/^Selling unit for line 1/});
+ await expect(unitChoices.locator('option')).toHaveText(['case · 1 case · MSRP USD 110.01 per case','pair · Two cases · MSRP USD 220.02 per pair']);
+ await unitChoices.selectOption('pair');
+ await expect(unitOrder.getByLabel('Selected unit prices for line 1',{exact:true})).toHaveText('MSRP USD 220.02 per pair');
+ await unitOrder.getByLabel('Quantity for line 1',{exact:true}).fill('1');
+ await expect(unitOrder).toContainText('Total: USD 100.00');
+ await captureWidths(customer,'storefront-unit-retail');
+ await unitOrder.getByLabel('Purchase order / reference',{exact:true}).fill('synthetic-barrow-703');
+ await unitOrder.getByRole('button',{name:'Prepare unit draft',exact:true}).click();
+ await expect(unitOrder).not.toBeVisible();
+ const unitDraft=(await h.api('/api/barrow/state',undefined,buyer)).orders.find(value=>value.reference==='synthetic-barrow-703');
+ assert.equal(unitDraft.totalCents,10000);assert.equal(unitDraft.lines[0].unitCents,10000);assert.equal(unitDraft.lines[0].baseQuantity,'2');
+ await customer.locator('article.br-order').filter({hasText:'synthetic-barrow-703'}).getByRole('button',{name:'Submit for supplier review',exact:true}).click();
+ await expect(customer.locator('article.br-order').filter({hasText:'synthetic-barrow-703'}).getByText('submitted',{exact:true})).toBeVisible();
+ await wren.getByRole('button',{name:'Order by selling unit',exact:true}).click();
+ const missingUnit=wren.getByRole('dialog',{name:'Order by selling unit',exact:true});
+ await missingUnit.getByRole('combobox',{name:/^Selling unit for line 1/}).selectOption('pair');
+ await expect(missingUnit.getByRole('combobox',{name:/^Selling unit for line 1/}).locator('option')).toHaveText(['case · 1 case · MSRP absent per case','pair · Two cases · MSRP absent per pair']);
+ await expect(missingUnit.getByLabel('Selected unit prices for line 1',{exact:true})).toHaveText('MSRP absent per pair');
+ await missingUnit.getByLabel('Quantity for line 1',{exact:true}).fill('1');await expect(missingUnit).toContainText('Total: USD 140.00');
+ await captureWidths(wren,'storefront-unit-retail-absent');
+ await missingUnit.getByRole('button',{name:'Cancel',exact:true}).click();
+
  await publishMode('wholesale');await customer.reload();await customer.getByRole('button',{name:'Shop collections',exact:true}).click();await customer.getByLabel('Collection',{exact:true}).selectOption('collection-1');await expect(customer.getByRole('region',{name:'Size matrix',exact:true}).locator('[data-storefront-price="FIELD-M"]')).toHaveText('Wholesale USD 57.00');
- await publishMode('both');
+ await customer.getByRole('button',{name:'Order by selling unit',exact:true}).click();
+ await unitOrder.getByRole('combobox',{name:/^SKU for line 1/}).selectOption('FIELD-S');
+ await expect(unitChoices.locator('option')).toHaveText(['case · 1 case · Wholesale USD 55.01 per case','pair · Two cases · Wholesale USD 100.00 per pair']);
+ await unitChoices.selectOption('pair');await expect(unitOrder.getByLabel('Selected unit prices for line 1',{exact:true})).toHaveText('Wholesale USD 100.00 per pair');
+ await unitOrder.getByRole('button',{name:'Cancel',exact:true}).click();
+ await publishMode('both');await customer.reload();await customer.getByRole('button',{name:'Shop collections',exact:true}).click();
+ await customer.getByRole('button',{name:'Order by selling unit',exact:true}).click();await unitOrder.getByRole('combobox',{name:/^SKU for line 1/}).selectOption('FIELD-S');await unitChoices.selectOption('pair');
+ await expect(unitChoices.locator('option')).toHaveText(['case · 1 case · Wholesale USD 55.01 | MSRP USD 110.01 | Margin 50.00% per case','pair · Two cases · Wholesale USD 100.00 | MSRP USD 220.02 | Margin 54.55% per pair']);
+ await expect(unitOrder.getByLabel('Selected unit prices for line 1',{exact:true})).toHaveText('Wholesale USD 100.00 | MSRP USD 220.02 | Margin 54.55% per pair');
+ await unitOrder.getByRole('button',{name:'Cancel',exact:true}).click();
+ console.log('PROBE CAT-005 A: Retail only -> selling-unit choices show exact MSRP USD 110.01 per case and USD 220.02 per pair, missing MSRP stays absent; both includes exact margin, wholesale omits MSRP; buyer unit draft stays USD 100.00 and peer total USD 140.00');
  const backup=await archive(h);const restored=await installation();t.after(()=>restored.close());await restore(restored,backup);
  const restoredBrand=(await restored.api('/api/barrow/state')).settings.storefrontBranding;
  const savedBrand=(await h.api('/api/barrow/state')).settings.storefrontBranding;assert.deepEqual(restoredBrand,savedBrand);

@@ -3,11 +3,14 @@ import { supplierDate } from '../model'
 import { useState } from 'react'
 import { Dialog } from './dialog'
 import { Notice } from './primitives'
-import { convertQuantity, sellingUnits } from '../units'
-import { money as formatMoney, type Catalogue, type RunCommand, type Order } from './types'
+import { convertQuantity, priceQuantity, sellingUnits, type UnitDefinition } from '../units'
+import { priceLabels } from '../price-display'
+import { money as formatMoney, type Catalogue, type CatalogueItem, type RunCommand, type Order } from './types'
 
 export function UnitOrder({catalogue,draft,initial,run,busy,error,onClose,onPrepared}:{catalogue:Catalogue;draft?:Order;initial?:{sku:string;unit?:string;quantity:number;buyerSku?:string}[];run:RunCommand;busy:boolean;error:string;onClose:()=>void;onPrepared:()=>void}) {
  const money=(cents:number)=>formatMoney(cents,catalogue.currency)
+ const display=catalogue.storefront?.priceDisplay??'wholesale'
+ const unitPrice=(item:CatalogueItem,unit:UnitDefinition)=>priceLabels({unitCents:unit.unitCents,...(item.msrpCents===undefined?{}:{msrpCents:priceQuantity(unit.baseQuantity,item.msrpCents)})},catalogue.currency,display)
  const first=catalogue.items.find(item=>item.units?.length) ?? catalogue.items[0]
  const nextLine=()=>({sku:first.sku,unit:first.units?.[0]?.code ?? first.unit,quantity:''})
  const [lines,setLines]=useState(initial?.map(line=>({sku:line.sku,unit:line.unit??catalogue.items.find(item=>item.sku===line.sku)?.unit??'',quantity:String(line.quantity),...(line.buyerSku?{buyerSku:line.buyerSku}:{})})) ?? draft?.lines.map(line=>({sku:line.sku,unit:line.unit??catalogue.items.find(item=>item.sku===line.sku)?.unit??'',quantity:String(line.quantity)})) ?? [nextLine()]),[reference,setReference]=useState(draft?.reference??''),[location,setLocation]=useState(draft?.deliveryLocation??'')
@@ -34,9 +37,11 @@ export function UnitOrder({catalogue,draft,initial,run,busy,error,onClose,onPrep
   {error && <Notice error>{error}</Notice>}
   <div className="br-stack">{lines.map((line,index)=>{
    const item=catalogue.items.find(item=>item.sku===line.sku)
+   const selectedUnit=item&&sellingUnits(item).find(unit=>unit.code===line.unit)
    return <div className="br-card br-stack" key={index}>
     <label>SKU for line {index+1}<select value={line.sku} disabled={busy} onChange={event=>{const item=catalogue.items.find(item=>item.sku===event.target.value)!;change(index,{sku:item.sku,unit:item.unit})}}>{!item&&<option value={line.sku}>{line.sku} · unavailable</option>}{catalogue.items.map(item=><option key={item.sku} value={item.sku}>{item.sku} · {item.name}</option>)}</select></label>
-    <label>Selling unit for line {index+1}<select value={line.unit} disabled={busy} onChange={event=>change(index,{unit:event.target.value})}>{(!item||!sellingUnits(item).some(unit=>unit.code===line.unit))&&<option value={line.unit}>{line.unit} · unavailable</option>}{(item?sellingUnits(item):[]).map(unit=><option key={unit.code} value={unit.code}>{unit.code} · {unit.packContents} · {money(unit.unitCents)} per {unit.code}</option>)}</select></label>
+    <label>Selling unit for line {index+1}<select value={line.unit} disabled={busy} onChange={event=>change(index,{unit:event.target.value})}>{(!item||!sellingUnits(item).some(unit=>unit.code===line.unit))&&<option value={line.unit}>{line.unit} · unavailable</option>}{(item?sellingUnits(item):[]).map(unit=><option key={unit.code} value={unit.code}>{unit.code} · {unit.packContents} · {unitPrice(item!,unit)} per {unit.code}</option>)}</select></label>
+    {item&&selectedUnit&&<p aria-label={`Selected unit prices for line ${index+1}`}>{unitPrice(item,selectedUnit)} per {selectedUnit.code}</p>}
     <p>{item ? `Available: ${item.available} ${item.unit}${item.awaitingRelease ? ` (${item.awaitingRelease} more held until Pier confirms a cancelled order’s release)` : ''}. Minimum: ${item.minQty} ${item.unit} across this SKU’s lines.` : "This SKU is no longer available. Choose an explicit replacement or remove the line."}</p>
     <label>Quantity for line {index+1}<input inputMode="decimal" value={line.quantity} disabled={busy} onChange={event=>change(index,{quantity:event.target.value})} /></label>
     <p>{summary[index]}</p><button type="button" className="br-secondary" disabled={busy || lines.length===1} onClick={()=>setLines(current=>current.filter((_,i)=>i!==index))}>Remove line {index+1}</button>

@@ -3131,7 +3131,7 @@
       "executable": false
     },
     "src/barrow/ui/unit-order.tsx": {
-      "sha256": "36ffd04bc405bad056c3d51d3a8f9961e7296b87bce9140a88f022e478c6b460",
+      "sha256": "0725c513d5674a46597e433e7309d706bd9c7eff069df27de47d64f9c4266c37",
       "executable": false
     },
     "src/barrow/ui/usage-terms.tsx": {
@@ -6407,7 +6407,7 @@
       "executable": false
     },
     "tests/journeys/storefront-branding.test.mjs": {
-      "sha256": "3dc6e92ccd75880b250b0171835cf056e02690d3a8b6d12fa9a2665aa5ce16da",
+      "sha256": "04776ac33966c864ae9da238327a5a880bb45081926a8c19f700e3264f253081",
       "executable": false
     },
     "tests/journeys/territories.test.mjs": {
