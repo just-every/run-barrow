@@ -63,8 +63,10 @@ export async function invoiceFixture(t,options={}) {
 
 export async function invoiceDocuments(t) {
  const f=await invoiceFixture(t),{h,pier,buyer,order,items}=f;
+ console.info('Invoice probe: native fixture acknowledged');
  const before=await h.api('/api/barrow/export.json'),stockBefore=(await pier.api('/api/pier/state')).orders,mailBefore=h.mail.deliveries.length;
  const pdf=await invoiceDownload(h,order,buyer),csv=await(await h.request(`/api/barrow/invoices/${order.id}.csv`,buyer)).text();
+ console.info('Invoice probe: downloaded Unicode PDF and CSV');
  assert.ok(pdf.pages>=3);const compact=pdf.text.replace(/\s/g,'');
  for(const value of [f.account.value.name,f.seller.identity.legalName,f.seller.identity.address,'101 Original Avenue','102 Original Avenue','157906 minor units','1500 minor units','250 minor units','1750 minor units','Net 30 days','2 case'])assert.ok(compact.includes(value.replace(/\s/g,'')),value);
  for(const [index,item] of items.entries()) {
@@ -73,21 +75,25 @@ export async function invoiceDocuments(t) {
  }
  assert.ok(csv.includes('not calculated'));assert.ok(csv.includes(f.seller.identity.legalName));
  assert.equal(h.mail.deliveries.length,mailBefore);
+ console.info('Invoice probe: exact retained fields checked');
  const {token}=await h.api('/api/barrow/agent-token',{}),agent={as:'',headers:{authorization:`Bearer ${token}`}};
  const foreignCustomer=await pier.command('party.save',{name:'Separate invoice account',kind:'customer'});
  const foreign=await h.command('account.save',{id:'foreign',value:{...accountValue(foreignCustomer.id,f.account.value.email.replace('@','+foreign@')),minimumCents:0}});
  const other={as:await h.signIn(foreign.value.email)};
+ console.info('Invoice probe: foreign account created');
  const finance=await activateStaff(h,f.account.value.email.replace('@','+finance@'),{role:'finance',accounts:['cedar'],warehouses:[],reports:[],discountLimitCents:0,stockExceptionLimitCents:0});
  const operations=await activateStaff(h,f.account.value.email.replace('@','+operations@'),{role:'operations',accounts:['cedar'],warehouses:'all',reports:['fulfillment'],discountLimitCents:0,stockExceptionLimitCents:0});
  assert.deepEqual((await invoiceDownload(h,order,finance.who)).bytes,pdf.bytes);
  for(const extension of ['pdf','csv'])for(const [who,status] of [[other,404],[operations.who,403],[agent,403],[{as:''},401]])assert.equal((await h.request(`/api/barrow/invoices/${order.id}.${extension}`,who)).status,status);
+ console.info('Invoice probe: functional finance and refusals checked');
  const email=f.account.value.email.replace('@','+purchaser@');
  await h.command('company.invite',{accountId:'cedar',email,name:'Purchaser without finance',policy:{rights:['purchaser'],locations:'all',perOrderLimitCents:null,approvalLimitCents:null},reason:'Explicit purchaser without invoice permission.'},buyer);
  const purchaser={as:await h.signIn(email,'existing')},message=h.mail.requests.findLast(row=>row.message.subject==='Your company buyer invitation'&&row.message.to.includes(email)).message,link=new URL(message.text.match(/https?:\/\/[^\s<>]+\/app\?[^\s<>]+/)[0]);
  await h.command('company.accept',{invitationId:link.searchParams.get('companyInvitation'),token:link.searchParams.get('companyToken')},purchaser);
  for(const extension of ['pdf','csv'])assert.equal((await h.request(`/api/barrow/invoices/${order.id}.${extension}`,purchaser)).status,403);
  await h.command('staff.revoke',{userId:finance.id,revision:finance.grant.revision,reason:'End invoice access after reviewed role removal.'});
- assert.equal((await h.request(`/api/barrow/invoices/${order.id}.pdf`,finance.who)).status,403);
+ for(const extension of ['pdf','csv'])assert.equal((await h.request(`/api/barrow/invoices/${order.id}.${extension}`,finance.who)).status,404);
+ console.info('Invoice probe: purchaser and revoked finance refused');
  await h.command('seller.identity',{revision:f.seller.revision,legalName:'Changed current seller',address:'Changed current address'});
  await h.command('account.save',{id:'cedar',revision:f.account.revision,value:{...f.account.value,name:'Changed current buyer',termsDays:7,prices:items.map(item=>({sku:item.sku,unitCents:9999,minQty:1}))}});
  await h.command('location.save',{accountId:'cedar',id:f.bill.id,revision:f.bill.revision,value:{...f.bill.value,line1:'Changed billing address'}});
@@ -95,6 +101,18 @@ export async function invoiceDocuments(t) {
  await pier.command('item.save',{id:items[0].id,version:items[0].version,sku:items[0].sku,name:'Changed catalog description',unit:'case',packSize:'1'});
  assert.deepEqual((await invoiceDownload(h,order,buyer)).bytes,pdf.bytes);assert.equal(await(await h.request(`/api/barrow/invoices/${order.id}.csv`,buyer)).text(),csv);
  assert.deepEqual((await h.api('/api/barrow/export.json')).orders,before.orders);assert.deepEqual((await pier.api('/api/pier/state')).orders,stockBefore);
+ // The other retained seller source is the accepted order's buying profile.
+ const brand=await h.command('brand.save',{id:'synthetic-barrow-755',revision:null,value:{name:'Original brand',seller:{legalName:'Original profile seller',address:'Original profile address'},currency:'USD'}});
+ const profile=await h.command('profile.save',{id:'synthetic-barrow-756',revision:null,accountId:'cedar',value:{brandId:brand.id,name:'Original buying profile',prices:[{sku:items[0].sku,unitCents:6501,minQty:1}],minimumCents:0,termsDays:14}});
+ await h.command('profile.grant',{profileId:profile.id,userId:(await h.api('/api/barrow/state',undefined,buyer)).actor.id,approved:true,reason:'Supplier approved this buyer for the retained profile.'});
+ let profiled=await h.command('order.prepare',{accountId:'cedar',profileId:profile.id,reference:'synthetic-barrow-757',lines:[{sku:items[0].sku,quantity:2}]},buyer);
+ await h.command('shipping.select',{orderId:profiled.id,...(await h.api(`/api/barrow/shipping/options?orderId=${profiled.id}`,undefined,buyer)).options[0]},buyer);
+ await h.command('order.submit',{orderId:profiled.id,deliveryAcknowledged:true},buyer);profiled=await h.command('order.approve',{orderId:profiled.id});
+ const profilePdf=await invoiceDownload(h,profiled,buyer),profileCsv=await(await h.request(`/api/barrow/invoices/${profiled.id}.csv`,buyer)).text();
+ assert.ok(profilePdf.text.includes('Seller: Original profile seller'));assert.ok(profilePdf.text.includes('Net 14 days'));
+ await h.command('brand.save',{id:brand.id,revision:brand.revision,value:{...brand.value,name:'Changed current brand',seller:{legalName:'Changed current profile seller',address:'Changed current profile address'}}});
+ await h.command('profile.save',{id:profile.id,revision:profile.revision,accountId:'cedar',value:{...profile.value,termsDays:7,prices:[{sku:items[0].sku,unitCents:9999,minQty:1}]}});
+ assert.deepEqual((await invoiceDownload(h,profiled,buyer)).bytes,profilePdf.bytes);assert.equal(await(await h.request(`/api/barrow/invoices/${profiled.id}.csv`,buyer)).text(),profileCsv);
  // Legacy archive records predate currency snapshots; their public download stays AUD.
  const legacy={...order,id:'legacy-invoice',invoice:{...order.invoice,number:'BAR-legacy-invoice'}};delete legacy.currency;
  await h.db.prepare('INSERT INTO bw_orders VALUES(?,?,?,?)').bind(legacy.id,legacy.accountId,JSON.stringify(legacy),legacy.revision).run();
@@ -103,9 +121,11 @@ export async function invoiceDocuments(t) {
  assert.equal((await h.request(`/api/barrow/invoices/${order.id}.pdf`,buyer)).status,409);
  await h.command('credit.issue',{orderId:order.id,kind:'cancellation',lines:order.lines.map((line,index)=>({line:index+1,quantity:line.quantity})),freightCents:1750,reason:'Correct the original retained invoice after confirmed cancellation.'});
  const withdrawn=await invoiceDownload(h,order,buyer);assert.ok(withdrawn.text.includes('withdrawn; original preserved with linked credit'));assert.ok(withdrawn.text.replace(/\s/g,'').includes('157906minorunits'));
+ console.info('Invoice probe: cancellation correction retained');
  const saved=await archive(h);await verifiedRequest(h);await h.command('retention.erase-account',erasurePayload(await erasurePreview(h)));
  assert.equal((await h.request(`/api/barrow/invoices/${order.id}.pdf`,buyer)).status,401);
  assert.deepEqual((await invoiceDownload(h,order)).bytes,withdrawn.bytes);
+ console.info('Invoice probe: reviewed erasure retained financial history');
  const target=await installation();t.after(()=>target.close());await restore(target,saved);
  assert.deepEqual((await invoiceDownload(target,order)).bytes,withdrawn.bytes);assert.deepEqual((await invoiceDownload(target,legacy)).bytes,legacyPdf.bytes);
  assert.equal((await target.request(`/api/barrow/invoices/${order.id}.pdf`,buyer)).status,401);
