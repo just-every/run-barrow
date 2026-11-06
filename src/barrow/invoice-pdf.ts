@@ -58,10 +58,14 @@ export async function invoicePdf(order:Order,financialHistory=false,retainedSell
  }
  for(const entry of entries)for(const paragraph of entry.split(/\r?\n/)) {
   let line=''
-  // Measure actual glyph advances, including long words and Unicode identities.
-  for(const character of paragraph){
-   if(line&&font.widthOfTextAtSize(line+character,size)>width){draw(line);line=''}
-   line+=character
+  // Measure glyph advances, wrapping at word boundaries where possible.
+  for(const word of paragraph.split(/(\s+)/)) {
+   if(line&&font.widthOfTextAtSize(line+word,size)>width){draw(line.trimEnd());line=''}
+   if(!line&&!word.trim())continue
+   for(const character of word){
+    if(line&&font.widthOfTextAtSize(line+character,size)>width){draw(line);line=''}
+    line+=character
+   }
   }
   draw(line)
  }

@@ -36,7 +36,7 @@ export async function invoiceDocumentsJourney(t) {
  await h.command('seller.identity',{revision:f.seller.revision,legalName:'Changed current seller',address:'Changed current address'});
  await page.reload();await page.getByRole('button',{name:'Orders',exact:true}).click();
  for(const current of [order,legacy])for(const format of ['pdf','csv']) {
-  const link=page.locator(`a[href="/api/barrow/invoices/${current.id}.${format}"]`);
+  const link=page.getByRole('link',{name:`Download invoice ${format.toUpperCase()}`,exact:true}).and(page.locator(`[href="/api/barrow/invoices/${current.id}.${format}"]`));
   const [file]=await Promise.all([page.waitForEvent('download'),link.click()]);
   assert.deepEqual(await readFile(await file.path()),downloads.get(`${current.id}.${format}`));
  }

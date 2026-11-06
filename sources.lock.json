@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ddb91433102e759c12b4fdf5d93edfb5e1407a751196b9d4d9f009fc82c645c4",
+      "sha256": "e9ab80cecddf312721f06dc6ec3a39a16fe39b65bf7b0635e349b86722ef00e9",
       "executable": false
     },
     "DEMO.md": {
@@ -267,7 +267,7 @@
       "executable": false
     },
     "docs/ORDERS.md": {
-      "sha256": "ce670491cb954234108ac685311c09e25cfe9391f47f5b103b50b1aaaa1e5b29",
+      "sha256": "100c071d4b5219b3c701e0ea40ca3c98d96237fa5149a371c7ba6b2ab584e917",
       "executable": false
     },
     "docs/PAYMENT-PROMISES.md": {
@@ -2388,6 +2388,18 @@
     },
     "src/barrow/invoice-allocation.ts": {
       "sha256": "f99e3497096350038897ea95d44e07bab4c88dd6dc83b1315e826b4c419ea91c",
+      "executable": false
+    },
+    "src/barrow/invoice-font-LICENSE.txt": {
+      "sha256": "8ce3751812816ec4e63d5b06df4c61f7e42ce23ce76629c9fe5ec9d63f658f7d",
+      "executable": false
+    },
+    "src/barrow/invoice-font.ts": {
+      "sha256": "b101ca90f180d2da73be24b8b3471cbab4282d722e7d421b47d6685cd5ef5000",
+      "executable": false
+    },
+    "src/barrow/invoice-pdf.ts": {
+      "sha256": "c3f796ad1aa6ab196f69679686fb09a51400808571a3b58eb2c0a5aa35a882c0",
       "executable": false
     },
     "src/barrow/invoice.ts": {
@@ -5990,6 +6002,10 @@
       "sha256": "59a768ed2047a9b0f6dd24a0c8edb31571e838b923b7292a4bfbac2332672508",
       "executable": false
     },
+    "tests/api/invoice-documents.mjs": {
+      "sha256": "cb66fabe688cb36877d62a310c1024085445ff85a56735e6b3ad3711c3bcb2be",
+      "executable": false
+    },
     "tests/api/line-sheet-fixture.mjs": {
       "sha256": "e04e1f9e39d3ffbcab543c7bd00569932096cc57659306fa4695b55025ff7fea",
       "executable": false
@@ -6320,6 +6336,10 @@
     },
     "tests/journeys/installation.test.mjs": {
       "sha256": "233e03118b15c235cae603d70e95019af492c80c213d6f1dc3d1b2dc5fded856",
+      "executable": false
+    },
+    "tests/journeys/invoice-documents.mjs": {
+      "sha256": "3d0f082a52078e0cb5366c1b0a0bd4b0632b76c2da7b8410977e0bede17f3464",
       "executable": false
     },
     "tests/journeys/line-sheets.test.mjs": {
