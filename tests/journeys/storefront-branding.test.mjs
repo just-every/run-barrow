@@ -61,6 +61,7 @@ test('owner publishes and revises merchant identity, unsafe saves change nothing
  const concurrent=await Promise.all([h.request('/api/barrow/commands',{method:'POST',body:{type:'storefront.save',payload}}),h.request('/api/barrow/commands',{method:'POST',body:{type:'storefront.save',payload}})]);assert.deepEqual(concurrent.map(response=>response.status).sort(),[200,409]);
  await h.api('/api/barrow/agent-token/revoke',{});await h.command('storefront.save',payload,{...agent,status:401});
  const after=(await h.api('/api/barrow/state')).settings.storefrontBranding;
+ console.log('PROBE CAT-005 authority: native commands with stale, concurrent, buyer, admin, staff, agent and foreign-origin saves -> one current owner effect, unsafe attempts refused');
  assert.deepEqual((await h.api('/api/barrow/state')).accounts,before.accounts);assert.deepEqual(await h.api('/api/barrow/seller-identity'),legal);assert.deepEqual(await h.api('/api/barrow/orders/'+existing.id),before.order);assert.deepEqual(await h.api(`/api/barrow/orders/${existing.id}/confirmations`),before.confirmations);assert.deepEqual(Buffer.from(await(await h.request(`/api/barrow/orders/${existing.id}/confirmations/2.pdf`)).arrayBuffer()),Buffer.from(before.pdf));assert.deepEqual((await pier.api('/api/pier/state')).orders,before.stock);
  const ownerId=(await h.api('/api/barrow/state')).actor.id;
  const events=(await h.api('/api/barrow/audit')).events.filter(event=>event.action==='storefront.published');assert.equal(events.length,3);assert.ok(events.every(event=>event.actorId===ownerId));
@@ -79,8 +80,31 @@ test('owner publishes and revises merchant identity, unsafe saves change nothing
  const card=customer.locator('article.br-order').filter({hasText:'synthetic-barrow-675'});await expect(card).toContainText('USD 130.00');await card.getByRole('button',{name:'Submit for supplier review',exact:true}).click();await expect(card.getByText('submitted',{exact:true})).toBeVisible();
  await owner.reload();await owner.getByRole('button',{name:'Orders',exact:true}).click();const review=owner.locator('article.br-order').filter({hasText:'synthetic-barrow-675'});await review.getByRole('button',{name:'Approve & reserve stock',exact:true}).click();await expect(review.getByText('approved',{exact:true})).toBeVisible();
  await customer.reload();await customer.getByRole('button',{name:'Orders',exact:true}).click();await expect(card.getByText('approved',{exact:true})).toBeVisible();await card.getByText('Order confirmations',{exact:true}).click();await expect(card.getByRole('link',{name:'Download confirmation 2 PDF',exact:true})).toBeVisible();await captureWidths(customer,'storefront-buyer-confirmation');await noIconWithoutTooltip(customer);
- const selected=(await h.api('/api/barrow/orders/search?reference=synthetic-barrow-675',undefined,buyer)).orders.find(order=>order.reference==='synthetic-barrow-675');assert.ok(selected);
+ const selected=(await h.api('/api/barrow/state',undefined,buyer)).orders.find(order=>order.reference==='synthetic-barrow-675');assert.ok(selected);
  const confirmations=(await h.api(`/api/barrow/orders/${selected.id}/confirmations`,undefined,buyer)).confirmations;assert.equal(confirmations.at(-1).snapshot.totalCents,13000);assert.deepEqual(confirmations.at(-1).snapshot.seller,legal.identity);
+ console.log('PROBE CAT-005 shopping: native buyer pages and supplier approval -> USD 65.00 and USD 72.00 isolated prices, linked quantity refusal, approved USD 130.00 confirmation with the original legal seller');
  await captureWidths(wren,'storefront-second-buyer');
- assert.ok(contrast('713f7b','ffffff')>=4.5);
+ // Exercise the supported combinations through the publishing door and inspect actual rendered controls.
+ await owner.getByRole('button',{name:'Settings',exact:true}).click();
+ const accentChoices=await settings.getByLabel('Accent color',{exact:true}).locator('option').evaluateAll(options=>options.map(option=>option.value));
+ const canvasChoices=await settings.getByLabel('Page color',{exact:true}).locator('option').evaluateAll(options=>options.map(option=>option.value));
+ const hex=rgb=>rgb.match(/\d+/g).slice(0,3).map(value=>Number(value).toString(16).padStart(2,'0')).join('');
+ for(const accent of accentChoices)for(const canvas of canvasChoices) {
+  const revision=(await h.api('/api/barrow/state')).settings.storefrontBranding.revision;
+  await h.command('storefront.save',{...payload,revision,accent,canvas});await owner.reload();await owner.getByRole('button',{name:'Settings',exact:true}).click();
+  const buttonColors=await settings.getByRole('button',{name:'Reload storefront settings',exact:true}).evaluate(element=>{const style=getComputedStyle(element);return {ink:style.color,paper:style.backgroundColor}});
+  assert.ok(contrast(hex(buttonColors.ink),hex(buttonColors.paper))>=4.5);
+  const supportColors=await owner.locator('.br-support').evaluate(element=>({ink:getComputedStyle(element).color,paper:getComputedStyle(element.closest('.barrow')).backgroundColor}));
+  assert.ok(contrast(hex(supportColors.ink),hex(supportColors.paper))>=4.5);
+  await settings.getByLabel('Publication reason',{exact:true}).fill('Owner reviews the selected accessible color combination.');await settings.getByRole('checkbox').check();
+  const primary=await settings.getByRole('button',{name:'Publish storefront identity',exact:true}).evaluate(element=>({ink:getComputedStyle(element).color,paper:getComputedStyle(element).backgroundColor}));
+  assert.ok(contrast(hex(primary.ink),hex(primary.paper))>=4.5);
+ }
+ await settings.getByLabel('Accent color',{exact:true}).selectOption('plum');await settings.getByLabel('Page color',{exact:true}).selectOption('white');await settings.getByLabel('Publication reason',{exact:true}).fill('Owner retains the approved final merchant colors.');await settings.getByRole('checkbox').check();await settings.getByRole('button',{name:'Publish storefront identity',exact:true}).click();await expect(settings.getByRole('status')).toContainText('Storefront identity published');
+ assert.deepEqual(await settings.locator('input,select,textarea,button,label,p').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&parseFloat(getComputedStyle(element).fontSize)<13).map(element=>element.tagName)),[]);
+ const finalSettings=(await h.api('/api/barrow/state')).settings.storefrontBranding;
+ assert.equal((await h.request('/auth/signout',{method:'POST',body:{}})).status,204);
+ await h.command('storefront.save',{...payload,revision:finalSettings.revision,displayName:'Revoked owner attempt'},{status:401});
+ assert.deepEqual((await h.api('/api/barrow/state',undefined,buyer)).settings.storefrontBranding,finalSettings);
+ console.log('PROBE CAT-005 branding: native Settings -> '+finalSettings.displayName+', persisted support '+finalSettings.supportUrl+', eight rendered color combinations meet contrast 4.5; revoked owner session refused');
 });

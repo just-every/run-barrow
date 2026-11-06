@@ -30,13 +30,13 @@ export function StorefrontSettings({value, onSaved}: {value: StorefrontBranding;
   {error && <Notice error>{error}</Notice>}{notice && <Notice>{notice}</Notice>}
   <form className="br-stack" onSubmit={event=>{event.preventDefault();void save()}}>
    <fieldset className="br-stack" disabled={busy}>
-    <label>Merchant display name<input required maxLength={80} value={draft.displayName} onChange={event=>edit({displayName:event.target.value})}/></label>
-    <label>Support contact URL<input type="url" required maxLength={400} placeholder="https://support.your-store.test" value={draft.supportUrl} onChange={event=>edit({supportUrl:event.target.value})}/><span>Use the complete HTTPS address of your customer support page.</span></label>
+    <label>Merchant display name<input aria-label="Merchant display name" required maxLength={80} value={draft.displayName} onChange={event=>edit({displayName:event.target.value})}/></label>
+    <label>Support contact URL<input aria-label="Support contact URL" type="url" required maxLength={400} placeholder="https://support.your-store.test" value={draft.supportUrl} onChange={event=>edit({supportUrl:event.target.value})}/><span>Use the complete HTTPS address of your customer support page.</span></label>
     <div className="br-branding-colors">
-     <label>Accent color<select value={draft.accent} onChange={event=>edit({accent:event.target.value as StorefrontBranding['accent']})}>{Object.entries(storefrontAccents).map(([id,choice])=><option key={id} value={id}>{choice.name}</option>)}</select></label>
-     <label>Page color<select value={draft.canvas} onChange={event=>edit({canvas:event.target.value as StorefrontBranding['canvas']})}>{Object.entries(storefrontCanvases).map(([id,choice])=><option key={id} value={id}>{choice.name}</option>)}</select></label>
+     <label>Accent color<select aria-label="Accent color" value={draft.accent} onChange={event=>edit({accent:event.target.value as StorefrontBranding['accent']})}>{Object.entries(storefrontAccents).map(([id,choice])=><option key={id} value={id}>{choice.name}</option>)}</select></label>
+     <label>Page color<select aria-label="Page color" value={draft.canvas} onChange={event=>edit({canvas:event.target.value as StorefrontBranding['canvas']})}>{Object.entries(storefrontCanvases).map(([id,choice])=><option key={id} value={id}>{choice.name}</option>)}</select></label>
     </div>
-    <label>Publication reason<textarea required maxLength={500} value={reason} onChange={event=>{setReason(event.target.value);setReviewed(false)}}/></label>
+    <label>Publication reason<textarea aria-label="Publication reason" required maxLength={500} value={reason} onChange={event=>{setReason(event.target.value);setReviewed(false)}}/></label>
     <label className="br-branding-review"><input type="checkbox" required checked={reviewed} onChange={event=>setReviewed(event.target.checked)}/>I reviewed this merchant identity, colors and support contact.</label>
    </fieldset>
    <div className="br-actions"><button disabled={busy || !reviewed}>{busy?'Publishing…':'Publish storefront identity'}</button><button type="button" className="br-secondary" disabled={busy} onClick={async()=>{setBusy(true);setError('');try{await onSaved();setNotice('Current storefront settings loaded.')}catch(cause){setError(errorMessage(cause))}finally{setBusy(false)}}}>Reload storefront settings</button></div>
