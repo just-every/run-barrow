@@ -1,0 +1,22 @@
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+✔ ORD-014: numbered submitted and accepted confirmations retain exact commercial snapshots through edits, retry and cancellation (14260.84283ms)
+✔ ORD-014: named per-line export layouts set default and selected column ordering without rewriting immutable confirmation values, and survive archive restore (13083.956148ms)
+✔ ORD-014: bulk CSV combines 50 explicitly selected immutable revisions with named layouts, source identities and unchanged selling-unit bases (17708.227827ms)
+✔ ORD-014: a seasonal matrix order with two ship windows is confirmed with seller identity and variants, revised once by its buyer, emailed per exact revision and kept for buyer and rep (17744.249262ms)
+✔ ORD-014: fifty recorded orders of one season export per line and as style, color and size production totals equal to their lines (11655.446543ms)
+✔ seasonal prebook intake holds competing future demand atomically without reserving available stock or recording a payment (14619.512044ms)
+✔ seasonal prebook preparation enforces published opening and closing instants, required future windows, exact deposits and attributed closure (5278.980984ms)
+✔ seasonal prebook admission rechecks live commercial authority and preserves the accepted snapshot after later configuration changes (5170.633215ms)
+✔ seasonal prebook commitment refuses stale observations and company purchasing limits without losing the reviewed draft (4507.747258ms)
+✔ native seasonal orders and command-only intake share incoming capacity and preserve both closing doors (4718.064726ms)
+✔ command-only intake participates in owner erasure review and independent restore fencing without losing commercial commitments (14543.796919ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 124129.914179

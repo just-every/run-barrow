@@ -1,0 +1,3 @@
+PROBE CAT-005 authority: native commands with stale, concurrent, buyer, admin, staff, agent and foreign-origin saves -> one current owner effect, unsafe attempts refused
+PROBE CAT-005 shopping: native buyer pages and supplier approval -> USD 65.00 and USD 72.00 isolated prices, linked quantity refusal, approved USD 130.00 confirmation with the original legal seller
+PROBE CAT-005 branding: native Settings -> Mill House Wholesale, persisted support https://support.synthetic-barrow.test/help, eight rendered color combinations meet contrast 4.5; revoked owner session refused

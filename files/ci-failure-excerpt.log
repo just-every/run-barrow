@@ -1,0 +1,33 @@
+shards (barrow-6)	Run this shard	2026-11-06T10:34:26.4358887Z > node scripts/contract-docs.mjs check
+shards (barrow-6)	Run this shard	2026-11-06T10:34:26.4943655Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-6)	Run this shard	2026-11-06T10:34:26.5140318Z  ELIFECYCLE  Command failed with exit code 1.
+shards (agent-door)	Run this shard	2026-11-06T10:34:27.5738921Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T10:34:27.6342727Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (agent-door)	Run this shard	2026-11-06T10:34:27.6563886Z  ELIFECYCLE  Command failed with exit code 1.
+shards (agent-door)	Run this shard	2026-11-06T10:34:27.7439789Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T10:34:27.7444052Z  ELIFECYCLE  Command failed with exit code 1.
+shards (agent-door)	Run this shard	2026-11-06T10:34:27.7444831Z verify: failed (exit 1)
+shards (agent-door)	Run this shard	2026-11-06T10:34:27.7751211Z  ELIFECYCLE  Command failed with exit code 1.
+verify	Require the selected coverage and its proof	﻿2026-11-06T10:34:33.6780449Z ##[group]Run set -euo pipefail
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6781291Z set -euo pipefail
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6781975Z test "$PLAN" = success
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6782788Z case "$PUSH_PROOF:$NIGHTLY_PROOF" in
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6783519Z   *failure*|*cancelled*) exit 1 ;;
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6784168Z esac
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6784726Z case "$COVERAGE" in
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6786074Z   reuse) test "$SKIP" = true && test "$SHARDS" = skipped && test "$LIGHT" = skipped ;;
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6787190Z   light) test "$SKIP" = false && test "$LIGHT" = success && test "$SHARDS" = skipped ;;
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6788452Z   full) test "$LIGHT" = skipped && { test "$SHARDS" = success || { test "$HAS_SHARDS" = false && test "$SHARDS" = skipped; }; } ;;
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6789481Z   *) exit 1 ;;
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.6790004Z esac
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7022065Z shell: /usr/bin/bash -e {0}
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7023629Z   PLAN: success
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7024163Z   SHARDS: failure
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7024699Z   LIGHT: skipped
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7025482Z   PUSH_PROOF: skipped
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7026082Z   NIGHTLY_PROOF: skipped
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7026656Z   COVERAGE: full
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7027167Z   HAS_SHARDS: true
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7027704Z   SKIP: false
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7028232Z ##[endgroup]
+verify	Require the selected coverage and its proof	2026-11-06T10:34:33.7213133Z ##[error]Process completed with exit code 1.

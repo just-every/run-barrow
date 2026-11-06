@@ -1,0 +1,133 @@
+{
+  "tag": "sx-barrow-c-f67",
+  "repository": "just-every/run-barrow",
+  "branch": "cloud/sx-barrow-c-f67",
+  "head": "d146bc1731b3518e78126818a05758f9164800b7",
+  "base": "ea7da76336fa80405ed3f57d2e93fe19417fa08e",
+  "utc": "2026-11-06T10:35:24.849852+00:00",
+  "product_push": "confirmed by cloud-push.py",
+  "pr": null,
+  "clause": {
+    "id": "CAT-005",
+    "before": "partial",
+    "after": "partial",
+    "acceptance_changed": false
+  },
+  "counts_before": {
+    "done": 73,
+    "partial": 43,
+    "missing": 38,
+    "total": 154
+  },
+  "counts_after": {
+    "done": 73,
+    "partial": 43,
+    "missing": 38,
+    "total": 154
+  },
+  "tests": {
+    "storefront": {
+      "exit": 0,
+      "passed": 1,
+      "head": "d146bc1731b3518e78126818a05758f9164800b7",
+      "command": "BARROW_PIER_SOURCE=/tmp/barrow-pier-source BARROW_CHROMIUM_PATH=/usr/bin/chromium BARROW_JOURNEY_EVIDENCE=<packet screens> timeout 1200 node --test --test-concurrency=1 tests/journeys/storefront-branding.test.mjs"
+    },
+    "wholesale": {
+      "exit": 0,
+      "passed": 1,
+      "note": "The final test bytes passed before committing; only source lock changed afterward."
+    },
+    "confirmation": {
+      "exit": 0,
+      "passed": 11,
+      "note": "No relevant confirmation source or assertion changed after this run."
+    },
+    "typecheck": {
+      "exit": 0,
+      "head": "d146bc1731b3518e78126818a05758f9164800b7"
+    },
+    "first_party": {
+      "exit": 0,
+      "head": "d146bc1731b3518e78126818a05758f9164800b7"
+    },
+    "source_lock": {
+      "exit": 0,
+      "head": "d146bc1731b3518e78126818a05758f9164800b7"
+    },
+    "contract_generator": {
+      "write_exit": 0,
+      "check_exit": 0,
+      "views_restored": true
+    }
+  },
+  "test_registrations": {
+    "before_including_nested": 206,
+    "after_including_nested": 200,
+    "new_sanity_journeys": 1,
+    "nested_phase_registrations_consolidated": 7,
+    "existing_assertions_removed": 0
+  },
+  "browser": {
+    "assertion_width": 1440,
+    "capture_widths": [
+      1440,
+      390
+    ],
+    "screens": [
+      "owner publication",
+      "buyer validation",
+      "supplier-approved buyer confirmation",
+      "second buyer catalog"
+    ]
+  },
+  "main_ci": {
+    "verify": [
+      42123930211,
+      42033729767,
+      42030313150
+    ],
+    "run_site": 42033729505,
+    "head": "ea7da76336fa80405ed3f57d2e93fe19417fa08e",
+    "conclusion": "success"
+  },
+  "candidate_ci": {
+    "id": 42203609593,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "failure",
+    "head": "d146bc1731b3518e78126818a05758f9164800b7",
+    "url": "https://github.com/just-every/run-barrow/actions/runs/42203609593",
+    "classification": "permitted generated-view failure",
+    "confirmed_job_ids": [
+      127844716125,
+      127844716148,
+      127844986608
+    ],
+    "failure": "ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "command": "node scripts/contract-docs.mjs check",
+    "local_reproduction_exit": 1,
+    "all_shards_source_lock_check": "success",
+    "dispatches": 0
+  },
+  "publication_scan": {
+    "status": "not run in cloud",
+    "owner": "guarded Mac lander",
+    "complete": null,
+    "findings": null
+  },
+  "candidate_run_site": {
+    "status": "not run; branch remains unlanded"
+  },
+  "mechanical": {
+    "views": 0,
+    "source_lock": 0,
+    "ledger": "not applicable"
+  },
+  "identity": {
+    "all_candidates_author": "Run Edit Run fleet",
+    "all_candidates_committer": "Run Edit Run fleet",
+    "coauthor_trailers": 0
+  },
+  "boundary": "Logo, collections, navigation, sign-in branding, installed custom-domain deployment and complete checkout remain unproved. Tax, private-JPEG policy and scanner holds remain unchanged.",
+  "github_calls": 9
+}

@@ -1,0 +1,11 @@
+file:///workspace/barrow-sx-f67/scripts/contract-docs.mjs:26
+ if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+                                                                                                   ^
+
+Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+    at file:///workspace/barrow-sx-f67/scripts/contract-docs.mjs:26:100
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.19.0
