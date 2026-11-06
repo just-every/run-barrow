@@ -23,7 +23,7 @@ export async function xeroFixture(t,options={}){
  }});t.after(()=>h.close());
  const email=['synthetic-barrow-906','example.test'].join('@');
  const account=await h.command('account.save',{id:'cedar',value:accountValue(products.customer.id,email)}),buyer={as:await h.signIn(email)};
- const draft=await h.command('order.prepare',{accountId:'cedar',reference:'Xero native source',lines:[{sku:'OAT-1',quantity:2}]},buyer);await h.command('order.submit',{orderId:draft.id},buyer);const order=await h.command('order.approve',{orderId:draft.id});assert.ok(order.invoice);
+ const draft=await h.command('order.prepare',{accountId:'cedar',reference:'Xero native source',lines:[{sku:'OAT-1',quantity:2}]},buyer);await h.command('order.attach',{orderId:draft.id,name:'synthetic-barrow-909.pdf',contentBase64:Buffer.from('%PDF-1.4 synthetic-barrow-909').toString('base64')},buyer);await h.command('order.submit',{orderId:draft.id},buyer);const order=await h.command('order.approve',{orderId:draft.id});assert.ok(order.invoice);
  const begin=()=>h.command('xero.begin',{tenant,consent:true,reason:'Owner reviewed this exact tenant and separate custody.'});
  const callback=authorization=>'/api/barrow/xero/callback?'+new URLSearchParams({state:new URL(authorization.authorizationUrl).searchParams.get('state'),code:'synthetic-barrow-907'});
  const connect=async()=>{const authorization=await begin();assert.equal((await h.request(callback(authorization))).status,303)};

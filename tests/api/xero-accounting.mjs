@@ -11,6 +11,9 @@ export async function xeroAccounting(t) {
  {const response=await h.request(f.callback(authorization));assert.equal(response.status,303,JSON.stringify({body:await response.text(),calls:edge.calls}));}assert.equal((await h.request(f.callback(authorization))).status,403);
  const {token}=await h.api('/api/barrow/agent-token',{});const agent={as:'',headers:{authorization:'Bearer '+token}};
  assert.equal((await h.request('/api/barrow/xero',agent)).status,403);
+ assert.equal((await h.api('/api/barrow/qbo')).configured,false);
+ assert.ok(!JSON.stringify(await f.workspace()).includes('synthetic-barrow-903'));
+ const consentUrl=new URL(authorization.authorizationUrl);assert.deepEqual(consentUrl.searchParams.get('scope').split(' ').sort(),['offline_access','accounting.transactions.read','accounting.contacts.read','accounting.settings.read'].sort());
  edge.expiresIn=3600;await f.mappings();assert.equal(edge.refreshes,1);
  // One bounded page persists 50 observations, then failure leaves the checkpoint unchanged and owned.
  edge.count=50;let run=await f.start();run=await f.resume(run);assert.equal(run.state,'reading');assert.equal(run.position,2);
@@ -52,11 +55,16 @@ export async function xeroAccounting(t) {
  run=await f.start();const account=await h.command('account.save',{id:'cedar',revision:f.account.revision,value:{...f.account.value,termsDays:45}});await h.command('xero.resume',{id:run.id,revision:run.revision,reason:'Stale native mapping must refuse.'},{status:409});
  edge.referenceToken='2';await h.command('xero.references',{kind:'Contact',reason:'Read changed source revision.'});await h.command('xero.mapping',{kind:'Contact',sourceId:'10',sourceToken:'0',nativeId:'cedar',nativeRevision:account.revision,revision:state.mappings.find(r=>r.kind==='Contact').revision,reason:'Stale source reference must refuse.'},{status:409});
  // Custody is independent of connection credentials; later erasure journals fence older archives.
- const exported=await h.api('/api/barrow/export.json',undefined,buyer);assert.ok(exported.xeroobservations.length>=1);assert.ok(!JSON.stringify(exported).includes('must-not-retain'));
+ const exported=await h.api('/api/barrow/export.json',undefined,buyer);assert.ok(exported.xeroobservations.length>=1);assert.deepEqual(exported.qboobservations,[]);
+ const scopedCsv=await (await h.request('/api/barrow/export/xeroobservations.csv',buyer)).text();assert.ok(scopedCsv.includes('12345678-1234-4234-8234-123456789012')&&scopedCsv.includes('13000'));
+ assert.equal((await h.request('/api/barrow/export/xeroobservations.csv',agent)).status,403);assert.ok(!JSON.stringify(exported).includes('must-not-retain'));
+ const retentionPolicy=await h.command('retention.settings',{revision:null,days:{poDocuments:1,media:null,messages:null,commercialHistory:1,applicationRecords:null},reason:'Owner reviewed configured expiry while retaining provider financial floors.'});
+ const documentReview=(await h.api('/api/barrow/retention')).documents.find(row=>row.orderId===order.id);assert.equal(documentReview.expiresAt,'2026-11-07T15:00:00.000Z');assert.equal(documentReview.commercialMinimumUntil,'2035-02-28T12:34:56.789Z');assert.equal(documentReview.eligible,false);
+ await h.command('retention.erase-document',{orderId:order.id,sha256:order.document.sha256,revision:order.revision,policyRevision:retentionPolicy.revision,confirm:'ERASE',reason:'A provider financial event still protects this PO.'},{status:409});
  const before=await archive(h);assert.ok(!JSON.stringify(before).includes('synthetic-barrow-904'));const custody=await h.db.prepare('SELECT secret_cipher FROM bw_xero_connection').first();assert.ok(!JSON.stringify(before).includes(custody.secret_cipher));
  await verifiedRequest(h,'cedar',true);let preview=await erasurePreview(h);assert.ok(preview.custody.accounting.includes('Xero'));
  assert.equal(preview.items.find(item=>item.id==='order:'+order.id).floorUntil,'2035-02-28T12:34:56.789Z');
- await h.command('retention.erase-account',erasurePayload(preview),{status:409});await verifiedRequest(h);preview=await erasurePreview(h);const receipt=await h.command('retention.erase-account',erasurePayload(preview));assert.ok(receipt.actorId&&receipt.custody.accounting.includes('No Xero deletion'));
+ await h.command('retention.erase-account',erasurePayload(preview),{status:409});await verifiedRequest(h);preview=await erasurePreview(h);await h.command('retention.erase-account',{...erasurePayload(preview),deleteOrderIds:[order.id]},{status:409});assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),order);const receipt=await h.command('retention.erase-account',erasurePayload(preview));assert.ok(receipt.actorId&&receipt.custody.accounting.includes('No Xero deletion'));
  assert.equal((await h.request('/api/barrow/xero/observations/'+observation.id,buyer)).status,401);
  const restored=await installation();t.after(()=>restored.close());await restore(restored,before);assert.equal((await restored.api('/api/barrow/xero')).configured,false);assert.ok((await restored.db.prepare('SELECT * FROM bw_xero_erased').all()).results.some(r=>r.contact_id==='10'));
  const raw=await restored.db.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(order.id).first();assert.ok(JSON.parse(raw.value_json).invoice);
