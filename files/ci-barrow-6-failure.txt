@@ -1,0 +1,7 @@
+shards (barrow-6)	Run this shard	2026-11-06T13:01:01.6598069Z > pnpm run verify:app
+shards (barrow-6)	Run this shard	2026-11-06T13:01:01.9124252Z > @wholesale/barrow@0.1.2 verify:app /home/runner/work/run-barrow/run-barrow
+shards (barrow-6)	Run this shard	2026-11-06T13:01:01.9124751Z > node scripts/verify-app.mjs
+shards (barrow-6)	Run this shard	2026-11-06T13:01:01.9413330Z > node scripts/contract-docs.mjs check
+shards (barrow-6)	Run this shard	2026-11-06T13:01:02.0006988Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+shards (barrow-6)	Run this shard	2026-11-06T13:01:02.0008446Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-6)	Run this shard	2026-11-06T13:01:02.0397513Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,14 @@
+shards (agent-door)	Run this shard	2026-11-06T13:00:56.0101239Z > pnpm run verify
+shards (agent-door)	Run this shard	2026-11-06T13:00:56.2079183Z > @wholesale/barrow@0.1.2 verify /home/runner/work/run-barrow/run-barrow
+shards (agent-door)	Run this shard	2026-11-06T13:00:56.2079586Z > rer verify
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.3595969Z > @wholesale/barrow@0.1.2 verify:app [REDACTED]
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.3596554Z > node scripts/verify-app.mjs
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.3825410Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.4278819Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.4279887Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.5091709Z > @wholesale/barrow@0.1.2 verify:app [REDACTED]
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.5092005Z > node scripts/verify-app.mjs
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.5092282Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.5093203Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.5094290Z ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (agent-door)	Run this shard	2026-11-06T13:00:57.5516213Z ##[error]Process completed with exit code 1.

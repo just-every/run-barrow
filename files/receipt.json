@@ -1,0 +1,150 @@
+{
+  "VERIFY_REPRODUCED": {
+    "command": "timeout 1200 node --test --test-concurrency=1 tests/journeys/storefront-branding.test.mjs",
+    "exit": 1,
+    "failure": "Received case USD 65.00 and pallet USD 120.00 instead of MSRP USD 130.00 and USD 260.00",
+    "head": "15d3b6af52f73b3f1413bcd9bf463e2c6e0461ec",
+    "job": "sx-barrow-c-f70-gate-1 blocking A public-door reproduction",
+    "test": "selling-unit Retail-only options in the existing storefront journey"
+  },
+  "assertionsRemoved": 0,
+  "base": "15d3b6af52f73b3f1413bcd9bf463e2c6e0461ec",
+  "branch": "cloud/sx-barrow-f70fix1",
+  "ci": [
+    {
+      "conclusion": "failure",
+      "head_sha": "4f2404de76bb73bcff011cab2379de7759e96704",
+      "html_url": "https://github.com/just-every/run-barrow/actions/runs/42221982436",
+      "id": 42221982436,
+      "status": "completed"
+    }
+  ],
+  "ciGeneratedViewException": {
+    "aggregateVerifyJob": 127906388121,
+    "allShardFirstCommands": "node scripts/contract-docs.mjs check",
+    "applicable": true,
+    "error": "ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "failedShardCount": 8,
+    "inspectedJobLogs": [
+      127906107617,
+      127906107554
+    ],
+    "sourceLockCheckPassedInEveryShard": true,
+    "testsNotReachedInCI": true
+  },
+  "clause": {
+    "acceptanceChanged": false,
+    "after": "partial",
+    "before": "partial",
+    "holdsReleased": false,
+    "id": "CAT-005"
+  },
+  "countsAfter": {
+    "done": 73,
+    "missing": 37,
+    "partial": 44
+  },
+  "countsBefore": {
+    "done": 73,
+    "missing": 37,
+    "partial": 44
+  },
+  "githubApiInvocations": 7,
+  "head": "4f2404de76bb73bcff011cab2379de7759e96704",
+  "identity": {
+    "allCandidateCommitsChecked": true,
+    "sideParentsIncluded": true,
+    "trailers": "none"
+  },
+  "main": "297b78740b0037045e0da786340b24bb8079ca57",
+  "mainContained": true,
+  "mechanical": {
+    "contractRowsAfter": 178,
+    "contractRowsBefore": 178,
+    "generatedViewsRestoredFromMain": [
+      "ACCEPTANCE.md",
+      "docs/CLAIMS.md"
+    ],
+    "ledger": {
+      "command": null,
+      "exit": 0,
+      "reason": "No migration changes"
+    },
+    "lockCheck": {
+      "command": "node scripts/edition-authoring/cli.mjs check",
+      "exit": 0
+    },
+    "lockWrite": {
+      "command": "node scripts/edition-authoring/cli.mjs lock",
+      "exit": 0
+    },
+    "viewsCheckAfterRestore": {
+      "exit": 1,
+      "expected": true,
+      "failure": "ACCEPTANCE.md is stale"
+    },
+    "viewsCheckAfterWrite": {
+      "command": "node scripts/contract-docs.mjs check",
+      "exit": 0
+    },
+    "viewsWrite": {
+      "command": "node scripts/contract-docs.mjs write",
+      "exit": 0
+    }
+  },
+  "productPushed": true,
+  "publicationScan": {
+    "complete": false,
+    "status": "pending Mac lander"
+  },
+  "recordedAt": "2026-11-06T13:07:38.900804+00:00",
+  "remoteHead": "4f2404de76bb73bcff011cab2379de7759e96704",
+  "repository": "just-every/run-barrow",
+  "runSite": {
+    "status": "not run; main was not changed"
+  },
+  "schema": 1,
+  "scope": "Blocking A only: selling-unit storefront price display",
+  "sourceFiles": {
+    "sources.lock.json": "193a986ad659187e75b2ba91f3f32d07641f3786efca935e66f03fc8daeb5cb9",
+    "src/barrow/ui/unit-order.tsx": "3b91d0218e80b4ab0570ff88e286f6206bbdaaa20827be39ae6f2e14c31b2fc4",
+    "tests/journeys/storefront-branding.test.mjs": "5e25cb499a8f8d262194e059da1db5f083e4f2fe9a33384dee5478f8c75b7aaa"
+  },
+  "tag": "sx-barrow-f70fix1",
+  "testRegistrationDelta": 0,
+  "tests": {
+    "build": {
+      "command": "cloud_run npx -y @runeditrun/rer build",
+      "exit": 0
+    },
+    "firstParty": {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0
+    },
+    "reproduction": {
+      "exit": 1,
+      "failure": "Retail-only unit options displayed USD 65.00 per case and USD 120.00 per pallet instead of MSRP USD 130.00 and USD 260.00"
+    },
+    "sellingUnitApi": {
+      "command": "timeout 600 node --test --test-concurrency=1 tests/api/units.test.mjs",
+      "exit": 0,
+      "tests": 1
+    },
+    "storefrontJourney": {
+      "captures": [
+        1440,
+        390
+      ],
+      "command": "timeout 1200 node --test --test-concurrency=1 tests/journeys/storefront-branding.test.mjs",
+      "exit": 0,
+      "head": "4f2404de76bb73bcff011cab2379de7759e96704",
+      "tests": 1,
+      "width": 1440
+    },
+    "typecheck": {
+      "command": "pnpm run typecheck",
+      "exit": 0
+    }
+  },
+  "tree": "326b30d017cfeedddbd641b7ba63c2d76cf9c0f7"
+}
