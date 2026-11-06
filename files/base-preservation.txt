@@ -1,0 +1,6 @@
+../stacked-base/original.bundle is okay
+The bundle contains this ref:
+9989fb9634182f840a0791ee5ae8276c965fddf0 refs/fleet/stacked-base
+The bundle records a complete history.
+The bundle uses this hash algorithm: sha1
+2b28d7b112f9018f4d4e27a4b4634e2590276cc1031cf9924022ecb5c572d5ce  ../stacked-base/original.bundle

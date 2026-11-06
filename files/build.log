@@ -1,0 +1,73 @@
+Using project Node 22.20.0 (current Node 24.19.0).
+Heavy job admitted: Barrow build:workflow [7a88aa194811]
+Checking pinned pnpm
+10.12.4
+Building your application
+build:app
+▲ [WARNING] Proxy environment variables detected. We'll use your proxy for fetch requests.
+
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 259 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/client/.assetsignore                           0.02 kB
+dist/client/assets/application-files-Cxph06gv.js    5.63 kB │ gzip:   2.37 kB
+dist/client/assets/apply-B_B4OsaY.js                9.10 kB │ gzip:   3.15 kB
+dist/client/assets/index-1EuGVneM.js              314.66 kB │ gzip: 102.00 kB
+dist/client/assets/app-BlDrfHVv.js                578.93 kB │ gzip: 140.85 kB
+
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 355ms
+vite v8.2.2 building ssr environment for production...
+transforming...
+✓ 1036 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/server/wrangler.json                                          1.63 kB │ gzip:   0.81 kB
+dist/server/.vite/manifest.json                                   10.77 kB │ gzip:   1.57 kB
+dist/server/assets/empty-plugin-adapters-D_0twvAa.js               0.28 kB │ gzip:   0.18 kB
+dist/server/assets/start-D8qDT34V.js                               0.28 kB │ gzip:   0.21 kB
+dist/server/assets/font-head-DQKtn7MC.js                           0.44 kB │ gzip:   0.29 kB
+dist/server/assets/application-document-policy-BGHqDa8N.js         0.57 kB │ gzip:   0.31 kB
+dist/server/assets/_tanstack-start-manifest_v-B72eBbNI.js          0.85 kB │ gzip:   0.37 kB
+dist/server/assets/application-access-m1g13zvR.js                  1.02 kB │ gzip:   0.49 kB
+dist/server/assets/application-erasure-statements-BhbFBeU9.js      1.09 kB │ gzip:   0.33 kB
+dist/server/assets/quote-mail-custody-D-MMEJTj.js                  1.09 kB │ gzip:   0.46 kB
+dist/server/assets/quote-mail-config-CCIZRm7n.js                   1.80 kB │ gzip:   0.93 kB
+dist/server/assets/model-Czl9Dleo.js                               1.88 kB │ gzip:   0.96 kB
+dist/server/assets/webhook-security-Bkg6Rr3f.js                    2.95 kB │ gzip:   1.33 kB
+dist/server/assets/hash-DrWcr7qY.js                                4.69 kB │ gzip:   2.16 kB
+dist/server/assets/storage-Ce6PTS9L.js                             5.17 kB │ gzip:   2.07 kB
+dist/server/assets/styles-DdMJ4uYg.js                              6.57 kB │ gzip:   2.72 kB
+dist/server/assets/prebook-view-rCPIQ8mE.js                        7.65 kB │ gzip:   2.36 kB
+dist/server/assets/application-files-BT100WEm.js                  10.25 kB │ gzip:   3.06 kB
+dist/server/assets/legacy-erasure-journal-DDeI7iXL.js             13.56 kB │ gzip:   4.08 kB
+dist/server/assets/erasure-journal-DlaSQnmt.js                    15.62 kB │ gzip:   3.76 kB
+dist/server/assets/apply--iNBe0VP.js                              16.90 kB │ gzip:   3.93 kB
+dist/server/assets/jsx-runtime-DtDe7Led.js                        19.02 kB │ gzip:   5.18 kB
+dist/server/assets/validation-CJgBcGWz.js                         21.76 kB │ gzip:   6.62 kB
+dist/server/assets/line-sheets-CW70Y-15.js                        35.52 kB │ gzip:  10.66 kB
+dist/server/assets/router-8uQcoFbT.js                             42.36 kB │ gzip:  11.21 kB
+dist/server/assets/company-members-CsoJoJeW.js                    45.17 kB │ gzip:  11.77 kB
+dist/server/assets/erasure-DGO2dHOS.js                            68.16 kB │ gzip:  16.40 kB
+dist/server/assets/variant-attributes-BozAmejd.js                 89.77 kB │ gzip:  28.88 kB
+dist/server/assets/catalog-maintenance-workbook-CcHsYzKo.js      111.44 kB │ gzip:  26.06 kB
+dist/server/assets/Match-DqZAXE2W.js                             144.97 kB │ gzip:  36.40 kB
+dist/server/assets/access-DOzmK84z.js                            217.66 kB │ gzip:  58.43 kB
+dist/server/assets/orders-B4isVk95.js                            269.67 kB │ gzip:  70.51 kB
+dist/server/assets/undo-snapshot-DDpbkNq8.js                     420.84 kB │ gzip: 106.09 kB
+dist/server/assets/portability-policy-DdSj1AhP.js                680.06 kB │ gzip: 173.07 kB
+dist/server/assets/app-C6iG-MJM.js                             1,063.79 kB │ gzip: 185.63 kB
+dist/server/index.js                                           2,080.92 kB │ gzip: 505.63 kB
+
+[INEFFECTIVE_DYNAMIC_IMPORT] src/barrow/orders.ts is dynamically imported by src/barrow/shipping.ts but also statically imported by src/barrow/agent-door/records.ts, src/barrow/agent-door/tools.ts, src/barrow/agent-proposals.ts, src/barrow/api.ts, src/barrow/card-payments.ts, ..., dynamic import will not move module into another chunk.
+
+✓ built in 917ms
+Your application is built
+build: complete (exit 0)

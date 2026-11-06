@@ -1,0 +1,96 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+granular callback 409 {"error":{"code":"XERO_SCOPE","message":"Xero did not return exactly the reviewed read-only scopes."}}
+✖ granular OAuth (6363.432617ms)
+✖ uncoded account reference page (5739.877427ms)
+foreign note exposure /api/barrow/followups?view=all true
+foreign note exposure /api/barrow/export/followups.csv true
+✖ account-scoped private follow-ups (5873.493854ms)
+✖ voided matched invoice retains an owned source conflict (5430.169786ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24932.578298
+
+✖ failing tests:
+
+test at ../../../../../../tmp/barrow-gate-probes.mjs:7:1
+✖ granular OAuth (6363.432617ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  409 !== 303
+  
+      at TestContext.<anonymous> (file:///tmp/barrow-gate-probes.mjs:7:185)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 303,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../../tmp/barrow-gate-probes.mjs:8:1
+✖ uncoded account reference page (5739.877427ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"XERO_RESPONSE","message":"Xero omitted a required source identity."}}
+      at api (file:///home/agent/rer-consolidation/work/sx-barrow-f74fix1/run-barrow/tests/api/harness.mjs:84:109)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.command (file:///home/agent/rer-consolidation/work/sx-barrow-f74fix1/run-barrow/tests/api/harness.mjs:88:16)
+      at async TestContext.<anonymous> (file:///tmp/barrow-gate-probes.mjs:8:226)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../../../../../../tmp/barrow-gate-probes.mjs:10:1
+✖ account-scoped private follow-ups (5873.493854ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + [
+  +   '/api/barrow/followups?view=all',
+  +   '/api/barrow/export/followups.csv'
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (file:///tmp/barrow-gate-probes.mjs:10:1101)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '/api/barrow/followups?view=all', '/api/barrow/export/followups.csv' ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../../tmp/barrow-gate-probes.mjs:11:1
+✖ voided matched invoice retains an owned source conflict (5430.169786ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== '100'
+  
+      at TestContext.<anonymous> (file:///tmp/barrow-gate-probes.mjs:11:337)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: '100',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

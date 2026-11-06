@@ -1,0 +1,280 @@
+{
+  "files": [
+    {
+      "blob": "939b45f193dfddfeaed103c2d92793f4b29b04f2",
+      "bytes": 2159,
+      "path": "PLAN.md",
+      "sha256": "54a8c51d2d7de28de34418d05dbaf9e379ea81c82e62c83a06fd3d0658b8e67f"
+    },
+    {
+      "blob": "63f5af0cc839330a2fbeed4ab9ef543b06088021",
+      "bytes": 13390,
+      "path": "REPORT.md",
+      "sha256": "bb31dfe5fed78fa20a342086c244364c5e460013d018e9418967a151064617fa"
+    },
+    {
+      "blob": "e074acf3e6adcdf9793c44f8a384557dda652ab4",
+      "bytes": 314,
+      "path": "base-preservation.txt",
+      "sha256": "f9d1d7a1e3c25b590f49d183869535754ededbe61e3469567d2c909d8ff2bacb"
+    },
+    {
+      "blob": "236d9c204eb39f3010a633be4a7097105b192631",
+      "bytes": 419,
+      "path": "baseline-statements.log",
+      "sha256": "9fda3dc4c7a8219032f3740b3500652c54856a81a322e1d53171675674ac980c"
+    },
+    {
+      "blob": "bbc9cb94b174cec49fd1b0a85915acb02414d8e6",
+      "bytes": 5148,
+      "path": "build.log",
+      "sha256": "a309a04ffe01e1cfdc47e22cd2536181e5d668b617cf169889ec2de9c77f9467"
+    },
+    {
+      "blob": "9f0fda1aff003820eb31f59a85a8be15c4cc5c65",
+      "bytes": 244,
+      "path": "ci-discovery.json",
+      "sha256": "07d718a2b01be117ced51c63fbf2d89bdcb8e612ef6e9a10eb9e68800a9ebb7b"
+    },
+    {
+      "blob": "0c0139bcfe08b2f172bd53b916897301d0ba0db4",
+      "bytes": 176,
+      "path": "ci-final.json",
+      "sha256": "9247187c6d838a625e2218ac22024940cc78abdeffbbe4c01a78ed02a8b7d380"
+    },
+    {
+      "blob": "8dfea29ff618486f3842a4ab361d2ad82afa236e",
+      "bytes": 21,
+      "path": "ci-last-observed.txt",
+      "sha256": "56b702a61df8dfebc870f06d7cca1bda178c5df1506da8539087ffe0cbfb66ef"
+    },
+    {
+      "blob": "d29b0062f6a8f6cde953736be04377597ba870ac",
+      "bytes": 87,
+      "path": "exact-head-proof.txt",
+      "sha256": "07040a181ec1ece0d1adb179a3a30ff95f3a9734512285d5dea9e55697948d07"
+    },
+    {
+      "blob": "378e20164ea3fcb42240b076d04e1d3d29805ad5",
+      "bytes": 265521,
+      "path": "final-lock-check.log",
+      "sha256": "a0135c36afbe5c3dc4467f1989586a88684205e00dae37f558782d10ba3eacb6"
+    },
+    {
+      "blob": "add70478f041cda07daef37de9ae5aef300733f3",
+      "bytes": 265507,
+      "path": "final-lock-write.log",
+      "sha256": "bb7fa86df2ac485ecb15273a44c723d77910b909a1725bfd9f313cf616b1768d"
+    },
+    {
+      "blob": "318bab4c1e72bc1b6d3ecd30eb50983e13c73c5b",
+      "bytes": 45,
+      "path": "final-views-check.log",
+      "sha256": "19c3c9e07de990548dc7fcdcb11361229a6d6649b25e41f92c0fc53983217a03"
+    },
+    {
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "path": "first-party.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "blob": "2466f6e5f8ef2f56bb14584ed60d3e5500198f82",
+      "bytes": 612,
+      "path": "gate-probes-passed.log",
+      "sha256": "c94ed5964c71ee0efadb793aa743df35149f3ecdd6a6d9f99b5812e3a49757aa"
+    },
+    {
+      "blob": "ba85485029bb8a9d121f82aa440e09838ea2f606",
+      "bytes": 2978,
+      "path": "gate-probes.mjs",
+      "sha256": "2430e114e28ffa3fd4f65ba21ec9cacac0a04d7c082332ab0f2d4684a413fb79"
+    },
+    {
+      "blob": "6513f55e8f0825a72bf5f4e702b7da291df8e48a",
+      "bytes": 3841,
+      "path": "gate-reproduced.log",
+      "sha256": "60eefe110d5b8b09b64592d84a9d214694072fcb2bebc8a92c5d7337a12a7cc5"
+    },
+    {
+      "blob": "0cc8a986f8ed938a86e70e6627b1c7dc877c37c9",
+      "bytes": 340,
+      "path": "identities.log",
+      "sha256": "73f5cb4854f149c83e76c61149c58c24c2e1fafedbc995d010a7d2dabe7c0bbe"
+    },
+    {
+      "blob": "ddb4421c18f95d21b2cb1e77c97dfcc4838bfb75",
+      "bytes": 954,
+      "path": "privacy-reproduced.log",
+      "sha256": "687650a1f8e6410d50e9f3adb6f55f354e37fd2bf67aacc4c36b854741e93398"
+    },
+    {
+      "blob": "6951022777607a314238f4431022bad9a07b5903",
+      "bytes": 912,
+      "path": "push.log",
+      "sha256": "c1fbdc8ca284c054e61a30576b1163c491bc1fb162a9f4f65aa1a86a414f2961"
+    },
+    {
+      "blob": "3b669b80181c245abcc2b4a1b18858ae1ed28576",
+      "bytes": 6516,
+      "path": "receipt.json",
+      "sha256": "e1d140d86abffae4828d11b65e96b28ddda9a43004f3f7cab1eb73ea7060dd1d"
+    },
+    {
+      "blob": "0c3602ae6c0c0b8dab42329fc4498f91913beb69",
+      "bytes": 133,
+      "path": "remote-provenance.txt",
+      "sha256": "76dd157553e38243a759402f74a6613624b9a526708924040ec94929ec2df1a0"
+    },
+    {
+      "blob": "de3b3012f7315643172e9a9406b18146e3ea425b",
+      "bytes": 147640,
+      "path": "screens/xero-balance-conflict-1440.png",
+      "sha256": "103630abc68566838389759e19cd27373f01bd4d07ba616c24cfaeca5e0a2c8c"
+    },
+    {
+      "blob": "ff3653160fa4d41ae454405154db0c0430301373",
+      "bytes": 148568,
+      "path": "screens/xero-balance-conflict-390.png",
+      "sha256": "5555ba1740386f4a6eaf82cfea8fac63d46d7a9d7d084047c12068067b455c0d"
+    },
+    {
+      "blob": "5a70fb76d1fddb6db02fd6b8c7474a1d018f4995",
+      "bytes": 148785,
+      "path": "screens/xero-buyer-statement-1440.png",
+      "sha256": "7b0075fe3208224579885cc89d56972c616360119e859ed05ba553add9738f66"
+    },
+    {
+      "blob": "a11b066efa9c68c747787f918fbb889d79bf4616",
+      "bytes": 147837,
+      "path": "screens/xero-buyer-statement-390.png",
+      "sha256": "cf5bbaf1dd34acd31ddacad1ffabdc7b46d916dfc1a45db939f8d1a26d46fe12"
+    },
+    {
+      "blob": "eb16584f74a878a0ca45da0970974ebd55c8c4fa",
+      "bytes": 211755,
+      "path": "screens/xero-finance-comparison-1440.png",
+      "sha256": "23266402d49d5b9d912e985282198f60f1a92d55669a7d9139458f898be3ec86"
+    },
+    {
+      "blob": "75a1c75f3096f69afaf8e407132cb30b714aaa19",
+      "bytes": 203405,
+      "path": "screens/xero-finance-comparison-390.png",
+      "sha256": "06d58d13716ab39fb9d61dd29f41c326474e7c3ec40f442f2dc6664da347b83d"
+    },
+    {
+      "blob": "eed3769f3b8a3085952e0d4bfdc53c02ee029e1a",
+      "bytes": 184349,
+      "path": "screens/xero-interrupted-correlation-1440.png",
+      "sha256": "251d7f6c6dd1d3287cc56e997e0acd668e10ca55a3c33283b4a7a6ec70ae8304"
+    },
+    {
+      "blob": "2a5944c3e3a939adb514c395db8516a190e7148f",
+      "bytes": 165744,
+      "path": "screens/xero-interrupted-correlation-390.png",
+      "sha256": "5552edecdf8a18e49197781a0a955935acd42bfb835092f4fefa4e3e93db7690"
+    },
+    {
+      "blob": "2f643b10112d99b6b0087c9b364c4e92008b7111",
+      "bytes": 175466,
+      "path": "screens/xero-linked-invoice-1440.png",
+      "sha256": "2327cbd40387619d2e97ba0468dd12c7d044287d1a1a302ae907873a040ecf88"
+    },
+    {
+      "blob": "c18dedde24bcbed354868b8149db9121e9f3540b",
+      "bytes": 151455,
+      "path": "screens/xero-linked-invoice-390.png",
+      "sha256": "9b608588766bd4bc8bf90a0ff1fb9d3d996f823adcfe339a5b1b3c153d49b11f"
+    },
+    {
+      "blob": "21ef64feecc4a3541163ef7bcce12692ef25472c",
+      "bytes": 47410,
+      "path": "screens/xero-owner-consent-1440.png",
+      "sha256": "57f615ac22eb7062f1c111279b02da3dd613b688a7c3d055a599152ec81f20ab"
+    },
+    {
+      "blob": "a4363ea97682695ee92d30b216e62e9e9288b9ef",
+      "bytes": 47530,
+      "path": "screens/xero-owner-consent-390.png",
+      "sha256": "b123854b8c4421446a2c39d267a9ccf74b588d706fc11f3173a514bad690aa94"
+    },
+    {
+      "blob": "f4d8689f4a0ddb342cfc2c6ca6dd1536998ed343",
+      "bytes": 149530,
+      "path": "screens/xero-reviewed-references-1440.png",
+      "sha256": "b3db4f106d15f9bf75989b3f635679f60f3b0b46a8893ca8a363fbfaeabd9fd2"
+    },
+    {
+      "blob": "9f1cffc9e84406d2693ba9d1c3b7c5fbfb42ba53",
+      "bytes": 138630,
+      "path": "screens/xero-reviewed-references-390.png",
+      "sha256": "1b437568826bbdf9a17a413e4dd34ae6cf42d0ed4c0ca2a0c8c9e630dad739bc"
+    },
+    {
+      "blob": "9fa9284281eae8ec9e1db8e42a4f1fc02f152bac",
+      "bytes": 45630,
+      "path": "screens/xero-revoked-1440.png",
+      "sha256": "6aeb811ea883fc3431403a712cd4d82e299eb4b6c5636bab752b0f7ddce4edf9"
+    },
+    {
+      "blob": "e6dc6ddfda097f8a392f3da1b97dd7fadc5b0654",
+      "bytes": 45654,
+      "path": "screens/xero-revoked-390.png",
+      "sha256": "dc991081d0cea486d3eb945961464eb36256edff50aab40397f989c8703568f5"
+    },
+    {
+      "blob": "5d6d9d2782bc953c1b672f044b2fe61871659397",
+      "bytes": 148254,
+      "path": "screens/xero-voided-source-conflict-1440.png",
+      "sha256": "72bb41c6092bf84fc6b94691313569002613e610fa38dfb7d236c406f324e590"
+    },
+    {
+      "blob": "c82bf4e49d3ee64cb211a3128f88a2ef11b954f9",
+      "bytes": 148890,
+      "path": "screens/xero-voided-source-conflict-390.png",
+      "sha256": "44e6a4c35901686005943ea8a8045dc80ec9a0d2a9381a3838089a39067e4720"
+    },
+    {
+      "blob": "d423c530a576b9890d75d4cd68f8837b1f591aa3",
+      "bytes": 129621,
+      "path": "touched-browser-exact-head.log",
+      "sha256": "cc3a77c55dcab2d834ccc78e9a2685572c7cc0be746c2edb89b2db9c4a1d592d"
+    },
+    {
+      "blob": "dc314407fa3e42e97d34ecbde5fbebc4791ffd34",
+      "bytes": 114421,
+      "path": "touched-browser.log",
+      "sha256": "22a9eee0132fe8821fec6e0e77d56ff9bb5137c4bd42dd7e18fc15be5c7665b2"
+    },
+    {
+      "blob": "5a60a6fd3315fe34ad76465b57ce6b270e2beb43",
+      "bytes": 422,
+      "path": "touched-statements-exact-head.log",
+      "sha256": "26703721675e9ccf5f0e7b15dd96c8cd2e37ab868deaa905c28cc539bb5e9f7b"
+    },
+    {
+      "blob": "d736cfa9dd764561f33062c3066fcc6647ebc26d",
+      "bytes": 422,
+      "path": "touched-statements.log",
+      "sha256": "75a1e1d6821d807554b64a9146090034c7a66325e6162d750901ff6507bc1692"
+    },
+    {
+      "blob": "527d68cff66c7012315bf6eecafbafd314f9131b",
+      "bytes": 236,
+      "path": "typecheck.log",
+      "sha256": "0cfea66489f4683ba32c30692b51f7a5a9ddf534ca59a9f0f9ceb5a6f8a77581"
+    },
+    {
+      "blob": "614e87562744f8a466c39be186118bfc14ebc264",
+      "bytes": 94,
+      "path": "views.log",
+      "sha256": "3201b4ad3ef7262c27db3e698fabd74aec79a5f944f5fc832612adfbb38850d6"
+    }
+  ],
+  "product_branch": "cloud/sx-barrow-f74fix1",
+  "product_head": "691ad35e6c90865c156483d6836fd017f2a796a9",
+  "ref": "refs/heads/evidence/sx-barrow-f74fix1",
+  "repository": "just-every/run-barrow",
+  "schema": 1,
+  "tag": "sx-barrow-f74fix1"
+}
