@@ -1,3 +1,6 @@
+import type { CSSProperties } from 'react'
+import { StorefrontSettings } from './storefront-branding'
+import { defaultStorefrontBranding, storefrontAccents, storefrontCanvases } from '../storefront-branding-options'
 import { PaymentPromises } from './payment-promises'
 import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
@@ -182,10 +185,14 @@ export function BarrowApp() {
   const go = (next: string) => { setTab(next); setNotice('') }
   const openPad = (id: string, draft = '') => { setAccountId(id); setDraftId(draft); go(pad) }
 
-  return <div className="barrow">
+  const branding = state?.settings.storefrontBranding ?? defaultStorefrontBranding
+  useEffect(() => { document.title = branding.displayName }, [branding.displayName])
+  const brandStyle = { '--br-storefront-accent': storefrontAccents[branding.accent].color, '--br-storefront-canvas': storefrontCanvases[branding.canvas].color } as CSSProperties
+
+  return <div className="barrow br-storefront" style={brandStyle}>
     <HydrationUnit><header className="br-top">
-      <a href="/app" className="br-brand"><img className="br-mark" src="/brand/mark.svg" alt="" width="26" height="26" /><span data-rer-name>Barrow</span></a>
-      <nav className="br-nav" aria-label="Barrow pages">{state && tabs.map(item => <button key={item} aria-current={activeTab === item ? 'page' : undefined} onClick={() => go(item)}>{item}</button>)}</nav>
+      <a href="/app" className="br-brand"><img className="br-mark" src="/brand/mark.svg" alt="" width="26" height="26" /><span>{branding.displayName}</span></a>
+      <nav className="br-nav" aria-label="Storefront pages">{state && tabs.map(item => <button key={item} aria-current={activeTab === item ? 'page' : undefined} onClick={() => go(item)}>{item}</button>)}</nav>
       <div className="br-session">{state && <><span className="br-email">{state.actor.email}</span><span className="br-badge">{supplier ? 'Supplier' : 'Trade customer'}</span></>}
         <form method="post" action="/auth/signout" onSubmit={event => { event.preventDefault(); void signOut() }}><button className="br-quiet" disabled={signingOut || busy}>{signingOut ? 'Signing out…' : 'Sign out'}</button></form>
       </div>
@@ -238,6 +245,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && !supplier && companyAdmin && state.accounts.length > 0 && <Locations accounts={state.accounts} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><WizCommerceMoveIn reload={reload} /><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} />{legacySupplier&&<CatalogMaintenance />}</>}
+          {activeTab === 'Settings' && state.actor.role==='owner' && <StorefrontSettings value={branding} onSaved={reload}/>}
           {activeTab === 'Settings' && (state.actor.role==='owner'||staff?.entitlements?.includes('catalog-media')) && <CatalogMedia />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
@@ -254,6 +262,6 @@ export function BarrowApp() {
         </>}
       </section></HydrationUnit>
     </main>
-    <HydrationUnit><footer className="br-footer"><span>Barrow · Price books and orders retain their ISO currency</span><a href="/setup">Installation settings</a></footer></HydrationUnit>
+    <HydrationUnit><footer className="br-footer"><span>{branding.displayName} · Price books and orders retain their ISO currency</span>{state && branding.supportUrl && <a className="br-support" href={branding.supportUrl}>Contact support · {new URL(branding.supportUrl).hostname}</a>}<a href="/setup">Installation settings</a></footer></HydrationUnit>
   </div>
 }

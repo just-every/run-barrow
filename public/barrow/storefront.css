@@ -1,0 +1,15 @@
+/* Merchant colors apply only inside the signed-in app. Status and error colors stay semantic. */
+.barrow.br-storefront{--br-ultramarine:var(--br-storefront-accent);--br-canvas:var(--br-storefront-canvas);--rer-link:var(--br-storefront-accent);--rer-focus:var(--br-storefront-accent);--br-wash:color-mix(in srgb,var(--br-storefront-accent) 7%,white)}
+.br-storefront .br-brand{min-width:0;max-width:320px;line-height:1.2}
+.br-storefront .br-brand span{overflow-wrap:anywhere;min-width:0}
+.br-storefront .br-brand .br-mark{flex:none}
+.br-storefront button:hover,.br-storefront .br-button:hover{background:var(--br-storefront-accent);border-color:var(--br-storefront-accent)}
+.br-storefront .br-secondary:hover{background:#fff;border-color:var(--br-ink)}
+.br-storefront .br-quiet:hover{background:transparent;border-color:transparent}
+.br-storefront .br-danger:hover{background:var(--br-red);border-color:var(--br-red)}
+.br-storefront .br-branding-colors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.br-storefront .br-support{color:var(--br-storefront-accent);overflow-wrap:anywhere}
+@media(max-width:720px){.br-storefront .br-brand{max-width:100%;flex-shrink:1}.br-storefront .br-branding-colors{grid-template-columns:minmax(0,1fr)}}
+.br-storefront .br-branding-review{display:flex;align-items:flex-start;gap:12px;color:var(--br-body)}
+.br-storefront .br-branding-review input{width:20px;min-height:20px;flex:none;margin:0}
+.br-storefront input:focus,.br-storefront textarea:focus,.br-storefront select:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--br-storefront-accent) 16%,transparent)}

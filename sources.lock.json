@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e34dec76d7623d9ba9ad4cd055d257172b3754a034eee23ec3c581edd6607cee",
+      "sha256": "7343aebde47739d5474ff5ffa8ff242c8fdc2fe8eca49ee26e3e655c8dab9e53",
       "executable": false
     },
     "DEMO.md": {
@@ -724,6 +724,10 @@
     },
     "public/barrow/shell.css": {
       "sha256": "1308a67fa9d36e7fff7e4d4682ac22e5c616d06cfabe19bd79ac6d3430cdd3da",
+      "executable": false
+    },
+    "public/barrow/storefront.css": {
+      "sha256": "c28fbf9306b52911e8960ab233c2c60a03b8c396256c3cfaea6a0daa39815d1f",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1839,7 +1843,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "132e9961be2a07a68995cbb1a226298261a32ff70b62512b46d5312040136226",
+      "sha256": "3dde6272e82f5fb57dcc4333b7f72c013676f8f393c8709d841bd4e22d972822",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -2662,6 +2666,14 @@
       "sha256": "550b6d333f2444f8f60377e3113e16191bd60bc8878d8f76ea01c7d4de32889f",
       "executable": false
     },
+    "src/barrow/storefront-branding-options.ts": {
+      "sha256": "053cc97fad551552d9afa75058d57ee3dfcbc2281b58aab144afeb516e1c826a",
+      "executable": false
+    },
+    "src/barrow/storefront-branding.ts": {
+      "sha256": "c88970faa8d064c6de63a4fa4a4e200485129ff4bbbaeb2ebf200be506b31db4",
+      "executable": false
+    },
     "src/barrow/substitution-preview.ts": {
       "sha256": "78beee6b50f7f00f285c8b8af0d026ea9224435d098c6747f87d88b27915d31b",
       "executable": false
@@ -2715,7 +2727,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "e93dcb9d4e02e1c28c6d76b2bf54f0f154d344dbdadb92661d16e11d061c1438",
+      "sha256": "06258fdae8c7aef7195caf5b0018c594edeae0472ba9477320ca63871df287c6",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -3066,6 +3078,10 @@
       "sha256": "9406ad5239b02ecf706cca115842a2541c47948f57ce0e75d921d6ad7f09e07f",
       "executable": false
     },
+    "src/barrow/ui/storefront-branding.tsx": {
+      "sha256": "ce3b871bc9aeba3fd84644e3d5bc3fe6aa473d277e0f89e484374ea825d140f5",
+      "executable": false
+    },
     "src/barrow/ui/style-card.tsx": {
       "sha256": "66356d486e4b40bfe60d37786f342edc75976535acaf74211e1e4123314d619a",
       "executable": false
@@ -3079,7 +3095,7 @@
       "executable": false
     },
     "src/barrow/ui/types.ts": {
-      "sha256": "849f8258e2eb9e42f0365a032ce2f336890aad1571c5b846d7cfe087f010eef1",
+      "sha256": "45182aaf0d4ea3915af8310ba734b2e6db39e5c006936b5bb666e9d6b85cfd4f",
       "executable": false
     },
     "src/barrow/ui/unit-draft.tsx": {
@@ -5651,7 +5667,7 @@
       "executable": false
     },
     "src/routes/app.tsx": {
-      "sha256": "214f891114788546e28576b880e4d1ceac4fd947f7e7bf0090b1fcb874e49dae",
+      "sha256": "653e40dccf29f508f0b45c7998e7a739017563736d76a67b9f2753949818b698",
       "executable": false
     },
     "src/routes/apply.tsx": {
@@ -6350,6 +6366,10 @@
       "sha256": "27ebbd07cf57ab00b4db8c3388aea1b949007a29842d0216ae2bc985075b63a3",
       "executable": false
     },
+    "tests/journeys/storefront-branding.test.mjs": {
+      "sha256": "8dbb84c49052ea5a95ff0af6dbda994d5e238dca2e59932af559052f42529186",
+      "executable": false
+    },
     "tests/journeys/territories.test.mjs": {
       "sha256": "02cddf864b643d12bc1a116f788d846800d9184780de3be93cc144f19ab7ca92",
       "executable": false
@@ -6371,7 +6391,7 @@
       "executable": false
     },
     "verification.json": {
-      "sha256": "a247928cb91f8f9b2f68b4c40d6c845163dd8d0b0d42b78e15e4e7c4dac2a3ad",
+      "sha256": "d0bf14c5680b5adaf4d1da8d179315195b4a3a594ed83073fc9da05cd4110aee",
       "executable": false
     },
     "VERIFY-WORKFLOW.md": {
