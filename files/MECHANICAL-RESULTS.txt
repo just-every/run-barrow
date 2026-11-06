@@ -1,0 +1,7 @@
+MECHANICAL lock=node scripts/edition-authoring/cli.mjs lock then check exit=0; views=node scripts/contract-docs.mjs write then check exit=0; ledger=none (repair changes no migrations) exit=0
+pnpm check:deployment-spec exit=0; predecessor migrations retained unchanged.
+pnpm exec rer check --profile first-party exit=0.
+git diff --cached -- CONTRACT.md: empty before commit.
+git diff origin/main...HEAD -- CONTRACT.md: empty before push.
+Generated views restored from origin/main and excluded from product commit.
+Added email-shaped strings=0; repair bare slash tokens=0.

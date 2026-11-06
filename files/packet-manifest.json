@@ -1,0 +1,262 @@
+[
+  {
+    "path": "REPORT.md",
+    "bytes": 11209,
+    "sha256": "5dde33912646bcefa0d8224217dc4a77b4f7adfec8c1daa520eaf8f33c980035"
+  },
+  {
+    "path": "PLAN.md",
+    "bytes": 1571,
+    "sha256": "09eb8ae88ec2182470a7a4269674e1bd4cd5b1f6dbfdfdaaf413e078f2a6d430"
+  },
+  {
+    "path": "receipt.json",
+    "bytes": 9643,
+    "sha256": "651866cfcd6b0332852dda07d681fa8893845c64168eb21fd8120b1117494a8f"
+  },
+  {
+    "path": "CLAIMS.txt",
+    "bytes": 594,
+    "sha256": "6bf1888d6a405c38c83952dc4297e1f078c01d5b6d0664f4b90d321ac83771f1"
+  },
+  {
+    "path": "TERMINAL-PROVENANCE.json",
+    "bytes": 658,
+    "sha256": "0934a921e2f230c8be8284cd9e43021285f52a1f78241a83c3453674ff3c8a22"
+  },
+  {
+    "path": "BEFORE-four-findings.log",
+    "bytes": 3840,
+    "sha256": "c606a8455ab21440baebf0d985536363ed46a68c17f21d2cf8dac2ee7673c72f"
+  },
+  {
+    "path": "AFTER-four-findings.log",
+    "bytes": 614,
+    "sha256": "b061672b2233cd9e02b00a5024d114ec74b9ee4f20b4a0b5ba41b7252090993c"
+  },
+  {
+    "path": "EXACT-SHA-PROBES.log",
+    "bytes": 614,
+    "sha256": "20f42e9693f2023df418fdb6a6ddc36c8c219eb7ff03a778f2fa08fa0eab2235"
+  },
+  {
+    "path": "BEFORE-scopes.log",
+    "bytes": 1002,
+    "sha256": "9f24a82c68965a13008300899ee9878ef1914dbea67bdd10f08711a0f12de0bc"
+  },
+  {
+    "path": "BEFORE-findings.log",
+    "bytes": 3135,
+    "sha256": "91cfa5f1dd559e2e18611be987008a91141d1ccb84ce7ebf4b69f6df8fb423db"
+  },
+  {
+    "path": "AFTER-xero.log",
+    "bytes": 310,
+    "sha256": "10cb230c5aa143100359997f46d065c43ff53092fbeb5196dc0a02afe750ba3c"
+  },
+  {
+    "path": "TESTS.log",
+    "bytes": 1535,
+    "sha256": "fd9e5f13d26832907bd9026290d261c2006471687b4d0344f19c64bf9f760d2e"
+  },
+  {
+    "path": "TYPECHECK.log",
+    "bytes": 194,
+    "sha256": "4d9f31dec1794c243e8bdcaf2fd4bbaaeed277951018cfcc25d54f7d0cab9304"
+  },
+  {
+    "path": "BUILD.log",
+    "bytes": 5148,
+    "sha256": "39d9d86587f1f536ccdf75b8b566a8af8f4095c576a1af2ece292eb956a74b6c"
+  },
+  {
+    "path": "BROWSER.log",
+    "bytes": 45682,
+    "sha256": "8f7ebed483eb511e685f59079fa359e6c30d9fcced97b5b0074ed5d6d61a8ab7"
+  },
+  {
+    "path": "TESTS-exact.log",
+    "bytes": 1537,
+    "sha256": "efbdfbab99c3784fd6d1f431c0386f87b2e0be02986eaba12377cae49200d95b"
+  },
+  {
+    "path": "TYPECHECK-exact.log",
+    "bytes": 194,
+    "sha256": "4d9f31dec1794c243e8bdcaf2fd4bbaaeed277951018cfcc25d54f7d0cab9304"
+  },
+  {
+    "path": "BUILD-exact.log",
+    "bytes": 5148,
+    "sha256": "cacaa74df9d24c5ba8920210343d9c7a5542f06ac3d8f8882379362e7ac4f453"
+  },
+  {
+    "path": "BROWSER-exact.log",
+    "bytes": 54265,
+    "sha256": "806ba4cd146ef5ab0b27c5568ba04de96db55f226a44def75e8d23ac321f29bd"
+  },
+  {
+    "path": "EXACT-RESULTS.txt",
+    "bytes": 48,
+    "sha256": "fdf636ebae7d1fb656311c5b84f705d330b7ddddf4d1536ac03b5c0d8cfb72af"
+  },
+  {
+    "path": "MECHANICAL.log",
+    "bytes": 531122,
+    "sha256": "2c78520b829ee43069ca2ae85b468eba41b3377a78ea83fdfd3bf282560d5ba1"
+  },
+  {
+    "path": "MECHANICAL-RESULTS.txt",
+    "bytes": 571,
+    "sha256": "4d1724fd4b3cfdb1c6959567f85d18ba1b3649bc9c9f212b6c87ed764f75dded"
+  },
+  {
+    "path": "DEPLOYMENT-SPEC.log",
+    "bytes": 294,
+    "sha256": "96ad553bd0feb8e35be8ea7dc1db4494332c0f76408b5662e3034595d77b4028"
+  },
+  {
+    "path": "RER-CHECK.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "REPAIR.patch",
+    "bytes": 29506,
+    "sha256": "b27692c1293f7c99cb08d56cedb73fab57cfb11e558be005cf50e1d5619de59d"
+  },
+  {
+    "path": "PUSH.log",
+    "bytes": 902,
+    "sha256": "5d5fb02256fb9718bf7d7a8f5d9aff0891c73485c8d2de6884d4622e5e6e328a"
+  },
+  {
+    "path": "CI-discovery.json",
+    "bytes": 226,
+    "sha256": "6ed3fad37a69505481cc61fb893be6d58b90a4728160eb94c97e8c07df24ac95"
+  },
+  {
+    "path": "CI-final.json",
+    "bytes": 179,
+    "sha256": "f53389d26624d4f8752e669325860302b4ec8b30182306e95ed5cfedf05fb5b9"
+  },
+  {
+    "path": "gate-probes.mjs",
+    "bytes": 3092,
+    "sha256": "c3f1ef2db04b48f76fe2d928bba7a457cab021ad37d726f00fdedfd33c2592c8"
+  },
+  {
+    "path": "browser-probe.mjs",
+    "bytes": 192,
+    "sha256": "b5056ef085756555538a1f30f1d12665678231382c60f210163c18d2fe774064"
+  },
+  {
+    "path": "screens/xero-balance-conflict-1440.png",
+    "bytes": 147913,
+    "sha256": "46fbd08dae48384994475bbe65917f75c1287680d7fe48038bf8d333c4e8aa4c"
+  },
+  {
+    "path": "screens/xero-balance-conflict-390.png",
+    "bytes": 149052,
+    "sha256": "1ca8bcab4cd30ff327f8207719fa0d0263f5762d2ada144e12c12968471f621e"
+  },
+  {
+    "path": "screens/xero-buyer-statement-1440.png",
+    "bytes": 148652,
+    "sha256": "0163e385beff04ce07ea906e997e2e38f5d5998e367c398bbe03e496be936a17"
+  },
+  {
+    "path": "screens/xero-buyer-statement-390.png",
+    "bytes": 147595,
+    "sha256": "cb50c1e0f7b2dee8608ca7ee255c69bb721062ccf87eb61d5079588e9044ab32"
+  },
+  {
+    "path": "screens/xero-finance-comparison-1440.png",
+    "bytes": 211616,
+    "sha256": "62000bbc1b529e6362c8a819fb2b4c9914225d6ec346d92fb4da4e5898b5dcdb"
+  },
+  {
+    "path": "screens/xero-finance-comparison-390.png",
+    "bytes": 203168,
+    "sha256": "f151e32ea6137de374100d496f376adc88fa711770c7f535d223634ef1747ad5"
+  },
+  {
+    "path": "screens/xero-interrupted-correlation-1440.png",
+    "bytes": 185058,
+    "sha256": "38ce2c8b13a625fc73e26f829cb05dd8dbe7a4224338f3bd2ff9529efd9fcdd9"
+  },
+  {
+    "path": "screens/xero-interrupted-correlation-390.png",
+    "bytes": 165116,
+    "sha256": "f089ef824942f7b2a16652ceac82adcc704cee2bd598c7ce1f89eda08a4e3d02"
+  },
+  {
+    "path": "screens/xero-linked-invoice-1440.png",
+    "bytes": 175065,
+    "sha256": "441c1fb38bb487238fe85abe05e586fb8123a92bc5c1b6fad58b0d349c1856d1"
+  },
+  {
+    "path": "screens/xero-linked-invoice-390.png",
+    "bytes": 151195,
+    "sha256": "1ef264f3d7cb733a6d32ae6f996d22a0888169ad77641acc68fdb4234bb1a48b"
+  },
+  {
+    "path": "screens/xero-owner-consent-1440.png",
+    "bytes": 47410,
+    "sha256": "57f615ac22eb7062f1c111279b02da3dd613b688a7c3d055a599152ec81f20ab"
+  },
+  {
+    "path": "screens/xero-owner-consent-390.png",
+    "bytes": 47530,
+    "sha256": "b123854b8c4421446a2c39d267a9ccf74b588d706fc11f3173a514bad690aa94"
+  },
+  {
+    "path": "screens/xero-reviewed-references-1440.png",
+    "bytes": 148824,
+    "sha256": "33e89d4164261a9c7e1a9d8611fa13ed435f43ed255151df98ed62adb497abe7"
+  },
+  {
+    "path": "screens/xero-reviewed-references-390.png",
+    "bytes": 137656,
+    "sha256": "1c79b47c7546e572921c5bb2ecadfd585d51143bba1e59da54a8480800bb7df1"
+  },
+  {
+    "path": "screens/xero-revoked-1440.png",
+    "bytes": 45630,
+    "sha256": "6aeb811ea883fc3431403a712cd4d82e299eb4b6c5636bab752b0f7ddce4edf9"
+  },
+  {
+    "path": "screens/xero-revoked-390.png",
+    "bytes": 45654,
+    "sha256": "dc991081d0cea486d3eb945961464eb36256edff50aab40397f989c8703568f5"
+  },
+  {
+    "path": "screens/xero-voided-finance-1440.png",
+    "bytes": 210909,
+    "sha256": "d2be977128e7de28ff7a5d0bfbeca4ba17a89a8c3e587be7d063d4dddacaf8f6"
+  },
+  {
+    "path": "screens/xero-voided-finance-390.png",
+    "bytes": 204103,
+    "sha256": "2772f059d1f6ade4d048fd9f59920a95ab997deecd711a34b188175c1e27e588"
+  },
+  {
+    "path": "screens/xero-voided-owned-task-1440.png",
+    "bytes": 152622,
+    "sha256": "91838d9eb4e6c9d52872bcda485c6c386f84e447fc652501f86f8f6dae62f1f7"
+  },
+  {
+    "path": "screens/xero-voided-owned-task-390.png",
+    "bytes": 145349,
+    "sha256": "ae948dae9a2b905e9af8f4e54ebf87c51982d12b1eb2340c11e68da016842cd7"
+  },
+  {
+    "path": "screens/xero-voided-statement-1440.png",
+    "bytes": 147983,
+    "sha256": "1eea1d87c942f3bf3068c3bb7f3c0777e594c1f7e74bcb301f5061ee30be17b8"
+  },
+  {
+    "path": "screens/xero-voided-statement-390.png",
+    "bytes": 148532,
+    "sha256": "066be10c58fe3e4bd50ef931d53e4b2cf09846e3793858e7a088d605f8528ed1"
+  }
+]

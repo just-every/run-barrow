@@ -1,0 +1,6 @@
+ WARN  Unsupported engine: wanted: {"node":"22.20.0"} (current: {"node":"v24.19.0","pnpm":"10.12.4"})
+
+> @wholesale/barrow@0.1.2 check:deployment-spec /workspace/run-barrow
+> node scripts/build-deployment-spec.mjs --check
+
+Deployment specification matches the real build and source policy.

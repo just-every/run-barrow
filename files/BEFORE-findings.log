@@ -1,0 +1,69 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✖ Privacy: account scope applies before finance task admission (6299.667847ms)
+✖ Account references: an active bank without optional Code remains reviewable (5156.176001ms)
+✖ Voided source: formerly matched invoice remains source-linked and owned (5390.496462ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17812.696176
+
+✖ failing tests:
+
+test at ../../tmp/barrow-gate-before.mjs:7:1
+✖ Privacy: account scope applies before finance task admission (6299.667847ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"DUPLICATE_REVIEW","message":"Review all matching companies as separate companies using their current revisions before saving."}}
+      at api (file:///workspace/run-barrow/tests/api/harness.mjs:84:109)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.command (file:///workspace/run-barrow/tests/api/harness.mjs:88:16)
+      at async TestContext.<anonymous> (file:///tmp/barrow-gate-before.mjs:13:2)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../../tmp/barrow-gate-before.mjs:18:1
+✖ Account references: an active bank without optional Code remains reviewable (5156.176001ms)
+  AssertionError [ERR_ASSERTION]: {"error":{"code":"XERO_RESPONSE","message":"Xero omitted a required source identity."}}
+      at api (file:///workspace/run-barrow/tests/api/harness.mjs:84:109)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Object.command (file:///workspace/run-barrow/tests/api/harness.mjs:88:16)
+      at async Object.map (file:///workspace/run-barrow/tests/api/xero-fixture.mjs:31:35)
+      at async TestContext.<anonymous> (file:///tmp/barrow-gate-before.mjs:19:53)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../../tmp/barrow-gate-before.mjs:22:1
+✖ Voided source: formerly matched invoice remains source-linked and owned (5390.496462ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  undefined !== '100'
+  
+      at TestContext.<anonymous> (file:///tmp/barrow-gate-before.mjs:27:53)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: '100',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

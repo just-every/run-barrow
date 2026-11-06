@@ -1,0 +1,167 @@
+diff --git a/docs/XERO.md b/docs/XERO.md
+index 92ec75b..a56a0bd 100644
+--- a/docs/XERO.md
++++ b/docs/XERO.md
+@@ -7 +7 @@ Register an OAuth web application with Xero and register the exact installation
+-In Settings, enter the exact organisation tenant UUID, review separate provider custody, supply a reason and explicitly consent. Requested scopes are `offline_access`, `accounting.transactions.read`, `accounting.contacts.read` and `accounting.settings.read`. The callback binds the one-use state to the current owner session and verifies that Xero's connection list contains the reviewed organisation. No other tenant is selected automatically. Tokens are encrypted on the server, refreshed under a lease and excluded from archives. Interrupted rotation requires fresh consent. Disconnect ends independent local authority before attempting Xero disconnection; an unconfirmed provider result tells the owner to revoke the app in Xero.
++In Settings, enter the exact organisation tenant UUID, review separate provider custody, supply a reason and explicitly consent. Requested scopes are `offline_access`, `accounting.invoices.read`, `accounting.contacts.read` and `accounting.settings.read`. Read-only legacy connections may retain `accounting.transactions.read` during migration; missing permissions or any unreviewed or write scope are refused on both authorization and rotation. The callback binds the one-use state to the current owner session and verifies that Xero's connection list contains the reviewed organisation. No other tenant is selected automatically. Tokens are encrypted on the server, refreshed under a lease and excluded from archives. Interrupted rotation requires fresh consent. Disconnect ends independent local authority before attempting Xero disconnection; an unconfirmed provider result tells the owner to revoke the app in Xero.
+@@ -9 +9 @@ In Settings, enter the exact organisation tenant UUID, review separate provider
+-Read and review contact, item, account and tax-code references. Contacts map to a current native account revision; item codes map to existing native SKUs. Account codes and tax types are reviewed reference labels, not verified tax or financial write authority. Source fingerprints detect changes when references are reread; changed native accounts or mappings invalidate a pending run. Read the current reference pages again when the provider configuration changes. Provider names, addresses and invoice narratives are not retained.
++Read and review contact, item, account and tax-code references. Contacts map to a current native account revision; item codes map to existing native SKUs. Account codes (or the provider AccountID when the optional Code is absent) and tax types are reviewed reference labels, not verified tax or financial write authority. Source fingerprints detect changes when references are reread; changed native accounts or mappings invalidate a pending run. Read the current reference pages again when the provider configuration changes. Provider names, addresses and invoice narratives are not retained.
+@@ -11 +11 @@ Read and review contact, item, account and tax-code references. Contacts map to
+-Start a dated invoice read. Each resume requests at most 50 existing authorised or paid receivable invoices, ordered by source identity. Reference snapshots that are not provider-paginated are bounded to 1,000 entries and locally paged; a larger snapshot is refused. A run is bounded to 100,000 invoice observations. Failed pages preserve the checkpoint and appear with their correlation and recovery action in diagnostics. Page-number reads do not provide a provider snapshot: upstream changes during pagination require a fresh reviewed read. Only complete reads establish comparisons, only on their actual supplier-calendar observation date. They establish no historical provider balance.
++Start a dated invoice read. Each resume requests at most 50 existing authorised, paid or voided receivable invoices, ordered by source identity. Reference snapshots that are not provider-paginated are bounded to 1,000 entries and locally paged; a larger snapshot is refused. A run is bounded to 100,000 invoice observations. Failed pages preserve the checkpoint and appear with their correlation and recovery action in diagnostics. Page-number reads do not provide a provider snapshot: upstream changes during pagination require a fresh reviewed read. Only complete reads establish comparisons, only on their actual supplier-calendar observation date. They establish no historical provider balance.
+@@ -13 +13 @@ Start a dated invoice read. Each resume requests at most 50 existing authorised
+-Review and link an existing native issued invoice with the same account, currency and total. A source invoice cannot be reused for another native invoice. Statements, their CSV and PDF, and finance reports show separately labelled Xero and QuickBooks rows, source IDs, observation time, correlation and differences for each currency. No currencies or provider balances are combined. The original linked source fingerprint includes financial line quantities, unit prices, tax and discount facts. A later same-total line edit cannot replace that reviewed basis. Source edits, missing mappings and unmatched balances remain conflicts, with owned follow-up tasks until source-confirmed matching or an attributed human acknowledgment. No connector observation changes native opening or closing balances, applies a payment, issues a credit or changes an issued document.
++Review and link an existing native issued invoice with the same account, currency and total. A source invoice cannot be reused for another native invoice. Statements, their CSV and PDF, and finance reports show separately labelled Xero and QuickBooks rows, source IDs, observation time, correlation and differences for each currency. No currencies or provider balances are combined. The original linked source fingerprint includes financial line quantities, unit prices, tax and discount facts. A later same-total line edit cannot replace that reviewed basis. A voided source remains a linked observation with its own owned conflict and never cancels a native invoice. Source edits, missing mappings and unmatched balances remain conflicts, with owned follow-up tasks until source-confirmed matching or an attributed human acknowledgment. No connector observation changes native opening or closing balances, applies a payment, issues a credit or changes an issued document.
+diff --git a/src/barrow/accounting/xero-reconciliation.ts b/src/barrow/accounting/xero-reconciliation.ts
+index a653a13..ce8526c 100644
+--- a/src/barrow/accounting/xero-reconciliation.ts
++++ b/src/barrow/accounting/xero-reconciliation.ts
+@@ -13 +13 @@ type Mapping={tenant:string;kind:string;source_id:string;token:string;native_id:
+-export type XeroInvoice={provider:'xero';id:string;runId:string;tenant:string;sourceId:string;sourceToken:string;commercialToken:string;contactId:string;accountId:string;currency:string;issuedAt:string;dueAt:string;amountCents:number;balanceCents:number;observedAt:string;latestFinancialAt:string;createdAt:string;refs:{kind:string;id:string}[]}
++export type XeroInvoice={provider:'xero';id:string;runId:string;tenant:string;sourceId:string;sourceToken:string;commercialToken:string;contactId:string;accountId:string;currency:string;status?:string;issuedAt:string;dueAt:string;amountCents:number;balanceCents:number;observedAt:string;latestFinancialAt:string;createdAt:string;refs:{kind:string;id:string}[]}
+@@ -113 +113 @@ export async function resumeRead(env:Bindings,actor:Actor,p:any) {
+-   const value:XeroInvoice={provider:'xero',id:await digest('xero:'+run.tenant+':'+run.id+':'+sourceId),runId:run.id,tenant:run.tenant,sourceId,sourceToken:String(raw.SyncToken??''),commercialToken:String(raw.CommercialToken??''),contactId,accountId:mapping?.native_id??'',currency,issuedAt:date(raw.TxnDate),dueAt:date(raw.DueDate??raw.TxnDate),amountCents:cents(raw.TotalAmt),balanceCents:cents(raw.Balance),observedAt:at,createdAt:at,latestFinancialAt:new Date(Math.max(Date.parse(at),Date.parse(updated))).toISOString(),refs}
++   const value:XeroInvoice={provider:'xero',id:await digest('xero:'+run.tenant+':'+run.id+':'+sourceId),runId:run.id,tenant:run.tenant,sourceId,sourceToken:String(raw.SyncToken??''),commercialToken:String(raw.CommercialToken??''),contactId,accountId:mapping?.native_id??'',currency,status:raw.Status,issuedAt:date(raw.TxnDate),dueAt:date(raw.DueDate??raw.TxnDate),amountCents:cents(raw.TotalAmt),balanceCents:cents(raw.Balance),observedAt:at,createdAt:at,latestFinancialAt:new Date(Math.max(Date.parse(at),Date.parse(updated))).toISOString(),refs}
+@@ -140,0 +141 @@ export async function linkInvoice(env:Bindings,actor:Actor,p:any) {
++ if(value.status==='VOIDED')fail('XERO_CONFLICT','The source invoice is voided. Resolve the owned conflict without linking or rewriting an issued document.')
+@@ -166 +167 @@ export async function xeroComparisons(db:D1Database,accountId:string,asOf:string
+-  const conflict=stale?'Reference mapping missing or stale':!order?'Unlinked ledger invoice':order.currency!==value.currency?'Currency mismatch':order.totalCents!==value.amountCents?'Upstream invoice total changed':order.invoice?.issuedAt!==value.issuedAt||order.invoice?.dueAt!==value.dueAt?'Invoice dates differ':!linked?.commercial_token||!value.commercialToken?'Reviewed source basis unavailable':linked.commercial_token!==value.commercialToken?'Upstream issued invoice changed':nativeCents!==value.balanceCents?'Balance differs':'Matched'
++  const conflict=value.status==='VOIDED'?'Upstream invoice voided':stale?'Reference mapping missing or stale':!order?'Unlinked ledger invoice':order.currency!==value.currency?'Currency mismatch':order.totalCents!==value.amountCents?'Upstream invoice total changed':order.invoice?.issuedAt!==value.issuedAt||order.invoice?.dueAt!==value.dueAt?'Invoice dates differ':!linked?.commercial_token||!value.commercialToken?'Reviewed source basis unavailable':linked.commercial_token!==value.commercialToken?'Upstream issued invoice changed':nativeCents!==value.balanceCents?'Balance differs':'Matched'
+diff --git a/src/barrow/accounting/xero.ts b/src/barrow/accounting/xero.ts
+index 093dc7a..083652c 100644
+--- a/src/barrow/accounting/xero.ts
++++ b/src/barrow/accounting/xero.ts
+@@ -10 +10,3 @@ export type Connection={tenant:string;mode:string;state:string;secret_cipher:str
+-const scopes=['offline_access','accounting.transactions.read','accounting.contacts.read','accounting.settings.read']
++const scopes=['offline_access','accounting.invoices.read','accounting.contacts.read','accounting.settings.read']
++// Older app connections can retain the read-only broad scope during Xero's additive migration.
++const legacyInvoiceScope='accounting.transactions.read'
+@@ -39 +41,2 @@ async function tokens(env:Bindings,fields:Record<string,string>){
+- if(typeof result.scope!=='string'||scopes.some(scope=>!result.scope.split(' ').includes(scope))||result.scope.split(' ').some((scope:string)=>!scopes.includes(scope)))fail('XERO_SCOPE','Xero did not return exactly the reviewed read-only scopes.',409)
++ const granted:string[]=typeof result.scope==='string'?result.scope.split(/\s+/).filter(Boolean):[]
++ if(scopes.filter(scope=>scope!=='accounting.invoices.read').some(scope=>!granted.includes(scope))||!granted.some(scope=>scope==='accounting.invoices.read'||scope===legacyInvoiceScope)||granted.some(scope=>!scopes.includes(scope)&&scope!==legacyInvoiceScope))fail('XERO_SCOPE','Xero did not return the required reviewed read-only scopes.',409)
+@@ -96 +99 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
+- if(kind==='Invoice'){params.set('where','Type=="ACCREC" AND (Status=="AUTHORISED" OR Status=="PAID")');params.set('summaryOnly','false')}
++ if(kind==='Invoice'){params.set('where','Type=="ACCREC" AND (Status=="AUTHORISED" OR Status=="PAID" OR Status=="VOIDED")');params.set('summaryOnly','false')}
+@@ -105,3 +108,3 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
+-   if(r.Type!=='ACCREC'||!['AUTHORISED','PAID'].includes(r.Status))fail('XERO_RESPONSE','Only existing authorised receivable invoices are supported.',409)
+-   const canonical={Id:r.InvoiceID,ContactRef:{value:r.Contact?.ContactID},CurrencyRef:{value:r.CurrencyCode},TxnDate:day(r.Date),DueDate:day(r.DueDate??r.Date),TotalAmt:r.Total,Balance:r.AmountDue,Line:(r.LineItems??[]).map((l:any)=>({SalesItemLineDetail:{ItemRef:{value:l.ItemCode}},AccountRef:{value:l.AccountCode},TaxCodeRef:{value:l.TaxType}})),MetaData:{LastUpdatedTime:instant(r.UpdatedDateUTC)},Status:r.Status}
+-   const financialLines=(r.LineItems??[]).map((l:any)=>({item:l.ItemCode??null,account:l.AccountCode??null,taxType:l.TaxType??null,quantity:l.Quantity??null,unitAmount:l.UnitAmount??null,lineAmount:l.LineAmount??null,taxAmount:l.TaxAmount??null,discountRate:l.DiscountRate??null,discountAmount:l.DiscountAmount??null}))
++   if(r.Type!=='ACCREC'||!['AUTHORISED','PAID','VOIDED'].includes(r.Status))fail('XERO_RESPONSE','Only existing authorised, paid or voided receivable invoices are supported.',409)
++   const canonical={Id:r.InvoiceID,ContactRef:{value:r.Contact?.ContactID},CurrencyRef:{value:r.CurrencyCode},TxnDate:day(r.Date),DueDate:day(r.DueDate??r.Date),TotalAmt:r.Total,Balance:r.AmountDue,Line:(r.LineItems??[]).map((l:any)=>({SalesItemLineDetail:{ItemRef:{value:l.ItemCode}},AccountRef:{value:l.AccountCode||l.AccountID},TaxCodeRef:{value:l.TaxType}})),MetaData:{LastUpdatedTime:instant(r.UpdatedDateUTC)},Status:r.Status}
++   const financialLines=(r.LineItems??[]).map((l:any)=>({item:l.ItemCode??null,account:l.AccountCode||l.AccountID||null,taxType:l.TaxType??null,quantity:l.Quantity??null,unitAmount:l.UnitAmount??null,lineAmount:l.LineAmount??null,taxAmount:l.TaxAmount??null,discountRate:l.DiscountRate??null,discountAmount:l.DiscountAmount??null}))
+@@ -109 +112 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
+-   const commercial={narrativeToken,contact:canonical.ContactRef.value,currency:r.CurrencyCode,date:canonical.TxnDate,due:canonical.DueDate,total:r.Total,subTotal:r.SubTotal??null,totalTax:r.TotalTax??null,lineAmountTypes:r.LineAmountTypes??null,lines:financialLines}
++   const commercial={...(r.Status==='VOIDED'?{status:r.Status}:{}),narrativeToken,contact:canonical.ContactRef.value,currency:r.CurrencyCode,date:canonical.TxnDate,due:canonical.DueDate,total:r.Total,subTotal:r.SubTotal??null,totalTax:r.TotalTax??null,lineAmountTypes:r.LineAmountTypes??null,lines:financialLines}
+@@ -112 +115 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
+-  const Id=kind==='Contact'?r.ContactID:kind==='Item'?r.Code:kind==='Account'?r.Code:r.TaxType
++  const Id=kind==='Contact'?r.ContactID:kind==='Item'?r.Code:kind==='Account'?(r.Code||r.AccountID):r.TaxType
+diff --git a/src/barrow/staff-access.ts b/src/barrow/staff-access.ts
+index 3f16913..675f47d 100644
+--- a/src/barrow/staff-access.ts
++++ b/src/barrow/staff-access.ts
+@@ -18 +18 @@ export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;
+- if(['qbo','xero'].includes(task.kind))return grant.role==='finance'
++ if(['qbo','xero'].includes(task.kind))return grant.role==='finance'&&staffAccountAllowed(grant,task.accountId)
+diff --git a/tests/api/xero-accounting.mjs b/tests/api/xero-accounting.mjs
+index 77f0052..c1ab147 100644
+--- a/tests/api/xero-accounting.mjs
++++ b/tests/api/xero-accounting.mjs
+@@ -2 +2 @@ import assert from 'node:assert/strict';
+-import {xeroFixture} from './xero-fixture.mjs';
++import {xeroFixture,xeroFinance} from './xero-fixture.mjs';
+@@ -8,0 +9,6 @@ export async function xeroAccounting(t) {
++ const granular=edge.scope;
++ for(const scope of [...granular.split(' ').map(missing=>granular.split(' ').filter(scope=>scope!==missing).join(' ')),granular+' accounting.invoices',granular+' accounting.transactions']) {
++  edge.scope=scope;const rejected=await f.begin(),response=await h.request(f.callback(rejected));
++  assert.equal(response.status,409);assert.equal((await response.json()).error.code,'XERO_SCOPE');assert.equal((await f.workspace()).configured,false);
++ }
++ edge.scope=granular;
+@@ -16,2 +22,10 @@ export async function xeroAccounting(t) {
+- const consentUrl=new URL(authorization.authorizationUrl);assert.deepEqual(consentUrl.searchParams.get('scope').split(' ').sort(),['offline_access','accounting.transactions.read','accounting.contacts.read','accounting.settings.read'].sort());
+- edge.expiresIn=3600;await f.mappings();assert.equal(edge.refreshes,1);
++ const consentUrl=new URL(authorization.authorizationUrl);assert.deepEqual(consentUrl.searchParams.get('scope').split(' ').sort(),['offline_access','accounting.invoices.read','accounting.contacts.read','accounting.settings.read'].sort());
++ // Refresh accepts additive legacy read permissions, while a newly consented app uses granular invoice reads.
++ edge.scope=granular+' accounting.transactions.read';edge.expiresIn=3600;edge.extraAccount=true;
++ await f.mappings();assert.equal(edge.refreshes,1);edge.scope=granular;
++ {
++  const references=await f.workspace(),bank=references.references.find(row=>row.source_id==='12345678-1234-4234-8234-123456789031');
++  assert.ok(bank?.active);assert.ok(references.references.some(row=>row.kind==='Account'&&row.source_id==='30'));
++  await h.command('xero.mapping',{kind:'Account',sourceId:bank.source_id,sourceToken:bank.token,nativeId:'reviewed bank reference',reason:'Review an active provider account without an optional code.'});
++  assert.ok((await f.workspace()).mappings.some(row=>row.source_id===bank.source_id&&row.native_id==='reviewed bank reference'));
++ }
+@@ -58,0 +73,30 @@ export async function xeroAccounting(t) {
++ // An upstream void retains its source and link, owns the exact conflict, and never changes native money.
++ edge.invoiceStatus='VOIDED';run=await f.resume(await f.start());state=await f.workspace();const voided=state.observations.find(row=>row.runId===run.id);
++ statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);
++ const voidComparison=statement.ledgerComparisons[0],voidSource=voidComparison.sources[0];
++ assert.equal(voidComparison.differenceCents,13000);assert.equal(voidComparison.ledgerCents,0);assert.equal(voidComparison.nativeCents,13000);
++ assert.equal(voidSource.sourceId,'100');assert.equal(voidSource.orderId,order.id);assert.equal(voidSource.status,'Upstream invoice voided');
++ assert.equal((await h.api(voidSource.path,undefined,buyer)).status,'VOIDED');
++ for(const path of ['/api/barrow/statements/cedar.csv?to=2026-11-06','/api/barrow/statements/cedar.pdf?to=2026-11-06','/api/barrow/reports/finance.csv?asOf=2026-11-06']){
++  const output=await (await h.request(path,path.includes('statements')?buyer:{})).text();assert.ok(output.includes('Upstream invoice voided')&&output.includes('100'));
++ }
++ finance=await h.api('/api/barrow/reports/finance?asOf=2026-11-06');assert.equal(finance.ledgerReconciliation[0].sources[0].status,'Upstream invoice voided');
++ await h.command('xero.link',{id:voided.id,revision:voided.revision,orderId:order.id,orderRevision:order.revision,reason:'A void cannot replace an issued native invoice.'},{status:409});
++ assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),order);assert.equal(statement.sections[0].closingCents,13000);
++ followups=await h.command('followup.refresh',{});task=followups.tasks.find(row=>row.kind==='xero'&&row.status==='open');
++ assert.ok(task.ownerId&&task.sourceId==='100');assert.equal(task.sourcePath,voidSource.path);assert.match(task.reason,/Upstream invoice voided/);
++ const privateNote='synthetic-barrow-private-note';task=await h.command('followup.update',{id:task.id,revision:task.revision,contact:{outcome:'failed',note:privateNote}});
++ followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(row=>row.kind==='xero'&&row.status==='open').length,1);
++ // Current account scope applies to task details, contact notes, exports, mutations, refresh and assignment.
++ const scoped=await xeroFinance(h,['cedar']);
++ assert.ok(JSON.stringify(await h.api('/api/barrow/followups?view=all',undefined,scoped.who)).includes(privateNote));
++ assert.ok((await (await h.request('/api/barrow/export/followups.csv',scoped.who)).text()).includes(privateNote));
++ const narrowed=await h.command('staff.update',{userId:scoped.grant.userId,revision:scoped.grant.revision,policy:{...scoped.policy,accounts:['foreign']},reason:scoped.reason});
++ assert.ok(narrowed.revision);
++ assert.ok(!JSON.stringify(await h.api('/api/barrow/followups?view=all',undefined,scoped.who)).includes(privateNote));
++ assert.ok(!(await (await h.request('/api/barrow/export/followups.csv',scoped.who)).text()).includes(privateNote));
++ assert.ok(!JSON.stringify(await h.api('/api/barrow/export.json',undefined,scoped.who)).includes(privateNote));
++ assert.ok(!(await h.command('followup.refresh',{},scoped.who)).tasks.some(row=>row.id===task.id));
++ await h.command('followup.update',{id:task.id,revision:task.revision,contact:{outcome:'reached',note:'A foreign finance reviewer cannot read or change this note.'}},{...scoped.who,status:404});
++ await h.command('followup.update',{id:task.id,revision:task.revision,ownerId:scoped.grant.userId},{status:400});
++ assert.deepEqual((await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id),task);
+diff --git a/tests/api/xero-fixture.mjs b/tests/api/xero-fixture.mjs
+index ba68d0e..f308dfc 100644
+--- a/tests/api/xero-fixture.mjs
++++ b/tests/api/xero-fixture.mjs
+@@ -6 +6 @@ export async function xeroFixture(t,options={}){
+- const edge={tenant,count:1,fail:false,revoked:false,currency:'USD',quantity:2,unitAmount:65,total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',expiresIn:3600,calls:[],refreshes:0};
++ const edge={tenant,extraAccount:false,scope:'offline_access accounting.invoices.read accounting.contacts.read accounting.settings.read',accountCode:'30',invoiceStatus:'AUTHORISED',count:1,fail:false,revoked:false,currency:'USD',quantity:2,unitAmount:65,total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',expiresIn:3600,calls:[],refreshes:0};
+@@ -11 +11 @@ export async function xeroFixture(t,options={}){
+-  if(url.pathname==='/connect/token'){const form=new URLSearchParams(await request.text());if(form.get('grant_type')==='refresh_token')edge.refreshes++;return Response.json({access_token:'synthetic-barrow-903',refresh_token:'synthetic-barrow-904',expires_in:edge.expiresIn,scope:'offline_access accounting.transactions.read accounting.contacts.read accounting.settings.read'})}
++  if(url.pathname==='/connect/token'){const form=new URLSearchParams(await request.text());if(form.get('grant_type')==='refresh_token')edge.refreshes++;return Response.json({access_token:'synthetic-barrow-903',refresh_token:'synthetic-barrow-904',expires_in:edge.expiresIn,scope:edge.scope})}
+@@ -18 +18 @@ export async function xeroFixture(t,options={}){
+-  const references={Contacts:[{ContactID:'10',ContactStatus:'ACTIVE',UpdatedDateUTC:edge.referenceToken,EmailAddress:['must-not-retain','example.test'].join('@')}],Items:[{Code:'20',UpdatedDateUTC:edge.referenceToken,SalesDetails:{AccountCode:'30',TaxType:'40'}}],Accounts:[{AccountID:'30',Code:'30',Status:'ACTIVE',Type:'REVENUE',UpdatedDateUTC:edge.referenceToken}],TaxRates:[{TaxType:'40',Status:'ACTIVE',EffectiveRate:0,UpdatedDateUTC:edge.referenceToken}]};
++  const references={Contacts:[{ContactID:'10',ContactStatus:'ACTIVE',UpdatedDateUTC:edge.referenceToken,EmailAddress:['must-not-retain','example.test'].join('@')}],Items:[{Code:'20',UpdatedDateUTC:edge.referenceToken,SalesDetails:{AccountCode:'30',TaxType:'40'}}],Accounts:[{AccountID:'12345678-1234-4234-8234-123456789030',...(edge.accountCode?{Code:edge.accountCode}:{}),Status:'ACTIVE',Type:'REVENUE',UpdatedDateUTC:edge.referenceToken},...(edge.extraAccount?[{AccountID:'12345678-1234-4234-8234-123456789031',Status:'ACTIVE',Type:'BANK',UpdatedDateUTC:edge.referenceToken}]:[])],TaxRates:[{TaxType:'40',Status:'ACTIVE',EffectiveRate:0,UpdatedDateUTC:edge.referenceToken}]};
+@@ -21,2 +21,2 @@ export async function xeroFixture(t,options={}){
+-  const all=Array.from({length:edge.count},(_,i)=>({InvoiceID:String(100+i),Type:'ACCREC',Status:'AUTHORISED',Contact:{ContactID:'10',Name:'must-not-retain'},CurrencyCode:edge.currency,Date:'/Date('+Date.parse('2026-11-06T00:00:00Z')+')/',DueDate:'2026-12-06',Total:edge.total,AmountDue:edge.balance,LineItems:[{ItemCode:'20',AccountCode:'30',TaxType:'40',Quantity:edge.quantity,UnitAmount:edge.unitAmount,LineAmount:edge.total,TaxAmount:0}],UpdatedDateUTC:date,Reference:'must not retain provider narratives'}));
+-  return Response.json({Invoices:all.slice((position-1)*50,position*50)});
++  const all=Array.from({length:edge.count},(_,i)=>({InvoiceID:String(100+i),Type:'ACCREC',Status:edge.invoiceStatus,Contact:{ContactID:'10',Name:'must-not-retain'},CurrencyCode:edge.currency,Date:'/Date('+Date.parse('2026-11-06T00:00:00Z')+')/',DueDate:'2026-12-06',Total:edge.total,AmountDue:edge.invoiceStatus==='VOIDED'?0:edge.balance,LineItems:[{ItemCode:'20',...(edge.accountCode?{AccountCode:edge.accountCode}:{AccountID:'12345678-1234-4234-8234-123456789030'}),TaxType:'40',Quantity:edge.quantity,UnitAmount:edge.unitAmount,LineAmount:edge.total,TaxAmount:0}],UpdatedDateUTC:date,Reference:'must not retain provider narratives'}));
++  return Response.json({Invoices:all.filter(row=>url.searchParams.get('where').includes('"'+row.Status+'"')).slice((position-1)*50,position*50)});
+@@ -31 +31 @@ export async function xeroFixture(t,options={}){
+- const map=async(kind,nativeId)=>{await h.command('xero.references',{kind,reason:'Read current source references.'});const state=await workspace(),ref=state.references.find(row=>row.kind===kind),prior=state.mappings.find(row=>row.kind===kind);return h.command('xero.mapping',{kind,sourceId:ref.source_id,sourceToken:ref.token,nativeId,nativeRevision:account.revision,revision:prior?.revision??null,reason:'Owner reviewed exact source and native references.'})};
++ const map=async(kind,nativeId)=>{await h.command('xero.references',{kind,reason:'Read current source references.'});const state=await workspace(),ref=state.references.find(row=>row.kind===kind&&(kind!=='Account'||row.source_id===(edge.accountCode||'12345678-1234-4234-8234-123456789030'))),prior=state.mappings.find(row=>row.kind===kind);return h.command('xero.mapping',{kind,sourceId:ref.source_id,sourceToken:ref.token,nativeId,nativeRevision:account.revision,revision:prior?.revision??null,reason:'Owner reviewed exact source and native references.'})};
+@@ -36,0 +37,11 @@ export async function xeroFixture(t,options={}){
++export async function xeroFinance(h,accounts){
++ const email=['synthetic-barrow-910','example.test'].join('@'),reason='Owner reviewed current account-scoped finance authority.';
++ const policy={role:'finance',accounts,warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0};
++ const grant=await h.command('staff.invite',{email,name:'Scoped finance',policy,reason});
++ const message=h.mail.requests.findLast(row=>row.message.to.includes(email)).message;
++ const link=new URL(message.text?.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)?.[0]??message.html.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)[1].replaceAll('&amp;','&'));
++ const response=await h.request('/auth/confirm',{method:'POST',as:'',body:{token:link.searchParams.get('token')}});assert.equal(response.status,303);
++ const who={as:response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')};
++ const current=(await h.api('/api/barrow/staff/members')).members.find(row=>row.userId===grant.userId);
++ return {who,grant:current,policy,reason};
++}
+diff --git a/tests/journeys/xero-accounting.mjs b/tests/journeys/xero-accounting.mjs
+index 9807ba5..8718cee 100644
+--- a/tests/journeys/xero-accounting.mjs
++++ b/tests/journeys/xero-accounting.mjs
+@@ -35,0 +36,4 @@ export async function xeroBrowser(t) {
++ edge.invoiceStatus='VOIDED';await f.resume(await f.start());const tasks=await h.command('followup.refresh',{});const task=tasks.tasks.find(row=>row.kind==='xero'&&row.status==='open');assert.ok(task.ownerId);assert.match(task.reason,/Upstream invoice voided/);
++ await customer.reload();await customer.getByRole('button',{name:'Orders',exact:true}).click();await expect(comparisons).toContainText('Upstream invoice voided');await expect(comparisons).toContainText('difference USD 130.00');await expect(comparisons.getByRole('link',{name:'Xero 100',exact:true})).toHaveAttribute('href',task.sourcePath);await captureRegionWidths(customer,statement,'xero-voided-statement');
++ await page.reload();await page.getByRole('button',{name:'Data',exact:true}).click();await expect(finance).toContainText('Upstream invoice voided');await expect(finance).toContainText('difference USD 130.00');await captureRegionWidths(page,finance,'xero-voided-finance');
++ const queue=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Next actions',exact:true})}).first();await expect(queue).toContainText('Upstream invoice voided');await expect(queue.locator('a[href="'+task.sourcePath+'"]')).toHaveText('Open source record');await captureRegionWidths(page,queue,'xero-voided-owned-task');

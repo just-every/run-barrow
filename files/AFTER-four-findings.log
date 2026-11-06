@@ -1,0 +1,15 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ Privacy: account scope applies before finance task admission (5679.088259ms)
+✔ Account references: an active bank without optional Code remains reviewable (5105.180892ms)
+✔ Voided source: formerly matched invoice remains source-linked and owned (5885.454319ms)
+✔ OAuth: current granular read permissions connect a newly registered app (4577.763631ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22132.215596

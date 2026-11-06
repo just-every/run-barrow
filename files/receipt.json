@@ -1,0 +1,306 @@
+{
+  "branch": "cloud/sx-barrow-c-f75",
+  "checks": [
+    {
+      "command": "node --test --test-concurrency=1 /tmp/barrow-gate-before.mjs",
+      "exit": 1,
+      "implementation": "three original source files from rejected predecessor, restored transiently",
+      "log": "BEFORE-four-findings.log",
+      "passed": 0,
+      "tests": 4
+    },
+    {
+      "command": "node --test --test-concurrency=1 /tmp/barrow-gate-before.mjs",
+      "exit": 0,
+      "implementation": "candidate source",
+      "log": "AFTER-four-findings.log",
+      "passed": 4,
+      "tests": 4
+    },
+    {
+      "command": "node --test --test-concurrency=1 tests/api/statements.test.mjs tests/api/staff.test.mjs tests/api/followups.test.mjs",
+      "exit": 0,
+      "log": "TESTS.log",
+      "passed": 6,
+      "tests": 6
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0,
+      "log": "TYPECHECK.log"
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "exit": 0,
+      "log": "BUILD.log"
+    },
+    {
+      "command": "node --test /tmp/barrow-browser-probe.mjs",
+      "exit": 0,
+      "log": "BROWSER.log",
+      "passed": 1,
+      "screens": 22,
+      "tests": 1,
+      "widths": [
+        1440,
+        390
+      ]
+    },
+    {
+      "command": "node scripts/contract-docs.mjs write",
+      "exit": 0,
+      "log": "MECHANICAL.log"
+    },
+    {
+      "command": "node scripts/contract-docs.mjs check",
+      "exit": 0,
+      "log": "MECHANICAL.log"
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs lock",
+      "exit": 0,
+      "log": "MECHANICAL.log"
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs check",
+      "exit": 0,
+      "log": "MECHANICAL.log"
+    },
+    {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0,
+      "log": "RER-CHECK.log"
+    },
+    {
+      "command": "pnpm check:deployment-spec",
+      "exit": 0,
+      "log": "DEPLOYMENT-SPEC.log"
+    },
+    {
+      "command": "node --test --test-concurrency=1 /tmp/barrow-gate-before.mjs",
+      "exit": 0,
+      "implementation": "committed exact candidate 91bbcc9a7741c2ce4f248f832a4931a29e143456",
+      "log": "EXACT-SHA-PROBES.log",
+      "passed": 4,
+      "tests": 4
+    },
+    {
+      "command": "node --test --test-concurrency=1 tests/api/statements.test.mjs tests/api/staff.test.mjs tests/api/followups.test.mjs",
+      "exit": 0,
+      "head": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+      "log": "TESTS-exact.log",
+      "passed": 6,
+      "tests": 6
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0,
+      "head": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+      "log": "TYPECHECK-exact.log"
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "exit": 0,
+      "head": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+      "log": "BUILD-exact.log"
+    },
+    {
+      "command": "node --test /tmp/barrow-browser-probe.mjs",
+      "exit": 0,
+      "head": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+      "log": "BROWSER-exact.log",
+      "passed": 1,
+      "screens": 22,
+      "tests": 1,
+      "widths": [
+        1440,
+        390
+      ]
+    }
+  ],
+  "ci": [
+    {
+      "conclusion": null,
+      "event": "push",
+      "head_sha": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+      "html_url": "https://github.com/just-every/run-barrow/actions/runs/42232911157",
+      "id": 42232911157,
+      "name": "Verify",
+      "status": "in_progress"
+    }
+  ],
+  "ci_last_observed": {
+    "conclusion": "success",
+    "head_sha": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+    "html_url": "https://github.com/just-every/run-barrow/actions/runs/42232911157",
+    "status": "completed"
+  },
+  "contract_source_changed": false,
+  "counts": {
+    "after": {
+      "done": 73,
+      "missing": 37,
+      "partial": 44,
+      "total": 154
+    },
+    "before": {
+      "done": 73,
+      "missing": 37,
+      "partial": 44,
+      "total": 154
+    }
+  },
+  "exact_candidate_checks_complete": true,
+  "generated_views_committed": false,
+  "github_api_calls": 5,
+  "head": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+  "parent_main": "7f9f666c0fa53f81729bdb99e74e5834f3263ca4",
+  "pr": null,
+  "product_pushed": true,
+  "product_pushes": 1,
+  "push_attempts": 1,
+  "rejected_predecessor": "9989fb9634182f840a0791ee5ae8276c965fddf0",
+  "repository": "just-every/run-barrow",
+  "run_site": {
+    "status": "NOT RUN; main-only workflow owned by guarded lander"
+  },
+  "runtime": {
+    "chromium": "/usr/bin/chromium",
+    "network": "provider edge fixture, no live tenant consent or receipt",
+    "node": "24.19.0",
+    "pnpm": "10.12.4"
+  },
+  "scan": {
+    "commit": "91bbcc9a7741c2ce4f248f832a4931a29e143456",
+    "complete": false,
+    "findings": null,
+    "historyScanned": false,
+    "status": "NOT RUN in cloud; guarded Mac lander duty"
+  },
+  "screens": [
+    {
+      "bytes": 147913,
+      "path": "screens/xero-balance-conflict-1440.png",
+      "sha256": "46fbd08dae48384994475bbe65917f75c1287680d7fe48038bf8d333c4e8aa4c"
+    },
+    {
+      "bytes": 149052,
+      "path": "screens/xero-balance-conflict-390.png",
+      "sha256": "1ca8bcab4cd30ff327f8207719fa0d0263f5762d2ada144e12c12968471f621e"
+    },
+    {
+      "bytes": 148652,
+      "path": "screens/xero-buyer-statement-1440.png",
+      "sha256": "0163e385beff04ce07ea906e997e2e38f5d5998e367c398bbe03e496be936a17"
+    },
+    {
+      "bytes": 147595,
+      "path": "screens/xero-buyer-statement-390.png",
+      "sha256": "cb50c1e0f7b2dee8608ca7ee255c69bb721062ccf87eb61d5079588e9044ab32"
+    },
+    {
+      "bytes": 211616,
+      "path": "screens/xero-finance-comparison-1440.png",
+      "sha256": "62000bbc1b529e6362c8a819fb2b4c9914225d6ec346d92fb4da4e5898b5dcdb"
+    },
+    {
+      "bytes": 203168,
+      "path": "screens/xero-finance-comparison-390.png",
+      "sha256": "f151e32ea6137de374100d496f376adc88fa711770c7f535d223634ef1747ad5"
+    },
+    {
+      "bytes": 185058,
+      "path": "screens/xero-interrupted-correlation-1440.png",
+      "sha256": "38ce2c8b13a625fc73e26f829cb05dd8dbe7a4224338f3bd2ff9529efd9fcdd9"
+    },
+    {
+      "bytes": 165116,
+      "path": "screens/xero-interrupted-correlation-390.png",
+      "sha256": "f089ef824942f7b2a16652ceac82adcc704cee2bd598c7ce1f89eda08a4e3d02"
+    },
+    {
+      "bytes": 175065,
+      "path": "screens/xero-linked-invoice-1440.png",
+      "sha256": "441c1fb38bb487238fe85abe05e586fb8123a92bc5c1b6fad58b0d349c1856d1"
+    },
+    {
+      "bytes": 151195,
+      "path": "screens/xero-linked-invoice-390.png",
+      "sha256": "1ef264f3d7cb733a6d32ae6f996d22a0888169ad77641acc68fdb4234bb1a48b"
+    },
+    {
+      "bytes": 47410,
+      "path": "screens/xero-owner-consent-1440.png",
+      "sha256": "57f615ac22eb7062f1c111279b02da3dd613b688a7c3d055a599152ec81f20ab"
+    },
+    {
+      "bytes": 47530,
+      "path": "screens/xero-owner-consent-390.png",
+      "sha256": "b123854b8c4421446a2c39d267a9ccf74b588d706fc11f3173a514bad690aa94"
+    },
+    {
+      "bytes": 148824,
+      "path": "screens/xero-reviewed-references-1440.png",
+      "sha256": "33e89d4164261a9c7e1a9d8611fa13ed435f43ed255151df98ed62adb497abe7"
+    },
+    {
+      "bytes": 137656,
+      "path": "screens/xero-reviewed-references-390.png",
+      "sha256": "1c79b47c7546e572921c5bb2ecadfd585d51143bba1e59da54a8480800bb7df1"
+    },
+    {
+      "bytes": 45630,
+      "path": "screens/xero-revoked-1440.png",
+      "sha256": "6aeb811ea883fc3431403a712cd4d82e299eb4b6c5636bab752b0f7ddce4edf9"
+    },
+    {
+      "bytes": 45654,
+      "path": "screens/xero-revoked-390.png",
+      "sha256": "dc991081d0cea486d3eb945961464eb36256edff50aab40397f989c8703568f5"
+    },
+    {
+      "bytes": 210909,
+      "path": "screens/xero-voided-finance-1440.png",
+      "sha256": "d2be977128e7de28ff7a5d0bfbeca4ba17a89a8c3e587be7d063d4dddacaf8f6"
+    },
+    {
+      "bytes": 204103,
+      "path": "screens/xero-voided-finance-390.png",
+      "sha256": "2772f059d1f6ade4d048fd9f59920a95ab997deecd711a34b188175c1e27e588"
+    },
+    {
+      "bytes": 152622,
+      "path": "screens/xero-voided-owned-task-1440.png",
+      "sha256": "91838d9eb4e6c9d52872bcda485c6c386f84e447fc652501f86f8f6dae62f1f7"
+    },
+    {
+      "bytes": 145349,
+      "path": "screens/xero-voided-owned-task-390.png",
+      "sha256": "ae948dae9a2b905e9af8f4e54ebf87c51982d12b1eb2340c11e68da016842cd7"
+    },
+    {
+      "bytes": 147983,
+      "path": "screens/xero-voided-statement-1440.png",
+      "sha256": "1eea1d87c942f3bf3068c3bb7f3c0777e594c1f7e74bcb301f5061ee30be17b8"
+    },
+    {
+      "bytes": 148532,
+      "path": "screens/xero-voided-statement-390.png",
+      "sha256": "066be10c58fe3e4bd50ef931d53e4b2cf09846e3793858e7a088d605f8528ed1"
+    }
+  ],
+  "source_files": {
+    "src/barrow/accounting/xero-reconciliation.ts": "c68c0180b974a38f0d64747a8a30eda6d4f3e89029f26e81dd89e669ed0637df",
+    "src/barrow/accounting/xero.ts": "7f735508407fd16949fe8ef80ed582b2e300d2c5805e00531ad8c150437c61f5",
+    "src/barrow/staff-access.ts": "330eb145c7d03a31e3ff45c390b9edfe0020c853a4c35ffe9b9a4a66cb6b8636",
+    "tests/api/xero-accounting.mjs": "986a328dcffa64b13bb8ab4b9659d40e18b39487009f7de5a5686fae33f32e3e",
+    "tests/api/xero-fixture.mjs": "b2dcfc120921528a7e06d48295f8d1e9469ae6846b34615cbe52a903c8efd28f",
+    "tests/journeys/xero-accounting.mjs": "5e177c9b4681f09281e4c0c42dda2beed92067d00d286a0bbfa6d087eb97c100"
+  },
+  "source_policy": "Original predecessor remains published and unchanged. Unpublished task candidate preserves its full product snapshot on current main, excluding predecessor contract status edits.",
+  "tag": "sx-barrow-c-f75",
+  "test_budget": {
+    "cap": 200,
+    "registration_delta": 0
+  }
+}

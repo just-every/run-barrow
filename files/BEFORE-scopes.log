@@ -1,0 +1,32 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✖ Xero public accounting repair probe (4867.559836ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5720.874194
+
+✖ failing tests:
+
+test at ../../tmp/barrow-xero-probe.mjs:3:1
+✖ Xero public accounting repair probe (4867.559836ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  409 !== 403
+  
+      at TestContext.xeroAccounting (file:///workspace/run-barrow/tests/api/xero-accounting.mjs:10:60)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 403,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
