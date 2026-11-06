@@ -1,0 +1,34 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✖ return requests bind partial authorization to current revisions, reconcile real receipts once and retain separately owned disputed quantities without moving stock or money (67853.956161ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 68651.030667
+
+✖ failing tests:
+
+test at tests/api/return-claims.test.mjs:8:1
+✖ return requests bind partial authorization to current revisions, reconcile real receipts once and retain separately owned disputed quantities without moving stock or money (67853.956161ms)
+  AssertionError [ERR_ASSERTION]: an order approved before the notice migration must receive both acknowledged split dispatch notices
+  
+  0 !== 2
+  
+      at proveUpgradedOrderNotices (file:///workspace/run-barrow/tests/api/order-notices-proof.mjs:118:9)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async proveOrderNotices (file:///workspace/run-barrow/tests/api/order-notices-proof.mjs:9:2)
+      at async TestContext.<anonymous> (file:///workspace/run-barrow/tests/api/return-claims.test.mjs:86:2)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

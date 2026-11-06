@@ -1,0 +1,88 @@
+{
+  "files": [
+    {
+      "blob": "0337b0687c7988b7be0daf2eb1c52ad57f1772ce",
+      "bytes": 2068,
+      "path": "PLAN.md",
+      "sha256": "c5d2289ac01dae5fd98366e3fba0f7ab1910e3750419bc0cfe92e3a908bbaa7c"
+    },
+    {
+      "blob": "183f171eaae18a9330a7d960b4819ca3e5b92231",
+      "bytes": 8171,
+      "path": "REPORT.md",
+      "sha256": "5489d7fe745b46febcccb14199ea486cb29c4d04998a168f74af41246c6fb27d"
+    },
+    {
+      "blob": "ed183983ecdb6ef596d97b08d0076bea91b74b1f",
+      "bytes": 5148,
+      "path": "build.log",
+      "sha256": "9cdd3fc28df24dc40be3de4fab36ac141c86d57cec15582cdbc57d6fc10fee79"
+    },
+    {
+      "blob": "9b3fb3602020ac0ceed8a8a1f8090456c79d7495",
+      "bytes": 224,
+      "path": "candidate-ci.json",
+      "sha256": "4a38a90939fae2178b1856328e62a7916985bfac33e4ba580cef16a3811b44eb"
+    },
+    {
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "bytes": 0,
+      "path": "first-party.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "blob": "bc6b73062e2dfb0c661f47215f36eabe774577ed",
+      "bytes": 1148,
+      "path": "main-ci.json",
+      "sha256": "c1c36b6d4232e0000c9d67fd9f6c1b302990c8209425542c874f8169c5f6a93e"
+    },
+    {
+      "blob": "0e4b3f64fcb6f7c3bb909839cb889f7128b024db",
+      "bytes": 902,
+      "path": "product-push.log",
+      "sha256": "bc18e4bd1d584e8d0a0e0ba0fed58d83994a6a5a811a096c6d531735d57f19e7"
+    },
+    {
+      "blob": "ed5e9daec8ee041cb9299378fdc28fdfd5250406",
+      "bytes": 4936,
+      "path": "receipt.json",
+      "sha256": "2c802ce795aaff28feb938556da97621e14a1414b75d0612a69c2fe71622bddf"
+    },
+    {
+      "blob": "4da3d6f8b45ad9573565022360fd12d3fd949fed",
+      "bytes": 1546,
+      "path": "reproduction.log",
+      "sha256": "d8128d3740ceffec84707d4b175a3e7c120746598e7e8ee8fe43bdd217ddaedd"
+    },
+    {
+      "blob": "c9eade19b038102dec9a8904599c73c8ad84409a",
+      "bytes": 264703,
+      "path": "source-lock-check.json",
+      "sha256": "b01c95774eebb761f1db6f13ab601c5ed3749a4b31dab7c2ec5ce1dcfb88fce7"
+    },
+    {
+      "blob": "71137aac6e5240775f4714e8a2581d40ba385795",
+      "bytes": 264689,
+      "path": "source-lock.json",
+      "sha256": "6d953da13bd427216f599d81d92801ec14d933e3dc2a53e07e1f4868205a4a7e"
+    },
+    {
+      "blob": "5156f3c54aca3aa46e084380a21bc9ed681e2622",
+      "bytes": 1174,
+      "path": "touched-tests.log",
+      "sha256": "523d89107aaa26d29da2012dacd692d0be401cf419273e87c7ed25a778fe7aab"
+    },
+    {
+      "blob": "9f2625e20977aebdaad350cec9db0a9606e16d45",
+      "bytes": 194,
+      "path": "typecheck.log",
+      "sha256": "4d9f31dec1794c243e8bdcaf2fd4bbaaeed277951018cfcc25d54f7d0cab9304"
+    }
+  ],
+  "product_branch": "cloud/sx-barrow-c-f71",
+  "product_head": "e90d101c95c09166c5be8dee17848e1442464b2b",
+  "ref": "refs/heads/evidence/sx-barrow-c-f71",
+  "repository": "just-every/run-barrow",
+  "schema": 1,
+  "tag": "sx-barrow-c-f71"
+}

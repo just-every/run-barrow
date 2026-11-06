@@ -1,0 +1,133 @@
+{
+  "tag": "sx-barrow-c-f71",
+  "repository": "just-every/run-barrow",
+  "finding": "Blocking A: existing approved orders receive zero acknowledged split dispatch notices after migration 0077",
+  "reproduction": {
+    "head": "cf934caa5f4fc87ba7cc4cd8616e0ae76721fdf5",
+    "production": "unchanged failed candidate source; added public HTTP regression proof",
+    "job": "sx-barrow-c-f68-gate-1 Blocking A public-door reproduction",
+    "command": "timeout 600 node --test --test-concurrency=1 tests/api/return-claims.test.mjs",
+    "test": "return requests bind partial authorization to current revisions, reconcile real receipts once and retain separately owned disputed quantities without moving stock or money; proveUpgradedOrderNotices",
+    "exit": 1,
+    "failure": "AssertionError: an order approved before the notice migration must receive both acknowledged split dispatch notices; 0 !== 2"
+  },
+  "pier": {
+    "revision": "60fde60ffa1f44c2ae6a3ef47225117f36cf546a",
+    "source": "GitHub API tarball; no other repository cloned or written",
+    "boundary": "real pinned Pier Worker, native order and dispatch commands"
+  },
+  "github_api_calls": 3,
+  "status": "product pushed; independent landing pending",
+  "product": {
+    "branch": "cloud/sx-barrow-c-f71",
+    "head": "e90d101c95c09166c5be8dee17848e1442464b2b",
+    "remote_head_verified": "e90d101c95c09166c5be8dee17848e1442464b2b",
+    "main_integrated": "297b78740b0037045e0da786340b24bb8079ca57",
+    "repair_commit": "e90d101c95c09166c5be8dee17848e1442464b2b",
+    "replayed_base_commits": [
+      "57362758b1498b43a9a36b3928e2042f5a3ebb21",
+      "7342ac0f1517bffb175434e18548456bc576eb14"
+    ],
+    "push_attempts": 1,
+    "published_history_rewritten": false,
+    "pr": null
+  },
+  "checks": [
+    {
+      "command": "timeout 600 node --test --test-concurrency=1 tests/api/return-claims.test.mjs",
+      "exit": 0,
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "duration_ms": 103235.386693,
+      "log": "touched-tests.log"
+    },
+    {
+      "command": "pnpm run typecheck",
+      "exit": 0,
+      "log": "typecheck.log"
+    },
+    {
+      "command": "pnpm exec rer check --profile first-party",
+      "exit": 0,
+      "log": "first-party.log"
+    },
+    {
+      "command": "npx -y @runeditrun/rer build",
+      "exit": 0,
+      "log": "build.log"
+    },
+    {
+      "command": "node scripts/contract-docs.mjs write && node scripts/contract-docs.mjs check",
+      "exit": 0,
+      "result": "generated and checked; both view files restored from origin/main before committing"
+    },
+    {
+      "command": "node scripts/build-deployment-spec.mjs && node scripts/build-deployment-spec.mjs --check",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs lock && node scripts/edition-authoring/cli.mjs check",
+      "exit": 0,
+      "exact_head_check_exit": 0,
+      "log": "source-lock-check.json"
+    },
+    {
+      "command": "migration ledger",
+      "exit": null,
+      "result": "No separate migration-ledger check is declared in this seed; the HTTP proof applies migration 0077 to populated native account and order data, and fresh harness installations apply the complete migration set."
+    }
+  ],
+  "ci": [
+    {
+      "conclusion": null,
+      "event": "push",
+      "head_sha": "e90d101c95c09166c5be8dee17848e1442464b2b",
+      "html_url": "https://github.com/just-every/run-barrow/actions/runs/42212847342",
+      "id": 42212847342,
+      "name": "Verify",
+      "status": "in_progress"
+    }
+  ],
+  "probe": "PROBE AUTO-004 A: existing approved order, notice migration, two real Pier dispatches, concurrent and repeated HTTP reads -> two distinct source-linked notices, foreign links refused, restored capture inactive.",
+  "counts": {
+    "supplied_base": {
+      "done": 73,
+      "partial": 44,
+      "missing": 37
+    },
+    "integrated_main": {
+      "done": 73,
+      "partial": 44,
+      "missing": 37
+    },
+    "candidate": {
+      "done": 73,
+      "partial": 45,
+      "missing": 36
+    },
+    "new_done": 0
+  },
+  "target": {
+    "id": "AUTO-004",
+    "before": "partial",
+    "after": "partial",
+    "acceptance_text_changed": false,
+    "closed_finding": "A: acknowledged split-dispatch notices for pre-upgrade approved orders",
+    "remaining": "existing full-clause Gap retained unchanged"
+  },
+  "preserved_main_status_changes": {
+    "INT-002": {
+      "before": "missing",
+      "after": "partial"
+    }
+  },
+  "publication_scan": "Pending maintained Mac lander; no cloud scan or landing claim",
+  "run_site": "Pending landing; branch-only product candidate",
+  "generated_views_committed": false,
+  "source_lock_fresh": true,
+  "relevant_bytes_sha256": {
+    "migrations/core/0077_order_notices.sql": "207aad91254b13c1fbb59c629f6a20fc7c7f6a11b27220c9479e00857a491a89",
+    "tests/api/order-notices-proof.mjs": "f5809c868516ed5b276da126602bbbc499fce043dcc3c22db74b16544c6213eb"
+  }
+}
