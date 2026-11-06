@@ -1,0 +1,70 @@
+{
+  "tag": "sx-barrow-c-f74",
+  "repository": "just-every/run-barrow",
+  "branch": "cloud/sx-barrow-c-f74",
+  "head": "9989fb9634182f840a0791ee5ae8276c965fddf0",
+  "publishedHead": "9989fb9634182f840a0791ee5ae8276c965fddf0",
+  "mergedMain": "7f9f666c0fa53f81729bdb99e74e5834f3263ca4",
+  "observedAt": "2026-11-06T13:25:21.360518+00:00",
+  "productPush": "success",
+  "candidateCommits": 4,
+  "identityAudit": {
+    "everyCandidateAndSideParent": true,
+    "authors": "fleet",
+    "committers": "fleet",
+    "trailers": []
+  },
+  "checks": {
+    "typecheck": 0,
+    "firstParty": 0,
+    "build": 0,
+    "generatedViewsWriteThenCheck": 0,
+    "generatedViewsRestored": true,
+    "sourceLockWriteThenCheck": 0,
+    "baseCopiesOffline": 0,
+    "deploymentSpecification": 0,
+    "migrationLedger": {
+      "exit": 0,
+      "migrations": 79
+    },
+    "diffWhitespace": 0,
+    "newEmailShapedStrings": 0,
+    "restoredGeneratedViewCheck": {
+      "exit": 1,
+      "expected": true,
+      "failure": "ACCEPTANCE.md is stale",
+      "command": "node scripts/contract-docs.mjs check"
+    }
+  },
+  "countsBefore": {
+    "done": 73,
+    "partial": 44,
+    "missing": 37
+  },
+  "countsAfter": {
+    "done": 73,
+    "partial": 45,
+    "missing": 36
+  },
+  "INT-003": {
+    "before": "missing",
+    "after": "partial"
+  },
+  "publicationScan": "Mac lander pending",
+  "RunSite": "Mac lander pending",
+  "pr": null,
+  "Verify": {
+    "conclusion": "failure",
+    "event": "push",
+    "head_sha": "9989fb9634182f840a0791ee5ae8276c965fddf0",
+    "html_url": "https://github.com/just-every/run-barrow/actions/runs/42225268368",
+    "id": 42225268368,
+    "name": "Verify",
+    "status": "completed",
+    "permittedGeneratedViewException": true,
+    "sampledFailedJob": 127917110447,
+    "failure": "ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.",
+    "githubInvocationBudgetUsed": 10,
+    "otherFailedShardArchives": "Not downloaded within the ten-call budget; all selected shards begin with the same failing generator check."
+  }
+}

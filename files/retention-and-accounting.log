@@ -1,0 +1,23 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floor, attributed PO erasure receipt and restore fence (43111.607079ms)
+✔ ordered-account owner erasure revokes access, redacts personal classes, preserves financial evidence and returns attributed custody (15570.665663ms)
+✔ independent erasure journal reapplies after D1 rewind and old archive import; missing or incomplete journal refuses data and auth (66104.935394ms)
+✔ post-floor review defaults to personal redaction; explicit order deletion leaves reconciliable totals and exclusions have recorded reasons (19328.01366ms)
+✔ ordered imported account retires its original without deleting commercial records, and the same public journal transport restores it safely (32260.25512ms)
+✔ owner upgrades existing erasure receipts into the independent journal; malformed or unauthorized journal transport is refused (3210.00428ms)
+✔ account erasure redacts duplicated native agent labels in draft orders, commercial exports and later-journal restore (16014.609874ms)
+ℹ PROBE native-label [{"stage":"erasure","raw":false,"order":false,"export":false,"csv":false},{"stage":"journal-replay","raw":false,"order":false,"export":false,"csv":false}]
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ PAY-007: a dated statement of invoices with opening and closing balances by currency, as JSON, CSV and PDF, for the buyer even after hold and close (48770.290418ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 246446.274325

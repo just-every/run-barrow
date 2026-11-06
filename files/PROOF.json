@@ -1,0 +1,48 @@
+{
+  "head": "9989fb9634182f840a0791ee5ae8276c965fddf0",
+  "points": {
+    "owner consent": {
+      "file": "tests/api/xero-accounting.mjs",
+      "lines": [
+        8
+      ]
+    },
+    "same total source edit": {
+      "file": "tests/api/xero-accounting.mjs",
+      "lines": [
+        39
+      ]
+    },
+    "reviewed source basis refusal": {
+      "file": "tests/api/xero-accounting.mjs",
+      "lines": [
+        41
+      ]
+    },
+    "scoped export": {
+      "file": "tests/api/xero-accounting.mjs",
+      "lines": [
+        64,
+        65
+      ]
+    },
+    "retention expiry": {
+      "file": "tests/api/xero-accounting.mjs",
+      "lines": [
+        67
+      ]
+    },
+    "leap financial floor": {
+      "file": "tests/api/xero-accounting.mjs",
+      "lines": [
+        71
+      ]
+    },
+    "independent revocation": {
+      "file": "tests/api/xero-accounting.mjs",
+      "lines": [
+        79
+      ]
+    }
+  }
+}

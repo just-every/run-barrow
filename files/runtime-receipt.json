@@ -1,0 +1,22 @@
+{
+  "head": "9989fb9634182f840a0791ee5ae8276c965fddf0",
+  "accountingApi": {
+    "exit": 0,
+    "file": "accounting-api.log"
+  },
+  "accountingBrowser": {
+    "exit": 0,
+    "file": "accounting-browser.log",
+    "widths": [
+      1440,
+      390
+    ]
+  },
+  "testedSourceHashesMatch": true,
+  "retentionRegression": {
+    "exit": 0,
+    "file": "retention-and-accounting.log",
+    "tests": 8,
+    "scope": "pre-merge regression; exact final accounting journey repeats Xero custody and restore checks"
+  }
+}

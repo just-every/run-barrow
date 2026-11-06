@@ -1,0 +1,85 @@
+{
+  "head": "9989fb9634182f840a0791ee5ae8276c965fddf0",
+  "files": [
+    {
+      "file": "screens/xero-balance-conflict-1440.png",
+      "sha256": "5886991bff59e483042d2b7ad8003ee9bd2894adbee2fe5563beb2f471c868aa",
+      "bytes": 147855
+    },
+    {
+      "file": "screens/xero-balance-conflict-390.png",
+      "sha256": "33e18169093d18e0110642f41201a841c859c9ae31b0df3a7a8d4b233d421844",
+      "bytes": 148671
+    },
+    {
+      "file": "screens/xero-buyer-statement-1440.png",
+      "sha256": "63e2c68bbe7102898a579f1ae8c611a37b58f43fea82cef100dcfb8180001fff",
+      "bytes": 148430
+    },
+    {
+      "file": "screens/xero-buyer-statement-390.png",
+      "sha256": "ad601d3874cf014683a44b1f62d970710435d84843b884f38d7d1bd3fdb4f337",
+      "bytes": 147584
+    },
+    {
+      "file": "screens/xero-finance-comparison-1440.png",
+      "sha256": "24329c8588dc95953b59b9fe6b6f35f42a540beef8ad6bfa8d1f04813cc31248",
+      "bytes": 211370
+    },
+    {
+      "file": "screens/xero-finance-comparison-390.png",
+      "sha256": "6cf72c61ae7a99ad97446bd695f7db59ad9dc2c56d9461671cda38689841fa52",
+      "bytes": 203139
+    },
+    {
+      "file": "screens/xero-interrupted-correlation-1440.png",
+      "sha256": "63d11134c3b9475ea06e13ce76b53fe31234ed3654f19e68ef553d04e920c35f",
+      "bytes": 184297
+    },
+    {
+      "file": "screens/xero-interrupted-correlation-390.png",
+      "sha256": "b7a2e224adbbc1b7961e00f41bb5bebe1d4c1908c8b0b0c560d35fda25094b19",
+      "bytes": 166325
+    },
+    {
+      "file": "screens/xero-linked-invoice-1440.png",
+      "sha256": "f931a8b6f39684dc11e1ea1aa4de8f4d68c8ef63709d4e7948e8305b3c918c45",
+      "bytes": 174820
+    },
+    {
+      "file": "screens/xero-linked-invoice-390.png",
+      "sha256": "5b3ee94a9048727ee19cfe30bb8f258ac60dc74a3eef6f8674ae50877bba5b9f",
+      "bytes": 152227
+    },
+    {
+      "file": "screens/xero-owner-consent-1440.png",
+      "sha256": "57f615ac22eb7062f1c111279b02da3dd613b688a7c3d055a599152ec81f20ab",
+      "bytes": 47410
+    },
+    {
+      "file": "screens/xero-owner-consent-390.png",
+      "sha256": "b123854b8c4421446a2c39d267a9ccf74b588d706fc11f3173a514bad690aa94",
+      "bytes": 47530
+    },
+    {
+      "file": "screens/xero-reviewed-references-1440.png",
+      "sha256": "86c19c01160f21c16963ea78ca4c612733fba952748412d5ef68685c4068e0ba",
+      "bytes": 148812
+    },
+    {
+      "file": "screens/xero-reviewed-references-390.png",
+      "sha256": "94d7213165c30a61d06264c3c337630be7500d232c974bb163566240a3a8c883",
+      "bytes": 139209
+    },
+    {
+      "file": "screens/xero-revoked-1440.png",
+      "sha256": "6aeb811ea883fc3431403a712cd4d82e299eb4b6c5636bab752b0f7ddce4edf9",
+      "bytes": 45630
+    },
+    {
+      "file": "screens/xero-revoked-390.png",
+      "sha256": "dc991081d0cea486d3eb945961464eb36256edff50aab40397f989c8703568f5",
+      "bytes": 45654
+    }
+  ]
+}

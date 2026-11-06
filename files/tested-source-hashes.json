@@ -1,0 +1,10 @@
+{
+  "src/barrow/accounting/xero.ts": "90c36c3d820e84f748bfe52bf7bd16ac62bfc5a958627d84f97b6a89af4afcd3",
+  "src/barrow/accounting/xero-reconciliation.ts": "1f154975945e05a6cea2d832cc72a0e88a6f92e2ef5db5b24f19af66abd55549",
+  "src/barrow/ui/xero-settings.tsx": "04b60fcab3cb19faa69fe54cfd1a7b3130df874b2aad0ed8bd80a628073019b1",
+  "src/barrow/ui/qbo-comparisons.tsx": "48fdbde0e7c484534121c95294e331a3cc6ca7b5c6126bb87d9809c5e8d85510",
+  "tests/api/xero-accounting.mjs": "97b7bdb24e3f67f2f60181c769c11207677c08ef2584f1946d3f2ac23209c235",
+  "tests/api/xero-fixture.mjs": "7d33046f6908a30ff2063280b204a975b7c01bdc4025d5a437ce9adc96aa1eca",
+  "tests/journeys/xero-accounting.mjs": "c68457e2013a0809ab9043f0c4cf4a7eac9e28a4225fff08cb07b45f89b794c4",
+  "tests/api/harness.mjs": "3f186e192946c76fe057580dbcfa6dd8809fd0599b1bf1615da1599ef8834a10"
+}
