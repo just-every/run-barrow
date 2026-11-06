@@ -110,7 +110,7 @@ test('owner publishes and revises merchant identity, unsafe saves change nothing
  const po=await pier.command('po.draft',{supplierId:source.supplier.id,promiseDate:'2027-03-01',reason:'Synthetic storefront assortment',lines:products.map(item=>({itemId:item.id,quantity:'20',price:'20.00'}))});
  await pier.command('po.approve',{poId:po.id,version:po.version});await pier.command('po.commit',{poId:po.id,version:po.version});
  await pier.command('receipt.create',{poId:po.id,supplierReference:'synthetic-barrow-701',lines:po.lines.map(line=>({poLineId:line.id,locationId:source.location.id,quantity:'20',cost:'20.00'}))});
- for(const [id,prices] of [['cedar',[{sku:'OAT-1',unitCents:6500,msrpCents:13000,minQty:2},{sku:'FIELD-S',unitCents:5501,msrpCents:11001,minQty:1},{sku:'FIELD-M',unitCents:5700,msrpCents:14250,minQty:1}]],['wren',[{sku:'OAT-1',unitCents:7200,minQty:1},{sku:'PRIVATE-S',unitCents:2000,msrpCents:5000,minQty:1}]]]) {
+ for(const [id,prices] of [['cedar',[{sku:'OAT-1',unitCents:6500,msrpCents:13000,minQty:2,units:[{code:'pallet',baseQuantity:'2',unitCents:12000,packContents:'2 cases per pallet'}]},{sku:'FIELD-S',unitCents:5501,msrpCents:11001,minQty:1},{sku:'FIELD-M',unitCents:5700,msrpCents:14250,minQty:1}]],['wren',[{sku:'OAT-1',unitCents:7200,minQty:1,units:[{code:'pallet',baseQuantity:'2',unitCents:14000,packContents:'2 cases per pallet'}]},{sku:'PRIVATE-S',unitCents:2000,msrpCents:5000,minQty:1}]]]) {
   const account=await h.api('/api/barrow/accounts/by-id/'+id);await h.command('account.save',{id,revision:account.revision,value:{...account.value,prices}});
  }
  let attributes=await h.command('variant.attributes',{revision:null,variants:[{sku:'OAT-1',style:'Oat',color:'Natural',size:'Case'}]});
@@ -159,14 +159,42 @@ test('owner publishes and revises merchant identity, unsafe saves change nothing
  assert.equal((await h.api(`/api/barrow/orders/${merchRecord.id}/confirmations`,undefined,buyer)).confirmations.at(-1).snapshot.totalCents,11201);
  assert.deepEqual(Buffer.from(await(await h.request(`/api/barrow/orders/${existing.id}/confirmations/2.pdf`)).arrayBuffer()),Buffer.from(before.pdf));
  await customer.getByRole('button',{name:'Shop collections',exact:true}).click();await customer.getByLabel('Collection',{exact:true}).selectOption('collection-1');await noIconWithoutTooltip(customer);await captureWidths(customer,'storefront-collections-both');
+ await customer.getByRole('button',{name:'Order by selling unit',exact:true}).click();
+ const bothUnits=customer.getByRole('dialog',{name:'Order by selling unit',exact:true});
+ await expect(bothUnits.getByRole('combobox',{name:/^Selling unit for line 1/}).locator('option')).toHaveText(['case · 1 case · Wholesale USD 65.00 | MSRP USD 130.00 | Margin 50.00% per case','pallet · 2 cases per pallet · Wholesale USD 120.00 | MSRP USD 260.00 | Margin 53.85% per pallet']);
+ await expect(bothUnits.locator('[data-selling-unit-price="1"]')).toHaveText('Wholesale USD 120.00 | MSRP USD 260.00 | Margin 53.85% per pallet');
+ await bothUnits.getByRole('button',{name:'Cancel',exact:true}).click();
  const publishMode=async display=>{const current=(await h.api('/api/barrow/storefront/settings')).branding;return h.command('storefront.save',{...current,logoSha256:imageSha,priceDisplay:display,reviewed:true,reason:'Owner reviews the storefront price display.'})};
  await publishMode('retail');await customer.reload();await customer.getByRole('button',{name:'Shop collections',exact:true}).click();await customer.getByLabel('Collection',{exact:true}).selectOption('collection-1');
  await expect(customer.getByRole('region',{name:'Size matrix',exact:true}).locator('[data-storefront-price="FIELD-S"]')).toHaveText('MSRP USD 110.01');
  await expect(customer.getByRole('region',{name:'Size matrix',exact:true})).not.toContainText('Wholesale');
+ // Selling-unit shopping uses the same merchant display while charging only the negotiated wholesale total.
+ await customer.getByRole('button',{name:'Order by selling unit',exact:true}).click();
+ const unitDialog=customer.getByRole('dialog',{name:'Order by selling unit',exact:true});
+ const unitOptions=unitDialog.getByRole('combobox',{name:/^Selling unit for line 1/});
+ await expect(unitOptions.locator('option')).toHaveText(['case · 1 case · MSRP USD 130.00 per case','pallet · 2 cases per pallet · MSRP USD 260.00 per pallet']);
+ await expect(unitOptions).not.toContainText('Wholesale');
+ await unitOptions.selectOption('pallet');await unitDialog.getByLabel('Quantity for line 1',{exact:true}).fill('2');
+ await expect(unitDialog.getByText('Total:',{exact:false})).toContainText('USD 240.00');
+ await expect(unitDialog.locator('[data-selling-unit-price="1"]')).toHaveText('MSRP USD 260.00 per pallet');
+ await captureWidths(customer,'storefront-unit-retail');
+ await unitDialog.getByRole('button',{name:'Cancel',exact:true}).click();
  await wren.reload();await wren.getByRole('button',{name:'Shop collections',exact:true}).click();await wren.getByLabel('Collection',{exact:true}).selectOption('collection-2');await expect(wren.getByRole('region',{name:'Size matrix',exact:true}).locator('[data-storefront-price="OAT-1"]')).toHaveText('MSRP absent');
  await captureWidths(wren,'storefront-retail-missing');
+ await wren.getByRole('button',{name:'Order by selling unit',exact:true}).click();
+ const missingUnits=wren.getByRole('dialog',{name:'Order by selling unit',exact:true});
+ await expect(missingUnits.getByRole('combobox',{name:/^Selling unit for line 1/}).locator('option')).toHaveText(['case · 1 case · MSRP absent per case','pallet · 2 cases per pallet · MSRP absent per pallet']);
+ await missingUnits.getByRole('button',{name:'Cancel',exact:true}).click();
  await publishMode('wholesale');await customer.reload();await customer.getByRole('button',{name:'Shop collections',exact:true}).click();await customer.getByLabel('Collection',{exact:true}).selectOption('collection-1');await expect(customer.getByRole('region',{name:'Size matrix',exact:true}).locator('[data-storefront-price="FIELD-M"]')).toHaveText('Wholesale USD 57.00');
+ await customer.getByRole('button',{name:'Order by selling unit',exact:true}).click();
+ await expect(unitOptions.locator('option')).toHaveText(['case · 1 case · Wholesale USD 65.00 per case','pallet · 2 cases per pallet · Wholesale USD 120.00 per pallet']);
+ await unitOptions.selectOption('pallet');await unitDialog.getByLabel('Quantity for line 1',{exact:true}).fill('2');
+ await unitDialog.getByLabel('Purchase order / reference',{exact:true}).fill('synthetic-barrow-703');await unitDialog.getByRole('button',{name:'Prepare unit draft',exact:true}).click();
+ await expect(unitDialog).toHaveCount(0);
+ const unitRecord=(await h.api('/api/barrow/state',undefined,buyer)).orders.find(value=>value.reference==='synthetic-barrow-703');
+ assert.equal(unitRecord.totalCents,24000);assert.equal(unitRecord.lines[0].unitCents,12000);assert.equal(unitRecord.lines[0].baseQuantity,'4');
  await publishMode('both');
+ console.log('PROBE CAT-005 A: buyer Order by selling unit under Retail only -> exact MSRP USD 130.00 per case and USD 260.00 per pallet, no wholesale option price; absent MSRP stays absent; both displays exact margin; two pallets prepare USD 240.00 wholesale');
  const backup=await archive(h);const restored=await installation();t.after(()=>restored.close());await restore(restored,backup);
  const restoredBrand=(await restored.api('/api/barrow/state')).settings.storefrontBranding;
  const savedBrand=(await h.api('/api/barrow/state')).settings.storefrontBranding;assert.deepEqual(restoredBrand,savedBrand);
