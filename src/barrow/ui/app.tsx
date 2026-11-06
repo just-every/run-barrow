@@ -1,4 +1,5 @@
 import { QboSettings } from './qbo-settings'
+import { OrderNotices, OrderNoticePreferences } from './order-notices'
 import { PaymentPromises } from './payment-promises'
 import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
@@ -70,7 +71,7 @@ export function BarrowApp() {
   const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=legacySupplier||staff?.role==='finance'||rights.includes('finance'),companyAdmin=legacySupplier||!staff&&rights.includes('administrator')
   const pad = supplier ? 'Order pad' : 'Catalog'
   const applicationRight = state ? applicationAccess(state.actor) : null
-  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit',...(staff.entitlements?.includes('catalog-media')?['Settings']:[])]:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team','Settings']:[])] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[])]
+  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit',...(staff.role!=='analyst'?['Settings']:[])]:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[]),'Settings'] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[]),'Settings']
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
   const selected=selectedAccount?.id===accountId?selectedAccount:null
@@ -233,6 +234,8 @@ export function BarrowApp() {
           {activeTab === pad && selected && (legacySupplier || staffSelling) && <Visits key={`visits:${selected.id}`} accountId={selected.id} version={state} canSell canHandOff={legacySupplier || staff?.role === 'sales-manager' && staff.warehouses === 'all'} busy={busy} run={run} />}
           {activeTab === 'Orders' && staff?.role === 'operations' && staff.warehouses === 'all' && <Visits version={state} canSell={false} canHandOff busy={busy} run={run} />}
           {activeTab === 'Orders' && !supplier && rights.includes('approver') && <ApprovalNotices version={state} />}
+          {activeTab === 'Orders' && <OrderNotices version={state} onOpen={id=>setFocusOrderId(id)}/>}
+          {activeTab === 'Settings' && <OrderNoticePreferences/>}
           {activeTab === 'Orders' && <Orders focusOrderId={focusOrderId} onResultFocused={() => { setFocusOrderId(''); returnFocus.current = null }} orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} canOperate={legacySupplier||Boolean(staff&&['sales-manager','operations'].includes(staff.role)&&staff.warehouses==='all')} stockExceptionLimitCents={staff?.stockExceptionLimitCents} canExcept={legacySupplier||staff?.role==='sales-manager'&&staff.stockExceptionLimitCents>0} canQuote={legacySupplier||staff?.role==='sales-manager'} companyApprover={legacySupplier||rights.includes('approver')} companyManager={!staff&&rights.includes('administrator')} canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
           {activeTab === 'Orders' && (legacySupplier||staffSelling||!staff&&purchasing) && <Quotes canApproveDiscount={legacySupplier||staff?.role==='sales-manager'} discountLimitCents={staff?.discountLimitCents} canQuoteDelivery={legacySupplier||staff?.role==='sales-manager'} canPurchase={legacySupplier||staffSelling||Boolean(state.actor.company?.rights.includes('purchaser'))} supplier={supplier} busy={busy} run={run} version={state.orders} />}
           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}

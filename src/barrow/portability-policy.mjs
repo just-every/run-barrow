@@ -3,6 +3,8 @@ export const portabilityPolicy = {
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
   if(table==='bw_qbo_runs')return {...row,state:'restored',error:'Restored history is inactive; reconnect and start a fresh owner-reviewed read.'};
+  if(table==='bw_order_notice_accounts')return {...row,active:0};
+  if(table==='bw_order_notices')return {...row,restored:1};
   if(table==='bw_prebook_seasons')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
   if(table==='bw_settings'&&row.key.startsWith('credit-policy:'))return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),releases:[],accountRelease:undefined})};
   if(table==='bw_orders'){const value=JSON.parse(row.value_json);if(value.prebookRelease)return {...row,value_json:JSON.stringify({...value,prebookRelease:{...value.prebookRelease,restored:true}})};if(value.prebook)return {...row,value_json:JSON.stringify({...value,prebook:{...value.prebook,restored:true}})}}
