@@ -1,6 +1,6 @@
 import {installation,stock,accountValue} from './harness.mjs';
 export async function proposalFixture(t,options={}) {
- const pier=await installation({pier:true});t.after(()=>pier.close());const inventory=await stock(pier,'24');
+ const pier=await installation({pier:true,...(options.clock?{clock:options.clock}:{})});t.after(()=>pier.close());const inventory=await stock(pier,'24');
  const items=[];
  for(const [sku,name] of [['MAPLE-1','Maple granola'],['HONEY-1','Honey granola']])items.push(await pier.command('item.save',{sku,name,unit:'case',packSize:'1'}));
  const po=await pier.command('po.draft',{supplierId:inventory.supplier.id,promiseDate:'2026-10-20',reason:'Current substitutes',lines:items.map(item=>({itemId:item.id,quantity:'24',price:'20.00'}))});
