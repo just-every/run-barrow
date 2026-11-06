@@ -181,10 +181,11 @@ export async function qboExceptionSources(env:Bindings) {
  const candidates:FollowupSource[]=[],resolved=new Map<string,string>()
  const run=await env.DB.prepare("SELECT as_of FROM bw_qbo_runs WHERE state='complete' ORDER BY updated_at DESC,rowid DESC LIMIT 1").first<{as_of:string}>()
  if(!run)return {candidates,resolved}
+ const existing=(await env.DB.prepare("SELECT id FROM bw_followups WHERE json_extract(value_json,'$.kind')='qbo'").all<{id:string}>()).results
  const accounts=(await env.DB.prepare('SELECT DISTINCT account_id FROM bw_qbo_invoices WHERE account_id<>?').bind('').all<{account_id:string}>()).results
  for(const a of accounts)for(const comparison of await qboComparisons(env.DB,a.account_id,run.as_of,new Map()))for(const source of comparison.sources) {
-  const key='qbo:'+source.realm+':'+source.sourceId
-  if(source.status==='Matched'&&run.as_of===supplierDate(await now()))resolved.set(key,'Source-linked QuickBooks invoice and native outstanding match in dated observation '+run.as_of+'.')
+  const prefix='qbo:'+source.realm+':'+source.sourceId+':',key=prefix+source.sourceToken
+  if(source.status==='Matched'&&run.as_of===supplierDate(await now())) {for(const prior of existing.filter(row=>row.id.startsWith(prefix)))resolved.set(prior.id,'Source-linked QuickBooks invoice '+source.sourceId+' revision '+source.sourceToken+' and native outstanding match in dated observation '+run.as_of+'.')}
   else candidates.push({id:key,kind:'qbo',accountId:a.account_id,sourceId:source.sourceId,sourcePath:source.path,title:'Review QuickBooks invoice '+source.sourceId,reason:`${run.as_of===supplierDate(await now())?source.status:'Dated ledger observation needs refresh'}; ${source.currency}, company ${source.realm}, correlation ${comparison.runId}, observed ${comparison.observedAt}.`,priority:1})
  }
  return {candidates,resolved}
