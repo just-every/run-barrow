@@ -1,5 +1,9 @@
 -- Native in-app facts contain controlled labels and quantities, never message narratives or financial values.
 CREATE TABLE bw_order_notice_accounts(account_id TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)));
+-- Existing approved orders receive later dispatch notices without another native order change.
+-- Closed accounts remain inactive; restored markers are separately fenced by portability policy.
+INSERT INTO bw_order_notice_accounts(account_id,active)
+ SELECT id,CASE WHEN json_extract(value_json,'$.lifecycle')='closed' THEN 0 ELSE 1 END FROM bw_accounts;
 CREATE TABLE bw_order_notices(
  id TEXT PRIMARY KEY,account_id TEXT NOT NULL,order_id TEXT NOT NULL,kind TEXT NOT NULL,
  source_id TEXT NOT NULL,source_revision TEXT NOT NULL,source_origin TEXT NOT NULL,

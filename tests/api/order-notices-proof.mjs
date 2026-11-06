@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import {unstable_splitSqlQuery} from 'wrangler';
 import {returnClaimsFixture} from './return-claims-fixture.mjs';
 import {activateStaff,archive,installation,restore} from './harness.mjs';
 
 // Part of the existing native return sanity journey: notices follow the same original order and decisions.
 export async function proveOrderNotices(t) {
+ await proveUpgradedOrderNotices(t);
  const f=await returnClaimsFixture(t),{h,pier,buyer,other,product,order}=f;
  const notices=async(who={})=>(await h.api('/api/barrow/order-notices',undefined,who)).notices;
  const source=(notice,who={})=>h.api(notice.sourcePath,undefined,who);
@@ -98,4 +101,32 @@ export async function proveOrderNotices(t) {
  console.log('PROBE AUTO-004 native: accepted order, changed shortfall, split dispatches and partial return decision -> durable source-linked facts; concurrent replay creates no duplicates.');
  console.log('PROBE AUTO-004 authority: personal preference and read state, foreign account, revoked staff and removed locations -> isolated state and refused captured links; no finance fields.');
  console.log('PROBE AUTO-004 custody: scoped JSON and CSV, owner-reviewed erasure and later-journal restore -> complete authorized facts, then empty and inert notice state.');
+}
+
+async function proveUpgradedOrderNotices(t) {
+ const {h,pier,buyer,other}=await returnClaimsFixture(t);
+ let order=await h.command('order.prepare',{accountId:'cedar',reference:'synthetic-barrow-1176',lines:[{sku:'OAT-1',quantity:10}]},buyer);
+ await h.command('order.submit',{orderId:order.id},buyer);order=await h.command('order.approve',{orderId:order.id});
+ // Keep the native account and approved order, then apply the notice schema as an upgrade.
+ await h.db.batch(['bw_order_notice_reads','bw_order_notice_preferences','bw_order_notices','bw_order_notice_accounts'].map(table=>h.db.prepare(`DROP TABLE ${table}`)));
+ const migration=await readFile(new URL('../../migrations/core/0077_order_notices.sql',import.meta.url),'utf8');
+ await h.db.batch(unstable_splitSqlQuery(migration).map(sql=>h.db.prepare(sql)));
+ const upstream=(await pier.api('/api/pier/state')).orders.find(row=>row.id===order.pierOrderId),dispatches=[];
+ for(const quantity of ['4','6'])dispatches.push(await pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'synthetic-barrow-1177-'+quantity,lines:[{orderLineId:upstream.lines[0].id,quantity}]}));
+ const notices=async(who=buyer)=>(await h.api('/api/barrow/order-notices',undefined,who)).notices.filter(row=>row.orderId===order.id&&row.kind==='shipment');
+ const [first,concurrent]=await Promise.all([notices(),notices()]);
+ assert.equal(first.length,2,'an order approved before the notice migration must receive both acknowledged split dispatch notices');
+ assert.deepEqual(new Set(first.map(row=>row.sourceId)),new Set(dispatches.map(row=>row.id)));
+ assert.deepEqual(concurrent,first);assert.deepEqual(await notices(),first);
+ for(const row of first) {
+  const expected=dispatches.find(dispatch=>dispatch.id===row.sourceId);
+  assert.equal(row.sourceRevision,expected.createdAt);
+  assert.equal((await h.api(row.sourcePath,undefined,buyer)).current.lines[0].quantity,expected.lines[0].quantity);
+  await h.api(row.sourcePath,undefined,{...other,status:404});
+ }
+ assert.deepEqual(await notices(other),[]);
+ const saved=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,saved);
+ await restored.configure({PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie});
+ assert.deepEqual((await restored.api('/api/barrow/order-notices')).notices,[],'restoring upgraded accounts must keep dispatch capture inactive');
+ console.log('PROBE AUTO-004 A: existing approved order, notice migration, two real Pier dispatches, concurrent and repeated HTTP reads -> two distinct source-linked notices, foreign links refused, restored capture inactive.');
 }

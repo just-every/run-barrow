@@ -359,7 +359,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "8da33040d63242e53860ca2184ef5b991a8aca59c94051f4c4eefd26fc084194",
+      "sha256": "4bb2d474d79091d08a36696c02f6d9653a7a93e4c81d8029aae63efaea611e74",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -667,7 +667,7 @@
       "executable": false
     },
     "migrations/core/0077_order_notices.sql": {
-      "sha256": "2f9cc52aa2fd005cf60141b7784a509de41948dd9340dbbc6e8d9c4ccd53f421",
+      "sha256": "207aad91254b13c1fbb59c629f6a20fc7c7f6a11b27220c9479e00857a491a89",
       "executable": false
     },
     "migrations/core/0077_qbo_accounting.sql": {
@@ -6051,7 +6051,7 @@
       "executable": false
     },
     "tests/api/order-notices-proof.mjs": {
-      "sha256": "461b34ad30a0e102eabf267e86cc8a4114f453d657f510fe2c3723ed913ff1e5",
+      "sha256": "f5809c868516ed5b276da126602bbbc499fce043dcc3c22db74b16544c6213eb",
       "executable": false
     },
     "tests/api/order-search.test.mjs": {
