@@ -2,6 +2,7 @@ export const portabilityPolicy = {
  product: 'wholesale/barrow',
  // Restored history must never initiate outreach. Native notice creation opts in explicitly.
  exportRow(table,row) {
+  if(table==='bw_qbo_runs')return {...row,state:'restored',error:'Restored history is inactive; reconnect and start a fresh owner-reviewed read.'};
   if(table==='bw_prebook_seasons')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
   if(table==='bw_settings'&&row.key.startsWith('credit-policy:'))return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),releases:[],accountRelease:undefined})};
   if(table==='bw_orders'){const value=JSON.parse(row.value_json);if(value.prebookRelease)return {...row,value_json:JSON.stringify({...value,prebookRelease:{...value.prebookRelease,restored:true}})};if(value.prebook)return {...row,value_json:JSON.stringify({...value,prebook:{...value.prebook,restored:true}})}}
@@ -35,7 +36,7 @@ export const portabilityPolicy = {
  // Catalog search rows are rebuildable observations, never the catalog or stock authority.
  // Policy, bindings and executable approvals are installation authority, never restored.
  // Retained audit/events and the native custody fence remain portable history.
- excludeTables: ['bw_prebook_frontier','bw_return_claim_epoch','bs_%','agent_door_replay_aliases','agent_door_state','agent_door_agents','agent_door_calls','agent_door_approvals','agent_door_reviews','bw_tracking_epoch','bw_integration_grants','bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
+ excludeTables: ['bw_qbo_connection','bw_qbo_oauth','bw_qbo_maps','bw_qbo_refs','bw_prebook_frontier','bw_return_claim_epoch','bs_%','agent_door_replay_aliases','agent_door_state','agent_door_agents','agent_door_calls','agent_door_approvals','agent_door_reviews','bw_tracking_epoch','bw_integration_grants','bw_card_customers','bw_saved_cards','bw_card_connection','bw_import_invitations','bw_catalog_search','bw_catalog_indexes','bw_agent_proposal_grants','bw_webhook_subscriptions','bw_connector_config','bw_request_rates','bw_rep_epoch','bw_agent_tokens','bw_guard','bw_quote_mail_config','bw_company_invites','bw_application_intake','bw_application_codes','bw_application_sessions','bw_application_rates'],
  requiredConfiguration: ['OWNER_EMAIL','SESSION_SECRET','SETUP_TOKEN','AUTH_ORIGIN','MAIL_PROVIDER','MAIL_FROM'],
 };
 

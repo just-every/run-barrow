@@ -1,4 +1,6 @@
 import { storefrontAppearance, storefrontSettings, storefrontCatalogue, saveStorefrontBranding } from './storefront-branding'
+import {qboBegin,qboCallback,qboDisconnect} from './accounting/qbo'
+import {qboWorkspace,qboObservation,readReferences,saveMapping,startRead,resumeRead,linkInvoice} from './accounting/reconciliation'
 import { agentHttp } from './agent-door/http.ts'
 import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
@@ -147,6 +149,9 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
   if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
+  if(path==='/api/barrow/qbo/callback'&&request.method==='GET')return await qboCallback(env,actor,url)
+  if(path==='/api/barrow/qbo'&&request.method==='GET')return json(await qboWorkspace(env,actor))
+  if(path.startsWith('/api/barrow/qbo/observations/')&&request.method==='GET')return json(await qboObservation(env,actor,path.slice('/api/barrow/qbo/observations/'.length)))
   const catalogMedia=await catalogMediaResponse(request,env,actor);if(catalogMedia)return catalogMedia
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
   if(path.startsWith('/api/barrow/prebooks/')&&request.method==='GET')return json(await readPrebook(env,actor,decodeURIComponent(path.slice('/api/barrow/prebooks/'.length))))
@@ -387,6 +392,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
+   if(body.type.startsWith('qbo.')) {const handlers:any={'qbo.begin':qboBegin,'qbo.disconnect':qboDisconnect,'qbo.references':readReferences,'qbo.mapping':saveMapping,'qbo.start':startRead,'qbo.resume':resumeRead,'qbo.link':linkInvoice};if(!handlers[body.type])fail('COMMAND','Unknown QBO command.',400);return json({result:await handlers[body.type](env,actor,body.payload)})}
    if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})
    if(['refund.request','refund.refresh'].includes(body.type))return json({result:await refundCommand(env,actor,body.type,body.payload)})
    if(['saved-card.save','saved-card.revoke','saved-card.prepare'].includes(body.type)){const result=await savedCardCommand(env,actor,body.type,body.payload);return json({result:body.type==='saved-card.prepare'?publicCard(result as import('./card-model').CardPayment):result})}
