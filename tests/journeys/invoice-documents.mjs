@@ -25,8 +25,8 @@ export async function invoiceDocumentsJourney(t) {
    const bytes=await readFile(await file.path());downloads.set(`${current.id}.${format}`,bytes);
    if(format==='pdf') {
     const pdf=await readPdf(bytes);assert.ok(pdf.pages>=3);
-    for(const text of [`Invoice ${current.invoice.number}`,`Currency: ${current.currency??'AUD'}`,'157906 minor units','1750 minor units','Tax: Not calculated'])assert.ok(pdf.text.includes(text),text);
-   }else {assert.ok(bytes.toString().includes(`"${current.currency??'AUD'}"`));assert.ok(bytes.toString().includes('"157906"'));}
+    for(const text of [`Invoice ${current.invoice.number}`,`Currency: ${current.currency??'AUD'}`,'157906 minor units','1750 minor units','Tax: Not calculated','Buyer: 王氏食品 Wáng Family Foods'])assert.ok(pdf.text.includes(text),text);
+   }else {assert.ok(bytes.toString().includes(f.account.value.name));assert.ok(bytes.toString().includes(`"${current.currency??'AUD'}"`));assert.ok(bytes.toString().includes('"157906"'));}
    if(process.env.BARROW_JOURNEY_EVIDENCE)await writeFile(`${process.env.BARROW_JOURNEY_EVIDENCE}/invoice-${current.currency??'AUD'}.${format}`,bytes);
   }
   assert.equal(await card.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);

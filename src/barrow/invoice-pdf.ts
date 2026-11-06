@@ -49,7 +49,10 @@ export async function invoicePdf(order:Order,financialHistory=false,retainedSell
  // Embed the licensed Unicode font; no current brand asset or remote font request.
  const document=await PDFDocument.create({updateMetadata:false})
  document.registerFontkit(fontkit)
- const font=await document.embedFont(Uint8Array.from(atob(fontData),character=>character.charCodeAt(0)),{subset:true})
+ const binary=atob(fontData),bytes=new Uint8Array(binary.length)
+ for(let index=0;index<binary.length;index++)bytes[index]=binary.charCodeAt(index)
+ const decoded=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
+ const font=await document.embedFont(await new Response(decoded).arrayBuffer(),{subset:true})
  const size=11,width=504,leading=16
  let page=document.addPage([612,792]),y=738
  const draw=(line:string)=>{

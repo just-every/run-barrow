@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "e9ab80cecddf312721f06dc6ec3a39a16fe39b65bf7b0635e349b86722ef00e9",
+      "sha256": "ddb91433102e759c12b4fdf5d93edfb5e1407a751196b9d4d9f009fc82c645c4",
       "executable": false
     },
     "DEMO.md": {
@@ -2391,15 +2391,15 @@
       "executable": false
     },
     "src/barrow/invoice-font-LICENSE.txt": {
-      "sha256": "8ce3751812816ec4e63d5b06df4c61f7e42ce23ce76629c9fe5ec9d63f658f7d",
+      "sha256": "5b698e41d0318e68553ae4878b68493c7b6253a47439b6922af6603b1fcdda3a",
       "executable": false
     },
     "src/barrow/invoice-font.ts": {
-      "sha256": "b101ca90f180d2da73be24b8b3471cbab4282d722e7d421b47d6685cd5ef5000",
+      "sha256": "0a627184b263151f4eb8d415a3dbd4e6287dc9db173c818b089bd268b3f37ebd",
       "executable": false
     },
     "src/barrow/invoice-pdf.ts": {
-      "sha256": "c3f796ad1aa6ab196f69679686fb09a51400808571a3b58eb2c0a5aa35a882c0",
+      "sha256": "1b9a7e783afdd0d39006e4dbead753577aa05870475af78079e4f2c1746c0196",
       "executable": false
     },
     "src/barrow/invoice.ts": {
@@ -6003,7 +6003,7 @@
       "executable": false
     },
     "tests/api/invoice-documents.mjs": {
-      "sha256": "cb66fabe688cb36877d62a310c1024085445ff85a56735e6b3ad3711c3bcb2be",
+      "sha256": "650a0ee3332169741fc93c753e7ee0c0b37a232cd53a63d2f4df1ff55dde4fcc",
       "executable": false
     },
     "tests/api/line-sheet-fixture.mjs": {
@@ -6339,7 +6339,7 @@
       "executable": false
     },
     "tests/journeys/invoice-documents.mjs": {
-      "sha256": "3d0f082a52078e0cb5366c1b0a0bd4b0632b76c2da7b8410977e0bede17f3464",
+      "sha256": "d5eebc0db8c1bb33ed44d7d46abf844c53fe17b0b06e788254e06eace44b8ec4",
       "executable": false
     },
     "tests/journeys/line-sheets.test.mjs": {
