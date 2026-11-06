@@ -1,0 +1,156 @@
+{
+  "tag": "sx-barrow-c-f68-fix1",
+  "repository": "just-every/run-barrow",
+  "branch": "cloud/sx-barrow-c-f68-fix1",
+  "head": "bf59e18fca09f02c287773d51b8995520646b2f1",
+  "tree": "f8d9f6a6835e428bc6fc291b3d3e91ac3a2d6b10",
+  "original_source": "cf934caa5f4fc87ba7cc4cd8616e0ae76721fdf5",
+  "main": "ea7da76336fa80405ed3f57d2e93fe19417fa08e",
+  "pier": "60fde60ffa1f44c2ae6a3ef47225117f36cf546a",
+  "probe_sha256": "09a19eb61a6df02e3764825b09f0f7ce937cfd4a88e3908f13c5c0803720524e",
+  "harness": "node:test registration plus executablePath=/usr/bin/chromium; original probe body unchanged",
+  "environment": {
+    "node": "24.19.0",
+    "pnpm": "10.12.4",
+    "chromium": "/usr/bin/chromium"
+  },
+  "before": {
+    "exit": 1,
+    "observed": [
+      0,
+      0
+    ],
+    "expected": 2,
+    "initial_count": 0
+  },
+  "after": {
+    "exit": 0,
+    "observed": [
+      2,
+      2
+    ],
+    "expected": 2,
+    "initial_count": 1
+  },
+  "native_regression": {
+    "exit": 0,
+    "registered_tests": 1,
+    "pass": 1,
+    "fail": 0,
+    "skipped": 0,
+    "duration_ms": 109631.15015
+  },
+  "typecheck_exit": 0,
+  "generated_write_exit": 0,
+  "generated_check_exit": 0,
+  "lock_write_exit": 0,
+  "lock_check_exit": 0,
+  "build_after_exit": 0,
+  "setup_exit": 0,
+  "push_exit": 0,
+  "candidate_verify_run": 42209444642,
+  "candidate_verify_status": "completed",
+  "api_calls_used": 6,
+  "candidate_counts": {
+    "done": 73,
+    "partial": 44,
+    "missing": 37
+  },
+  "source_counts": {
+    "done": 73,
+    "partial": 44,
+    "missing": 37
+  },
+  "main_counts": {
+    "done": 73,
+    "partial": 43,
+    "missing": 38
+  },
+  "contract_unchanged_from_original": true,
+  "published_migrations_unchanged_from_original": true,
+  "test_registrations_added": 0,
+  "commands": [
+    {
+      "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+      "exit": 0,
+      "phase": "immutable source"
+    },
+    {
+      "command": "cloud_run npx -y @runeditrun/rer build",
+      "exit": 0,
+      "phase": "repaired source"
+    },
+    {
+      "command": "BARROW_PIER_SOURCE=/tmp/barrow-pier cloud_run node --test $HOME/rer-consolidation/work/sx-barrow-c-f68-fix1/packet/probe-harness.test.mjs",
+      "before_exit": 1,
+      "after_exit": 0
+    },
+    {
+      "command": "BARROW_PIER_SOURCE=/tmp/barrow-pier cloud_run node --test tests/api/return-claims.test.mjs",
+      "exit": 0
+    },
+    {
+      "command": "cloud_run pnpm run typecheck",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/contract-docs.mjs write",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/contract-docs.mjs check",
+      "exit": 0
+    },
+    {
+      "command": "git checkout origin/main -- ACCEPTANCE.md docs/CLAIMS.md",
+      "exit": 0
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs lock",
+      "exit": 0,
+      "ordering": "last generated source mutation"
+    },
+    {
+      "command": "node scripts/edition-authoring/cli.mjs check",
+      "exit": 0
+    },
+    {
+      "command": "python3 $HOME/rer-consolidation/.tools/cloud-push.py origin cloud/sx-barrow-c-f68-fix1",
+      "exit": 0,
+      "attempts": 1
+    }
+  ],
+  "portability_regression": {
+    "command": "BARROW_PIER_SOURCE=/tmp/barrow-pier cloud_run node --test --test-name-pattern='Barrow wholesale public HTTP journey with real Pier and D1' tests/api/flows.test.mjs",
+    "exit": 0,
+    "purpose": "export/import/export exact commercial-row equality after notice restore flag normalization",
+    "tests": 8,
+    "pass_count": 8,
+    "fail_count": 0,
+    "skipped": 0,
+    "duration_ms": 37975.181541
+  },
+  "source_preservation": {
+    "contract_byte_identical_to_original": true,
+    "entire_auto_004_status_evidence_gap_retained": true,
+    "all_migration_identities_unchanged": true,
+    "generated_views_equal_main": true,
+    "repair_files": [
+      "src/barrow/order-notices.ts",
+      "src/barrow/model.ts",
+      "src/barrow/portability-policy.mjs",
+      "tests/api/order-notices-proof.mjs",
+      "sources.lock.json"
+    ]
+  },
+  "candidate_verify_conclusion": "failure",
+  "ready_exception": "only generated ACCEPTANCE.md contract-view check fails; lander owns generated views and exact-final Verify",
+  "product_blockers": [],
+  "ci_commands": [
+    "gh api 'repos/just-every/run-barrow/actions/runs?head_sha=bf59e18fca09f02c287773d51b8995520646b2f1&per_page=100'",
+    "gh api repos/just-every/run-barrow/actions/runs/42209444642 --jq '{status,conclusion,head_sha,html_url}' (at least 300 seconds after discovery)",
+    "gh api repos/just-every/run-barrow/actions/runs/42209444642/jobs",
+    "gh run view 42209444642 --repo just-every/run-barrow --job 127864231277 --log-failed",
+    "gh run view 42209444642 --repo just-every/run-barrow --log-failed (completed-run archive confirms identical generator-only failure across all eight shards and dependent verify aggregation)"
+  ]
+}

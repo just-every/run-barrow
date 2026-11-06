@@ -1,0 +1,1 @@
+Explicit packet selection will include reports, receipts, unchanged supplied public probe, actual test output, generated/lock output, identity audit, patch and synthetic panel screenshots. No credentials, secret values, env dumps, private held-out gate material, installation sign-in links or symlinks are selected.

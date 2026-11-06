@@ -1,0 +1,20 @@
+bf59e18fca09f02c287773d51b8995520646b2f1
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Capture dispatch notices for upgraded native orders
+
+Initialize absent notice account markers only after current authorized Pier source validation. Keep explicit inactive markers and archived order history inert, including archives created before any notice marker existed. Extend the existing public-door return journey for upgraded split dispatches and connected restore custody.
+
+cf934caa5f4fc87ba7cc4cd8616e0ae76721fdf5
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Prove scoped in-app order notices and preserve erasure custody
+
+a9c30902718fa67fb746af3e5f1e2cf3a7919792
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+Record source-bound native order notices [skip ci]
+

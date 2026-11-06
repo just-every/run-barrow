@@ -1,0 +1,30 @@
+shards (barrow-2)	Run this shard	2026-11-06T11:20:36.3057531Z > node scripts/contract-docs.mjs check
+shards (barrow-2)	Run this shard	2026-11-06T11:20:36.3627746Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-2)	Run this shard	2026-11-06T11:20:36.4113494Z ##[error]Process completed with exit code 1.
+shards (barrow-1)	Run this shard	2026-11-06T11:20:34.6790976Z > node scripts/contract-docs.mjs check
+shards (barrow-1)	Run this shard	2026-11-06T11:20:34.7358543Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-1)	Run this shard	2026-11-06T11:20:34.7713717Z ##[error]Process completed with exit code 1.
+shards (barrow-3)	Run this shard	2026-11-06T11:20:30.4034526Z > node scripts/contract-docs.mjs check
+shards (barrow-3)	Run this shard	2026-11-06T11:20:30.4454804Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-3)	Run this shard	2026-11-06T11:20:30.4786177Z ##[error]Process completed with exit code 1.
+shards (barrow-6)	Run this shard	2026-11-06T11:20:30.4135263Z > node scripts/contract-docs.mjs check
+shards (barrow-6)	Run this shard	2026-11-06T11:20:30.4488084Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-6)	Run this shard	2026-11-06T11:20:30.4922380Z ##[error]Process completed with exit code 1.
+shards (barrow-5)	Run this shard	2026-11-06T11:20:35.7405504Z > node scripts/contract-docs.mjs check
+shards (barrow-5)	Run this shard	2026-11-06T11:20:35.7963944Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-5)	Run this shard	2026-11-06T11:20:35.8368653Z ##[error]Process completed with exit code 1.
+shards (barrow-4)	Run this shard	2026-11-06T11:20:35.6079855Z > node scripts/contract-docs.mjs check
+shards (barrow-4)	Run this shard	2026-11-06T11:20:35.6650555Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-4)	Run this shard	2026-11-06T11:20:35.7008707Z ##[error]Process completed with exit code 1.
+shards (agent-door)	Run this shard	2026-11-06T11:20:30.1255904Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T11:20:30.1696345Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (agent-door)	Run this shard	2026-11-06T11:20:30.2423890Z > node scripts/contract-docs.mjs check
+shards (agent-door)	Run this shard	2026-11-06T11:20:30.2425275Z ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (agent-door)	Run this shard	2026-11-06T11:20:30.2802355Z ##[error]Process completed with exit code 1.
+shards (barrow-8)	Run this shard	2026-11-06T11:20:37.5938256Z > node scripts/contract-docs.mjs check
+shards (barrow-8)	Run this shard	2026-11-06T11:20:37.6527123Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+shards (barrow-8)	Run this shard	2026-11-06T11:20:37.6944602Z ##[error]Process completed with exit code 1.
+verify	Require the selected coverage and its proof	2026-11-06T11:20:44.1692221Z [36;1mtest "$PLAN" = success[0m
+verify	Require the selected coverage and its proof	2026-11-06T11:20:44.1941138Z   SHARDS: failure
+verify	Require the selected coverage and its proof	2026-11-06T11:20:44.1943902Z   HAS_SHARDS: true
+verify	Require the selected coverage and its proof	2026-11-06T11:20:44.2152954Z ##[error]Process completed with exit code 1.

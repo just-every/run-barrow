@@ -1,0 +1,16 @@
+{
+  "removed_owned_paths": [
+    "/workspace/run-barrow/node_modules",
+    "/workspace/run-barrow/dist",
+    "/workspace/run-barrow/.wrangler",
+    "/workspace/run-barrow/.rer",
+    "/workspace/run-barrow/.cache",
+    "/tmp/barrow-pier",
+    "/tmp/barrow-pier.tar.gz"
+  ],
+  "browsers": "closed by supplied probe cleanup",
+  "native_workers": "disposed by fixture cleanup; subreaper returned",
+  "broad_process_kills": false,
+  "product_clone": "will remove after successful evidence transfer",
+  "packet_retained": "/home/agent/rer-consolidation/work/sx-barrow-c-f68-fix1/packet"
+}

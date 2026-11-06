@@ -1,0 +1,132 @@
+diff --git a/sources.lock.json b/sources.lock.json
+index 4d07dee..6183103 100644
+--- a/sources.lock.json
++++ b/sources.lock.json
+@@ -2403,7 +2403,7 @@
+       "executable": false
+     },
+     "src/barrow/model.ts": {
+-      "sha256": "06f35169d0ba00cfab6ec9b70374814a53b0ccc80c4722c1c6d9b53ebbd75d47",
++      "sha256": "4c6222ef91e9d3bb9293a957369813c7fdac9064ce79f661770de634d3b9be14",
+       "executable": false
+     },
+     "src/barrow/order-followthrough.ts": {
+@@ -2411,7 +2411,7 @@
+       "executable": false
+     },
+     "src/barrow/order-notices.ts": {
+-      "sha256": "30be0a79523752aafb25f68321bbd4dc7f692940d735eaf7215136db67e67b6b",
++      "sha256": "2b445ae7d1f34344a332b6f238e6c10dd314281e774447cd0b49231bc17eca23",
+       "executable": false
+     },
+     "src/barrow/order-revisions.ts": {
+@@ -2447,7 +2447,7 @@
+       "executable": false
+     },
+     "src/barrow/portability-policy.mjs": {
+-      "sha256": "80fe124ba029b9006423120a873ac7222580189226aa64648ab05493d389628e",
++      "sha256": "a15163e86df0cacc54ba1ddcb6fa645b85bea6ad1ae32dee3391bde17e2a6c0d",
+       "executable": false
+     },
+     "src/barrow/prebook-intake.ts": {
+@@ -6027,7 +6027,7 @@
+       "executable": false
+     },
+     "tests/api/order-notices-proof.mjs": {
+-      "sha256": "461b34ad30a0e102eabf267e86cc8a4114f453d657f510fe2c3723ed913ff1e5",
++      "sha256": "a49609b5ac9168c6c37594650956d78ca55ac618d81225fe246f75e4763f2ebb",
+       "executable": false
+     },
+     "tests/api/order-search.test.mjs": {
+diff --git a/src/barrow/model.ts b/src/barrow/model.ts
+index 11f974d..ae49b19 100644
+--- a/src/barrow/model.ts
++++ b/src/barrow/model.ts
+@@ -10,7 +10,7 @@ export type Account = { buyingProfile?: import('./buying-profiles').BuyingProfil
+ export type Line = { promotion?: import('./promotions').PromotionLine; style?: string; color?: string; size?: string; image?: import('./product-images').ImageRef; requestedDate?: string; cancelAfter?: string; substitutedFrom?: {orderId:string;line:number;sku:string;unit?:string}; msrpCents?: number; sku: string; name: string; itemId: string; quantity: number; unitCents: number; minQty: number; unit?: string; baseUnit?: string; conversion?: string; baseQuantity?: string; packContents?: string; lineCents?: number; pricing?: import('./pricing').PricingSnapshot; buyerSku?: string; quote?: QuotedPrice }
+ /** ORD-004: how an accepted quote priced a line against its PRI-002 basis. */
+ export type QuotedPrice = { id: string; revision: number; basisUnitCents: number; basisLineCents: number; discountBps?: number; negotiatedUnitCents?: number }
+-export type Order = { campaign?:{id:string;deliveryId:string}; creditPolicySnapshot?:string; prebook?: import("./prebooks").Prebook; prebookRelease?: import("./prebooks").PrebookRelease;  sellThrough?: Omit<import("./sell-through").SellThroughAcceptance,"guards">; usdConversion?: import('./currency').UsdConversion; buyingProfile?: import('./buying-profiles').BuyingProfileSnapshot; agentProposal?: import('./proposal-approval').ProposalLink; termsAcceptance?: import('./sales-terms').TermsAcceptance; substitutions?: import("./substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}; delivery?: import('./shipping-rules').Delivery; freightQuotes?: import('./shipping-rules').FreightQuote[]; id: string; accountId: string; accountRevision: string; customerName: string; reference: string; poRelease?: { number: number; of: string; authorizedBy: string; authorizedAt: string }; requestedDate?: string; cancelAfter?: string; instructions?: string; document?: { name: string; type: string; size: number; sha256: string; uploadedBy: string; uploadedAt: string }; deliveryLocation?: string; reorderedFrom?: string; reorderReview?: { fingerprint: string; acknowledgedBy: string; acknowledgedAt: string; differences: unknown }; lines: Line[]; totalCents: number; currency?: 'USD'|'AUD'|'CAD'|'EUR'|'GBP'; priceDisplay?: Account['value']['priceDisplay']; lineSheet?: {id:string;revision:string}; season?: string; revisedBy?: string; revisedAt?: string; termsDays: number; status: 'draft'|'awaiting-company-approval'|'submitted'|'reserving'|'shortfall'|'approved'|'superseded'|'releasing'|'cancelled'; replaces?: string; supersededBy?: string; approvalRoute?: import('./company-routes').OrderRoute; approvalVoided?: { at: string; reason: string }; preparedBy: string; preparedAs?: 'rep'|'sales-manager'|'owner'|'admin'; preparedAt: string; companyPreparedBy?: string; companyRequestedAt?: string; companyApprovedBy?: string; companyApprovedAt?: string; submittedBy?: string; approvedBy?: string; approvedAt?: string; pierCustomerId: string; pierOrigin: string; pierOrderId?: string; pierReference?: string; reservation?: unknown; invoice?: {number: string; issuedAt: string; dueAt: string}; release?: Release; stockException?: { by: string; at: string; reason: string }; quote?: { id: string; revision: number; shipping: string; validUntil: string }; billTo?: import('./locations').LocationSnapshot; shipTo?: import('./locations').LocationSnapshot; revision: string }
++export type Order = { noticeHistoryRestored?: boolean; campaign?:{id:string;deliveryId:string}; creditPolicySnapshot?:string; prebook?: import("./prebooks").Prebook; prebookRelease?: import("./prebooks").PrebookRelease;  sellThrough?: Omit<import("./sell-through").SellThroughAcceptance,"guards">; usdConversion?: import('./currency').UsdConversion; buyingProfile?: import('./buying-profiles').BuyingProfileSnapshot; agentProposal?: import('./proposal-approval').ProposalLink; termsAcceptance?: import('./sales-terms').TermsAcceptance; substitutions?: import("./substitution-preview").Substitution[]; fromSubstitution?: {orderId:string;number:number}; delivery?: import('./shipping-rules').Delivery; freightQuotes?: import('./shipping-rules').FreightQuote[]; id: string; accountId: string; accountRevision: string; customerName: string; reference: string; poRelease?: { number: number; of: string; authorizedBy: string; authorizedAt: string }; requestedDate?: string; cancelAfter?: string; instructions?: string; document?: { name: string; type: string; size: number; sha256: string; uploadedBy: string; uploadedAt: string }; deliveryLocation?: string; reorderedFrom?: string; reorderReview?: { fingerprint: string; acknowledgedBy: string; acknowledgedAt: string; differences: unknown }; lines: Line[]; totalCents: number; currency?: 'USD'|'AUD'|'CAD'|'EUR'|'GBP'; priceDisplay?: Account['value']['priceDisplay']; lineSheet?: {id:string;revision:string}; season?: string; revisedBy?: string; revisedAt?: string; termsDays: number; status: 'draft'|'awaiting-company-approval'|'submitted'|'reserving'|'shortfall'|'approved'|'superseded'|'releasing'|'cancelled'; replaces?: string; supersededBy?: string; approvalRoute?: import('./company-routes').OrderRoute; approvalVoided?: { at: string; reason: string }; preparedBy: string; preparedAs?: 'rep'|'sales-manager'|'owner'|'admin'; preparedAt: string; companyPreparedBy?: string; companyRequestedAt?: string; companyApprovedBy?: string; companyApprovedAt?: string; submittedBy?: string; approvedBy?: string; approvedAt?: string; pierCustomerId: string; pierOrigin: string; pierOrderId?: string; pierReference?: string; reservation?: unknown; invoice?: {number: string; issuedAt: string; dueAt: string}; release?: Release; stockException?: { by: string; at: string; reason: string }; quote?: { id: string; revision: number; shipping: string; validUntil: string }; billTo?: import('./locations').LocationSnapshot; shipTo?: import('./locations').LocationSnapshot; revision: string }
+ /** STK-004: one cancellation's stock release; `held` is what Pier still reserved when it was requested. */
+ export type Release = { reason: string; requestedBy: string; requestedAt: string; held: {itemId: string; quantity: string}[]; confirmedAt?: string; lines?: {itemId: string; quantity: string; dispatched: string; cancelled: string; reserved: string}[] }
+ export const text = (v: unknown, name: string, limit = 160): string => typeof v === 'string' && v.trim() && v.length <= limit ? v.trim() : fail('INPUT', `${name} is required (at most ${limit} characters).`, 400)
+diff --git a/src/barrow/order-notices.ts b/src/barrow/order-notices.ts
+index f24a1f7..bec0bf0 100644
+--- a/src/barrow/order-notices.ts
++++ b/src/barrow/order-notices.ts
+@@ -16,6 +16,7 @@ type Row = {id:string;account_id:string;order_id:string;kind:OrderNoticeKind;sou
+ 
+ /** Called in the source transaction. The unique source revision survives retries and concurrent readers. */
+ export function orderNoticeStatements(db:D1Database,order:Order,fact:Fact):D1PreparedStatement[] {
++ if(order.noticeHistoryRestored)return []
+  return [db.prepare('INSERT OR IGNORE INTO bw_order_notice_accounts(account_id) VALUES(?)').bind(order.accountId),
+   db.prepare(`INSERT OR IGNORE INTO bw_order_notices(id,account_id,order_id,kind,source_id,source_revision,source_origin,details_json,created_at)
+    SELECT ?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM bw_order_notice_accounts WHERE account_id=? AND active=1)`)
+@@ -52,7 +53,9 @@ async function collectDispatches(env:Bindings,actor:Actor,orders:Order[]) {
+  const statements:D1PreparedStatement[]=[]
+  for(const order of orders) {
+   const active=await env.DB.prepare('SELECT active FROM bw_order_notice_accounts WHERE account_id=?').bind(order.accountId).first<{active:number}>()
+-  if(active?.active!==1)continue
++  // Upgraded native accounts have no marker until their first validated fact.
++  // Explicit erasure/restore fences must never be reactivated by a read.
++  if(active?.active===0||order.noticeHistoryRestored)continue
+   let facts:Fact[]
+   try{facts=await dispatchFacts(env,order)}catch{continue}
+   for(const fact of facts)statements.push(...orderNoticeStatements(env.DB,order,fact))
+diff --git a/src/barrow/portability-policy.mjs b/src/barrow/portability-policy.mjs
+index 7639905..61bcc8e 100644
+--- a/src/barrow/portability-policy.mjs
++++ b/src/barrow/portability-policy.mjs
+@@ -6,7 +6,7 @@ export const portabilityPolicy = {
+   if(table==='bw_order_notices')return {...row,restored:1};
+   if(table==='bw_prebook_seasons')return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),restored:true})};
+   if(table==='bw_settings'&&row.key.startsWith('credit-policy:'))return {...row,value_json:JSON.stringify({...JSON.parse(row.value_json),releases:[],accountRelease:undefined})};
+-  if(table==='bw_orders'){const value=JSON.parse(row.value_json);if(value.prebookRelease)return {...row,value_json:JSON.stringify({...value,prebookRelease:{...value.prebookRelease,restored:true}})};if(value.prebook)return {...row,value_json:JSON.stringify({...value,prebook:{...value.prebook,restored:true}})}}
++  if(table==='bw_orders'){const value={...JSON.parse(row.value_json),noticeHistoryRestored:true};if(value.prebookRelease)value.prebookRelease={...value.prebookRelease,restored:true};else if(value.prebook)value.prebook={...value.prebook,restored:true};return {...row,value_json:JSON.stringify(value)}}
+   if(table==='bw_settings'&&row.key==='prebook-seasons')return {...row,value_json:JSON.stringify(JSON.parse(row.value_json).map(value=>({...value,state:'closed'})))}
+   if(table==='bw_faire_sync')return {...row,enabled:0,cursor:null,complete:0};
+   if(table==='bw_stock_sync')return {...row,restored:1,enabled:0,checkpoint:null,pending:null,completed_at:null,lease_until:0,next_at:0,rate_until:0,has_more:1};
+diff --git a/tests/api/order-notices-proof.mjs b/tests/api/order-notices-proof.mjs
+index 264143a..26f4617 100644
+--- a/tests/api/order-notices-proof.mjs
++++ b/tests/api/order-notices-proof.mjs
+@@ -4,6 +4,7 @@ import {activateStaff,archive,installation,restore} from './harness.mjs';
+ 
+ // Part of the existing native return sanity journey: notices follow the same original order and decisions.
+ export async function proveOrderNotices(t) {
++ await proveUpgradedDispatches(t)
+  const f=await returnClaimsFixture(t),{h,pier,buyer,other,product,order}=f;
+  const notices=async(who={})=>(await h.api('/api/barrow/order-notices',undefined,who)).notices;
+  const source=(notice,who={})=>h.api(notice.sourcePath,undefined,who);
+@@ -99,3 +100,30 @@ export async function proveOrderNotices(t) {
+  console.log('PROBE AUTO-004 authority: personal preference and read state, foreign account, revoked staff and removed locations -> isolated state and refused captured links; no finance fields.');
+  console.log('PROBE AUTO-004 custody: scoped JSON and CSV, owner-reviewed erasure and later-journal restore -> complete authorized facts, then empty and inert notice state.');
+ }
++
++// Migration fixture: existing native orders remain, only the new 0077 tables start empty.
++async function proveUpgradedDispatches(t) {
++ const f=await returnClaimsFixture(t),{h,pier,buyer,other}=f;
++ let split=await h.command('order.prepare',{accountId:'cedar',reference:'synthetic-barrow-1176',lines:[{sku:'OAT-1',quantity:10}]},buyer);
++ await h.command('order.submit',{orderId:split.id},buyer);split=await h.command('order.approve',{orderId:split.id});
++ await h.db.batch(['bw_order_notice_reads','bw_order_notice_preferences','bw_order_notices','bw_order_notice_accounts'].map(table=>h.db.prepare('DELETE FROM '+table)));
++ // An archive taken before any marker was created is still inert after restore,
++ // even with the original real Pier connection available to the restored owner.
++ const saved=await archive(h),restored=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>restored.close());await restore(restored,saved);
++ const upstream=(await pier.api('/api/pier/state')).orders.find(row=>row.id===split.pierOrderId),dispatches=[];
++ for(const quantity of ['4','6'])dispatches.push(await pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'synthetic-barrow-1177-'+quantity,lines:[{orderLineId:upstream.lines[0].id,quantity}]}));
++ // Unchanged approval/refresh cannot be relied on to create an account marker.
++ await h.command('order.refresh',{orderId:split.id});
++ const notices=async(who=buyer)=>(await h.api('/api/barrow/order-notices',undefined,who)).notices;
++ assert.deepEqual(await notices(other),[]);
++ const reads=await Promise.all([notices(),notices()]),shipments=reads[0].filter(row=>row.orderId===split.id&&row.kind==='shipment');
++ assert.equal(shipments.length,2,'existing approved order captures both actual dispatches after upgrade');
++ assert.deepEqual(new Set(shipments.map(row=>row.sourceId)),new Set(dispatches.map(row=>row.id)));
++ assert.deepEqual(reads[0],reads[1]);assert.deepEqual(await notices(),reads[0]);
++ assert.deepEqual((await Promise.all(shipments.map(row=>h.api(row.sourcePath,undefined,buyer)))).map(row=>row.current.lines[0].quantity).sort(),['4','6']);
++ await h.api(shipments[0].sourcePath,undefined,{...other,status:404});
++ assert.equal(JSON.stringify(shipments).includes('Cents'),false);
++ assert.deepEqual((await restored.api('/api/barrow/order-notices')).notices,[]);
++ assert.deepEqual((await restored.api('/api/barrow/export.json')).ordernotices,[]);
++ console.log('PROBE AUTO-004 upgraded account: two actual Pier dispatches, concurrent native reads and replay -> two durable current-source notices; marker-free archived orders remain inert with real Pier connected.');
++}

@@ -1,0 +1,20 @@
+{
+  "run": 42209444642,
+  "head": "bf59e18fca09f02c287773d51b8995520646b2f1",
+  "conclusion": "failure",
+  "generator_only_exception": true,
+  "stale_view": "ACCEPTANCE.md",
+  "generator_failed_shards": [
+    "shards (agent-door)",
+    "shards (barrow-1)",
+    "shards (barrow-2)",
+    "shards (barrow-3)",
+    "shards (barrow-4)",
+    "shards (barrow-5)",
+    "shards (barrow-6)",
+    "shards (barrow-8)"
+  ],
+  "aggregation": "verify fails because shards fail; proof jobs skip",
+  "failed_product_assertions": [],
+  "github_cli_invocations_total": 6
+}

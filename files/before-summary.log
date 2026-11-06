@@ -1,0 +1,34 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+STEP creating real pinned-Pier fixture
+STEP fixture ready
+PROBE screens PASS buyer/reviewer Orders, current-source read, read command, order focus, Settings save at 1440 and 390
+PROBE existing-account-dispatch {"setup":"post-0077 empty notice tables; existing approved native order","before":0,"realPierDispatches":["87693b7e-0ee7-405b-8ff6-236551d0f445","eb2b12cf-14ff-4a83-b261-2819e8f95dba"],"observed":[0,0],"expected":2,"result":"FAIL"}
+✖ original AUTO-004 public-door probe (24868.859751ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25262.142699
+
+✖ failing tests:
+
+test at ../../home/agent/rer-consolidation/work/sx-barrow-c-f68-fix1/packet/probe-harness.test.mjs:6:1
+✖ original AUTO-004 public-door probe (24868.859751ms)
+  AssertionError [ERR_ASSERTION]: Existing approved order must produce its two new actual dispatch notices after migration
+  
+  0 !== 2
+  
+      at file:///home/agent/rer-consolidation/work/sx-barrow-c-f68-fix1/packet/original-probe.mjs:60:9
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 2,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

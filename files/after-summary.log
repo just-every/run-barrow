@@ -1,0 +1,16 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+STEP creating real pinned-Pier fixture
+STEP fixture ready
+PROBE screens PASS buyer/reviewer Orders, current-source read, read command, order focus, Settings save at 1440 and 390
+PROBE existing-account-dispatch {"setup":"post-0077 empty notice tables; existing approved native order","before":1,"realPierDispatches":["115da21b-231e-40ad-b886-22be4035cf4b","e9aa96b7-0f02-49fd-8a46-c2edbe1040fe"],"observed":[2,2],"expected":2,"result":"PASS"}
+✔ original AUTO-004 public-door probe (11464.581372ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 1
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11841.691379

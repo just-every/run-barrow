@@ -1,0 +1,11 @@
+{
+  "main": "ea7da76336fa80405ed3f57d2e93fe19417fa08e",
+  "counts": {
+    "done": 73,
+    "partial": 43,
+    "missing": 38
+  },
+  "AUTO-004": [
+    "| `AUTO-004` | Order and fulfillment notifications | target | missing |  | Implement order and fulfillment notifications and prove the stated journey. |"
+  ]
+}

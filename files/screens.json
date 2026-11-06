@@ -1,0 +1,114 @@
+[
+  {
+    "phase": "before",
+    "file": "screens/before/buyer-orders-1440.png",
+    "width": 1392,
+    "height": 1145,
+    "bytes": 94018
+  },
+  {
+    "phase": "before",
+    "file": "screens/before/buyer-orders-390.png",
+    "width": 358,
+    "height": 1331,
+    "bytes": 83363
+  },
+  {
+    "phase": "before",
+    "file": "screens/before/buyer-settings-1440.png",
+    "width": 1392,
+    "height": 524,
+    "bytes": 31344
+  },
+  {
+    "phase": "before",
+    "file": "screens/before/buyer-settings-390.png",
+    "width": 358,
+    "height": 556,
+    "bytes": 28601
+  },
+  {
+    "phase": "before",
+    "file": "screens/before/reviewer-orders-1440.png",
+    "width": 1392,
+    "height": 1145,
+    "bytes": 94002
+  },
+  {
+    "phase": "before",
+    "file": "screens/before/reviewer-orders-390.png",
+    "width": 358,
+    "height": 1331,
+    "bytes": 83355
+  },
+  {
+    "phase": "before",
+    "file": "screens/before/reviewer-settings-1440.png",
+    "width": 1392,
+    "height": 929,
+    "bytes": 47437
+  },
+  {
+    "phase": "before",
+    "file": "screens/before/reviewer-settings-390.png",
+    "width": 358,
+    "height": 945,
+    "bytes": 42224
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/buyer-orders-1440.png",
+    "width": 1392,
+    "height": 1145,
+    "bytes": 93661
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/buyer-orders-390.png",
+    "width": 358,
+    "height": 1331,
+    "bytes": 83038
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/buyer-settings-1440.png",
+    "width": 1392,
+    "height": 524,
+    "bytes": 31344
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/buyer-settings-390.png",
+    "width": 358,
+    "height": 556,
+    "bytes": 28601
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/reviewer-orders-1440.png",
+    "width": 1392,
+    "height": 1145,
+    "bytes": 93645
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/reviewer-orders-390.png",
+    "width": 358,
+    "height": 1331,
+    "bytes": 83035
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/reviewer-settings-1440.png",
+    "width": 1392,
+    "height": 929,
+    "bytes": 47437
+  },
+  {
+    "phase": "after",
+    "file": "screens/after/reviewer-settings-390.png",
+    "width": 358,
+    "height": 945,
+    "bytes": 42224
+  }
+]

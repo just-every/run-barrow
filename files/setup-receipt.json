@@ -1,0 +1,8 @@
+{
+  "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+  "exit": 0,
+  "full_log_retained_locally": "/home/agent/rer-consolidation/work/sx-barrow-c-f68-fix1/setup.log",
+  "log_sha256": "16c5ba9ec1262ec95ab5d82e8f1616b08682ac7b9f4e2ea1d68f0b10f881daba",
+  "source": "cf934caa5f4fc87ba7cc4cd8616e0ae76721fdf5",
+  "log_publication": "omitted installation runtime log; actual command and exit preserved"
+}

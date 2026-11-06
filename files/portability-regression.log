@@ -1,0 +1,20 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+▶ Barrow wholesale public HTTP journey with real Pier and D1
+  ✔ native invitation, customer isolation and direct-handler authorization (157.67011ms)
+  ✔ agreed prices, minimums and stock validated server-side (195.453497ms)
+  ✔ agents prepare only and persons approve with recorded identity (852.774776ms)
+  ✔ invoice export is stable exact-cent snapshot on agreed terms (62.075596ms)
+  ✔ move-in dry run, explicit review, journal, replay and guarded undo (529.51867ms)
+  ✔ imports cannot reassign existing account identity or undo a native edit (649.774052ms)
+  ✔ installation archive restores records and excludes sessions and agent secrets (30041.160871ms)
+✔ Barrow wholesale public HTTP journey with real Pier and D1 (37129.017311ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37975.181541
