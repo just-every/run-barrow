@@ -1,3 +1,4 @@
+import {proveOrderNotices} from './order-notices-proof.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {returnClaimsFixture} from './return-claims-fixture.mjs';
@@ -54,6 +55,9 @@ test('return requests bind partial authorization to current revisions, reconcile
  const mine=await h.api('/api/barrow/export.json',undefined,buyer);assert.equal(mine.returnclaims.length,2);assert.equal(mine.followups,undefined);assert.equal(mine.returnclaims[0].history,'');
  const foreign=await h.api('/api/barrow/export.json',undefined,other);assert.deepEqual(foreign.returnclaims,[]);
  const audit=await h.api('/api/barrow/audit?search='+claim.id);assert.ok(JSON.stringify(audit).includes('return.decide'));assert.ok(JSON.stringify(audit).includes(owner));
+ const personalNotice=(await h.api('/api/barrow/order-notices',undefined,buyer)).notices.find(row=>row.kind==='accepted');
+ await h.command('order-notice.read',{id:personalNotice.id},buyer);
+ await h.command('order-notice.preferences',{accountId:'cedar',kind:'shipment',enabled:false},buyer);
  const saved=await archive(h),restored=await installation();t.after(()=>restored.close());await restore(restored,saved);
  const restoredExport=await restored.api('/api/barrow/export.json');assert.equal(restoredExport.returnclaims.find(row=>row.id===claim.id).restored,true);
  await restored.command('return.decide',{id:second.id,revision:second.revision,orderRevision:order.revision,quantity:2,instructions:'No restored action.',reason:'No restored action.'},{status:409});
@@ -65,7 +69,9 @@ test('return requests bind partial authorization to current revisions, reconcile
  const member=(await h.api('/api/barrow/company/members?accountId=cedar')).members.find(row=>row.userId===claim.createdBy);
  await h.command('company.erase',{memberId:member.id,revision:member.revision,confirm:'ERASE',reason:'Erase the return requester’s personal narrative.'});
  let personal=(await h.api('/api/barrow/export.json')).returnclaims.find(row=>row.id===claim.id);assert.equal(personal.reason,'[Erased return text]');assert.equal(personal.condition,'[Erased return text]');assert.ok(personal.receipts.includes(received.id));
+ await noPersonalNoticeState(h,claim.createdBy);
  const personalReplay=await installation();t.after(()=>personalReplay.close());await restore(personalReplay,saved,{journalSource:h});
+ await noPersonalNoticeState(personalReplay,claim.createdBy);
  personal=(await personalReplay.api('/api/barrow/export.json')).returnclaims.find(row=>row.id===claim.id);assert.equal(personal.reason,'[Erased return text]');assert.equal(personal.condition,'[Erased return text]');
  // The erasure review includes personal narratives; later journal replay keeps them redacted.
  await h.command('retention.request',{accountId:'cedar',requester:'Buyer',channel:'Verified request',verificationNote:'Supplier verified the current buyer request.',held:false,reason:'Review return narrative erasure.'});
@@ -77,6 +83,7 @@ test('return requests bind partial authorization to current revisions, reconcile
  await replayed.api('/api/barrow/erasure-journal',{bundle:later,confirm:'JOURNAL',reason:'Attach the complete later journal.'});await restore(replayed,saved,{journalSource:h});
  const fenced=(await replayed.api('/api/barrow/export.json')).returnclaims.find(row=>row.id===claim.id);assert.equal(fenced.reason,'[Erased return text]');assert.equal(fenced.condition,'[Erased return text]');
  await returnNarrativeErasure(t);
+ await proveOrderNotices(t);
 });
 
 
@@ -146,4 +153,9 @@ async function returnNarrativeErasure(t) {
  for(const reason of [originalReason,revisedReason,decisionReason])assert.ok(!JSON.stringify(replayAudit).includes(reason));
  restored=(await accountReplay.api('/api/barrow/export.json')).returnclaims.find(row=>row.id===claim.id);
  assert.equal(restored.reason,'[Erased return text]');assert.equal(restored.condition,'[Erased return text]');assert.equal(JSON.parse(restored.decision).instructions,'[Erased return text]');assert.ok(restored.receipts.includes(receipt.id));
+}
+
+async function noPersonalNoticeState(h,userId) {
+ const rows=(await archive(h)).filter(part=>part.kind==='part').flatMap(part=>part.items).filter(item=>['bw_order_notice_reads','bw_order_notice_preferences'].includes(item.table));
+ assert.ok(!rows.some(item=>JSON.stringify(item.row).includes(userId)),'erased person notice read state and preferences must not remain in an archive');
 }

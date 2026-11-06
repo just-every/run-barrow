@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "ddb91433102e759c12b4fdf5d93edfb5e1407a751196b9d4d9f009fc82c645c4",
+      "sha256": "2fd603bf3f6f5cb8c73e6b235ddebf6a7223189fc040b6eed676957790f0d801",
       "executable": false
     },
     "DEMO.md": {
@@ -262,6 +262,10 @@
       "sha256": "f436ddcef001d03eb1584136711c98486a121665411fc09620ded7ea6597349f",
       "executable": false
     },
+    "docs/ORDER-NOTICES.md": {
+      "sha256": "a06f878b673fc5a1875238656303c459fa9a83a7ec01ac0d2a6466455db712bf",
+      "executable": false
+    },
     "docs/ORDER-SEARCH.md": {
       "sha256": "5672476c25d21eb455e898333adbcf96680a000f61b99198efde7241bf5284ab",
       "executable": false
@@ -355,7 +359,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "f3d0c5230c964cbf22b09c26b97b80a85fcecd1470c8b4a0a479602763e78bc0",
+      "sha256": "8da33040d63242e53860ca2184ef5b991a8aca59c94051f4c4eefd26fc084194",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -2059,7 +2063,7 @@
       "executable": false
     },
     "src/barrow/company-members.ts": {
-      "sha256": "13f2a9c5104dd50a8ce44000678518f1e6c02e4c8960230ca72228d8d0107888",
+      "sha256": "46d94ae04bd88db7936b20694a131f110a746aebf4821d391282bd2c8a293a62",
       "executable": false
     },
     "src/barrow/company-policy.ts": {
@@ -2159,7 +2163,7 @@
       "executable": false
     },
     "src/barrow/export.ts": {
-      "sha256": "a170806aac1a91443fe8e4b6e64fc69ddc6c6822a2974feb0d0a0608a5a8ab72",
+      "sha256": "d5d90266710976f768c7555b5d6646b683dd89a79cd507d0379a54f575c48232",
       "executable": false
     },
     "src/barrow/faire-review.ts": {
@@ -2423,7 +2427,7 @@
       "executable": false
     },
     "src/barrow/order-notices.ts": {
-      "sha256": "d8f7540a0aa74b57504f3e9d48d5f4fedd72921bcc7172f72523afd864f2a20d",
+      "sha256": "30be0a79523752aafb25f68321bbd4dc7f692940d735eaf7215136db67e67b6b",
       "executable": false
     },
     "src/barrow/order-revisions.ts": {
@@ -2947,7 +2951,7 @@
       "executable": false
     },
     "src/barrow/ui/order-notices.tsx": {
-      "sha256": "dcf585afe17e5e8e34a360b4615197a2d8fe3b2ccd0438982330db32386f467b",
+      "sha256": "e8d78da9c896a3e149c286e0daf8d4ade6babe5597ceaeef6e418ae3f3cba6da",
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
@@ -6046,6 +6050,10 @@
       "sha256": "698c0983cd53c99c18489775a0eee7a2d95dded63c788bfeee1482d954e24a36",
       "executable": false
     },
+    "tests/api/order-notices-proof.mjs": {
+      "sha256": "461b34ad30a0e102eabf267e86cc8a4114f453d657f510fe2c3723ed913ff1e5",
+      "executable": false
+    },
     "tests/api/order-search.test.mjs": {
       "sha256": "a38e329e3d9cd289759f7409dcba3537a39c0234da1a8578200750b7377aee6c",
       "executable": false
@@ -6123,7 +6131,7 @@
       "executable": false
     },
     "tests/api/return-claims.test.mjs": {
-      "sha256": "68bdb7b425732f7397c04cb4af6e850637ef3c2b17a10b55d967257f08d9fa53",
+      "sha256": "1c0e006b499dae9f1328c55d554cb45a449f5264d0b043af2d004c069d148fb6",
       "executable": false
     },
     "tests/api/sales-report.test.mjs": {
@@ -6350,6 +6358,10 @@
       "sha256": "baf1e77b7a3f4b71cef72ffe523d0c7c20e5a52788978e2cdda539f2e80f2011",
       "executable": false
     },
+    "tests/journeys/order-notices-proof.mjs": {
+      "sha256": "eca3ba384eded4f477cdf07634c08fb498f559362b52e5ad5e889de8a12ae9e6",
+      "executable": false
+    },
     "tests/journeys/payment-promises.test.mjs": {
       "sha256": "aefa944dd3136d015cfe6fd85d2c9fc58a6723bcb413f61962937eea0a13f62a",
       "executable": false
@@ -6383,7 +6395,7 @@
       "executable": false
     },
     "tests/journeys/return-claims.test.mjs": {
-      "sha256": "32072607d616ecb3c9ed8b1ed22b8c3c4ed6f3426dabeda32ceafe52a0327234",
+      "sha256": "c35abc6a0333ab6d4a780c1ad34217a2baddd5bc1b26a43ad13a4dd9c12400f3",
       "executable": false
     },
     "tests/journeys/shipment-tracking-proof.mjs": {

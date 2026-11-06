@@ -259,6 +259,7 @@ export async function eraseCompanyUser(env: Bindings, actor: Actor, p: any) {
   ...campaignErasureStatements('recipient_id',member.userId).map(row=>env.DB.prepare(row.sql).bind(...row.params)),
   env.DB.prepare('DELETE FROM bw_usage_acceptances WHERE user_id=?').bind(member.userId),env.DB.prepare('DELETE FROM bw_profile_approvals WHERE user_id=?').bind(member.userId),
   env.DB.prepare('DELETE FROM bw_approval_notices WHERE recipient_id=? OR delegated_from=?').bind(member.userId, member.userId),
+  env.DB.prepare('DELETE FROM bw_order_notice_reads WHERE user_id=?').bind(member.userId),env.DB.prepare('DELETE FROM bw_order_notice_preferences WHERE user_id=?').bind(member.userId),
  ]
  // Use snapshot revisions so an order edit racing the review cannot be lost.
  for (const table of ['bw_prebooks','bw_orders', 'bw_quotes', 'bw_lists', 'bw_return_claims','bw_campaigns','bw_campaign_segments']) {
