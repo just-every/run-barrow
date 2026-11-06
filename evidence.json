@@ -19,10 +19,10 @@
       "sha256": "22b2dab22a6e429c0a87fab6bea21b4593eb5eff669e774d9f5e46935226aff2"
     },
     {
-      "blob": "ecc6c1d22a4197b5815ffe3c437e7cfea222379c",
-      "bytes": 3693,
+      "blob": "6130f47ec797df07c0379c5f623b152ee7934977",
+      "bytes": 920,
       "path": "ci-failure-excerpt.log",
-      "sha256": "b80ca63eca18871bf27d17020e7d50ef5d749691829ce5fb7d82db95def29c12"
+      "sha256": "ab747183b61eef417efb52ab6b1b71674bfb70fb5adc6ee32dc6dffe468707e3"
     },
     {
       "blob": "99e6e1a89bc347fef6dc16e28108c9fa3a859e96",
@@ -55,10 +55,10 @@
       "sha256": "1d323db7b3b19218d0f639a37f0e8a12d4e2dad1e1e77d3c95f5998d03f56818"
     },
     {
-      "blob": "1e2ffb6e072284618c5ddcf3d75980971a174453",
-      "bytes": 3198,
+      "blob": "b08d44c5c15c880e04369191cffdfd338ed80767",
+      "bytes": 3197,
       "path": "packet-hashes.json",
-      "sha256": "a3c978ac93475644ad47453ae467c29dfee2a07828a60444348372838fb03b0d"
+      "sha256": "6c51d51fb1919031a4619de48ece0738905e3d9468e578af66395ce3d19c1f40"
     },
     {
       "blob": "36cbe4c092c65ca884c51b5df5cd4fd1f961fbfb",

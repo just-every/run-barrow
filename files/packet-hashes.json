@@ -16,8 +16,8 @@
   },
   {
     "file": "ci-failure-excerpt.log",
-    "bytes": 3693,
-    "sha256": "b80ca63eca18871bf27d17020e7d50ef5d749691829ce5fb7d82db95def29c12"
+    "bytes": 920,
+    "sha256": "ab747183b61eef417efb52ab6b1b71674bfb70fb5adc6ee32dc6dffe468707e3"
   },
   {
     "file": "ci-run.json",
