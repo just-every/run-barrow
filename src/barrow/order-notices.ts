@@ -16,6 +16,7 @@ type Row = {id:string;account_id:string;order_id:string;kind:OrderNoticeKind;sou
 
 /** Called in the source transaction. The unique source revision survives retries and concurrent readers. */
 export function orderNoticeStatements(db:D1Database,order:Order,fact:Fact):D1PreparedStatement[] {
+ if(order.noticeHistoryRestored)return []
  return [db.prepare('INSERT OR IGNORE INTO bw_order_notice_accounts(account_id) VALUES(?)').bind(order.accountId),
   db.prepare(`INSERT OR IGNORE INTO bw_order_notices(id,account_id,order_id,kind,source_id,source_revision,source_origin,details_json,created_at)
    SELECT ?,?,?,?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM bw_order_notice_accounts WHERE account_id=? AND active=1)`)
@@ -52,7 +53,9 @@ async function collectDispatches(env:Bindings,actor:Actor,orders:Order[]) {
  const statements:D1PreparedStatement[]=[]
  for(const order of orders) {
   const active=await env.DB.prepare('SELECT active FROM bw_order_notice_accounts WHERE account_id=?').bind(order.accountId).first<{active:number}>()
-  if(active?.active!==1)continue
+  // Upgraded native accounts have no marker until their first validated fact.
+  // Explicit erasure/restore fences must never be reactivated by a read.
+  if(active?.active===0||order.noticeHistoryRestored)continue
   let facts:Fact[]
   try{facts=await dispatchFacts(env,order)}catch{continue}
   for(const fact of facts)statements.push(...orderNoticeStatements(env.DB,order,fact))

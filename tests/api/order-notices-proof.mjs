@@ -4,6 +4,7 @@ import {activateStaff,archive,installation,restore} from './harness.mjs';
 
 // Part of the existing native return sanity journey: notices follow the same original order and decisions.
 export async function proveOrderNotices(t) {
+ await proveUpgradedDispatches(t)
  const f=await returnClaimsFixture(t),{h,pier,buyer,other,product,order}=f;
  const notices=async(who={})=>(await h.api('/api/barrow/order-notices',undefined,who)).notices;
  const source=(notice,who={})=>h.api(notice.sourcePath,undefined,who);
@@ -98,4 +99,31 @@ export async function proveOrderNotices(t) {
  console.log('PROBE AUTO-004 native: accepted order, changed shortfall, split dispatches and partial return decision -> durable source-linked facts; concurrent replay creates no duplicates.');
  console.log('PROBE AUTO-004 authority: personal preference and read state, foreign account, revoked staff and removed locations -> isolated state and refused captured links; no finance fields.');
  console.log('PROBE AUTO-004 custody: scoped JSON and CSV, owner-reviewed erasure and later-journal restore -> complete authorized facts, then empty and inert notice state.');
+}
+
+// Migration fixture: existing native orders remain, only the new 0077 tables start empty.
+async function proveUpgradedDispatches(t) {
+ const f=await returnClaimsFixture(t),{h,pier,buyer,other}=f;
+ let split=await h.command('order.prepare',{accountId:'cedar',reference:'synthetic-barrow-1176',lines:[{sku:'OAT-1',quantity:10}]},buyer);
+ await h.command('order.submit',{orderId:split.id},buyer);split=await h.command('order.approve',{orderId:split.id});
+ await h.db.batch(['bw_order_notice_reads','bw_order_notice_preferences','bw_order_notices','bw_order_notice_accounts'].map(table=>h.db.prepare('DELETE FROM '+table)));
+ // An archive taken before any marker was created is still inert after restore,
+ // even with the original real Pier connection available to the restored owner.
+ const saved=await archive(h),restored=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>restored.close());await restore(restored,saved);
+ const upstream=(await pier.api('/api/pier/state')).orders.find(row=>row.id===split.pierOrderId),dispatches=[];
+ for(const quantity of ['4','6'])dispatches.push(await pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'synthetic-barrow-1177-'+quantity,lines:[{orderLineId:upstream.lines[0].id,quantity}]}));
+ // Unchanged approval/refresh cannot be relied on to create an account marker.
+ await h.command('order.refresh',{orderId:split.id});
+ const notices=async(who=buyer)=>(await h.api('/api/barrow/order-notices',undefined,who)).notices;
+ assert.deepEqual(await notices(other),[]);
+ const reads=await Promise.all([notices(),notices()]),shipments=reads[0].filter(row=>row.orderId===split.id&&row.kind==='shipment');
+ assert.equal(shipments.length,2,'existing approved order captures both actual dispatches after upgrade');
+ assert.deepEqual(new Set(shipments.map(row=>row.sourceId)),new Set(dispatches.map(row=>row.id)));
+ assert.deepEqual(reads[0],reads[1]);assert.deepEqual(await notices(),reads[0]);
+ assert.deepEqual((await Promise.all(shipments.map(row=>h.api(row.sourcePath,undefined,buyer)))).map(row=>row.current.lines[0].quantity).sort(),['4','6']);
+ await h.api(shipments[0].sourcePath,undefined,{...other,status:404});
+ assert.equal(JSON.stringify(shipments).includes('Cents'),false);
+ assert.deepEqual((await restored.api('/api/barrow/order-notices')).notices,[]);
+ assert.deepEqual((await restored.api('/api/barrow/export.json')).ordernotices,[]);
+ console.log('PROBE AUTO-004 upgraded account: two actual Pier dispatches, concurrent native reads and replay -> two durable current-source notices; marker-free archived orders remain inert with real Pier connected.');
 }

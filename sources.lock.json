@@ -2403,7 +2403,7 @@
       "executable": false
     },
     "src/barrow/model.ts": {
-      "sha256": "06f35169d0ba00cfab6ec9b70374814a53b0ccc80c4722c1c6d9b53ebbd75d47",
+      "sha256": "4c6222ef91e9d3bb9293a957369813c7fdac9064ce79f661770de634d3b9be14",
       "executable": false
     },
     "src/barrow/order-followthrough.ts": {
@@ -2411,7 +2411,7 @@
       "executable": false
     },
     "src/barrow/order-notices.ts": {
-      "sha256": "30be0a79523752aafb25f68321bbd4dc7f692940d735eaf7215136db67e67b6b",
+      "sha256": "2b445ae7d1f34344a332b6f238e6c10dd314281e774447cd0b49231bc17eca23",
       "executable": false
     },
     "src/barrow/order-revisions.ts": {
@@ -2447,7 +2447,7 @@
       "executable": false
     },
     "src/barrow/portability-policy.mjs": {
-      "sha256": "80fe124ba029b9006423120a873ac7222580189226aa64648ab05493d389628e",
+      "sha256": "a15163e86df0cacc54ba1ddcb6fa645b85bea6ad1ae32dee3391bde17e2a6c0d",
       "executable": false
     },
     "src/barrow/prebook-intake.ts": {
@@ -6027,7 +6027,7 @@
       "executable": false
     },
     "tests/api/order-notices-proof.mjs": {
-      "sha256": "461b34ad30a0e102eabf267e86cc8a4114f453d657f510fe2c3723ed913ff1e5",
+      "sha256": "a49609b5ac9168c6c37594650956d78ca55ac618d81225fe246f75e4763f2ebb",
       "executable": false
     },
     "tests/api/order-search.test.mjs": {
