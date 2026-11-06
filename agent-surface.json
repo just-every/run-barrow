@@ -366,7 +366,17 @@
       "tool": "barrow.cart.form",
       "args": {
         "accountId": "juniper",
-        "layout": "vertical"
+        "layout": "vertical",
+        "cart": [
+          {
+            "sku": "LINEN",
+            "quantity": 3
+          },
+          {
+            "sku": "HEMP",
+            "quantity": 2
+          }
+        ]
       },
       "expect": [
         {

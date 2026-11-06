@@ -131,7 +131,7 @@
       "executable": false
     },
     "agent-surface.json": {
-      "sha256": "c18fcb6a4c25a455362e51c5ef511a8ef293197c9eac90c3133fd3f145d77e2a",
+      "sha256": "cb752991eebf614cf39a00d821dca17f8b010617de498a230194ddf423a7bce1",
       "executable": false
     },
     "AGENTS.md": {
@@ -179,7 +179,7 @@
       "executable": false
     },
     "docs/AGENT-DOOR.md": {
-      "sha256": "d712ad88406fb3b042b71f5a30263c449d530b48e78577ac6d321152f1468399",
+      "sha256": "9fa59592e492d56ac64fb26291abc0680e8a7e490e961e3764ed579cb5e00f82",
       "executable": false
     },
     "docs/AGENT-PROPOSALS.md": {
@@ -1839,7 +1839,7 @@
       "executable": false
     },
     "src/barrow/agent-door/tools.ts": {
-      "sha256": "9512c9f8745b3a1314281459f855f141c8b32b802a95777b25bc54d7e87074b1",
+      "sha256": "cc8ece8e582f7faa8cf4ea22133aa67aec20cef80987fc20b49a47a38f55f8ae",
       "executable": false
     },
     "src/barrow/agent-door/trust.ts": {
@@ -5822,6 +5822,10 @@
       "sha256": "486f326e970c05cedb67074b35c3bb00b68b4b8bdb779b92750c087f64266907",
       "executable": false
     },
+    "tests/agent-door/cart-form-parity.mjs": {
+      "sha256": "9aeb1599d79a2dc253dba0e41ba7b74685a106555b172a2d70c8978a1e83c836",
+      "executable": false
+    },
     "tests/agent-door/custody.mjs": {
       "sha256": "c3156686e68c256c7013307391db80445bf1484dacff3b99c5c8758ce7840433",
       "executable": false
@@ -5835,7 +5839,7 @@
       "executable": false
     },
     "tests/agent-door/native-journey.mjs": {
-      "sha256": "c7d4fcfc680a8404942e1d68dd5f8407713cef775d34dba2ba38dfe11fb32e07",
+      "sha256": "1cc8c0ad0d56d0cf9146246299612a9772f092f46f0e00d5b50c53f95e4954c8",
       "executable": false
     },
     "tests/agent-door/pier-edge.mjs": {
@@ -5883,7 +5887,7 @@
       "executable": false
     },
     "tests/api/cart-import.test.mjs": {
-      "sha256": "d4c521194d8fa155dcfa862da75bf0e29b99f901649f84a8a84167b2dbbc0370",
+      "sha256": "59e1fcfa6f21f767c009085c76d227f66aa01088c53bc65803d0fc90ca1403a9",
       "executable": false
     },
     "tests/api/case-packs.test.mjs": {
