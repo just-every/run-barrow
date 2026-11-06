@@ -359,7 +359,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "f3d0c5230c964cbf22b09c26b97b80a85fcecd1470c8b4a0a479602763e78bc0",
+      "sha256": "188f4cf1fdf9bc4dcfca41d9e6d36c6da955b50a5d7579d91155878e4937b1a4",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -3011,7 +3011,7 @@
       "executable": false
     },
     "src/barrow/ui/qbo-comparisons.tsx": {
-      "sha256": "7421e0dfdab421dd039cd25920fd9fab685cf06b70aa1d3f91615431548b23fc",
+      "sha256": "48fdbde0e7c484534121c95294e331a3cc6ca7b5c6126bb87d9809c5e8d85510",
       "executable": false
     },
     "src/barrow/ui/qbo-settings.tsx": {
@@ -6231,11 +6231,11 @@
       "executable": false
     },
     "tests/api/xero-accounting.mjs": {
-      "sha256": "e9338956796da941c1a1a35e8aa53ea371d9e9e257b41bde38c9bfc10f10ad4f",
+      "sha256": "b4d6abe3dd38de2f9a76e00fcc5f0b1bd8cb76e3a7e29770c9c3781a1944d2f5",
       "executable": false
     },
     "tests/api/xero-fixture.mjs": {
-      "sha256": "c2be8dc176e119f26a993c3194adca4901d26dab0cd852880e820cd38caddd94",
+      "sha256": "a73a101b3b4d1c58801843ecd7ce999aa478f3c6158159dab4d7ffd43d5fe149",
       "executable": false
     },
     "tests/eastern-day.mjs": {
@@ -6431,7 +6431,7 @@
       "executable": false
     },
     "tests/journeys/xero-accounting.mjs": {
-      "sha256": "ef31e1a1fcc74b22c83a3b3dafe96b71c4b496ba2f8121144fb345549d59a904",
+      "sha256": "c68457e2013a0809ab9043f0c4cf4a7eac9e28a4225fff08cb07b45f89b794c4",
       "executable": false
     },
     "tests/pier-source.mjs": {
