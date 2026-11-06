@@ -7,7 +7,8 @@ import { sealWebhookSecret, openWebhookSecret } from '../webhook-security'
 
 export const xeroKinds=['Contact','Item','Account','TaxCode'] as const
 export type Connection={tenant:string;mode:string;state:string;secret_cipher:string;expires_at:number;revision:string;owner_id:string}
-const scopes=['offline_access','accounting.transactions.read','accounting.contacts.read','accounting.settings.read']
+const scopes=['offline_access','accounting.invoices.read','accounting.contacts.read','accounting.settings.read']
+const legacyInvoiceScope='accounting.transactions.read'
 const authorityKey='barrow-xero/authority.json',callbackPath='/api/barrow/xero/callback'
 export function xeroOwner(actor:Actor){if(actor.agent||actor.staff||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may connect or review Xero.',403)}
 export async function xeroAuthority(env:Bindings,revision:string){
@@ -36,7 +37,9 @@ export async function xeroNetwork(url:string,init:RequestInit={}){
 async function tokens(env:Bindings,fields:Record<string,string>){
  const config=client(env),result=await xeroNetwork('https://identity.xero.com/connect/token',{method:'POST',headers:{Authorization:'Basic '+btoa(config.id+':'+config.secret),'content-type':'application/x-www-form-urlencoded',Accept:'application/json'},body:new URLSearchParams(fields).toString()})
  if(typeof result.access_token!=='string'||!result.access_token||typeof result.refresh_token!=='string'||!result.refresh_token||!Number.isSafeInteger(result.expires_in)||result.expires_in<1||result.expires_in>86400)fail('XERO_RESPONSE','Xero did not return a complete bounded credential.',409)
- if(typeof result.scope!=='string'||scopes.some(scope=>!result.scope.split(' ').includes(scope))||result.scope.split(' ').some((scope:string)=>!scopes.includes(scope)))fail('XERO_SCOPE','Xero did not return exactly the reviewed read-only scopes.',409)
+ const granted=typeof result.scope==='string'?result.scope.trim().split(/\s+/):[]
+ // Existing grants may retain the legacy read permission while tenants migrate.
+ if(scopes.filter(scope=>scope!=='accounting.invoices.read').some(scope=>!granted.includes(scope))||!granted.some((scope:string)=>scope==='accounting.invoices.read'||scope===legacyInvoiceScope)||granted.some((scope:string)=>![...scopes,legacyInvoiceScope].includes(scope)))fail('XERO_SCOPE','Xero did not return the required reviewed read-only permissions.',409)
  return result
 }
 export async function xeroBegin(env:Bindings,actor:Actor,p:any){
@@ -93,7 +96,7 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
  const resource=({Contact:'Contacts',Item:'Items',Account:'Accounts',TaxCode:'TaxRates',Invoice:'Invoices'} as Record<string,string>)[kind]
  const params=new URLSearchParams()
  if(kind==='Invoice'||kind==='Contact'){params.set('page',String(position));params.set('pageSize','50');params.set('order',kind==='Invoice'?'InvoiceID':'ContactID')}
- if(kind==='Invoice'){params.set('where','Type=="ACCREC" AND (Status=="AUTHORISED" OR Status=="PAID")');params.set('summaryOnly','false')}
+ if(kind==='Invoice'){params.set('where','Type=="ACCREC" AND (Status=="AUTHORISED" OR Status=="PAID" OR Status=="VOIDED")');params.set('summaryOnly','false')}
  const result=await xeroNetwork('https://api.xero.com/api.xro/2.0/'+resource+(params.size?'?'+params:''),{headers:{Authorization:'Bearer '+access,'xero-tenant-id':connection.tenant,Accept:'application/json'}})
  let raw=result[resource]
  if(!Array.isArray(raw)||raw.length>((kind==='Invoice'||kind==='Contact')?50:1000))fail('XERO_RESPONSE','Xero did not return the expected bounded entity page.',409)
@@ -102,14 +105,14 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
  const rows=await Promise.all(raw.map(async(r:any)=>{
   if(!r||typeof r!=='object')fail('XERO_RESPONSE','Xero returned an invalid entity.',409)
   if(kind==='Invoice'){
-   if(r.Type!=='ACCREC'||!['AUTHORISED','PAID'].includes(r.Status))fail('XERO_RESPONSE','Only existing authorised receivable invoices are supported.',409)
+   if(r.Type!=='ACCREC'||!['AUTHORISED','PAID','VOIDED'].includes(r.Status))fail('XERO_RESPONSE','Only issued or voided receivable invoices are supported.',409)
    const canonical={Id:r.InvoiceID,ContactRef:{value:r.Contact?.ContactID},CurrencyRef:{value:r.CurrencyCode},TxnDate:day(r.Date),DueDate:day(r.DueDate??r.Date),TotalAmt:r.Total,Balance:r.AmountDue,Line:(r.LineItems??[]).map((l:any)=>({SalesItemLineDetail:{ItemRef:{value:l.ItemCode}},AccountRef:{value:l.AccountCode},TaxCodeRef:{value:l.TaxType}})),MetaData:{LastUpdatedTime:instant(r.UpdatedDateUTC)},Status:r.Status}
    const financialLines=(r.LineItems??[]).map((l:any)=>({item:l.ItemCode??null,account:l.AccountCode??null,taxType:l.TaxType??null,quantity:l.Quantity??null,unitAmount:l.UnitAmount??null,lineAmount:l.LineAmount??null,taxAmount:l.TaxAmount??null,discountRate:l.DiscountRate??null,discountAmount:l.DiscountAmount??null}))
    const narrativeToken=await digest(JSON.stringify({reference:r.Reference??null,number:r.InvoiceNumber??null,descriptions:(r.LineItems??[]).map((l:any)=>l.Description??null)}))
    const commercial={narrativeToken,contact:canonical.ContactRef.value,currency:r.CurrencyCode,date:canonical.TxnDate,due:canonical.DueDate,total:r.Total,subTotal:r.SubTotal??null,totalTax:r.TotalTax??null,lineAmountTypes:r.LineAmountTypes??null,lines:financialLines}
    return {...canonical,CommercialToken:await digest(JSON.stringify(commercial)),SyncToken:await digest(JSON.stringify({...canonical,financialLines}))}
   }
-  const Id=kind==='Contact'?r.ContactID:kind==='Item'?r.Code:kind==='Account'?r.Code:r.TaxType
+  const Id=kind==='Contact'?r.ContactID:kind==='Item'?r.Code:kind==='Account'?(r.Code||r.AccountID):r.TaxType
   const active=kind==='Contact'?r.ContactStatus==='ACTIVE':kind==='Account'?r.Status==='ACTIVE':kind==='TaxCode'?r.Status==='ACTIVE':true
   // Fingerprint only reviewed reference facts; never retain provider contact text.
   return {Id,Active:active,SyncToken:await digest(JSON.stringify({Id,active,updated:r.UpdatedDateUTC??null,account:r.AccountID??null,rate:r.EffectiveRate??null,type:r.Type??null,details:kind==='Item'?r.SalesDetails??null:null}))}

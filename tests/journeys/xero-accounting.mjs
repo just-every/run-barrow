@@ -17,9 +17,10 @@ export async function xeroBrowser(t) {
  await settings.getByRole('button',{name:'Authorize Xero reads',exact:true}).click();const outbound=await authorization;await page.waitForURL(url=>url.hostname==='login.xero.com');await page.waitForLoadState();
  const response=await h.request(f.callback({authorizationUrl:outbound.url()}));assert.equal(response.status,303);await app(page,h);await page.getByRole('button',{name:'Settings',exact:true}).click();await expect(settings).toContainText('Tenant 12345678-1234-4234-8234-123456789012');
  await settings.getByLabel('Review reason',{exact:true}).fill('Owner approved current source references for the native account.');await settings.getByText('Review reference mappings',{exact:true}).click();
+ edge.extraAccounts=[{AccountID:'f2345678-1234-4234-8234-123456789099',Status:'ACTIVE',Type:'BANK'}];
  for(const [kind,target] of [['Contact','cedar'],['Item','OAT-1'],['Account','receivables'],['TaxCode','reviewed tax reference']]) {
   await settings.getByLabel('Reference kind',{exact:true}).selectOption(kind);await settings.getByRole('button',{name:'Read reference page 1',exact:true}).click();
-  await expect(settings.getByLabel('Source reference',{exact:true}).locator('option')).toHaveCount(2);
+  await expect(settings.getByLabel('Source reference',{exact:true}).locator('option')).toHaveCount(kind==='Account'?3:2);
   const ref=(await f.workspace()).references.find(r=>r.kind===kind);await settings.getByLabel('Source reference',{exact:true}).selectOption(ref.source_id);
   if(kind==='Contact')await settings.getByLabel('Native account',{exact:true}).selectOption(target);else await settings.getByLabel(kind==='Item'?'Native SKU':'Reviewed native reference label',{exact:true}).fill(target);
   await settings.getByRole('button',{name:'Approve reference mapping',exact:true}).click();await expect(settings).toContainText(`${kind} ${ref.source_id} → ${target}`);
@@ -33,6 +34,10 @@ export async function xeroBrowser(t) {
  for(const kind of ['CSV','PDF']){const path=await statement.getByRole('link',{name:`Statement (${kind})`,exact:true}).getAttribute('href');const download=await h.request(path,buyer);assert.equal(download.status,200);assert.match(await download.text(),/12345678-1234-4234-8234-123456789012/)}
  await page.getByRole('button',{name:'Data',exact:true}).click();const finance=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Invoice aging and finance',exact:true})}).first();await expect(finance).toContainText('Xero dated comparisons');await expect(finance).toContainText('difference USD 0.00');await captureRegionWidths(page,finance,'xero-finance-comparison');
  edge.balance=75;edge.token='1';const changed=await f.resume(await f.start());assert.equal(changed.state,'complete');await customer.reload();await customer.getByRole('button',{name:'Orders',exact:true}).click();await expect(comparisons).toContainText('Balance differs');await expect(comparisons).toContainText('difference USD 55.00');await captureRegionWidths(customer,statement,'xero-balance-conflict');
+ edge.invoiceStatus='VOIDED';edge.balance=0;await f.resume(await f.start());await customer.reload();await customer.getByRole('button',{name:'Orders',exact:true}).click();
+ await expect(comparisons).toContainText('Upstream invoice voided');await expect(comparisons).toContainText('difference USD 130.00');await expect(comparisons.getByRole('link',{name:'Xero 100',exact:true})).toBeVisible();
+ const tasks=(await h.command('followup.refresh',{})).tasks.filter(row=>row.kind==='xero'&&row.status==='open');assert.ok(tasks.some(row=>row.ownerId&&row.sourcePath.startsWith('/api/barrow/xero/observations/')));
+ await captureRegionWidths(customer,statement,'xero-voided-source-conflict');
  await page.getByRole('button',{name:'Settings',exact:true}).click();await settings.getByLabel('Review reason',{exact:true}).fill('Owner revokes further company reads.');await settings.getByRole('button',{name:'Disconnect and revoke Xero',exact:true}).click();await expect(settings).toContainText('Xero is not connected.');await expect(settings).toContainText('Xero acknowledged revocation.');await captureRegionWidths(page,settings,'xero-revoked');
  for(const region of [settings,statement]) {
   const small=await region.locator('*').evaluateAll(elements=>elements.filter(e=>e.checkVisibility()&&[...e.childNodes].some(n=>n.nodeType===Node.TEXT_NODE&&n.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<13).map(e=>e.tagName));assert.deepEqual(small,[]);

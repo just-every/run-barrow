@@ -339,7 +339,7 @@
       "executable": false
     },
     "docs/XERO.md": {
-      "sha256": "12e9336c9af85b0bffa018ca6221f11bc0c5a8360d2d9f0736471bc6b2195bda",
+      "sha256": "00d43394e9ce62f61fdd097beb9a8c593f1659e169fb6c2f5c71e14d33f6eaa6",
       "executable": false
     },
     "edition.json": {
@@ -1815,11 +1815,11 @@
       "executable": false
     },
     "src/barrow/accounting/xero-reconciliation.ts": {
-      "sha256": "1f154975945e05a6cea2d832cc72a0e88a6f92e2ef5db5b24f19af66abd55549",
+      "sha256": "813733d422c714aca6d78b867f4afd8ce41e4e8c83714bb0bafa1e7e96291f6b",
       "executable": false
     },
     "src/barrow/accounting/xero.ts": {
-      "sha256": "90c36c3d820e84f748bfe52bf7bd16ac62bfc5a958627d84f97b6a89af4afcd3",
+      "sha256": "df34089d0ef9ad09bbce50b9b9a22b9a20d83c27abe278f56cefa30537f94596",
       "executable": false
     },
     "src/barrow/accounts.ts": {
@@ -2675,7 +2675,7 @@
       "executable": false
     },
     "src/barrow/staff-access.ts": {
-      "sha256": "5dc8d3dd2cff330c65e6b160e04d17ea013a934f621826d1936e5afc3fced6f0",
+      "sha256": "330eb145c7d03a31e3ff45c390b9edfe0020c853a4c35ffe9b9a4a66cb6b8636",
       "executable": false
     },
     "src/barrow/staff-members.ts": {
@@ -6235,11 +6235,11 @@
       "executable": false
     },
     "tests/api/xero-accounting.mjs": {
-      "sha256": "97b7bdb24e3f67f2f60181c769c11207677c08ef2584f1946d3f2ac23209c235",
+      "sha256": "1d9536b94c150a0953625244036fa39115db6605f6b8ed88affe315a0bacff42",
       "executable": false
     },
     "tests/api/xero-fixture.mjs": {
-      "sha256": "7d33046f6908a30ff2063280b204a975b7c01bdc4025d5a437ce9adc96aa1eca",
+      "sha256": "c33b0b53cd94374861973a3a5767c897af09638f46bd0e184a655d337f991b75",
       "executable": false
     },
     "tests/eastern-day.mjs": {
@@ -6435,7 +6435,7 @@
       "executable": false
     },
     "tests/journeys/xero-accounting.mjs": {
-      "sha256": "c68457e2013a0809ab9043f0c4cf4a7eac9e28a4225fff08cb07b45f89b794c4",
+      "sha256": "4c2c57494a9408c86e8ec5ac6e968435b2c3dc7c0ed1f0b7d52cf0815f4a365b",
       "executable": false
     },
     "tests/pier-source.mjs": {
