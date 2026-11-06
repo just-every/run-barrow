@@ -61,7 +61,7 @@ export function BarrowApp() {
   const [signingOut, setSigningOut] = useState(false)
   const lock = useRef(false)
   const loaded = useRef(false)
-  const [tab, setTab] = useState('')
+  const [tab, setTab] = useState(() => typeof window!=='undefined'&&new URLSearchParams(window.location.search).has('qbo')?'Settings':'')
   const [accountId, setAccountId] = useState('')
   const [draftId, setDraftId] = useState('')
   const legacySupplier=state?.actor.role==='owner'||state?.actor.role==='admin',staff=state?.actor.staff,staffSelling=staff?.role==='sales-manager'||staff?.role==='rep'

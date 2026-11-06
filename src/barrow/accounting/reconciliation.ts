@@ -7,7 +7,7 @@ import { digest } from '../digest'
 import { now } from '../clock'
 import { fail, supplierDate, text, type Actor, type Order } from '../model'
 import type { FollowupSource } from '../followup-sources'
-import { qboConnection,qboOwner,qboQuery,qboGuard,qboKinds,type Connection } from './qbo'
+import { qboAuthority,qboConnection,qboOwner,qboQuery,qboGuard,qboKinds,type Connection } from './qbo'
 
 type Mapping={realm:string;kind:string;source_id:string;token:string;native_id:string;native_revision:string;revision:string}
 export type QboInvoice={provider:'qbo';id:string;runId:string;realm:string;sourceId:string;sourceToken:string;customerId:string;accountId:string;currency:string;issuedAt:string;dueAt:string;amountCents:number;balanceCents:number;observedAt:string;latestFinancialAt:string;createdAt:string;refs:{kind:string;id:string}[]}
@@ -49,7 +49,8 @@ export async function saveMapping(env:Bindings,actor:Actor,p:any) {
   if(!exists)fail('INPUT','Choose an existing native price-book SKU.',400)
  }
  // Account and TaxCode targets are explicitly reviewed supplier reference labels, not tax approval or financial write authority.
- await commit(env.DB,actor,[qboGuard(env.DB,connection),...guards,await mappingGuards(env.DB),env.DB.prepare('INSERT INTO bw_qbo_maps VALUES(?,?,?,?,?,?,?) ON CONFLICT(realm,kind,source_id) DO UPDATE SET token=excluded.token,native_id=excluded.native_id,native_revision=excluded.native_revision,revision=excluded.revision').bind(connection.realm,p.kind,sourceId,reference.token,nativeId,nativeRevision,revision),audit(env.DB,actor,p.kind==='Customer'?nativeId:'qbo','qbo.mapping-reviewed',{accountId:p.kind==='Customer'?nativeId:undefined,revision,source:'qbo.mapping',reason})])
+ guards.push(env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_qbo_refs WHERE realm=? AND kind=? AND source_id=? AND token=? AND active=1) THEN 1 ELSE 0 END').bind(connection.realm,p.kind,sourceId,reference.token))
+ await commit(env.DB,actor,[qboGuard(env.DB,connection),...guards,await mappingGuards(env.DB),env.DB.prepare('INSERT INTO bw_qbo_maps VALUES(?,?,?,?,?,?,?) ON CONFLICT(realm,kind,source_id) DO UPDATE SET token=excluded.token,native_id=excluded.native_id,native_revision=excluded.native_revision,revision=excluded.revision').bind(connection.realm,p.kind,sourceId,reference.token,nativeId,nativeRevision,revision),audit(env.DB,actor,p.kind==='Customer'?nativeId:'qbo','qbo.mapping-reviewed',{accountId:p.kind==='Customer'?nativeId:undefined,revision,source:'qbo.mapping',reason:`${reason} Company ${connection.realm}; ${p.kind} source ${sourceId} revision ${reference.token}; native ${nativeId}.`})])
  return {revision}
 }
 function cents(value:unknown) {
@@ -80,6 +81,7 @@ export async function resumeRead(env:Bindings,actor:Actor,p:any) {
  if(run.as_of!==supplierDate(await now()))fail('QBO_DATE','The observation date changed. Start a fresh dated read.')
  const maps=(await values(env.DB)).results.filter(m=>m.realm===run.realm),accountGuards:D1PreparedStatement[]=[]
  const refs=(await env.DB.prepare('SELECT * FROM bw_qbo_refs WHERE realm=?').bind(run.realm).all<{kind:string;source_id:string;token:string;active:number}>()).results
+ accountGuards.push(...maps.map(m=>env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_qbo_refs WHERE realm=? AND kind=? AND source_id=? AND token=? AND active=1) THEN 1 ELSE 0 END').bind(m.realm,m.kind,m.source_id,m.token)))
  if(maps.some(m=>!refs.some(r=>r.kind===m.kind&&r.source_id===m.source_id&&r.token===m.token&&r.active===1)))fail('QBO_STALE','A source reference changed; review its current mapping before another read.')
  for(const map of maps.filter(m=>m.kind==='Customer')) {
   const a=await account(env.DB,actor,map.native_id)
@@ -134,8 +136,10 @@ export async function linkInvoice(env:Bindings,actor:Actor,p:any) {
  if(!order.invoice||order.currency!==value.currency||order.totalCents!==value.amountCents)fail('QBO_CONFLICT','Native invoice currency or total differs. Resolve the source conflict without overwriting the issued document.')
  const previous=await env.DB.prepare('SELECT order_id FROM bw_qbo_links WHERE realm=? AND source_id=?').bind(c.realm,value.sourceId).first<{order_id:string}>()
  if(previous&&previous.order_id!==order.id)fail('QBO_DUPLICATE','This source invoice is already linked to another native invoice.')
+ const other=await env.DB.prepare('SELECT source_id FROM bw_qbo_links WHERE realm=? AND order_id=?').bind(c.realm,order.id).first<{source_id:string}>()
+ if(other&&other.source_id!==value.sourceId)fail('QBO_DUPLICATE','This native invoice already has a different source invoice in this company.')
  const revision=crypto.randomUUID()
- await commit(env.DB,actor,[qboGuard(env.DB,c),env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_orders WHERE id=? AND revision=?) AND EXISTS(SELECT 1 FROM bw_qbo_invoices WHERE id=? AND revision=?) AND EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(order.id,native.revision,row.id,row.revision,a.id,a.revision),env.DB.prepare('INSERT INTO bw_qbo_links VALUES(?,?,?,?,?) ON CONFLICT(realm,source_id) DO UPDATE SET revision=excluded.revision WHERE bw_qbo_links.order_id=excluded.order_id').bind(c.realm,value.sourceId,order.id,a.id,revision),env.DB.prepare('UPDATE bw_qbo_invoices SET order_id=? WHERE id=?').bind(order.id,row.id),audit(env.DB,actor,order.id,'qbo.invoice-linked',{accountId:a.id,orderId:order.id,revision,source:'qbo.link',reason})])
+ await commit(env.DB,actor,[qboGuard(env.DB,c),env.DB.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_orders WHERE id=? AND revision=?) AND EXISTS(SELECT 1 FROM bw_qbo_invoices WHERE id=? AND revision=?) AND EXISTS(SELECT 1 FROM bw_accounts WHERE id=? AND revision=?) THEN 1 ELSE 0 END').bind(order.id,native.revision,row.id,row.revision,a.id,a.revision),env.DB.prepare('INSERT INTO bw_qbo_links VALUES(?,?,?,?,?) ON CONFLICT(realm,source_id) DO UPDATE SET revision=excluded.revision WHERE bw_qbo_links.order_id=excluded.order_id').bind(c.realm,value.sourceId,order.id,a.id,revision),env.DB.prepare('UPDATE bw_qbo_invoices SET order_id=? WHERE id=?').bind(order.id,row.id),audit(env.DB,actor,order.id,'qbo.invoice-linked',{accountId:a.id,orderId:order.id,revision,source:'qbo.link',reason:`${reason} Company ${c.realm}; source invoice ${value.sourceId} revision ${value.sourceToken}; observation ${value.id}.`})])
  return {orderId:order.id,sourceId:value.sourceId,revision}
 }
 export async function qboComparisons(db:D1Database,accountId:string,asOf:string,native:Map<string,number>) {
@@ -152,7 +156,7 @@ export async function qboComparisons(db:D1Database,accountId:string,asOf:string,
   const refs=(await db.prepare('SELECT * FROM bw_qbo_refs WHERE realm=?').bind(value.realm).all<{kind:string;source_id:string;token:string;active:number}>()).results
   const a=await db.prepare('SELECT revision FROM bw_accounts WHERE id=?').bind(accountId).first<{revision:string}>()
   const stale=value.refs.some(ref=>!maps.some(m=>m.realm===value.realm&&m.kind===ref.kind&&m.source_id===ref.id&&refs.some(r=>r.kind===m.kind&&r.source_id===m.source_id&&r.token===m.token&&r.active===1)&&(m.kind!=='Customer'||m.native_revision===a?.revision)))
-  const nativeCents=order?.invoice&&order.currency===value.currency?invoiceOutstanding(order.id,order.totalCents,financial):null
+  const nativeCents=order?.invoice&&order.currency===value.currency?invoiceOutstanding(order.id,order.totalCents,{...financial,allocations:financial.allocations.filter(r=>supplierDate(new Date(r.createdAt))<=asOf),applications:financial.applications.filter(r=>supplierDate(new Date(r.createdAt))<=asOf)}):null
   const conflict=stale?'Reference mapping missing or stale':!order?'Unlinked ledger invoice':order.currency!==value.currency?'Currency mismatch':order.totalCents!==value.amountCents?'Upstream invoice total changed':order.invoice?.issuedAt!==value.issuedAt||order.invoice?.dueAt!==value.dueAt?'Invoice dates differ':nativeCents!==value.balanceCents?'Balance differs':'Matched'
   return {id:value.id,sourceId:value.sourceId,sourceToken:value.sourceToken,realm:value.realm,accountId,currency:value.currency,amountCents:value.amountCents,ledgerCents:value.balanceCents,nativeCents,orderId:order?.id??'',status:conflict,path:`/api/barrow/qbo/observations/${value.id}`}
  }))
@@ -161,10 +165,11 @@ export async function qboComparisons(db:D1Database,accountId:string,asOf:string,
 }
 export async function qboWorkspace(env:Bindings,actor:Actor) {
  qboOwner(actor);const connection=await qboConnection(env.DB)
+ let authorityCurrent=true;if(connection)try{await qboAuthority(env,connection.revision)}catch{authorityCurrent=false}
  const references=(await env.DB.prepare('SELECT * FROM bw_qbo_refs ORDER BY realm,kind,source_id').all()).results
  const mappings=(await values(env.DB)).results,runs=(await env.DB.prepare('SELECT * FROM bw_qbo_runs ORDER BY updated_at DESC LIMIT 20').all()).results
  const observations=(await env.DB.prepare('SELECT * FROM bw_qbo_invoices ORDER BY rowid DESC LIMIT 200').all<Stored>()).results.map(row=>({...JSON.parse(row.value_json),revision:row.revision,orderId:row.order_id}))
- return {configured:!!connection,connection:connection?{realm:connection.realm,mode:connection.mode,state:connection.state,revision:connection.revision}:null,references,mappings,runs,observations,today:supplierDate(await now()),note:'Read-only QBO observations. Current dated balances are comparisons, not verified native payments. Provider copies remain separate; no provider erasure or financial write is performed.'}
+ return {configured:!!connection,connection:connection?{realm:connection.realm,mode:connection.mode,state:authorityCurrent?connection.state:'reconnect',revision:connection.revision}:null,references,mappings,runs,observations,today:supplierDate(await now()),note:'Read-only QBO observations. Current dated balances are comparisons, not verified native payments. Provider copies remain separate; no provider erasure or financial write is performed.'}
 }
 export async function qboObservation(env:Bindings,actor:Actor,key:string) {
  const row=await env.DB.prepare('SELECT * FROM bw_qbo_invoices WHERE id=?').bind(key).first<Stored>()
@@ -179,8 +184,8 @@ export async function qboExceptionSources(env:Bindings) {
  const accounts=(await env.DB.prepare('SELECT DISTINCT account_id FROM bw_qbo_invoices WHERE account_id<>?').bind('').all<{account_id:string}>()).results
  for(const a of accounts)for(const comparison of await qboComparisons(env.DB,a.account_id,run.as_of,new Map()))for(const source of comparison.sources) {
   const key='qbo:'+source.realm+':'+source.sourceId
-  if(source.status==='Matched')resolved.set(key,'Source-linked QuickBooks invoice and native outstanding match in dated observation '+run.as_of+'.')
-  else candidates.push({id:key,kind:'qbo',accountId:a.account_id,sourceId:source.sourceId,sourcePath:source.path,title:'Review QuickBooks invoice '+source.sourceId,reason:`${source.status}; ${source.currency}, company ${source.realm}, correlation ${comparison.runId}, observed ${comparison.observedAt}.`,priority:1})
+  if(source.status==='Matched'&&run.as_of===supplierDate(await now()))resolved.set(key,'Source-linked QuickBooks invoice and native outstanding match in dated observation '+run.as_of+'.')
+  else candidates.push({id:key,kind:'qbo',accountId:a.account_id,sourceId:source.sourceId,sourcePath:source.path,title:'Review QuickBooks invoice '+source.sourceId,reason:`${run.as_of===supplierDate(await now())?source.status:'Dated ledger observation needs refresh'}; ${source.currency}, company ${source.realm}, correlation ${comparison.runId}, observed ${comparison.observedAt}.`,priority:1})
  }
  return {candidates,resolved}
 }

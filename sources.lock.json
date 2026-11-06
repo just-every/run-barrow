@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "410de5ef6633fe4686799ac15f556a9bb87d8782a3743bf154f5fec1a49ee915",
+      "sha256": "ddb91433102e759c12b4fdf5d93edfb5e1407a751196b9d4d9f009fc82c645c4",
       "executable": false
     },
     "DEMO.md": {
@@ -280,6 +280,10 @@
     },
     "docs/PRICING.md": {
       "sha256": "c19e4d94553eab36cca361f9eebad035139ed636e3d985a25fbc3fdfa6997aed",
+      "executable": false
+    },
+    "docs/QBO.md": {
+      "sha256": "1b658111ddf9e105e86caa03cd84fb624f4d017e3aa7587ca6df1e448b9799d5",
       "executable": false
     },
     "docs/QUOTE-NOTIFICATIONS.md": {
@@ -1787,11 +1791,11 @@
       "executable": false
     },
     "src/barrow/accounting/qbo.ts": {
-      "sha256": "124e906bfd5dcd5567a1e95f33b81c90c8348b2b9e587b8ddeb033194b15fe87",
+      "sha256": "6f561b82920e2b371a86aa8eee8f10176f2c3c8830f84bf636e21a0b283ef270",
       "executable": false
     },
     "src/barrow/accounting/reconciliation.ts": {
-      "sha256": "dfa0fca1a87500b2c47a52cdc6c5d3d4f6a7cf2251eb62f14245082295988b1f",
+      "sha256": "e258d159a77b4ae8eeac089d3284c52e973d0b6e3891ea9800fc087843b525f9",
       "executable": false
     },
     "src/barrow/accounts.ts": {
@@ -2727,7 +2731,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "7a0dd3771369dd7a5f369a6f33c8b98127d0e78f86b723a25a9e1960f12ceac2",
+      "sha256": "c2cac17a173d192094d1268e4308fdf50f09b075d497616ed392e6d1c3ac9c65",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -2991,7 +2995,7 @@
       "executable": false
     },
     "src/barrow/ui/qbo-settings.tsx": {
-      "sha256": "4a0e08144b81c0f2421223d603e881f9e2ed919c20dfe416c998e3c5f9541341",
+      "sha256": "adea9fc58435f5d43deeed25e18b0f15b9e4ef9d413c4e750dc94ed2f0a3b280",
       "executable": false
     },
     "src/barrow/ui/quote-report.tsx": {
@@ -6059,11 +6063,11 @@
       "executable": false
     },
     "tests/api/qbo-accounting.mjs": {
-      "sha256": "e9040dbca4651785fc7a4f5412a7221475c7b317fdf4a76cb5b6dbde76bcbaaf",
+      "sha256": "0fc714424ce948c8b2298b531518e381371c8007a912b5733f731502f4eea4de",
       "executable": false
     },
     "tests/api/qbo-fixture.mjs": {
-      "sha256": "20c3a799fc4ec8ad3ed63fd911aa1d731cb400dc67bd26e18e11df9107029d94",
+      "sha256": "80b1db1d6e230a8e9d7948e89aa365ff40ba25ed2032dfb7f4f8ac92d8531347",
       "executable": false
     },
     "tests/api/quote-delivery.test.mjs": {
@@ -6339,11 +6343,15 @@
       "executable": false
     },
     "tests/journeys/pricing.test.mjs": {
-      "sha256": "7b1801f2d8dab325be6a4de4286007a4433025bbdd540680f930fd3959a8dc6a",
+      "sha256": "4f2aa5ca6cddf525df33efcd6cc152b8dfae17208b12d1d0902d7aa3d3130fd5",
       "executable": false
     },
     "tests/journeys/promotions.test.mjs": {
       "sha256": "e260814df86b5fc807ddaf65a4c7a8be03ff9ce0d669f752f99184797f470318",
+      "executable": false
+    },
+    "tests/journeys/qbo-accounting.mjs": {
+      "sha256": "9d9f6e753950ceee22e459458f4a408530f0b589518a1129623d49590015e987",
       "executable": false
     },
     "tests/journeys/reorder.test.mjs": {

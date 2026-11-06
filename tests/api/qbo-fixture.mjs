@@ -2,12 +2,12 @@ import assert from 'node:assert/strict';
 import {installation,stock,accountValue} from './harness.mjs';
 export async function qboFixture(t,options={}) {
  const pier=await installation({pier:true});t.after(()=>pier.close());const products=await stock(pier,'500');
- const edge={count:1,fail:false,revoked:false,currency:'USD',total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',calls:[],refreshes:0};
+ const edge={count:1,fail:false,revoked:false,currency:'USD',total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',expiresIn:3600,calls:[],refreshes:0};
  const bindings={PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,QBO_CLIENT_ID:'synthetic-barrow-901',QBO_CLIENT_SECRET:'synthetic-barrow-902'};
  const h=await installation({...options,https:true,clock:'2026-11-06T15:00:00Z',bindings,networkEdge:async request=>{
   const url=new URL(request.url);if(!url.hostname.endsWith('intuit.com'))return;
   edge.calls.push({host:url.hostname,path:url.pathname,method:request.method});
-  if(url.pathname.endsWith('/tokens/bearer')){const form=new URLSearchParams(await request.text());if(form.get('grant_type')==='refresh_token')edge.refreshes++;return Response.json({access_token:'synthetic-barrow-903',refresh_token:'synthetic-barrow-904',expires_in:3600})}
+  if(url.pathname.endsWith('/tokens/bearer')){const form=new URLSearchParams(await request.text());if(form.get('grant_type')==='refresh_token')edge.refreshes++;return Response.json({access_token:'synthetic-barrow-903',refresh_token:'synthetic-barrow-904',expires_in:edge.expiresIn})}
   if(url.pathname.endsWith('/tokens/revoke')){edge.revoked=true;return new Response(null,{status:200})}
   assert.equal(url.pathname,'/v3/company/123456/query');assert.equal(request.method,'GET');assert.equal(request.headers.get('authorization'),'Bearer synthetic-barrow-903');
   if(edge.fail)return Response.json({Fault:{Error:[{Message:'synthetic-barrow-905'}]}},{status:503});

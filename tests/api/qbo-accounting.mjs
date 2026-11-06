@@ -6,12 +6,12 @@ export async function qboAccounting(t) {
  const f=await qboFixture(t),{h,pier,edge,buyer,order}=f;
  // OAuth initiation, company binding and exact signed-in person authority through HTTP.
  await h.command('qbo.begin',{realm:'123456',mode:'sandbox',consent:true,reason:'Buyer cannot authorize company accounting.'},{...buyer,status:403});
- const authorization=await f.begin();assert.equal((await h.request(f.callback(authorization),buyer)).status,403);
+ edge.expiresIn=1;const authorization=await f.begin();assert.equal((await h.request(f.callback(authorization),buyer)).status,403);
  assert.equal((await h.request(f.callback(authorization).replace('realmId=123456','realmId=999999'))).status,403);
  {const response=await h.request(f.callback(authorization));assert.equal(response.status,303,JSON.stringify({body:await response.text(),calls:edge.calls}));}assert.equal((await h.request(f.callback(authorization))).status,403);
  const {token}=await h.api('/api/barrow/agent-token',{});const agent={as:'',headers:{authorization:'Bearer '+token}};
  assert.equal((await h.request('/api/barrow/qbo',agent)).status,403);
- await f.mappings();
+ edge.expiresIn=3600;await f.mappings();assert.equal(edge.refreshes,1);
  // One bounded page persists 50 observations, then failure leaves the checkpoint unchanged and owned.
  edge.count=50;let run=await f.start();run=await f.resume(run);assert.equal(run.state,'reading');assert.equal(run.position,51);
  edge.fail=true;await h.command('qbo.resume',{id:run.id,revision:run.revision,reason:'Resume interrupted read.'},{status:409});
@@ -23,6 +23,7 @@ export async function qboAccounting(t) {
  // New fully observed run is the sole current comparison basis. No native financial row is rewritten.
  edge.count=1;run=await f.resume(await f.start());state=await f.workspace();let observation=state.observations.find(o=>o.runId===run.id);
  await h.command('qbo.link',{id:observation.id,revision:observation.revision,orderId:order.id,orderRevision:order.revision,reason:'Review exact existing native invoice against this company source.'});
+ const duplicate=state.observations.find(o=>o.sourceId==='101');await h.command('qbo.link',{id:duplicate.id,revision:duplicate.revision,orderId:order.id,orderRevision:order.revision,reason:'A second source invoice cannot reuse the same native invoice.'},{status:409});
  let statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);
  assert.deepEqual(statement.ledgerComparisons.map(r=>[r.currency,r.nativeCents,r.ledgerCents,r.differenceCents,r.status]),[['USD',13000,13000,0,'Matched']]);assert.equal(statement.ledgerComparisons[0].sources[0].sourceId,'100');
  for(const suffix of ['.csv','.pdf']){const output=await (await h.request('/api/barrow/statements/cedar'+suffix+'?to=2026-11-06',buyer)).text();assert.ok(output.includes('123456')&&output.includes('100')&&output.includes('Matched'))}
@@ -55,6 +56,8 @@ export async function qboAccounting(t) {
  const restored=await installation();t.after(()=>restored.close());await restore(restored,before);assert.equal((await restored.api('/api/barrow/qbo')).configured,false);assert.ok((await restored.db.prepare('SELECT * FROM bw_qbo_erased').all()).results.some(r=>r.customer_id==='10'));
  const raw=await restored.db.prepare('SELECT value_json FROM bw_orders WHERE id=?').bind(order.id).first();assert.ok(JSON.parse(raw.value_json).invoice);
  // Local disconnect ends read authority and provider revocation is reported accurately.
- state=await f.workspace();const disconnected=await h.command('qbo.disconnect',{revision:state.connection.revision,reason:'Owner revokes the original company connection.'});assert.equal(disconnected.providerRevoked,true);assert.equal(edge.revoked,true);assert.equal((await f.workspace()).configured,false);await h.command('qbo.resume',{id:run.id,revision:run.revision,reason:'Revoked connection cannot resume.'},{status:409});
+ state=await f.workspace();const oldConnection=await h.db.prepare('SELECT * FROM bw_qbo_connection').first();const disconnected=await h.command('qbo.disconnect',{revision:state.connection.revision,reason:'Owner revokes the original company connection.'});assert.equal(disconnected.providerRevoked,true);assert.equal(edge.revoked,true);assert.equal((await f.workspace()).configured,false);await h.command('qbo.resume',{id:run.id,revision:run.revision,reason:'Revoked connection cannot resume.'},{status:409});
+ await h.db.prepare('INSERT INTO bw_qbo_connection VALUES(1,?,?,?,?,?,?,?)').bind(oldConnection.realm,oldConnection.mode,oldConnection.state,oldConnection.secret_cipher,oldConnection.expires_at,oldConnection.revision,oldConnection.owner_id).run();
+ const calls=edge.calls.length;await h.command('qbo.references',{kind:'Customer',reason:'A D1 rewind cannot resurrect independently revoked credentials.'},{status:409});assert.equal(edge.calls.length,calls);assert.equal((await f.workspace()).connection.state,'reconnect');
  const audit=await (await h.request('/api/barrow/audit.csv?search=qbo')).text();assert.ok(audit.includes('qbo.mapping-reviewed')&&audit.includes('qbo.invoice-linked')&&audit.includes('qbo.disconnected'));assert.ok(!audit.includes('synthetic-barrow-903')&&!audit.includes('synthetic-barrow-904'));
 }

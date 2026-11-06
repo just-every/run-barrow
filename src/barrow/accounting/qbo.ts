@@ -9,6 +9,16 @@ export const qboKinds = ['Customer','Item','Account','TaxCode'] as const
 export type QboKind = typeof qboKinds[number]
 export type Connection = { realm:string; mode:string; state:string; secret_cipher:string; expires_at:number; revision:string; owner_id:string }
 export function qboOwner(actor:Actor) { if(actor.agent||actor.staff||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may connect or review QuickBooks.',403) }
+const authorityKey='barrow-qbo/authority.json'
+export async function qboAuthority(env:Bindings,revision:string) {
+ if(!env.ERASURE_JOURNAL)fail('QBO_CUSTODY','Configure the independent custody journal before connecting QuickBooks.')
+ const record=await env.ERASURE_JOURNAL.get(authorityKey),value=record?await record.json<{revision:string;state:string}>():null
+ if(value?.state!=='active'||value.revision!==revision)fail('QBO_REVOKED','This connection was revoked or restored without current independent authority. Disconnect and consent again.')
+}
+async function writeAuthority(env:Bindings,revision:string,state:string) {
+ if(!env.ERASURE_JOURNAL)fail('QBO_CUSTODY','Configure the independent custody journal before connecting QuickBooks.')
+ await env.ERASURE_JOURNAL.put(authorityKey,JSON.stringify({revision,state}))
+}
 export const qboConnection = (db:D1Database) => db.prepare('SELECT * FROM bw_qbo_connection WHERE singleton=1').first<Connection>()
 export function qboGuard(db:D1Database,c:Connection) { return db.prepare('INSERT INTO bw_guard(value) SELECT CASE WHEN EXISTS(SELECT 1 FROM bw_qbo_connection WHERE singleton=1 AND revision=? AND state=?) THEN 1 ELSE 0 END').bind(c.revision,c.state) }
 const callbackPath='/api/barrow/qbo/callback'
@@ -33,7 +43,7 @@ async function tokens(env:Bindings,fields:Record<string,string>) {
  return result
 }
 export async function qboBegin(env:Bindings,actor:Actor,p:any) {
- qboOwner(actor); const config=client(env),realm=text(p.realm,'QuickBooks company ID',100),reason=text(p.reason,'Connection reason',1000)
+ qboOwner(actor); if(!env.ERASURE_JOURNAL)fail('QBO_CUSTODY','Configure the independent custody journal before connecting QuickBooks.');const config=client(env),realm=text(p.realm,'QuickBooks company ID',100),reason=text(p.reason,'Connection reason',1000)
  if(!/^\d+$/.test(realm)||!['sandbox','production'].includes(p.mode))fail('INPUT','Enter the exact numeric company ID and select sandbox or production.',400)
  if(p.consent!==true)fail('CONSENT','Review separate QuickBooks custody and consent explicitly. The provider accounting scope is broad; Barrow only reads.',400)
  if(await qboConnection(env.DB))fail('QBO_CONNECTED','Disconnect the existing company before replacing it.',409)
@@ -52,12 +62,14 @@ export async function qboCallback(env:Bindings,actor:Actor,url:URL) {
  if(await qboConnection(env.DB))fail('QBO_CONNECTED','A company is already connected.',409)
  const token=await tokens(env,{grant_type:'authorization_code',code,redirect_uri:client(env).redirect}),revision=crypto.randomUUID()
  const secret=await sealWebhookSecret(env,'qbo:'+realm,JSON.stringify({access:token.access_token,refresh:token.refresh_token}))
+ await writeAuthority(env,revision,'active')
  await commit(env.DB,actor,[env.DB.prepare('INSERT INTO bw_qbo_connection VALUES(1,?,?,?,?,?,?,?)').bind(realm,pending.mode,'connected',secret,(await now()).getTime()+token.expires_in*1000,revision,actor.id),audit(env.DB,actor,'qbo','qbo.connected',{revision,source:'qbo.callback',reason:'Owner completed company-bound OAuth; encrypted credentials stay server-side and outside archives.'})])
  return new Response(null,{status:303,headers:{location:'/app?qbo=connected','cache-control':'no-store','referrer-policy':'no-referrer'}})
 }
 export async function qboAccess(env:Bindings,actor:Actor) {
  qboOwner(actor);let connection=await qboConnection(env.DB)
  if(!connection||connection.state!=='connected'||!connection.secret_cipher)fail('QBO_DISCONNECTED','Reconnect QuickBooks with explicit owner consent.',409)
+ await qboAuthority(env,connection.revision)
  let secret=JSON.parse(await openWebhookSecret(env,'qbo:'+connection.realm,connection.secret_cipher))
  if(connection.expires_at<=(await now()).getTime()+30000) {
   // Refresh uses a lease so rotating provider credentials are never consumed twice concurrently.
@@ -88,6 +100,8 @@ export async function qboDisconnect(env:Bindings,actor:Actor,p:any) {
  if(!c||c.revision!==p.revision)fail('CHANGED','Refresh the current QuickBooks connection.')
  let refresh:string|null=null
  if(c.secret_cipher)refresh=JSON.parse(await openWebhookSecret(env,'qbo:'+c.realm,c.secret_cipher)).refresh
+ // Independent revocation survives D1 rewind, even when provider revocation is unavailable.
+ await writeAuthority(env,crypto.randomUUID(),'revoked')
  // Local access ends first, even when provider revocation is unavailable.
  await commit(env.DB,actor,[qboGuard(env.DB,c),env.DB.prepare('DELETE FROM bw_qbo_connection WHERE singleton=1'),env.DB.prepare('DELETE FROM bw_qbo_oauth'),env.DB.prepare("UPDATE bw_qbo_runs SET state='disconnected',error='Owner disconnected; reconnect and start a newly reviewed read.' WHERE state<>'complete'"),audit(env.DB,actor,'qbo','qbo.disconnected',{revision:crypto.randomUUID(),source:'qbo.disconnect',reason})])
  let providerRevoked=false
