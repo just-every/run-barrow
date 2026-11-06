@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
-import {xeroFixture} from './xero-fixture.mjs';
-import {activateStaff,archive,restore,installation,accountValue} from './harness.mjs';
+import {xeroFixture,xeroFinance} from './xero-fixture.mjs';
+import {archive,restore,installation,accountValue} from './harness.mjs';
 import {verifiedRequest,erasurePreview,erasurePayload} from './retention-fixture.mjs';
 export async function xeroAccounting(t) {
  const f=await xeroFixture(t),{h,pier,edge,buyer,order}=f;
  // OAuth initiation, company binding and exact signed-in person authority through HTTP.
  await h.command('xero.begin',{tenant:'12345678-1234-4234-8234-123456789012',mode:'sandbox',consent:true,reason:'Buyer cannot authorize company accounting.'},{...buyer,status:403});
  const granular=edge.scope;
- for(const scope of ['offline_access accounting.contacts.read accounting.settings.read',granular+' accounting.invoices']) {
-  edge.scope=scope;const attempt=await f.begin(),response=await h.request(f.callback(attempt));
+ for(const scope of [...granular.split(' ').map(missing=>granular.split(' ').filter(scope=>scope!==missing).join(' ')),granular+' accounting.invoices',granular+' accounting.transactions']) {
+  edge.scope=scope;const rejected=await f.begin(),response=await h.request(f.callback(rejected));
   assert.equal(response.status,409);assert.equal((await response.json()).error.code,'XERO_SCOPE');assert.equal((await f.workspace()).configured,false);
  }
  edge.scope=granular;
@@ -20,17 +20,26 @@ export async function xeroAccounting(t) {
  assert.equal((await h.api('/api/barrow/qbo')).configured,false);
  assert.ok(!JSON.stringify(await f.workspace()).includes('synthetic-barrow-903'));
  const consentUrl=new URL(authorization.authorizationUrl);assert.deepEqual(consentUrl.searchParams.get('scope').split(' ').sort(),['offline_access','accounting.invoices.read','accounting.contacts.read','accounting.settings.read'].sort());
- edge.expiresIn=3600;edge.scope=granular+' accounting.transactions.read';await f.mappings();assert.equal(edge.refreshes,1);
- // Optional account codes cannot discard an otherwise valid reference page.
- const uncoded='f2345678-1234-4234-8234-123456789099';
- edge.extraAccounts=[{AccountID:uncoded,Status:'ACTIVE',Type:'BANK'},{AccountID:'f2345678-1234-4234-8234-123456789098',Status:'ARCHIVED',Type:'BANK'}];
- assert.equal((await h.command('xero.references',{kind:'Account'})).count,3);
- const reference=(await f.workspace()).references.find(row=>row.kind==='Account'&&row.source_id===uncoded);
- assert.ok(reference&&reference.active===1);
- const uncodedMapping={kind:'Account',sourceId:uncoded,sourceToken:reference.token,nativeId:'reviewed bank reference',revision:null,reason:'Owner reviewed an account without an optional code.'};
- await h.command('xero.mapping',uncodedMapping);
- await h.command('xero.mapping',{...uncodedMapping,sourceId:edge.extraAccounts[1].AccountID},{status:409});
-
+ // Refresh accepts additive legacy read permissions, while a newly consented app uses granular invoice reads.
+ edge.scope=granular+' accounting.transactions.read';edge.expiresIn=3600;edge.extraAccount=true;
+ await f.mappings();assert.equal(edge.refreshes,1);edge.scope=granular;
+ {
+  const references=await f.workspace(),bank=references.references.find(row=>row.source_id==='12345678-1234-4234-8234-123456789031');
+  assert.ok(bank?.active);assert.ok(references.references.some(row=>row.kind==='Account'&&row.source_id==='30'));
+  await h.command('xero.mapping',{kind:'Account',sourceId:bank.source_id,sourceToken:bank.token,nativeId:'reviewed bank reference',reason:'Review an active provider account without an optional code.'});
+  assert.ok((await f.workspace()).mappings.some(row=>row.source_id===bank.source_id&&row.native_id==='reviewed bank reference'));
+ }
+ // Candidate coverage: active uncoded references survive alongside archived references.
+ {
+  const uncoded='f2345678-1234-4234-8234-123456789099',archived='f2345678-1234-4234-8234-123456789098';
+  edge.extraAccounts=[{AccountID:uncoded,Status:'ACTIVE',Type:'BANK'},{AccountID:archived,Status:'ARCHIVED',Type:'BANK'}];
+  assert.equal((await h.command('xero.references',{kind:'Account'})).count,4);
+  const reference=(await f.workspace()).references.find(row=>row.kind==='Account'&&row.source_id===uncoded);
+  assert.ok(reference&&reference.active===1);
+  const mapping={kind:'Account',sourceId:uncoded,sourceToken:reference.token,nativeId:'reviewed bank reference',revision:null,reason:'Owner reviewed an account without an optional code.'};
+  await h.command('xero.mapping',mapping);
+  await h.command('xero.mapping',{...mapping,sourceId:archived},{status:409});
+ }
  // One bounded page persists 50 observations, then failure leaves the checkpoint unchanged and owned.
  edge.count=50;let run=await f.start();run=await f.resume(run);assert.equal(run.state,'reading');assert.equal(run.position,2);
  edge.fail=true;await h.command('xero.resume',{id:run.id,revision:run.revision,reason:'Resume interrupted read.'},{status:409});
@@ -51,20 +60,6 @@ export async function xeroAccounting(t) {
  assert.equal((await h.request('/api/barrow/xero/observations/'+observation.id,foreign)).status,404);assert.equal((await h.request('/api/barrow/statements/cedar?to=2026-11-06',foreign)).status,404);
  assert.equal((await h.request('/api/barrow/xero/observations/'+observation.id,agent)).status,403);
  assert.deepEqual((await h.api('/api/barrow/statements/cedar?to=2026-11-05',undefined,buyer)).ledgerComparisons,[]);
- // A voided issued invoice remains a linked conflict with an owned exception.
- edge.invoiceStatus='VOIDED';edge.balance=0;run=await f.resume(await f.start());state=await f.workspace();const voided=state.observations.find(o=>o.runId===run.id);
- statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);
- assert.deepEqual(statement.ledgerComparisons.map(row=>[row.nativeCents,row.ledgerCents,row.differenceCents]),[[13000,0,13000]]);
- const voidSource=statement.ledgerComparisons[0].sources[0];assert.equal(voidSource.sourceId,'100');assert.equal(voidSource.orderId,order.id);assert.equal(voidSource.status,'Upstream invoice voided');assert.equal((await h.request(voidSource.path,buyer)).status,200);
- for(const suffix of ['.csv','.pdf'])assert.ok((await (await h.request('/api/barrow/statements/cedar'+suffix+'?to=2026-11-06',buyer)).text()).includes('Upstream invoice voided'));
- finance=await h.api('/api/barrow/reports/finance?asOf=2026-11-06');assert.equal(finance.ledgerReconciliation[0].sources[0].sourceId,'100');
- assert.ok((await (await h.request('/api/barrow/reports/finance.csv?asOf=2026-11-06')).text()).includes('Upstream invoice voided'));
- await h.command('xero.link',{id:voided.id,revision:voided.revision,orderId:order.id,orderRevision:order.revision,reason:'A void cannot establish a matched issued invoice.'},{status:409});assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),order);
- let voidTasks=await h.command('followup.refresh',{}),voidTask=voidTasks.tasks.find(row=>row.kind==='xero');assert.ok(voidTask.ownerId&&voidTask.status==='open');assert.equal(voidTask.sourcePath,voidSource.path);
- voidTasks=await h.command('followup.refresh',{});assert.equal(voidTasks.tasks.filter(row=>row.kind==='xero'&&row.status==='open').length,1);
- await h.command('followup.update',{id:voidTask.id,revision:voidTask.revision,contact:{outcome:'failed',note:'Voided source remains unresolved.'}});
- assert.equal((await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===voidTask.id).status,'open');
- edge.invoiceStatus='AUTHORISED';edge.balance=130;await f.resume(await f.start());voidTasks=await h.command('followup.refresh',{});assert.equal(voidTasks.tasks.find(row=>row.id===voidTask.id).status,'closed');
  // A same-total source line edit is a conflict against the original reviewed basis.
  edge.quantity=1;edge.unitAmount=130;run=await f.resume(await f.start());state=await f.workspace();const edited=state.observations.find(o=>o.runId===run.id);
  assert.equal((await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer)).ledgerComparisons[0].sources[0].status,'Upstream issued invoice changed');
@@ -75,30 +70,58 @@ export async function xeroAccounting(t) {
  statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);
  assert.equal(statement.ledgerComparisons[0].differenceCents,5500);assert.equal(statement.ledgerComparisons[0].sources[0].status,'Upstream invoice total changed');assert.equal(statement.sections[0].closingCents,13000);
  await h.command('xero.link',{id:observation.id,revision:observation.revision,orderId:order.id,orderRevision:order.revision,reason:'Wrong total cannot overwrite issued native invoice.'},{status:409});assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),order);
- let followups=await h.command('followup.refresh',{});let task=followups.tasks.find(r=>r.kind==='xero'&&r.status==='open');assert.ok(task.ownerId&&task.status==='open'&&task.sourceId==='100');
- followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(r=>r.kind==='xero'&&r.id!==voidTask.id).length,1);
+ let followups=await h.command('followup.refresh',{});let task=followups.tasks.find(r=>r.kind==='xero');assert.ok(task.ownerId&&task.status==='open'&&task.sourceId==='100');
+ followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(r=>r.kind==='xero').length,1);
  await h.command('followup.update',{id:task.id,revision:task.revision,contact:{outcome:'failed',note:'Source owner has not acknowledged the invoice difference.'}});assert.equal((await h.api('/api/barrow/followups?view=all')).tasks.find(r=>r.id===task.id).status,'open');
- const financePolicy={role:'finance',accounts:['cedar'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0};
- const allowed=await activateStaff(h,['synthetic-barrow-921','example.test'].join('@'),financePolicy),outside=await activateStaff(h,['synthetic-barrow-922','example.test'].join('@'),{...financePolicy,accounts:['foreign']});
- const privateNote='Source owner has not acknowledged the invoice difference.';
+ // Currency mismatch remains isolated and no cross-currency aggregate is fabricated.
+ edge.currency='CAD';edge.token='2';run=await f.resume(await f.start());state=await f.workspace();observation=state.observations.find(o=>o.runId===run.id);
+ statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);assert.equal(statement.ledgerComparisons.find(r=>r.currency==='CAD').sources[0].status,'Currency mismatch');assert.equal(statement.ledgerComparisons.find(r=>r.currency==='USD').ledgerCents,0);
+ // A human acknowledgment retains attribution; a later source revision creates fresh owned work.
+ task=(await h.api('/api/barrow/followups?view=all')).tasks.find(r=>r.kind==='xero');const acknowledged=await h.command('followup.update',{id:task.id,revision:task.revision,close:true,resolution:'Owner acknowledged this exact source revision after external review; native money is unchanged.'});assert.ok(acknowledged.resolvedBy&&acknowledged.resolvedAt);
+ followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(r=>r.kind==='xero'&&r.status==='open').length,1);assert.equal(followups.tasks.filter(r=>r.kind==='xero'&&r.status==='closed').length,1);
+ const sourceTask=followups.tasks.find(r=>r.kind==='xero'&&r.status==='open');followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(r=>r.kind==='xero'&&r.status==='open').length,1);assert.equal(followups.tasks.find(r=>r.id===sourceTask.id).status,'open');
+ edge.currency='USD';edge.total=130;edge.balance=130;edge.token='3';await f.resume(await f.start());followups=await h.command('followup.refresh',{});assert.ok(followups.tasks.filter(r=>r.kind==='xero').every(r=>r.status==='closed'));assert.match(followups.tasks.find(r=>r.id===sourceTask.id).resolution,/Source-linked Xero invoice/);
+ // An upstream void retains its source and link, owns the exact conflict, and never changes native money.
+ edge.invoiceStatus='VOIDED';run=await f.resume(await f.start());state=await f.workspace();const voided=state.observations.find(row=>row.runId===run.id);
+ statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);
+ const voidComparison=statement.ledgerComparisons[0],voidSource=voidComparison.sources[0];
+ assert.equal(voidComparison.differenceCents,13000);assert.equal(voidComparison.ledgerCents,0);assert.equal(voidComparison.nativeCents,13000);
+ assert.equal(voidSource.sourceId,'100');assert.equal(voidSource.orderId,order.id);assert.equal(voidSource.status,'Upstream invoice voided');
+ assert.equal((await h.api(voidSource.path,undefined,buyer)).status,'VOIDED');
+ for(const path of ['/api/barrow/statements/cedar.csv?to=2026-11-06','/api/barrow/statements/cedar.pdf?to=2026-11-06','/api/barrow/reports/finance.csv?asOf=2026-11-06']){
+  const output=await (await h.request(path,path.includes('statements')?buyer:{})).text();assert.ok(output.includes('Upstream invoice voided')&&output.includes('100'));
+ }
+ finance=await h.api('/api/barrow/reports/finance?asOf=2026-11-06');assert.equal(finance.ledgerReconciliation[0].sources[0].status,'Upstream invoice voided');
+ await h.command('xero.link',{id:voided.id,revision:voided.revision,orderId:order.id,orderRevision:order.revision,reason:'A void cannot replace an issued native invoice.'},{status:409});
+ assert.deepEqual(await h.api('/api/barrow/orders/'+order.id),order);assert.equal(statement.sections[0].closingCents,13000);
+ followups=await h.command('followup.refresh',{});task=followups.tasks.find(row=>row.kind==='xero'&&row.status==='open');
+ assert.ok(task.ownerId&&task.sourceId==='100');assert.equal(task.sourcePath,voidSource.path);assert.match(task.reason,/Upstream invoice voided/);
+ const privateNote='synthetic-barrow-private-note';task=await h.command('followup.update',{id:task.id,revision:task.revision,contact:{outcome:'failed',note:privateNote}});
+ followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(row=>row.kind==='xero'&&row.status==='open').length,1);
+ // Current account scope applies to task details, contact notes, exports, mutations, refresh and assignment.
+ const scoped=await xeroFinance(h,['cedar']);
+ assert.ok(JSON.stringify(await h.api('/api/barrow/followups?view=all',undefined,scoped.who)).includes(privateNote));
+ assert.ok((await (await h.request('/api/barrow/export/followups.csv',scoped.who)).text()).includes(privateNote));
+ assert.ok(JSON.stringify(await h.api('/api/barrow/export.json',undefined,scoped.who)).includes(privateNote));
+ const outside=await xeroFinance(h,['foreign'],'synthetic-barrow-922');
  for(const door of ['/api/barrow/followups?view=all','/api/barrow/export.json','/api/barrow/export/followups.csv']) {
-  assert.ok((await (await h.request(door,allowed.who)).text()).includes(privateNote));
   const output=await h.request(door,outside.who);assert.equal(output.status,200);const body=await output.text();assert.ok(!body.includes(privateNote)&&!body.includes(task.id));
  }
  const beforeRefusal=await h.api('/api/barrow/followups?view=all');
  await h.command('followup.update',{id:task.id,revision:task.revision,contact:{outcome:'reached',note:'Foreign finance must not change private work.'}},{...outside.who,status:404});
  assert.deepEqual(await h.api('/api/barrow/followups?view=all'),beforeRefusal);
- const narrowed=await h.command('staff.update',{userId:allowed.grant.userId,revision:allowed.grant.revision,policy:{...financePolicy,accounts:['foreign']},reason:'Owner removes access to the original company.'});
+ const narrowed=await h.command('staff.update',{userId:scoped.grant.userId,revision:scoped.grant.revision,policy:{...scoped.policy,accounts:['foreign']},reason:scoped.reason});
  assert.ok(narrowed.revision);
- for(const door of ['/api/barrow/followups?view=all','/api/barrow/export/followups.csv'])assert.ok(!(await (await h.request(door,allowed.who)).text()).includes(privateNote));
- // Currency mismatch remains isolated and no cross-currency aggregate is fabricated.
- edge.currency='CAD';edge.token='2';run=await f.resume(await f.start());state=await f.workspace();observation=state.observations.find(o=>o.runId===run.id);
- statement=await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,buyer);assert.equal(statement.ledgerComparisons.find(r=>r.currency==='CAD').sources[0].status,'Currency mismatch');assert.equal(statement.ledgerComparisons.find(r=>r.currency==='USD').ledgerCents,0);
- // A human acknowledgment retains attribution; a later source revision creates fresh owned work.
- task=(await h.api('/api/barrow/followups?view=all')).tasks.find(r=>r.kind==='xero'&&r.status==='open');const acknowledged=await h.command('followup.update',{id:task.id,revision:task.revision,close:true,resolution:'Owner acknowledged this exact source revision after external review; native money is unchanged.'});assert.ok(acknowledged.resolvedBy&&acknowledged.resolvedAt);
- followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(r=>r.kind==='xero'&&r.status==='open').length,1);assert.equal(followups.tasks.filter(r=>r.kind==='xero'&&r.status==='closed'&&r.id!==voidTask.id).length,1);
- const sourceTask=followups.tasks.find(r=>r.kind==='xero'&&r.status==='open');followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.filter(r=>r.kind==='xero'&&r.status==='open').length,1);assert.equal(followups.tasks.find(r=>r.id===sourceTask.id).status,'open');
- edge.currency='USD';edge.total=130;edge.balance=130;edge.token='3';await f.resume(await f.start());followups=await h.command('followup.refresh',{});assert.ok(followups.tasks.filter(r=>r.kind==='xero').every(r=>r.status==='closed'));assert.match(followups.tasks.find(r=>r.id===sourceTask.id).resolution,/Source-linked Xero invoice/);
+ assert.ok(!JSON.stringify(await h.api('/api/barrow/followups?view=all',undefined,scoped.who)).includes(privateNote));
+ assert.ok(!(await (await h.request('/api/barrow/export/followups.csv',scoped.who)).text()).includes(privateNote));
+ assert.ok(!JSON.stringify(await h.api('/api/barrow/export.json',undefined,scoped.who)).includes(privateNote));
+ assert.ok(!(await h.command('followup.refresh',{},scoped.who)).tasks.some(row=>row.id===task.id));
+ await h.command('followup.update',{id:task.id,revision:task.revision,contact:{outcome:'reached',note:'A foreign finance reviewer cannot read or change this note.'}},{...scoped.who,status:404});
+ await h.command('followup.update',{id:task.id,revision:task.revision,ownerId:scoped.grant.userId},{status:400});
+ assert.deepEqual((await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===task.id),task);
+ // A source-confirmed recovery closes the same owned void conflict.
+ edge.invoiceStatus='AUTHORISED';await f.resume(await f.start());
+ followups=await h.command('followup.refresh',{});assert.equal(followups.tasks.find(row=>row.id===task.id).status,'closed');
  // Native revision and source reference changes require explicit review before another page.
  run=await f.start();const account=await h.command('account.save',{id:'cedar',revision:f.account.revision,value:{...f.account.value,termsDays:45}});await h.command('xero.resume',{id:run.id,revision:run.revision,reason:'Stale native mapping must refuse.'},{status:409});
  edge.referenceToken='2';await h.command('xero.references',{kind:'Contact',reason:'Read changed source revision.'});await h.command('xero.mapping',{kind:'Contact',sourceId:'10',sourceToken:'0',nativeId:'cedar',nativeRevision:account.revision,revision:state.mappings.find(r=>r.kind==='Contact').revision,reason:'Stale source reference must refuse.'},{status:409});

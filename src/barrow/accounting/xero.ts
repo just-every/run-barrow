@@ -8,6 +8,7 @@ import { sealWebhookSecret, openWebhookSecret } from '../webhook-security'
 export const xeroKinds=['Contact','Item','Account','TaxCode'] as const
 export type Connection={tenant:string;mode:string;state:string;secret_cipher:string;expires_at:number;revision:string;owner_id:string}
 const scopes=['offline_access','accounting.invoices.read','accounting.contacts.read','accounting.settings.read']
+// Older app connections can retain the read-only broad scope during Xero's additive migration.
 const legacyInvoiceScope='accounting.transactions.read'
 const authorityKey='barrow-xero/authority.json',callbackPath='/api/barrow/xero/callback'
 export function xeroOwner(actor:Actor){if(actor.agent||actor.staff||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may connect or review Xero.',403)}
@@ -37,9 +38,8 @@ export async function xeroNetwork(url:string,init:RequestInit={}){
 async function tokens(env:Bindings,fields:Record<string,string>){
  const config=client(env),result=await xeroNetwork('https://identity.xero.com/connect/token',{method:'POST',headers:{Authorization:'Basic '+btoa(config.id+':'+config.secret),'content-type':'application/x-www-form-urlencoded',Accept:'application/json'},body:new URLSearchParams(fields).toString()})
  if(typeof result.access_token!=='string'||!result.access_token||typeof result.refresh_token!=='string'||!result.refresh_token||!Number.isSafeInteger(result.expires_in)||result.expires_in<1||result.expires_in>86400)fail('XERO_RESPONSE','Xero did not return a complete bounded credential.',409)
- const granted=typeof result.scope==='string'?result.scope.trim().split(/\s+/):[]
- // Existing grants may retain the legacy read permission while tenants migrate.
- if(scopes.filter(scope=>scope!=='accounting.invoices.read').some(scope=>!granted.includes(scope))||!granted.some((scope:string)=>scope==='accounting.invoices.read'||scope===legacyInvoiceScope)||granted.some((scope:string)=>![...scopes,legacyInvoiceScope].includes(scope)))fail('XERO_SCOPE','Xero did not return the required reviewed read-only permissions.',409)
+ const granted:string[]=typeof result.scope==='string'?result.scope.split(/\s+/).filter(Boolean):[]
+ if(scopes.filter(scope=>scope!=='accounting.invoices.read').some(scope=>!granted.includes(scope))||!granted.some(scope=>scope==='accounting.invoices.read'||scope===legacyInvoiceScope)||granted.some(scope=>!scopes.includes(scope)&&scope!==legacyInvoiceScope))fail('XERO_SCOPE','Xero did not return the required reviewed read-only scopes.',409)
  return result
 }
 export async function xeroBegin(env:Bindings,actor:Actor,p:any){
@@ -105,11 +105,11 @@ export async function xeroQuery(env:Bindings,actor:Actor,kind:string,position=1)
  const rows=await Promise.all(raw.map(async(r:any)=>{
   if(!r||typeof r!=='object')fail('XERO_RESPONSE','Xero returned an invalid entity.',409)
   if(kind==='Invoice'){
-   if(r.Type!=='ACCREC'||!['AUTHORISED','PAID','VOIDED'].includes(r.Status))fail('XERO_RESPONSE','Only issued or voided receivable invoices are supported.',409)
-   const canonical={Id:r.InvoiceID,ContactRef:{value:r.Contact?.ContactID},CurrencyRef:{value:r.CurrencyCode},TxnDate:day(r.Date),DueDate:day(r.DueDate??r.Date),TotalAmt:r.Total,Balance:r.AmountDue,Line:(r.LineItems??[]).map((l:any)=>({SalesItemLineDetail:{ItemRef:{value:l.ItemCode}},AccountRef:{value:l.AccountCode},TaxCodeRef:{value:l.TaxType}})),MetaData:{LastUpdatedTime:instant(r.UpdatedDateUTC)},Status:r.Status}
-   const financialLines=(r.LineItems??[]).map((l:any)=>({item:l.ItemCode??null,account:l.AccountCode??null,taxType:l.TaxType??null,quantity:l.Quantity??null,unitAmount:l.UnitAmount??null,lineAmount:l.LineAmount??null,taxAmount:l.TaxAmount??null,discountRate:l.DiscountRate??null,discountAmount:l.DiscountAmount??null}))
+   if(r.Type!=='ACCREC'||!['AUTHORISED','PAID','VOIDED'].includes(r.Status))fail('XERO_RESPONSE','Only existing authorised, paid or voided receivable invoices are supported.',409)
+   const canonical={Id:r.InvoiceID,ContactRef:{value:r.Contact?.ContactID},CurrencyRef:{value:r.CurrencyCode},TxnDate:day(r.Date),DueDate:day(r.DueDate??r.Date),TotalAmt:r.Total,Balance:r.AmountDue,Line:(r.LineItems??[]).map((l:any)=>({SalesItemLineDetail:{ItemRef:{value:l.ItemCode}},AccountRef:{value:l.AccountCode||l.AccountID},TaxCodeRef:{value:l.TaxType}})),MetaData:{LastUpdatedTime:instant(r.UpdatedDateUTC)},Status:r.Status}
+   const financialLines=(r.LineItems??[]).map((l:any)=>({item:l.ItemCode??null,account:l.AccountCode||l.AccountID||null,taxType:l.TaxType??null,quantity:l.Quantity??null,unitAmount:l.UnitAmount??null,lineAmount:l.LineAmount??null,taxAmount:l.TaxAmount??null,discountRate:l.DiscountRate??null,discountAmount:l.DiscountAmount??null}))
    const narrativeToken=await digest(JSON.stringify({reference:r.Reference??null,number:r.InvoiceNumber??null,descriptions:(r.LineItems??[]).map((l:any)=>l.Description??null)}))
-   const commercial={narrativeToken,contact:canonical.ContactRef.value,currency:r.CurrencyCode,date:canonical.TxnDate,due:canonical.DueDate,total:r.Total,subTotal:r.SubTotal??null,totalTax:r.TotalTax??null,lineAmountTypes:r.LineAmountTypes??null,lines:financialLines}
+   const commercial={...(r.Status==='VOIDED'?{status:r.Status}:{}),narrativeToken,contact:canonical.ContactRef.value,currency:r.CurrencyCode,date:canonical.TxnDate,due:canonical.DueDate,total:r.Total,subTotal:r.SubTotal??null,totalTax:r.TotalTax??null,lineAmountTypes:r.LineAmountTypes??null,lines:financialLines}
    return {...canonical,CommercialToken:await digest(JSON.stringify(commercial)),SyncToken:await digest(JSON.stringify({...canonical,financialLines}))}
   }
   const Id=kind==='Contact'?r.ContactID:kind==='Item'?r.Code:kind==='Account'?(r.Code||r.AccountID):r.TaxType

@@ -10,7 +10,7 @@ import type { FollowupSource } from '../followup-sources'
 import { xeroAuthority,xeroConnection,xeroOwner,xeroQuery,xeroGuard,xeroKinds,type Connection } from './xero'
 
 type Mapping={tenant:string;kind:string;source_id:string;token:string;native_id:string;native_revision:string;revision:string}
-export type XeroInvoice={provider:'xero';id:string;runId:string;tenant:string;sourceId:string;sourceToken:string;commercialToken:string;status?:string;contactId:string;accountId:string;currency:string;issuedAt:string;dueAt:string;amountCents:number;balanceCents:number;observedAt:string;latestFinancialAt:string;createdAt:string;refs:{kind:string;id:string}[]}
+export type XeroInvoice={provider:'xero';id:string;runId:string;tenant:string;sourceId:string;sourceToken:string;commercialToken:string;contactId:string;accountId:string;currency:string;status?:string;issuedAt:string;dueAt:string;amountCents:number;balanceCents:number;observedAt:string;latestFinancialAt:string;createdAt:string;refs:{kind:string;id:string}[]}
 type Stored={id:string;account_id:string;order_id:string;value_json:string;revision:string}
 const values=(db:D1Database)=>db.prepare('SELECT * FROM bw_xero_maps ORDER BY tenant,kind,source_id').all<Mapping>()
 export const mappingHash=async(db:D1Database)=>digest(JSON.stringify((await values(db)).results))
@@ -110,7 +110,7 @@ export async function resumeRead(env:Bindings,actor:Actor,p:any) {
    for(const line of raw.Line??[]){if(line.AccountRef?.value)refs.push({kind:'Account',id:id(line.AccountRef.value,'account code')});if(line.TaxCodeRef?.value)refs.push({kind:'TaxCode',id:id(line.TaxCodeRef.value,'tax code')})}
    if(raw.ARAccountRef?.value)refs.push({kind:'Account',id:id(raw.ARAccountRef.value,'account ID')})
    if(raw.TxnTaxDetail?.TxnTaxCodeRef?.value)refs.push({kind:'TaxCode',id:id(raw.TxnTaxDetail.TxnTaxCodeRef.value,'tax-code ID')})
-   const value:XeroInvoice={provider:'xero',id:await digest('xero:'+run.tenant+':'+run.id+':'+sourceId),runId:run.id,tenant:run.tenant,sourceId,sourceToken:String(raw.SyncToken??''),commercialToken:String(raw.CommercialToken??''),status:raw.Status,contactId,accountId:mapping?.native_id??'',currency,issuedAt:date(raw.TxnDate),dueAt:date(raw.DueDate??raw.TxnDate),amountCents:cents(raw.TotalAmt),balanceCents:raw.Status==='VOIDED'?0:cents(raw.Balance),observedAt:at,createdAt:at,latestFinancialAt:new Date(Math.max(Date.parse(at),Date.parse(updated))).toISOString(),refs}
+   const value:XeroInvoice={provider:'xero',id:await digest('xero:'+run.tenant+':'+run.id+':'+sourceId),runId:run.id,tenant:run.tenant,sourceId,sourceToken:String(raw.SyncToken??''),commercialToken:String(raw.CommercialToken??''),contactId,accountId:mapping?.native_id??'',currency,status:raw.Status,issuedAt:date(raw.TxnDate),dueAt:date(raw.DueDate??raw.TxnDate),amountCents:cents(raw.TotalAmt),balanceCents:raw.Status==='VOIDED'?0:cents(raw.Balance),observedAt:at,createdAt:at,latestFinancialAt:new Date(Math.max(Date.parse(at),Date.parse(updated))).toISOString(),refs}
    if(value.balanceCents>value.amountCents)fail('XERO_AMOUNT','Xero balance exceeds its invoice amount; review the source conflict.')
    const prior=await env.DB.prepare('SELECT value_json FROM bw_xero_invoices WHERE id=?').bind(value.id).first<{value_json:string}>()
    if(prior) {if(JSON.parse(prior.value_json).sourceToken!==value.sourceToken)fail('XERO_EDITED','Xero changed an earlier page; start a fresh read.');continue}
@@ -138,7 +138,7 @@ export async function linkInvoice(env:Bindings,actor:Actor,p:any) {
  const a=await account(env.DB,actor,value.accountId),native=await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE id=? AND account_id=?').bind(text(p.orderId,'Native order ID',100),a.id).first<{value_json:string;revision:string}>()
  if(!native||native.revision!==p.orderRevision)fail('CHANGED','Review the current native issued invoice.')
  const order=JSON.parse(native.value_json) as Order
- if(value.status==='VOIDED')fail('XERO_CONFLICT','A voided Xero invoice cannot be linked as an issued native invoice. Review its owned reconciliation exception.')
+ if(value.status==='VOIDED')fail('XERO_CONFLICT','The source invoice is voided. Resolve the owned conflict without linking or rewriting an issued document.')
  if(!order.invoice||order.currency!==value.currency||order.totalCents!==value.amountCents)fail('XERO_CONFLICT','Native invoice currency or total differs. Resolve the source conflict without overwriting the issued document.')
  const previous=await env.DB.prepare('SELECT order_id,commercial_token FROM bw_xero_links WHERE tenant=? AND source_id=?').bind(c.tenant,value.sourceId).first<{order_id:string;commercial_token:string}>()
  if(previous&&previous.order_id!==order.id)fail('XERO_DUPLICATE','This source invoice is already linked to another native invoice.')

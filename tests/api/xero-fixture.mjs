@@ -3,7 +3,7 @@ import {installation,stock,accountValue} from './harness.mjs';
 export async function xeroFixture(t,options={}){
  const pier=await installation({pier:true});t.after(()=>pier.close());const products=await stock(pier,'500');
  const tenant='12345678-1234-4234-8234-123456789012',connectionId='12345678-1234-4234-8234-123456789013';
- const edge={tenant,count:1,fail:false,revoked:false,currency:'USD',quantity:2,unitAmount:65,total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',scope:'offline_access accounting.invoices.read accounting.contacts.read accounting.settings.read',invoiceStatus:'AUTHORISED',extraAccounts:[],expiresIn:3600,calls:[],refreshes:0};
+ const edge={tenant,extraAccounts:[],extraAccount:false,scope:'offline_access accounting.invoices.read accounting.contacts.read accounting.settings.read',accountCode:'30',invoiceStatus:'AUTHORISED',count:1,fail:false,revoked:false,currency:'USD',quantity:2,unitAmount:65,total:130,balance:130,token:'0',updated:'2026-11-06T12:00:00Z',referenceToken:'0',expiresIn:3600,calls:[],refreshes:0};
  const bindings={PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie,XERO_CLIENT_ID:'synthetic-barrow-901',XERO_CLIENT_SECRET:'synthetic-barrow-902'};
  const h=await installation({...options,https:true,clock:'2026-11-06T15:00:00Z',bindings,networkEdge:async request=>{
   const url=new URL(request.url);if(!['identity.xero.com','api.xero.com'].includes(url.hostname))return;
@@ -15,11 +15,11 @@ export async function xeroFixture(t,options={}){
   assert.equal(request.method,'GET');assert.equal(request.headers.get('xero-tenant-id'),tenant);
   if(edge.fail)return Response.json({Message:'synthetic-barrow-905'},{status:503});
   const resource=url.pathname.split('/').at(-1),position=Number(url.searchParams.get('page')??1),date='/Date('+Date.parse(edge.updated)+')/';
-  const references={Contacts:[{ContactID:'10',ContactStatus:'ACTIVE',UpdatedDateUTC:edge.referenceToken,EmailAddress:['must-not-retain','example.test'].join('@')}],Items:[{Code:'20',UpdatedDateUTC:edge.referenceToken,SalesDetails:{AccountCode:'30',TaxType:'40'}}],Accounts:[{AccountID:'30',Code:'30',Status:'ACTIVE',Type:'REVENUE',UpdatedDateUTC:edge.referenceToken},...edge.extraAccounts],TaxRates:[{TaxType:'40',Status:'ACTIVE',EffectiveRate:0,UpdatedDateUTC:edge.referenceToken}]};
+  const references={Contacts:[{ContactID:'10',ContactStatus:'ACTIVE',UpdatedDateUTC:edge.referenceToken,EmailAddress:['must-not-retain','example.test'].join('@')}],Items:[{Code:'20',UpdatedDateUTC:edge.referenceToken,SalesDetails:{AccountCode:'30',TaxType:'40'}}],Accounts:[{AccountID:'12345678-1234-4234-8234-123456789030',...(edge.accountCode?{Code:edge.accountCode}:{}),Status:'ACTIVE',Type:'REVENUE',UpdatedDateUTC:edge.referenceToken},...(edge.extraAccount?[{AccountID:'12345678-1234-4234-8234-123456789031',Status:'ACTIVE',Type:'BANK',UpdatedDateUTC:edge.referenceToken}]:[]),...edge.extraAccounts],TaxRates:[{TaxType:'40',Status:'ACTIVE',EffectiveRate:0,UpdatedDateUTC:edge.referenceToken}]};
   if(references[resource])return Response.json({[resource]:references[resource]});
   assert.equal(resource,'Invoices');assert.equal(url.searchParams.get('pageSize'),'50');assert.equal(url.searchParams.get('order'),'InvoiceID');assert.match(url.searchParams.get('where'),/ACCREC/);
-  const all=Array.from({length:edge.count},(_,i)=>({InvoiceID:String(100+i),Type:'ACCREC',Status:edge.invoiceStatus,Contact:{ContactID:'10',Name:'must-not-retain'},CurrencyCode:edge.currency,Date:'/Date('+Date.parse('2026-11-06T00:00:00Z')+')/',DueDate:'2026-12-06',Total:edge.total,AmountDue:edge.balance,LineItems:[{ItemCode:'20',AccountCode:'30',TaxType:'40',Quantity:edge.quantity,UnitAmount:edge.unitAmount,LineAmount:edge.total,TaxAmount:0}],UpdatedDateUTC:date,Reference:'must not retain provider narratives'}));
-  return Response.json({Invoices:all.filter(row=>url.searchParams.get('where').includes(row.Status)).slice((position-1)*50,position*50)});
+  const all=Array.from({length:edge.count},(_,i)=>({InvoiceID:String(100+i),Type:'ACCREC',Status:edge.invoiceStatus,Contact:{ContactID:'10',Name:'must-not-retain'},CurrencyCode:edge.currency,Date:'/Date('+Date.parse('2026-11-06T00:00:00Z')+')/',DueDate:'2026-12-06',Total:edge.total,AmountDue:edge.balance,LineItems:[{ItemCode:'20',...(edge.accountCode?{AccountCode:edge.accountCode}:{AccountID:'12345678-1234-4234-8234-123456789030'}),TaxType:'40',Quantity:edge.quantity,UnitAmount:edge.unitAmount,LineAmount:edge.total,TaxAmount:0}],UpdatedDateUTC:date,Reference:'must not retain provider narratives'}));
+  return Response.json({Invoices:all.filter(row=>url.searchParams.get('where').includes('"'+row.Status+'"')).slice((position-1)*50,position*50)});
  }});t.after(()=>h.close());
  const email=['synthetic-barrow-906','example.test'].join('@');
  const account=await h.command('account.save',{id:'cedar',value:accountValue(products.customer.id,email)}),buyer={as:await h.signIn(email)};
@@ -28,9 +28,20 @@ export async function xeroFixture(t,options={}){
  const callback=authorization=>'/api/barrow/xero/callback?'+new URLSearchParams({state:new URL(authorization.authorizationUrl).searchParams.get('state'),code:'synthetic-barrow-907'});
  const connect=async()=>{const authorization=await begin();assert.equal((await h.request(callback(authorization))).status,303)};
  const workspace=()=>h.api('/api/barrow/xero');
- const map=async(kind,nativeId)=>{await h.command('xero.references',{kind,reason:'Read current source references.'});const state=await workspace(),ref=state.references.find(row=>row.kind===kind),prior=state.mappings.find(row=>row.kind===kind);return h.command('xero.mapping',{kind,sourceId:ref.source_id,sourceToken:ref.token,nativeId,nativeRevision:account.revision,revision:prior?.revision??null,reason:'Owner reviewed exact source and native references.'})};
+ const map=async(kind,nativeId)=>{await h.command('xero.references',{kind,reason:'Read current source references.'});const state=await workspace(),ref=state.references.find(row=>row.kind===kind&&(kind!=='Account'||row.source_id===(edge.accountCode||'12345678-1234-4234-8234-123456789030'))),prior=state.mappings.find(row=>row.kind===kind);return h.command('xero.mapping',{kind,sourceId:ref.source_id,sourceToken:ref.token,nativeId,nativeRevision:account.revision,revision:prior?.revision??null,reason:'Owner reviewed exact source and native references.'})};
  const mappings=async()=>{for(const [kind,target] of [['Contact','cedar'],['Item','OAT-1'],['Account','receivables'],['TaxCode','reviewed tax reference']])await map(kind,target)};
  const start=()=>h.command('xero.start',{asOf:'2026-11-06',reason:'Owner reviewed a current dated invoice read.'});
  const resume=run=>h.command('xero.resume',{id:run.id,revision:run.revision,reason:'Resume the same bounded accounting correlation.'});
  return {h,pier,edge,order,buyer,account,begin,callback,connect,workspace,map,mappings,start,resume};
+}
+export async function xeroFinance(h,accounts,identity='synthetic-barrow-910'){
+ const email=[identity,'example.test'].join('@'),reason='Owner reviewed current account-scoped finance authority.';
+ const policy={role:'finance',accounts,warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0};
+ const grant=await h.command('staff.invite',{email,name:'Scoped finance',policy,reason});
+ const message=h.mail.requests.findLast(row=>row.message.to.includes(email)).message;
+ const link=new URL(message.text?.match(/https?:\/\/[^\s<>]+\/auth\/confirm\?token=[^\s<>]+/)?.[0]??message.html.match(/href="([^"]*\/auth\/confirm\?token=[^"]+)"/)[1].replaceAll('&amp;','&'));
+ const response=await h.request('/auth/confirm',{method:'POST',as:'',body:{token:link.searchParams.get('token')}});assert.equal(response.status,303);
+ const who={as:response.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ')};
+ const current=(await h.api('/api/barrow/staff/members')).members.find(row=>row.userId===grant.userId);
+ return {who,grant:current,policy,reason};
 }
