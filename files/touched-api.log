@@ -1,0 +1,89 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ AUTO-005: source-linked next actions retain failed contacts, ownership and snoozes; acceptance resolves its quote once while unanswered work remains (6270.907837ms)
+✔ AUTO-005: native archives restore durable tasks, contacts and resolutions while excluding installation credentials (7454.088036ms)
+✔ AGT-007: grounded account plan puts late fulfillment first, reviews exact outreach, sends once and retains ownership until a buyer response or human resolution (15364.88626ms)
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ DATA-003 / DATA-001: owner review, legal holds, seven-year commercial floor, attributed PO erasure receipt and restore fence (35085.51086ms)
+✔ ordered-account owner erasure revokes access, redacts personal classes, preserves financial evidence and returns attributed custody (13849.992257ms)
+✔ independent erasure journal reapplies after D1 rewind and old archive import; missing or incomplete journal refuses data and auth (53841.314812ms)
+✔ post-floor review defaults to personal redaction; explicit order deletion leaves reconciliable totals and exclusions have recorded reasons (12341.508835ms)
+✔ ordered imported account retires its original without deleting commercial records, and the same public journal transport restores it safely (25806.902926ms)
+✔ owner upgrades existing erasure receipts into the independent journal; malformed or unauthorized journal transport is refused (2462.305259ms)
+✔ account erasure redacts duplicated native agent labels in draft orders, commercial exports and later-journal restore (13329.488275ms)
+ℹ PROBE native-label [{"stage":"erasure","raw":false,"order":false,"export":false,"csv":false},{"stage":"journal-replay","raw":false,"order":false,"export":false,"csv":false}]
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✔ ACC-005: owner grants Native members scoped functional work, amount approvals and reports; narrowing and revocation immediately close every exercised door (19128.574659ms)
+✔ functional application reviewers: all-account managers decide, finance reads quarantined certificate metadata, every other grant and revoked access is refused (12605.955451ms)
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+✖ PAY-007: a dated statement of invoices with opening and closing balances by currency, as JSON, CSV and PDF, for the buyer even after hold and close (10158.412497ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 12
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 231150.039423
+
+✖ failing tests:
+
+test at tests/api/statements.test.mjs:6:1
+✖ PAY-007: a dated statement of invoices with opening and closing balances by currency, as JSON, CSV and PDF, for the buyer even after hold and close (10158.412497ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    {
+      accountId: 'cedar',
+      actorId: 'ffdd0fd0-cdde-4353-ac4d-1fb87835d6a8',
+      amountCents: 5500,
+  +   applications: [
+  +     {
+  +       accountId: 'cedar',
+  +       actorId: 'ffdd0fd0-cdde-4353-ac4d-1fb87835d6a8',
+  +       amountCents: 5500,
+  +       createdAt: '2026-11-06T11:45:43.370Z',
+  +       creditId: 'credit-11983848eaed795d5246712d8844275349fe5675c7082359d9ae469112105741',
+  +       currency: 'USD',
+  +       id: 'application-credit-11983848eaed795d5246712d8844275349fe5675c7082359d9ae469112105741-ORD-10001',
+  +       orderId: 'ORD-10001',
+  +       reason: 'Credit first reduces the original unpaid invoice principal.',
+  +       revision: '51be748d-bead-4ea7-b250-46e21430ed2e'
+  +     }
+  +   ],
+  +   availableCents: 0,
+      createdAt: '2026-11-06T11:45:43.370Z',
+      currency: 'USD',
+      freightCents: 0,
+      id: 'credit-11983848eaed795d5246712d8844275349fe5675c7082359d9ae469112105741',
+      kind: 'price-correction',
+  ...
+      reason: 'Owner reviews the original source price correction.',
+  +   refunds: [],
+      returnId: 'price-correction:ORD-10001:First reviewed correction',
+      revision: '7df601a5-68be-494e-9e28-f6062a743648',
+      sourceId: 'price-correction:ORD-10001:First reviewed correction',
+      taxBasis: 'not recorded',
+      taxCents: 0
+  
+      at qboOriginalBlockers (file:///workspace/barrow-fix1/tests/api/qbo-accounting.mjs:114:9)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async qboAccounting (file:///workspace/barrow-fix1/tests/api/qbo-accounting.mjs:6:2)
+      at async TestContext.<anonymous> (file:///workspace/barrow-fix1/tests/api/statements.test.mjs:86:2)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { id: 'credit-11983848eaed795d5246712d8844275349fe5675c7082359d9ae469112105741', kind: 'price-correction', sourceId: 'price-correction:ORD-10001:First reviewed correction', freightCents: 0, taxCents: 0, taxBasis: 'not recorded', accountId: 'cedar', orderId: 'ORD-10001', orderRevision: '89a53c94-3928-4b9b-85c1-ec9621d857da', currency: 'USD', amountCents: 5500, returnId: 'price-correction:ORD-10001:First reviewed correction', createdAt: '2026-11-06T11:45:43.370Z', actorId: 'ffdd0fd0-cdde-4353-ac4d-1fb87835d6a8', reason: 'Owner reviews the original source price correction.', revision: '7df601a5-68be-494e-9e28-f6062a743648', lines: [ [Object] ], availableCents: 0, applications: [ [Object] ], refunds: [] },
+    expected: { id: 'credit-11983848eaed795d5246712d8844275349fe5675c7082359d9ae469112105741', kind: 'price-correction', sourceId: 'price-correction:ORD-10001:First reviewed correction', freightCents: 0, taxCents: 0, taxBasis: 'not recorded', accountId: 'cedar', orderId: 'ORD-10001', orderRevision: '89a53c94-3928-4b9b-85c1-ec9621d857da', currency: 'USD', amountCents: 5500, returnId: 'price-correction:ORD-10001:First reviewed correction', createdAt: '2026-11-06T11:45:43.370Z', actorId: 'ffdd0fd0-cdde-4353-ac4d-1fb87835d6a8', reason: 'Owner reviews the original source price correction.', revision: '7df601a5-68be-494e-9e28-f6062a743648', lines: [ [Object] ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,22 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+FINANCIAL_CONFLICT_PROBE {"nativeCents":7000,"ledgerCents":7500,"sourceStatus":"Balance differs","tasks":[{"id":"qbo:123456:100:02d78e2c5e0880fe8ca2c4738136e4bd24b8ff405d360c3e422c2c2b97796cba","status":"open"},{"id":"qbo:123456:100:beabbb32bbcedb60bf6f2f2f38bc898c4303eb39b1a08d42c818d9a6e1f88d21","status":"closed","resolution":"Source-linked QuickBooks invoice 100 revision 0 and native outstanding match in dated observation 2026-11-06."}]}
+✔ held-out: native corrections renew an automatically resolved ledger exception (4483.978297ms)
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+SCOPE_PROBE {"grantedAccounts":["wren"],"exposed":[],"csvLeaksCedar":false,"refreshReturnsForeign":false}
+✔ held-out: finance scope on QBO follow-up reads, exports and refresh (4423.644789ms)
+RENEWED_CONFLICT_PROBE {"sourceStatus":"Reference mapping missing or stale","tasks":[{"id":"qbo:123456:100:391732a024e87d0afc20b263cfa1ab89687e2825cb5e13ca02007b6f1cdccf8f","status":"open"},{"id":"qbo:123456:100:f4f7272a4886f3c1bbc36240a121e3b7125e2e5adbd7765346387794db49a171","status":"closed","resolution":"Source-linked QuickBooks invoice 100 revision 0 and native outstanding match in dated observation 2026-11-06."}]}
+✔ held-out: a newly stale mapping must have owned current exception work (4317.710551ms)
+ERASURE_CUSTODY_PROBE {"erased":true,"reusedNativeAccountId":"provider-only","status":404}
+✔ held-out: unused native account erasure must fence retained provider custody (4400.386654ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19368.501617

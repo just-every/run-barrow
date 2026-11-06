@@ -1,0 +1,55 @@
+2026-11-06T11:48:58.0582877Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+2026-11-06T11:48:58.0583092Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+2026-11-06T11:48:58.0597499Z shell: /usr/bin/bash -e {0}
+2026-11-06T11:48:58.0597627Z env:
+2026-11-06T11:48:58.0597728Z   CI: true
+2026-11-06T11:48:58.0597838Z   WRANGLER_SEND_METRICS: false
+2026-11-06T11:48:58.0597974Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+2026-11-06T11:48:58.0598149Z   PLAYWRIGHT_BROWSERS_PATH: /home/runner/work/_temp/ms-playwright
+2026-11-06T11:48:58.0598332Z   SHARD: agent-door
+2026-11-06T11:48:58.0598457Z ##[endgroup]
+2026-11-06T11:48:58.0815235Z > pnpm run verify
+2026-11-06T11:48:58.2374064Z 
+2026-11-06T11:48:58.2374898Z > @wholesale/barrow@0.1.2 verify /home/runner/work/run-barrow/run-barrow
+2026-11-06T11:48:58.2375301Z > rer verify
+2026-11-06T11:48:58.2375419Z 
+2026-11-06T11:48:58.6198002Z Checking pinned pnpm
+2026-11-06T11:48:58.7729868Z 10.12.4
+2026-11-06T11:48:58.9899311Z Verifying application
+2026-11-06T11:48:59.1504069Z 
+2026-11-06T11:48:59.1504667Z > @wholesale/barrow@0.1.2 verify:app [REDACTED]
+2026-11-06T11:48:59.1505126Z > node scripts/verify-app.mjs
+2026-11-06T11:48:59.1505229Z 
+2026-11-06T11:48:59.1707412Z > node scripts/contract-docs.mjs check
+2026-11-06T11:48:59.2069476Z file://[REDACTED]/scripts/contract-docs.mjs:26
+2026-11-06T11:48:59.2070042Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+2026-11-06T11:48:59.2070455Z                                                                                                    ^
+2026-11-06T11:48:59.2070879Z 
+2026-11-06T11:48:59.2071036Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+2026-11-06T11:48:59.2071292Z     at file://[REDACTED]/scripts/contract-docs.mjs:26:100
+2026-11-06T11:48:59.2071531Z     at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+2026-11-06T11:48:59.2071809Z     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+2026-11-06T11:48:59.2072130Z     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-11-06T11:48:59.2072520Z 
+2026-11-06T11:48:59.2072570Z Node.js v22.20.0
+2026-11-06T11:48:59.2207110Z  ELIFECYCLE  Command failed with exit code 1.
+2026-11-06T11:48:59.2786544Z Verifying application: exit 1, signal none.
+2026-11-06T11:48:59.2786825Z Command: pnpm
+2026-11-06T11:48:59.2786966Z Last output (up to 40 lines):
+2026-11-06T11:48:59.2787062Z 
+2026-11-06T11:48:59.2787161Z > @wholesale/barrow@0.1.2 verify:app [REDACTED]
+2026-11-06T11:48:59.2787383Z > node scripts/verify-app.mjs
+2026-11-06T11:48:59.2787471Z 
+2026-11-06T11:48:59.2787554Z > node scripts/contract-docs.mjs check
+2026-11-06T11:48:59.2787752Z file://[REDACTED]/scripts/contract-docs.mjs:26
+2026-11-06T11:48:59.2788164Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+2026-11-06T11:48:59.2788569Z                                                                                                    ^
+2026-11-06T11:48:59.2788712Z 
+2026-11-06T11:48:59.2788839Z ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+2026-11-06T11:48:59.2788980Z 
+2026-11-06T11:48:59.2789029Z Node.js v22.20.0
+2026-11-06T11:48:59.2789522Z  ELIFECYCLE  Command failed with exit code 1.
+2026-11-06T11:48:59.2789724Z Log: [REDACTED]/.seed/installer/install.log
+2026-11-06T11:48:59.2789936Z verify: failed (exit 1)
+2026-11-06T11:48:59.2979555Z  ELIFECYCLE  Command failed with exit code 1.
+2026-11-06T11:48:59.3151295Z ##[error]Process completed with exit code 1.

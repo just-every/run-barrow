@@ -1,0 +1,388 @@
+diff --git a/CONTRACT.md b/CONTRACT.md
+index b246aec..b1d4446 100644
+--- a/CONTRACT.md
++++ b/CONTRACT.md
+@@ -519,7 +519,7 @@ Judged from the code and tests at commit `a7adfbe1d24919777c3c18022ce9c6f34b9b32
+ | `SHIP-005` | Exchanges and service resolution | target | missing |  | Implement exchanges and service resolution and prove the stated journey. |
+ | `SHIP-006` | Personal erasure of service snapshots | target | missing |  | Personal-field erasure across service snapshots and the original order, safe service export and case read after erasure, and retention-period refusal with no change are unbuilt and unproved. |
+ | `INT-001` | Optional Pier inventory connection | target | partial | `src/barrow/pier.ts`; `scripts/connect-pier.mjs`; `tests/api/flows.test.mjs` | Real Pier HTTP catalog and reservations ship; it is currently mandatory for ordering and no alternate inventory adapter ships. |
+-| `INT-002` | QuickBooks Online accounting | target | partial | `tests/api/statements.test.mjs` — “PAY-007: a dated statement of invoices with opening and closing balances by currency, as JSON, CSV and PDF, for the buyer even after hold and close”, extended through `tests/api/qbo-accounting.mjs`: owner and company-bound OAuth, reviewed references, bounded interrupted invoice reads and exact checkpoint resume, dated per-currency statement and finance comparisons with source IDs, upstream edits and currency conflicts without native writes, scoped refusals, attributed audit, owned exceptions, latest-event floor, legal hold, explicit owner erasure and independent-journal restore; independent connection revocation also refuses D1 credential rewind. `tests/journeys/pricing.test.mjs` — “supplier schedules a complete book and dated USD basis, buyer keeps CAD documents, and reports show the recorded conversion without changing cents”, extended through `tests/journeys/qbo-accounting.mjs`: owner consent, reviewed mappings, interrupted resume, linked invoice, buyer statement and finance comparisons, conflicts and revocation at 1440 and 390. | Read-only foundation only, with conservative signed-in-owner connection, mapping and link review under the standing scope rule; functional finance reconciliation delegation remains owed. Live sandbox consent and the complete invoice, partial-payment, return-credit, replay and revocation receipt require the local held-key run; held client credentials establish no tenant authority, redirect setup or consent. Creating invoices at chosen billing events, credit-memo writes, verified payment and credit synchronization into native balances, complete PAY-007, RPT-004, AUTO-005 and DATA-003 receiving obligations remain owed. Current dated invoice balances are comparisons only; no historical provider balance or provider erasure is claimed. PAY-003, PAY-004, PAY-005, PAY-010 and all tax and provider holds retain their own judgments. |
++| `INT-002` | QuickBooks Online accounting | target | partial | `tests/api/statements.test.mjs` — “PAY-007: a dated statement of invoices with opening and closing balances by currency, as JSON, CSV and PDF, for the buyer even after hold and close”, extended through `tests/api/qbo-accounting.mjs`: owner and company-bound OAuth, reviewed references, bounded interrupted invoice reads and exact checkpoint resume, dated per-currency statement and finance comparisons with source IDs, upstream edits and currency conflicts without native writes, scoped refusals, attributed audit, owned exceptions, latest-event floor, legal hold, explicit owner erasure and independent-journal restore; independent connection revocation also refuses D1 credential rewind. `tests/journeys/pricing.test.mjs` — “supplier schedules a complete book and dated USD basis, buyer keeps CAD documents, and reports show the recorded conversion without changing cents”, extended through `tests/journeys/qbo-accounting.mjs`: owner consent, reviewed mappings, interrupted resume, linked invoice, buyer statement and finance comparisons, conflicts and revocation at 1440 and 390.  FIX 1 of 2 retains the original independent verdict lifetime; the same API journey additionally proves Wren-only finance task read/CSV/refresh and mutation refusals, renewed native-credit and stale-mapping exceptions with one current owned task, unchanged issued invoices and credits, and provider-only account erasure/ID reuse with retained financial facts, remapping refusal and later-journal restore fencing. | Read-only foundation only, with conservative signed-in-owner connection, mapping and link review under the standing scope rule; functional finance reconciliation delegation remains owed. Live sandbox consent and the complete invoice, partial-payment, return-credit, replay and revocation receipt require the local held-key run; held client credentials establish no tenant authority, redirect setup or consent. Creating invoices at chosen billing events, credit-memo writes, verified payment and credit synchronization into native balances, complete PAY-007, RPT-004, AUTO-005 and DATA-003 receiving obligations remain owed. Current dated invoice balances are comparisons only; no historical provider balance or provider erasure is claimed. PAY-003, PAY-004, PAY-005, PAY-010 and all tax and provider holds retain their own judgments. |
+ | `INT-003` | Xero accounting | target | missing |  | Implement xero accounting and prove the stated journey. |
+ | `INT-004` | NetSuite ERP | target | missing |  | Implement netsuite erp and prove the stated journey. |
+ | `INT-005` | Shopify commerce connection | target | missing |  | Implement shopify commerce connection and prove the stated journey. |
+diff --git a/sources.lock.json b/sources.lock.json
+index cfc341d..6dda9d0 100644
+--- a/sources.lock.json
++++ b/sources.lock.json
+@@ -155,7 +155,7 @@
+       "executable": false
+     },
+     "CONTRACT.md": {
+-      "sha256": "ddb91433102e759c12b4fdf5d93edfb5e1407a751196b9d4d9f009fc82c645c4",
++      "sha256": "3f8c8e7e843572f985a968390ca0ba820912982ea3be44cd1657fb3669f58b99",
+       "executable": false
+     },
+     "DEMO.md": {
+@@ -1775,7 +1775,7 @@
+       "executable": false
+     },
+     "src/barrow/account-erasure.ts": {
+-      "sha256": "a9332ce118b79f4655574af1e5413af48fc87abb4359222edd4d84dd74c0bb2c",
++      "sha256": "33ad6bf572b9a708430af90d427c61bb0bc2d09caba8aba7f7060dd607935a82",
+       "executable": false
+     },
+     "src/barrow/account-followup-sources.ts": {
+@@ -1790,16 +1790,20 @@
+       "sha256": "8470fbc972e9385e26ded7112ff5086daadc4700d87f5e188820e741702b89bd",
+       "executable": false
+     },
++    "src/barrow/accounting/custody.ts": {
++      "sha256": "b6d4255c8ddf80afebb1717887c90b4d0dfcab899ca91c9f893dcbbfd1f1fcbe",
++      "executable": false
++    },
+     "src/barrow/accounting/qbo.ts": {
+       "sha256": "6f561b82920e2b371a86aa8eee8f10176f2c3c8830f84bf636e21a0b283ef270",
+       "executable": false
+     },
+     "src/barrow/accounting/reconciliation.ts": {
+-      "sha256": "a05c87826750120584d0f63832ff9b037927f276439176295c4db9a77cf80995",
++      "sha256": "eaf9187c3b76f00ba24ca44fe30205185ac1d023cc1cda1088b414e3bcc8135d",
+       "executable": false
+     },
+     "src/barrow/accounts.ts": {
+-      "sha256": "52f1feb0f2abc075e771621c0926a52d2de350bf7ae6fa829ee9f0924fb787cf",
++      "sha256": "757f0396f1de4faf2b1eabc3097f484d941e3d395eaea3fe58627bba5f31c653",
+       "executable": false
+     },
+     "src/barrow/agent-door/business.ts": {
+@@ -2211,7 +2215,7 @@
+       "executable": false
+     },
+     "src/barrow/followups.ts": {
+-      "sha256": "1183728b8e1684a1e7e337dfe8851bfb2813e6e0ebd2af199b195f1508a4a7de",
++      "sha256": "9b25cf52f4165d953bf3c0672149176c928fafdcc7ac85c55b291c889aedbc96",
+       "executable": false
+     },
+     "src/barrow/freshness.ts": {
+@@ -2395,7 +2399,7 @@
+       "executable": false
+     },
+     "src/barrow/legacy-erasure-journal.ts": {
+-      "sha256": "159ee512e3a05be6f2496e56e00c8be8a6c8b8eaa339bb3dbc0c3595a9f2cfbd",
++      "sha256": "ad7662e9c1d3c622a488619716a1bb6f9ccbe8159dbdaab95b4dde4aa22c9661",
+       "executable": false
+     },
+     "src/barrow/line-sheets.ts": {
+@@ -2651,7 +2655,7 @@
+       "executable": false
+     },
+     "src/barrow/staff-access.ts": {
+-      "sha256": "56028777991f6634013be16d1fa60b4a073459011ecbcf2574884665d7b20075",
++      "sha256": "e9a5d9e53641e8850e66726d697825536cc31786df9fbcc3793662aedede4e1d",
+       "executable": false
+     },
+     "src/barrow/staff-members.ts": {
+@@ -6063,7 +6067,7 @@
+       "executable": false
+     },
+     "tests/api/qbo-accounting.mjs": {
+-      "sha256": "d08a92d0b10fce66e41d5050e92ff6b96a0507dfff5cd72cfbfd78a89abc377a",
++      "sha256": "9ad07dbdf2202bf58e9b4b94dfa68ef2a8c628013af7ce311cdb024c1282a046",
+       "executable": false
+     },
+     "tests/api/qbo-fixture.mjs": {
+diff --git a/src/barrow/account-erasure.ts b/src/barrow/account-erasure.ts
+index 656fb78..461787c 100644
+--- a/src/barrow/account-erasure.ts
++++ b/src/barrow/account-erasure.ts
+@@ -1,3 +1,4 @@
++import { qboCustomerCustody, qboErasureStatements } from './accounting/custody'
+ import { eraseAccountAgentArtifacts, checkAccountAgentArtifacts } from './agent-door/erasure.ts'
+ import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
+ import { creditFinancialTables,creditFinancialDates,creditHistoryItems } from './credit-retention'
+@@ -121,7 +122,9 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
+   sql('DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',accountId),
+   sql("UPDATE bw_agent_proposal_grants SET state='revoked',revision=?,revoked_at=?,revocation_reason='Owner-reviewed account access revocation' WHERE account_id=?",op.id,at,accountId),
+  ])
+- for(const map of [...new Map([...r.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===accountId),...(op.qboCustomers??[])].map(row=>[row.realm+':'+row.source_id,row])).values()])add('access','qbo-customer:'+map.source_id,'revoke source mapping','Erased provider customers stay fenced from later reads and remapping, including later-journal restore',[sql('INSERT OR IGNORE INTO bw_qbo_erased VALUES(?,?)',map.realm,map.source_id),sql('DELETE FROM bw_qbo_maps WHERE realm=? AND kind=? AND source_id=?',map.realm,map.kind,map.source_id),sql('DELETE FROM bw_qbo_links WHERE account_id=?',accountId)])
++ const qboCustomers=[...new Map([...r.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===accountId),...r.bw_qbo_invoices.filter(row=>row.account_id===accountId).map(row=>{const value=JSON.parse(row.value_json);return {realm:value.realm,source_id:value.customerId,kind:'Customer'}}),...(op.qboCustomers??[])].map(row=>[row.realm+':'+row.source_id,row])).values()]
++ for(const map of qboCustomers)add('access','qbo-customer:'+map.realm+':'+map.source_id,'revoke source mapping and account admission','Erased provider customers stay fenced from later reads and remapping, including later-journal restore')
++ statements.push(...qboErasureStatements(accountId,qboCustomers))
+  for(const row of r.bw_profile_approvals.filter(row=>row.account_id===accountId))add('access',`profile-approval:${row.profile_id}:${row.user_id}`,'revoke and remove','Buying profile authority ends even under a hold',[sql('DELETE FROM bw_profile_approvals WHERE profile_id=? AND user_id=?',row.profile_id,row.user_id)])
+  for(const row of r.bw_buying_profiles.filter(row=>row.account_id===accountId))add('buying profiles','buying-profile:'+row.id,'remove','Remove live account profiles; retained orders keep their agreed seller and price snapshots',[sql('DELETE FROM bw_buying_profiles WHERE id=?',row.id)])
+  for(const row of r.bw_brands.filter(row=>r.bw_buying_profiles.some(profile=>profile.account_id===accountId&&JSON.parse(profile.value_json).brandId===row.id)))add('brand definitions','brand:'+row.id,'keep supplier configuration','Brand definitions contain supplier legal identity and remain available to other authorized accounts')
+@@ -253,7 +256,7 @@ async function plan(env:Bindings,op:ErasureOperation,state:Awaited<ReturnType<ty
+ }
+ export async function previewAccountErasure(env:Bindings,actor:Actor,p:any) {
+  owner(actor);const state=await facts(env,text(p.accountId,'Account ID'))
+- const op:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:'preview',accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason:'Preview only',mode:'erase',exclusions:[],deleteOrderIds:[],people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:state.rows.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===state.account.id).map(row=>({realm:row.realm,source_id:row.source_id,kind:row.kind})),receipt:null}
++ const op:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:'preview',accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason:'Preview only',mode:'erase',exclusions:[],deleteOrderIds:[],people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:await qboCustomerCustody(env.DB,state.account.id),receipt:null}
+  const result=await plan(env,op,state)
+  return {accountId:state.account.id,accountRevision:state.account.revision,requestRevision:state.request?.revision??null,policyRevision:state.policy?.revision??null,reviewHash:await digest(JSON.stringify([state.reviewHash,result.items])),held:state.held,request:state.request??null,items:result.items,classes:result.classes,custody:result.custody,platformBackupWindows:{paidUntil:new Date(Date.now()+30*86400000).toISOString(),freeUntil:new Date(Date.now()+7*86400000).toISOString()},outsideJournal:!!env.ERASURE_JOURNAL}
+ }
+@@ -287,7 +290,7 @@ export async function executeAccountErasure(env:Bindings,actor:Actor,p:any,mode:
+  const exclusions=p.exclusions??[],deleteOrderIds=p.deleteOrderIds??[]
+  if(!Array.isArray(exclusions)||exclusions.some(row=>!row||typeof row.id!=='string'||!text(row.reason,'Exclusion reason',1000))||new Set(exclusions.map(row=>row.id)).size!==exclusions.length)fail('INPUT','Supply unique reviewed exclusions with reasons.',400)
+  if(!Array.isArray(deleteOrderIds)||deleteOrderIds.some(id=>typeof id!=='string')||new Set(deleteOrderIds).size!==deleteOrderIds.length)fail('INPUT','Supply unique reviewed order IDs for explicit deletion.',400)
+- const operation:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:crypto.randomUUID(),accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason,mode,exclusions,deleteOrderIds,people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:state.rows.bw_qbo_maps.filter(row=>row.kind==='Customer'&&row.native_id===state.account.id).map(row=>({realm:row.realm,source_id:row.source_id,kind:row.kind})),receipt:null}
++ const operation:ErasureOperation={version:1,sourceIdentity:await journalSource(env),id:crypto.randomUUID(),accountId:state.account.id,actorId:actor.id,at:new Date().toISOString(),reason,mode,exclusions,deleteOrderIds,people:state.people,accountEmail:state.value.email,personal:state.personal,qboCustomers:await qboCustomerCustody(env.DB,state.account.id),receipt:null}
+  const reviewPlan=await plan(env,{...operation,mode:'erase',exclusions:[],deleteOrderIds:[]},state)
+  if(p.reviewHash!==await digest(JSON.stringify([state.reviewHash,reviewPlan.items])))fail('CHANGED','Refresh the erasure preview; its data or financial-floor decisions changed.')
+  const result=await plan(env,operation,state)
+diff --git a/src/barrow/accounting/custody.ts b/src/barrow/accounting/custody.ts
+new file mode 100644
+index 0000000..a0d817c
+--- /dev/null
++++ b/src/barrow/accounting/custody.ts
+@@ -0,0 +1,18 @@
++/** Retained provider money belongs to the erased company, never a reusable native ID. */
++export type QboCustomerCustody={realm:string;source_id:string;kind:string}
++export async function qboCustomerCustody(db:D1Database,accountId:string):Promise<QboCustomerCustody[]> {
++ return (await db.prepare("SELECT realm,source_id,'Customer' AS kind FROM bw_qbo_maps WHERE kind='Customer' AND native_id=? UNION SELECT json_extract(value_json,'$.realm'),json_extract(value_json,'$.customerId'),'Customer' FROM bw_qbo_invoices WHERE account_id=?").bind(accountId,accountId).all<QboCustomerCustody>()).results
++}
++export function qboErasureStatements(accountId:string,customers:QboCustomerCustody[]) {
++ const sql=(sql:string,...params:any[])=>({sql,params})
++ return [
++  ...customers.map(customer=>sql('INSERT OR IGNORE INTO bw_qbo_erased VALUES(?,?)',customer.realm,customer.source_id)),
++  // Also capture rows present in the restored archive but absent from the original journal snapshot.
++  sql("INSERT OR IGNORE INTO bw_qbo_erased SELECT realm,source_id FROM bw_qbo_maps WHERE kind='Customer' AND native_id=?",accountId),
++  sql("INSERT OR IGNORE INTO bw_qbo_erased SELECT json_extract(value_json,'$.realm'),json_extract(value_json,'$.customerId') FROM bw_qbo_invoices WHERE account_id=?",accountId),
++  sql("DELETE FROM bw_qbo_maps WHERE kind='Customer' AND native_id=?",accountId),
++  sql('DELETE FROM bw_qbo_links WHERE account_id=?',accountId),
++  // Preserve every exact financial observation and latest-event floor; remove only live account admission.
++  sql("UPDATE bw_qbo_invoices SET account_id='' WHERE account_id=?",accountId),
++ ]
++}
+diff --git a/src/barrow/accounting/reconciliation.ts b/src/barrow/accounting/reconciliation.ts
+index 2fc0f69..dbbf53b 100644
+--- a/src/barrow/accounting/reconciliation.ts
++++ b/src/barrow/accounting/reconciliation.ts
+@@ -127,8 +127,9 @@ export async function resumeRead(env:Bindings,actor:Actor,p:any) {
+ export async function linkInvoice(env:Bindings,actor:Actor,p:any) {
+  qboOwner(actor);const reason=text(p.reason,'Reconciliation review reason',1000),c=await qboConnection(env.DB)
+  const row=await env.DB.prepare('SELECT * FROM bw_qbo_invoices WHERE id=?').bind(text(p.id,'Observation ID',100)).first<Stored>()
+- if(!row||row.revision!==p.revision)fail('CHANGED','Review the current invoice observation.')
++ if(!row||!row.account_id||row.revision!==p.revision)fail('CHANGED','Review the current invoice observation.')
+  const value=JSON.parse(row.value_json) as QboInvoice
++ if(await env.DB.prepare('SELECT 1 FROM bw_qbo_erased WHERE realm=? AND customer_id=?').bind(value.realm,value.customerId).first())fail('QBO_ERASED','An erased customer cannot be linked again.',409)
+  if(!c||c.state!=='connected'||c.realm!==value.realm)fail('QBO_COMPANY','Reconnect the original QuickBooks company before linking.')
+  const a=await account(env.DB,actor,value.accountId),native=await env.DB.prepare('SELECT value_json,revision FROM bw_orders WHERE id=? AND account_id=?').bind(text(p.orderId,'Native order ID',100),a.id).first<{value_json:string;revision:string}>()
+  if(!native||native.revision!==p.orderRevision)fail('CHANGED','Review the current native issued invoice.')
+@@ -150,15 +151,21 @@ export async function qboComparisons(db:D1Database,accountId:string,asOf:string,
+  const maps=(await values(db)).results,financial=await creditRecords(db)
+  const details=await Promise.all(rows.map(async row=>{
+   const value=JSON.parse(row.value_json) as QboInvoice
+-  const linked=await db.prepare('SELECT order_id FROM bw_qbo_links WHERE realm=? AND source_id=? AND account_id=?').bind(value.realm,value.sourceId,accountId).first<{order_id:string}>()
+-  const record=linked?await db.prepare('SELECT value_json FROM bw_orders WHERE id=? AND account_id=?').bind(linked.order_id,accountId).first<{value_json:string}>():null
++  const linked=await db.prepare('SELECT order_id,revision FROM bw_qbo_links WHERE realm=? AND source_id=? AND account_id=?').bind(value.realm,value.sourceId,accountId).first<{order_id:string;revision:string}>()
++  const record=linked?await db.prepare('SELECT value_json,revision FROM bw_orders WHERE id=? AND account_id=?').bind(linked.order_id,accountId).first<{value_json:string;revision:string}>():null
+   const order=record?JSON.parse(record.value_json) as Order:null
+   const refs=(await db.prepare('SELECT * FROM bw_qbo_refs WHERE realm=?').bind(value.realm).all<{kind:string;source_id:string;token:string;active:number}>()).results
+   const a=await db.prepare('SELECT revision FROM bw_accounts WHERE id=?').bind(accountId).first<{revision:string}>()
+   const stale=value.refs.some(ref=>!maps.some(m=>m.realm===value.realm&&m.kind===ref.kind&&m.source_id===ref.id&&refs.some(r=>r.kind===m.kind&&r.source_id===m.source_id&&r.token===m.token&&r.active===1)&&(m.kind!=='Customer'||m.native_revision===a?.revision)))
+   const nativeCents=order?.invoice&&order.currency===value.currency?invoiceOutstanding(order.id,order.totalCents,{...financial,allocations:financial.allocations.filter(r=>supplierDate(new Date(r.createdAt))<=asOf),applications:financial.applications.filter(r=>supplierDate(new Date(r.createdAt))<=asOf)}):null
+   const conflict=stale?'Reference mapping missing or stale':!order?'Unlinked ledger invoice':order.currency!==value.currency?'Currency mismatch':order.totalCents!==value.amountCents?'Upstream invoice total changed':order.invoice?.issuedAt!==value.issuedAt||order.invoice?.dueAt!==value.dueAt?'Invoice dates differ':nativeCents!==value.balanceCents?'Balance differs':'Matched'
+-  return {id:value.id,sourceId:value.sourceId,sourceToken:value.sourceToken,realm:value.realm,accountId,currency:value.currency,amountCents:value.amountCents,ledgerCents:value.balanceCents,nativeCents,orderId:order?.id??'',status:conflict,path:`/api/barrow/qbo/observations/${value.id}`}
++  // An unchanged provider SyncToken says nothing about later native credits or mapping review.
++  // Bind exception work to the relevant native and reference revisions, not each read's correlation.
++  const reconciliationRevision=await digest(JSON.stringify([a?.revision,record?.revision,linked?.revision,
++   maps.filter(m=>m.realm===value.realm&&value.refs.some(ref=>ref.kind===m.kind&&ref.id===m.source_id)),
++   refs.filter(r=>value.refs.some(ref=>ref.kind===r.kind&&ref.id===r.source_id)),
++   financial.allocations.filter(r=>r.orderId===order?.id),financial.applications.filter(r=>r.orderId===order?.id)]))
++  return {id:value.id,sourceId:value.sourceId,sourceToken:value.sourceToken,realm:value.realm,accountId,currency:value.currency,amountCents:value.amountCents,ledgerCents:value.balanceCents,nativeCents,orderId:order?.id??'',status:conflict,reconciliationRevision,path:`/api/barrow/qbo/observations/${value.id}`}
+  }))
+  const currencies=[...new Set([...native.keys(),...details.map(row=>row.currency)])]
+  return currencies.map(currency=>{const mine=details.filter(row=>row.currency===currency),ledgerCents=mine.reduce((sum,row)=>sum+row.ledgerCents,0),nativeCents=native.get(currency)??0;return {accountId,realm:run.realm,runId:run.id,asOf,observedAt:run.updated_at,currency,nativeCents,ledgerCents,differenceCents:nativeCents-ledgerCents,status:mine.some(row=>row.status!=='Matched')||nativeCents!==ledgerCents?'Conflict':'Matched',sources:mine}})
+@@ -184,9 +191,13 @@ export async function qboExceptionSources(env:Bindings) {
+  const existing=(await env.DB.prepare("SELECT id FROM bw_followups WHERE json_extract(value_json,'$.kind')='qbo'").all<{id:string}>()).results
+  const accounts=(await env.DB.prepare('SELECT DISTINCT account_id FROM bw_qbo_invoices WHERE account_id<>?').bind('').all<{account_id:string}>()).results
+  for(const a of accounts)for(const comparison of await qboComparisons(env.DB,a.account_id,run.as_of,new Map()))for(const source of comparison.sources) {
+-  const prefix='qbo:'+source.realm+':'+source.sourceId+':',key=prefix+source.sourceToken
++  const prefix='qbo:'+source.realm+':'+source.sourceId+':',key=prefix+await digest(JSON.stringify([source.sourceToken,source.reconciliationRevision,source.status,source.currency,source.amountCents,source.ledgerCents,source.nativeCents,source.orderId]))
+   if(source.status==='Matched'&&run.as_of===supplierDate(await now())) {for(const prior of existing.filter(row=>row.id.startsWith(prefix)))resolved.set(prior.id,'Source-linked QuickBooks invoice '+source.sourceId+' revision '+source.sourceToken+' and native outstanding match in dated observation '+run.as_of+'.')}
+-  else candidates.push({id:key,kind:'qbo',accountId:a.account_id,sourceId:source.sourceId,sourcePath:source.path,title:'Review QuickBooks invoice '+source.sourceId,reason:`${run.as_of===supplierDate(await now())?source.status:'Dated ledger observation needs refresh'}; ${source.currency}, company ${source.realm}, correlation ${comparison.runId}, observed ${comparison.observedAt}.`,priority:1})
++  else {
++   candidates.push({id:key,kind:'qbo',accountId:a.account_id,sourceId:source.sourceId,sourcePath:source.path,title:'Review QuickBooks invoice '+source.sourceId,reason:`${run.as_of===supplierDate(await now())?source.status:'Dated ledger observation needs refresh'}; ${source.currency}, company ${source.realm}, correlation ${comparison.runId}, observed ${comparison.observedAt}.`,priority:1})
++   // Keep one current owned task per source. Supersession is not a claim that money matched.
++   for(const prior of existing.filter(row=>row.id.startsWith(prefix)&&row.id!==key))resolved.set(prior.id,'Superseded by current reconciliation task '+key+'; the source discrepancy still requires review.')
++  }
+  }
+  return {candidates,resolved}
+ }
+diff --git a/src/barrow/accounts.ts b/src/barrow/accounts.ts
+index 9f0337f..2e3ca51 100644
+--- a/src/barrow/accounts.ts
++++ b/src/barrow/accounts.ts
+@@ -86,7 +86,7 @@ export async function accountCommand(request:Request,env:Bindings,actor:Actor,ty
+   const checkpoint=[...await portability.invalidateTransfersStatements(),...await portability.redactionStatements()].map(toD1Sql)
+   const erased=commercialAuditEvent(actor.id,selected.id,'account.erased',{accountId:selected.id,revision:selected.revision,source:'account.erase',reason:'Supplier confirmed erasure of an unused account and retirement of import custody.'})
+   const journal=await prepareLegacyErasure(env,actor,'unused-account',selected.id,{email:selected.value.email,reason:'Owner confirmed erasure of an unused account.'},{id:crypto.randomUUID(),accountId:selected.id,erasedAt:new Date().toISOString(),erasedBy:actor.id,kind:'unused-account'})
+-  return journal.run(()=>retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[...journal.agentStatements,...deltaErasure(selected.id),cutoverErasure(selected.id),journal.statement,{sql:'DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',params:[selected.id]},...['bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants'].map(table=>({sql:`DELETE FROM ${table} WHERE account_id=?`,params:[selected.id]})),{sql:'INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_retention_requests WHERE account_id=? AND held=1) THEN 1 ELSE 0 END',params:[selected.id]},{sql:'DELETE FROM bw_retention_requests WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_invites WHERE account_id=?',params:[selected.id]},{sql:"DELETE FROM bw_rep_assignments WHERE kind='account' AND target=?",params:[selected.id]},{sql:'DELETE FROM bw_company_delegations WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_approval_notices WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_visits WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_route_versions WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_routes WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_profile_approvals WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_buying_profiles WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_members WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_legacy_accounts WHERE account_id=?',params:[selected.id]},{sql:"DELETE FROM bw_settings WHERE key=?",params:['credit-policy:'+selected.id]},{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?) AND NOT EXISTS(SELECT 1 FROM bw_quotes WHERE account_id=?)',params:[selected.id,selected.revision,selected.id,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'},...campaignErasureStatements('account_id',selected.id),{sql:'DELETE FROM bw_line_sheets WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_sheet_events WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_lists WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_locations WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_terms_assignments WHERE account_id=?',params:[selected.id]},...applicationAccountErasure(selected.id),...quoteMailErasureStatements(selected.id),{sql:'DELETE FROM bw_followups WHERE account_id=?',params:[selected.id]},erased]}))
++  return journal.run(()=>retireAccountImportCustody(env.DB,actor,{checkpoint,accountId:selected.id,email:selected.value.email,nativeStatements:[...journal.agentStatements,...journal.custodyStatements,...deltaErasure(selected.id),cutoverErasure(selected.id),journal.statement,{sql:'DELETE FROM bw_agent_tokens WHERE id IN (SELECT token_id FROM bw_agent_proposal_grants WHERE account_id=?)',params:[selected.id]},...['bw_agent_proposals','bw_agent_proposal_attempts','bw_agent_proposal_grants'].map(table=>({sql:`DELETE FROM ${table} WHERE account_id=?`,params:[selected.id]})),{sql:'INSERT INTO bw_guard(value) SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM bw_retention_requests WHERE account_id=? AND held=1) THEN 1 ELSE 0 END',params:[selected.id]},{sql:'DELETE FROM bw_retention_requests WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_invites WHERE account_id=?',params:[selected.id]},{sql:"DELETE FROM bw_rep_assignments WHERE kind='account' AND target=?",params:[selected.id]},{sql:'DELETE FROM bw_company_delegations WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_approval_notices WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_visits WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_route_versions WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_routes WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_profile_approvals WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_buying_profiles WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_members WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_company_legacy_accounts WHERE account_id=?',params:[selected.id]},{sql:"DELETE FROM bw_settings WHERE key=?",params:['credit-policy:'+selected.id]},{sql:'DELETE FROM bw_accounts WHERE id=? AND revision=? AND NOT EXISTS(SELECT 1 FROM bw_orders WHERE account_id=?) AND NOT EXISTS(SELECT 1 FROM bw_quotes WHERE account_id=?)',params:[selected.id,selected.revision,selected.id,selected.id]},{sql:'INSERT INTO bw_guard(value) VALUES(changes())'},{sql:'DELETE FROM bw_guard'},...campaignErasureStatements('account_id',selected.id),{sql:'DELETE FROM bw_line_sheets WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_sheet_events WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_lists WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_locations WHERE account_id=?',params:[selected.id]},{sql:'DELETE FROM bw_terms_assignments WHERE account_id=?',params:[selected.id]},...applicationAccountErasure(selected.id),...quoteMailErasureStatements(selected.id),{sql:'DELETE FROM bw_followups WHERE account_id=?',params:[selected.id]},erased]}))
+  }
+  fail('NOT_FOUND','Unknown account command.',404)
+ }
+diff --git a/src/barrow/followups.ts b/src/barrow/followups.ts
+index e0fcb0a..967fd6e 100644
+--- a/src/barrow/followups.ts
++++ b/src/barrow/followups.ts
+@@ -77,6 +77,15 @@ export async function followupCommand(env: Bindings, actor: Actor, type: string,
+    if(!staffTaskAllowed(actor,source))continue
+    const existingTask = known.get(source.id)
+    if (existingTask) {
++    // A source-confirmed match or supersession is not a permanent human acknowledgment.
++    // If that same QBO discrepancy recurs, restore owned work and remove its obsolete resolution.
++    if (source.kind === 'qbo' && existingTask.status === 'closed' && !existingTask.resolvedBy) {
++     const { revision: previous, resolution, resolvedAt, ...value } = existingTask
++     const eligible = await taskPeople(env.DB, source)
++     const ownerId = eligible.some(person => person.id === value.ownerId) ? value.ownerId : actor.id
++     statements.push(updateStatement(env.DB, existingTask, { ...value, ...source, ownerId, status: 'open', nextContactDate: today }, crypto.randomUUID()), changed(env.DB))
++     updated.push(source.id)
++    }
+     if (existingTask.status === 'open' && (Object.keys(source) as (keyof FollowupSource)[]).some(key => JSON.stringify(existingTask[key]) !== JSON.stringify(source[key]))) {
+      const { revision: previous, ...value } = existingTask
+      statements.push(updateStatement(env.DB, existingTask, { ...value, ...source }, crypto.randomUUID()), changed(env.DB))
+diff --git a/src/barrow/legacy-erasure-journal.ts b/src/barrow/legacy-erasure-journal.ts
+index 5b4a226..f74996d 100644
+--- a/src/barrow/legacy-erasure-journal.ts
++++ b/src/barrow/legacy-erasure-journal.ts
+@@ -1,3 +1,4 @@
++import { qboCustomerCustody, qboErasureStatements } from './accounting/custody'
+ import { eraseAccountAgentArtifacts } from './agent-door/erasure.ts'
+ import { campaignErasureStatements } from './campaign-custody'
+ import { eraseReturnAudit, eraseReturnNarrative } from './return-claim-custody'
+@@ -14,10 +15,12 @@ import { portabilityPolicy } from './portability-policy.mjs'
+ export type LegacyErasure={version:1;kind:'unused-account'|'company-user'|'po-document'|'application';sourceIdentity:string;id:string;accountId:string;actorId:string;at:string;reason:string;payload:any;receipt:any}
+ export async function prepareLegacyErasure(env:Bindings,actor:Actor,kind:LegacyErasure['kind'],accountId:string,payload:any,receipt:any) {
+  if(actor.agent||actor.role!=='owner')fail('FORBIDDEN','Only the signed-in owner may erase personal data.',403)
++ if(kind==='unused-account')payload={...payload,qboCustomers:await qboCustomerCustody(env.DB,accountId)}
+  const operation:LegacyErasure={version:1,kind,sourceIdentity:await journalSource(env),id:receipt.id??crypto.randomUUID(),accountId,actorId:actor.id,at:receipt.erasedAt??new Date().toISOString(),reason:payload.reason??'Owner confirmed erasure of an unused account.',payload,receipt}
+  const fingerprint=await writeErasureIntent(env,operation),statement={sql:'INSERT INTO bw_account_erasure_journal VALUES(?,?,?,?)',params:[operation.id,accountId,fingerprint,JSON.stringify({...receipt,kind,accountId,actorId:actor.id,reason:operation.reason,at:operation.at})]}
+  const agentStatements=kind==='unused-account'?await eraseAccountAgentArtifacts(env,{accountId,accountEmail:payload.email},operation):[]
+- return {statement,agentStatements,async run<T>(apply:()=>Promise<T>) {
++ const custodyStatements=kind==='unused-account'?qboErasureStatements(accountId,payload.qboCustomers):[]
++ return {statement,agentStatements,custodyStatements,async run<T>(apply:()=>Promise<T>) {
+   try {const result=await apply();await completeErasureIntent(env,operation.id,fingerprint);return result}
+   catch(error){const committed=await env.DB.prepare('SELECT 1 FROM bw_account_erasure_journal WHERE id=?').bind(operation.id).first();if(!committed)await abandonErasureIntent(env,operation);throw error}
+  }}
+@@ -70,6 +73,7 @@ export async function replayLegacyErasure(env:Bindings,operation:LegacyErasure,f
+   put('UPDATE bw_quote_entries SET author_email=?,body=replace(body,?,?) WHERE author_id=?',email,p.email,email,id)
+  }
+  if(kind==='unused-account') {
++  statements.push(...qboErasureStatements(accountId,p.qboCustomers??[]))
+   statements.push(...await eraseAccountAgentArtifacts(env,{accountId,accountEmail:p.email},operation))
+   statements.push(...campaignErasureStatements('account_id',accountId))
+   statements.push(...deltaErasure(accountId),cutoverErasure(accountId))
+diff --git a/src/barrow/staff-access.ts b/src/barrow/staff-access.ts
+index 2a1b395..817e64d 100644
+--- a/src/barrow/staff-access.ts
++++ b/src/barrow/staff-access.ts
+@@ -15,10 +15,10 @@ export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role=
+ export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;warehouses?:string[]}) {
+  const grant=actor.staff
+  if(!grant)return true
+- if(task.kind==='qbo')return grant.role==='finance'
+  if(task.kind==='return')return false // Functional return admission remains owed by ACC-005.
+  if(task.kind==='application')return applicationAccess(actor)==='review'
+  if(!staffAccountAllowed(grant,task.accountId))return false
++ if(task.kind==='qbo')return grant.role==='finance'
+  if(task.kind==='fulfillment'&&grant.warehouses!=='all')return false
+  if(task.kind==='tracking'&&grant.warehouses!=='all'&&(!task.warehouses?.length||task.warehouses.some(w=>!grant.warehouses.includes(w))))return false
+  if(task.kind==='payment-promise')return grant.role==='finance'
+diff --git a/tests/api/qbo-accounting.mjs b/tests/api/qbo-accounting.mjs
+index 5473a21..3a82fe4 100644
+--- a/tests/api/qbo-accounting.mjs
++++ b/tests/api/qbo-accounting.mjs
+@@ -1,8 +1,9 @@
+ import assert from 'node:assert/strict';
+ import {qboFixture} from './qbo-fixture.mjs';
+-import {archive,restore,installation,accountValue} from './harness.mjs';
++import {archive,restore,installation,accountValue,activateStaff} from './harness.mjs';
+ import {verifiedRequest,erasurePreview,erasurePayload} from './retention-fixture.mjs';
+ export async function qboAccounting(t) {
++ await qboOriginalBlockers(t);
+  const f=await qboFixture(t),{h,pier,edge,buyer,order}=f;
+  // OAuth initiation, company binding and exact signed-in person authority through HTTP.
+  await h.command('qbo.begin',{realm:'123456',mode:'sandbox',consent:true,reason:'Buyer cannot authorize company accounting.'},{...buyer,status:403});
+@@ -66,3 +67,80 @@ export async function qboAccounting(t) {
+  const calls=edge.calls.length;await h.command('qbo.references',{kind:'Customer',reason:'A D1 rewind cannot resurrect independently revoked credentials.'},{status:409});assert.equal(edge.calls.length,calls);assert.equal((await f.workspace()).connection.state,'reconnect');
+  const audit=await (await h.request('/api/barrow/audit.csv?search=qbo')).text();assert.ok(audit.includes('qbo.mapping-reviewed')&&audit.includes('qbo.invoice-linked')&&audit.includes('qbo.disconnected'));assert.ok(!audit.includes('synthetic-barrow-903')&&!audit.includes('synthetic-barrow-904'));
+ }
++
++// The original independent FIX verdict's public doors stay in the existing accounting journey.
++async function qboOriginalBlockers(t) {
++ const f=await qboFixture(t),{h,pier,order,edge}=f;
++ await f.connect();await f.mappings();let run=await f.resume(await f.start());
++ const observation=(await f.workspace()).observations.find(row=>row.runId===run.id);
++ const other=await pier.command('party.save',{name:'Wren Market',kind:'customer'});
++ await h.command('account.save',{id:'wren',value:{...accountValue(other.id,'synthetic-barrow-951@example.test'),name:'Wren Market'}});
++ const policy={role:'finance',accounts:['wren'],warehouses:[],reports:['finance'],discountLimitCents:0,stockExceptionLimitCents:0};
++ const {who,grant}=await activateStaff(h,'synthetic-barrow-950@example.test',policy);
++ let board=await h.command('followup.refresh',{}),original=board.tasks.find(row=>row.kind==='qbo');assert.ok(original.ownerId);
++ const ownState=await h.api('/api/barrow/state',undefined,who);assert.deepEqual(ownState.accounts.map(row=>row.id),['wren']);
++ assert.equal((await h.api('/api/barrow/followups?view=all',undefined,who)).tasks.some(row=>row.kind==='qbo'),false);
++ assert.equal((await (await h.request('/api/barrow/export/followups.csv',who)).text()).includes('cedar'),false);
++ assert.equal((await h.command('followup.refresh',{},who)).tasks.some(row=>row.kind==='qbo'),false);
++ assert.equal((await h.request('/api/barrow/qbo/observations/'+observation.id,who)).status,404);
++ await h.command('followup.update',{id:original.id,revision:original.revision,close:true,resolution:'Foreign task must not be mutable.'},{...who,status:404});
++ assert.deepEqual((await h.api('/api/barrow/followups?view=all')).tasks.find(row=>row.id===original.id),original);
++ let currentGrant=await h.command('staff.update',{userId:grant.userId,revision:grant.revision,policy:{...policy,accounts:['cedar']},reason:'Owner explicitly grants Cedar finance work.'});
++ assert.ok((await h.api('/api/barrow/followups?view=all',undefined,who)).tasks.some(row=>row.id===original.id));
++ assert.ok((await (await h.request('/api/barrow/export/followups.csv',who)).text()).includes('cedar'));
++ await h.command('staff.update',{userId:grant.userId,revision:currentGrant.revision,policy,reason:'Owner narrows finance access back to Wren.'});
++ assert.equal((await h.command('followup.refresh',{},who)).tasks.some(row=>row.kind==='qbo'),false);
++ // Resolve the unlinked case, then a terms change must create exactly one current stale-mapping task.
++ await h.command('qbo.link',{id:observation.id,revision:observation.revision,orderId:order.id,orderRevision:order.revision,reason:'Review exact original issued invoice.'});
++ board=await h.command('followup.refresh',{});assert.ok(board.tasks.filter(row=>row.kind==='qbo').every(row=>row.status==='closed'));
++ const a=await h.api('/api/barrow/accounts/by-id/cedar');const changed=await h.command('account.save',{id:a.id,revision:a.revision,value:{...a.value,termsDays:45}});
++ assert.equal((await h.api('/api/barrow/statements/cedar?to=2026-11-06',undefined,f.buyer)).ledgerComparisons[0].sources[0].status,'Reference mapping missing or stale');
++ board=await h.command('followup.refresh',{});let open=board.tasks.filter(row=>row.kind==='qbo'&&row.status==='open');assert.equal(open.length,1);assert.ok(open[0].ownerId);assert.equal(open[0].resolution,undefined);
++ assert.equal((await h.command('followup.refresh',{})).tasks.filter(row=>row.kind==='qbo'&&row.status==='open').length,1);
++ const mapping=(await f.workspace()).mappings.find(row=>row.kind==='Customer');
++ await h.command('qbo.mapping',{kind:'Customer',sourceId:mapping.source_id,sourceToken:mapping.token,nativeId:'cedar',nativeRevision:changed.revision,revision:mapping.revision,reason:'Owner reviews the changed native commercial terms.'});
++ board=await h.command('followup.refresh',{});assert.ok(board.tasks.filter(row=>row.kind==='qbo').every(row=>row.status==='closed'));
++ // A reviewed USD55 correction matches the provider; a later USD5 correction is fresh work.
++ edge.balance=75;await f.resume(await f.start());board=await h.command('followup.refresh',{});assert.equal(board.tasks.filter(row=>row.kind==='qbo'&&row.status==='open').length,1);
++ const correct=(amountCents,sourceReference)=>h.command('credit.issue',{orderId:order.id,kind:'price-correction',sourceReference,lines:[{line:1,quantity:1,amountCents}],reason:'Owner reviews the original source price correction.'});
++ const first=await correct(5500,'First reviewed correction'),firstDetail=await h.api('/api/barrow/credits/'+first.id);board=await h.command('followup.refresh',{});assert.ok(board.tasks.filter(row=>row.kind==='qbo').every(row=>row.status==='closed'));
++ await correct(500,'Further reviewed correction');await f.resume(await f.start());
++ let source=(await h.api('/api/barrow/reports/finance?asOf=2026-11-06')).ledgerReconciliation[0].sources[0];assert.deepEqual([source.status,source.nativeCents,source.ledgerCents],['Balance differs',7000,7500]);
++ board=await h.command('followup.refresh',{});open=board.tasks.filter(row=>row.kind==='qbo'&&row.status==='open');assert.equal(open.length,1);assert.ok(open[0].ownerId);assert.equal(open[0].resolution,undefined);
++ const taskId=open[0].id;await f.resume(await f.start());board=await h.command('followup.refresh',{});assert.deepEqual(board.tasks.filter(row=>row.kind==='qbo'&&row.status==='open').map(row=>row.id),[taskId]);
++ // A later provider update supersedes current work truthfully, without duplicate open tasks.
++ edge.token='1';edge.balance=80;await f.resume(await f.start());board=await h.command('followup.refresh',{});open=board.tasks.filter(row=>row.kind==='qbo'&&row.status==='open');assert.equal(open.length,1);assert.notEqual(open[0].id,taskId);assert.match(board.tasks.find(row=>row.id===taskId).resolution,/Superseded/);
++ assert.deepEqual((await h.api('/api/barrow/orders/'+order.id)).invoice,order.invoice);
++ assert.deepEqual(await h.api('/api/barrow/credits/'+first.id),firstDetail);
++ await qboUnusedCustody(t);
++}
++async function qboUnusedCustody(t) {
++ const f=await qboFixture(t),{h,pier}=f,party=await pier.command('party.save',{name:'Provider-only account',kind:'customer'});
++ const initial=await h.command('account.save',{id:'provider-only',value:{...accountValue(party.id,'synthetic-barrow-952@example.test'),name:'Provider-only account'}});
++ await f.connect();await h.command('qbo.references',{kind:'Customer',reason:'Review provider-only customer.'});
++ const ref=(await f.workspace()).references.find(row=>row.kind==='Customer');
++ await h.command('qbo.mapping',{kind:'Customer',sourceId:ref.source_id,sourceToken:ref.token,nativeId:initial.id,nativeRevision:initial.revision,revision:null,reason:'Bind actual provider-only native account.'});
++ for(const [kind,target] of [['Item','OAT-1'],['Account','receivables'],['TaxCode','reviewed tax reference']])await f.map(kind,target);
++ const run=await f.resume(await f.start()),observation=(await f.workspace()).observations.find(row=>row.runId===run.id);
++ const original=await h.api('/api/barrow/qbo/observations/'+observation.id),before=await archive(h);
++ await h.command('account.erase',{accountId:initial.id,confirm:'ERASE'});
++ assert.equal((await h.request('/api/barrow/accounts/by-id/'+initial.id)).status,404);
++ const replacementParty=await pier.command('party.save',{name:'Replacement company',kind:'customer'});
++ const replacement=await h.command('account.save',{id:initial.id,value:{...accountValue(replacementParty.id,'synthetic-barrow-953@example.test'),name:'Replacement company'}});
++ const buyer={as:await h.signIn(replacement.value.email)};
++ assert.equal((await h.request('/api/barrow/qbo/observations/'+observation.id,buyer)).status,404);
++ assert.deepEqual((await h.api('/api/barrow/export.json',undefined,buyer)).qboobservations,[]);
++ assert.deepEqual((await h.api('/api/barrow/statements/'+initial.id+'?to=2026-11-06',undefined,buyer)).ledgerComparisons.flatMap(row=>row.sources),[]);
++ const retained=(await f.workspace()).observations.find(row=>row.id===original.id);assert.deepEqual(retained,original);
++ assert.ok(!(await f.workspace()).mappings.some(row=>row.kind==='Customer'));
++ await h.command('qbo.mapping',{kind:'Customer',sourceId:ref.source_id,sourceToken:ref.token,nativeId:replacement.id,nativeRevision:replacement.revision,revision:null,reason:'Erased provider custody cannot transfer to the replacement.'},{status:409});
++ await h.command('qbo.link',{id:observation.id,revision:observation.revision,orderId:f.order.id,orderRevision:f.order.revision,reason:'Retained erased observation cannot be linked again.'},{status:409});
++ // Restore an archive predating deletion: mappings are excluded, so the independent journal's IDs matter.
++ const restored=await installation();t.after(()=>restored.close());await restore(restored,before);
++ assert.equal((await restored.request('/api/barrow/accounts/by-id/'+initial.id)).status,404);
++ const fresh=await restored.command('account.save',{id:initial.id,value:{...replacement.value,pierCustomerId:'synthetic-barrow-954'}}),who={as:await restored.signIn(fresh.value.email)};
++ assert.equal((await restored.request('/api/barrow/qbo/observations/'+observation.id,who)).status,404);
++ assert.deepEqual((await restored.api('/api/barrow/export.json',undefined,who)).qboobservations,[]);
++ assert.deepEqual((await restored.api('/api/barrow/qbo')).observations.find(row=>row.id===original.id),original);
++ assert.ok((await restored.db.prepare('SELECT * FROM bw_qbo_erased').all()).results.some(row=>row.realm===ref.realm&&row.customer_id===ref.source_id));
++}

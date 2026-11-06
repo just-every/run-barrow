@@ -1,0 +1,57 @@
+[
+  {
+    "purpose": "Pinned Pier source via gh api tarball",
+    "calls": 1
+  },
+  {
+    "purpose": "Initial workflow discovery mistakenly used abbreviated SHA; returned empty; retry will use full SHA after 300 seconds",
+    "calls": 1,
+    "at": "2026-11-06T11:49:14.158721+00:00"
+  },
+  {
+    "purpose": "Exact full-SHA run discovery",
+    "calls": 1,
+    "at": "2026-11-06T11:54:15.497357+00:00",
+    "command": [
+      "python3",
+      "/tmp/fleet-gh.py",
+      "api",
+      "repos/just-every/run-barrow/actions/runs?head_sha=ecaf41b2c02723ca6949c4d4952f6500e9b92b1e&per_page=100",
+      "--jq",
+      "[.workflow_runs[]|{id,name,status,conclusion,head_sha,html_url}]"
+    ],
+    "exit": 0
+  },
+  {
+    "purpose": "Completed Verify job/step diagnosis, not status polling",
+    "calls": 1,
+    "command": [
+      "python3",
+      "/tmp/fleet-gh.py",
+      "api",
+      "repos/just-every/run-barrow/actions/runs/42212947907/jobs?per_page=100",
+      "--jq",
+      "[.jobs[]|{id,name,status,conclusion,head_sha,html_url,steps:[.steps[]|{name,status,conclusion}]}]"
+    ],
+    "exit": 0,
+    "at": "2026-11-06T11:54:27.835966+00:00"
+  },
+  {
+    "purpose": "Completed failed job archive read once",
+    "calls": 1,
+    "command": [
+      "python3",
+      "/tmp/fleet-gh.py",
+      "run",
+      "view",
+      "42212947907",
+      "--repo",
+      "just-every/run-barrow",
+      "--job",
+      "127875871085",
+      "--log-failed"
+    ],
+    "exit": 0,
+    "at": "2026-11-06T11:54:45.090786+00:00"
+  }
+]

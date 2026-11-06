@@ -1,0 +1,24 @@
+2026-11-06T11:49:14.4494312Z ##[group]Run set -euo pipefail
+2026-11-06T11:49:14.4495131Z [36;1mset -euo pipefail[0m
+2026-11-06T11:49:14.4495833Z [36;1mtest "$PLAN" = success[0m
+2026-11-06T11:49:14.4496687Z [36;1mcase "$PUSH_PROOF:$NIGHTLY_PROOF" in[0m
+2026-11-06T11:49:14.4497591Z [36;1m  *failure*|*cancelled*) exit 1 ;;[0m
+2026-11-06T11:49:14.4498307Z [36;1mesac[0m
+2026-11-06T11:49:14.4498890Z [36;1mcase "$COVERAGE" in[0m
+2026-11-06T11:49:14.4499809Z [36;1m  reuse) test "$SKIP" = true && test "$SHARDS" = skipped && test "$LIGHT" = skipped ;;[0m
+2026-11-06T11:49:14.4500995Z [36;1m  light) test "$SKIP" = false && test "$LIGHT" = success && test "$SHARDS" = skipped ;;[0m
+2026-11-06T11:49:14.4502319Z [36;1m  full) test "$LIGHT" = skipped && { test "$SHARDS" = success || { test "$HAS_SHARDS" = false && test "$SHARDS" = skipped; }; } ;;[0m
+2026-11-06T11:49:14.4504097Z [36;1m  *) exit 1 ;;[0m
+2026-11-06T11:49:14.4504744Z [36;1mesac[0m
+2026-11-06T11:49:14.5103215Z shell: /usr/bin/bash -e {0}
+2026-11-06T11:49:14.5104489Z env:
+2026-11-06T11:49:14.5105248Z   PLAN: success
+2026-11-06T11:49:14.5105882Z   SHARDS: failure
+2026-11-06T11:49:14.5106438Z   LIGHT: skipped
+2026-11-06T11:49:14.5107079Z   PUSH_PROOF: skipped
+2026-11-06T11:49:14.5107685Z   NIGHTLY_PROOF: skipped
+2026-11-06T11:49:14.5108320Z   COVERAGE: full
+2026-11-06T11:49:14.5108933Z   HAS_SHARDS: true
+2026-11-06T11:49:14.5109512Z   SKIP: false
+2026-11-06T11:49:14.5110097Z ##[endgroup]
+2026-11-06T11:49:14.5314844Z ##[error]Process completed with exit code 1.

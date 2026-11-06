@@ -1,0 +1,19 @@
+{
+  "stagedFiles": [
+    "CONTRACT.md",
+    "sources.lock.json",
+    "src/barrow/account-erasure.ts",
+    "src/barrow/accounting/custody.ts",
+    "src/barrow/accounting/reconciliation.ts",
+    "src/barrow/accounts.ts",
+    "src/barrow/followups.ts",
+    "src/barrow/legacy-erasure-journal.ts",
+    "src/barrow/staff-access.ts",
+    "tests/api/qbo-accounting.mjs"
+  ],
+  "generatedViewsCommitted": false,
+  "migrationsChanged": false,
+  "newCredentialShapedValues": 0,
+  "fullPublicationScan": "Owned by Mac lander under cloud adaptation; not run here.",
+  "diffSha256": "418a50479b4cad0e6f0154f8a2b7747e28179ec7c718f39c4083bf5980c60cf7"
+}

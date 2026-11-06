@@ -1,0 +1,90 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+FINANCIAL_CONFLICT_PROBE {"nativeCents":7000,"ledgerCents":7500,"sourceStatus":"Balance differs","tasks":[{"id":"qbo:123456:100:0","status":"closed","resolution":"Source-linked QuickBooks invoice 100 revision 0 and native outstanding match in dated observation 2026-11-06."}]}
+✖ held-out: native corrections renew an automatically resolved ledger exception (4660.80508ms)
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+SCOPE_PROBE {"grantedAccounts":["wren"],"exposed":[{"id":"qbo:123456:100:0","accountId":"cedar","title":"Review QuickBooks invoice 100","reason":"Unlinked ledger invoice; USD, company 123456, correlation f1a4d565-6f19-4d11-88c5-a90063fff666, observed 2026-11-06T15:00:00.000Z.","ownerId":"ae5b8f11-5dec-49f9-a8e4-431fb2ccb0ed"}],"csvLeaksCedar":true,"refreshReturnsForeign":true}
+✖ held-out: finance scope on QBO follow-up reads, exports and refresh (4474.913541ms)
+RENEWED_CONFLICT_PROBE {"sourceStatus":"Reference mapping missing or stale","tasks":[{"id":"qbo:123456:100:0","status":"closed","resolution":"Source-linked QuickBooks invoice 100 revision 0 and native outstanding match in dated observation 2026-11-06."}]}
+✖ held-out: a newly stale mapping must have owned current exception work (4285.453988ms)
+ERASURE_CUSTODY_PROBE {"erased":true,"reusedNativeAccountId":"provider-only","status":200,"oldCustomerId":"10","oldSourceId":"100","balanceCents":13000}
+✖ held-out: unused native account erasure must fence retained provider custody (4322.430248ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19437.393004
+
+✖ failing tests:
+
+test at ../../home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/financial-conflict.mjs:4:1
+✖ held-out: native corrections renew an automatically resolved ledger exception (4660.80508ms)
+  AssertionError [ERR_ASSERTION]: The new USD 5 discrepancy must have an open owned task
+      at TestContext.<anonymous> (file:///home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/financial-conflict.mjs:12:9)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../../home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/heldout.mjs:17:1
+✖ held-out: finance scope on QBO follow-up reads, exports and refresh (4474.913541ms)
+  AssertionError [ERR_ASSERTION]: A finance grant limited to Wren must not return Cedar QBO tasks
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/heldout.mjs:27:9)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/heldout.mjs:29:1
+✖ held-out: a newly stale mapping must have owned current exception work (4285.453988ms)
+  AssertionError [ERR_ASSERTION]: A new stale-mapping conflict must not inherit the old resolved disposition
+      at TestContext.<anonymous> (file:///home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/heldout.mjs:37:9)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../../home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/heldout.mjs:39:1
+✖ held-out: unused native account erasure must fence retained provider custody (4322.430248ms)
+  AssertionError [ERR_ASSERTION]: A replacement company must not receive the erased company QBO financial record
+  
+  200 !== 404
+  
+      at TestContext.<anonymous> (file:///home/agent/rer-consolidation/work/sx-barrow-c-f69-fix1/packet/heldout.mjs:47:9)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 404,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

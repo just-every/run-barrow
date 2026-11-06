@@ -1,0 +1,342 @@
+{
+  "original": "892803c0552e47aaf5c77d9e2f576a3db398d1f7",
+  "mechanicallyRegenerated": "297b78740b0037045e0da786340b24bb8079ca57",
+  "freshMain": "297b78740b0037045e0da786340b24bb8079ca57",
+  "originalVsRegeneratedChanges": [
+    "ACCEPTANCE.md",
+    "docs/CLAIMS.md",
+    "sources.lock.json"
+  ],
+  "originalProductSourceIdentical": true,
+  "sourceTreeBefore": "1f81797f2be3f5129a79031fb25715407ed5ea31",
+  "migrationCount": 77,
+  "migrations": [
+    {
+      "file": "migrations/core/0001_owner.sql",
+      "blob": "af57b0080511f62af7f46c7e2a42e3e283aa0e0b"
+    },
+    {
+      "file": "migrations/core/0002_outbox.sql",
+      "blob": "67ba68ea90061f11d6462d638e2d684a514e13df"
+    },
+    {
+      "file": "migrations/core/0003_portability.sql",
+      "blob": "53227b90c9733d81b869c0c51bfd1e58c2fd2c79"
+    },
+    {
+      "file": "migrations/core/0004_first_run.sql",
+      "blob": "d6ca245b4c48d3f2444e93c5e7ca438f6f71d6d0"
+    },
+    {
+      "file": "migrations/core/0005_identity_providers.sql",
+      "blob": "1ee0bdc632e8688a34dcf5b80c9bdcf1613ae00d"
+    },
+    {
+      "file": "migrations/core/0006_provider_control.sql",
+      "blob": "48c2f0a5729192918d68afe55b5e3d04b6e222bb"
+    },
+    {
+      "file": "migrations/core/0007_dependencies.sql",
+      "blob": "c6d8ef0371514fe374eaf9ae8fb46a685de26dfa"
+    },
+    {
+      "file": "migrations/core/0008_owner_claim.sql",
+      "blob": "5d2de929ecbc77bada364ed1efd04bf0b75ab7dd"
+    },
+    {
+      "file": "migrations/core/0009_idp_owner.sql",
+      "blob": "246622d68754f845e687df4ea19033723b8108c7"
+    },
+    {
+      "file": "migrations/core/0010_provider_pins.sql",
+      "blob": "b07ce5de8a383c68957b11bce40b47af7b093bd4"
+    },
+    {
+      "file": "migrations/core/0011_dependency_setup.sql",
+      "blob": "c103dc96abd0a6ac5d513b5c93ed6eef91701409"
+    },
+    {
+      "file": "migrations/core/0012_dependency_approval.sql",
+      "blob": "8752f09af6a022244fb13fe2ad8c02e6b4cdcca8"
+    },
+    {
+      "file": "migrations/core/0013_erasure.sql",
+      "blob": "7bc1ffda7c156e2563360f2d2de3b226be07493e"
+    },
+    {
+      "file": "migrations/core/0014_barrow.sql",
+      "blob": "5626f698227d5fc0ef87e9b09fc3eb407502022b"
+    },
+    {
+      "file": "migrations/core/0015_import_kit.sql",
+      "blob": "027d76a1af3d8884eefc61746112204b5d2c565a"
+    },
+    {
+      "file": "migrations/core/0016_owner_signin.sql",
+      "blob": "974a01102d2530062f924af45ec2b25c38391929"
+    },
+    {
+      "file": "migrations/core/0017_commercial_audit.sql",
+      "blob": "105557089de9819fa460d98863639a6a904d458f"
+    },
+    {
+      "file": "migrations/core/0018_order_documents.sql",
+      "blob": "b34f3aa60fefbe42d56f8c6264f41f9a207e895d"
+    },
+    {
+      "file": "migrations/core/0019_settings.sql",
+      "blob": "80ee7034a664f3619c06e9d5c934e6249699e6a6"
+    },
+    {
+      "file": "migrations/core/0020_lists.sql",
+      "blob": "a755dd3585fc739de914773139d80a5f13e2abd3"
+    },
+    {
+      "file": "migrations/core/0021_quotes.sql",
+      "blob": "a6eb780ff792b08a5ff4c181302c8c64db321fcb"
+    },
+    {
+      "file": "migrations/core/0022_quote_thread.sql",
+      "blob": "54a0450e33a44b948c16936e9452c404bec3abe4"
+    },
+    {
+      "file": "migrations/core/0023_locations.sql",
+      "blob": "95f1a1bfd53ffabf0d26e4e4ae999fae6cfd7e84"
+    },
+    {
+      "file": "migrations/core/0024_followups.sql",
+      "blob": "c810a6911e4c73b1025e03e77282ca627305307b"
+    },
+    {
+      "file": "migrations/core/0025_confirmations.sql",
+      "blob": "1c2bb47e982d2af6821604b25244e829620a7f2b"
+    },
+    {
+      "file": "migrations/core/0026_retention.sql",
+      "blob": "dddb7a5453870b19aee82570b3f90b43a50d9007"
+    },
+    {
+      "file": "migrations/core/0027_quote_delivery.sql",
+      "blob": "9673eff34b93ef92b1d6b19b8ba8e0edb121010f"
+    },
+    {
+      "file": "migrations/core/0028_commissions.sql",
+      "blob": "7bdc9c09fbabb6ef4d9d0ebcb42341d25c90e923"
+    },
+    {
+      "file": "migrations/core/0029_order_search.sql",
+      "blob": "4052663276c3382d6bafb5de33941d9c21fe58c0"
+    },
+    {
+      "file": "migrations/core/0030_scheduled_reports.sql",
+      "blob": "3ba005958bdafbeef681423e70607d221ecfd319"
+    },
+    {
+      "file": "migrations/core/0031_sales_terms.sql",
+      "blob": "802e86437f91ae56c9b6139cb13bd2e5dd51a64f"
+    },
+    {
+      "file": "migrations/core/0032_applications.sql",
+      "blob": "12c40091302d65aed5bcd22f8e4600a0c1ea80f4"
+    },
+    {
+      "file": "migrations/core/0033_company_members.sql",
+      "blob": "40ad2e5a0b590014dcbc376095f8c166a1ddfb9a"
+    },
+    {
+      "file": "migrations/core/0034_staff_members.sql",
+      "blob": "6fa7244be73accf9fc30e54ecac59b46436fd47e"
+    },
+    {
+      "file": "migrations/core/0035_rep_assignments.sql",
+      "blob": "254e8e10618e59f4b77da21f0eb4b91ff63f4648"
+    },
+    {
+      "file": "migrations/core/0036_company_approval.sql",
+      "blob": "1b750a41decfa9a5846975550ce5cd7da592f106"
+    },
+    {
+      "file": "migrations/core/0037_approval_notices.sql",
+      "blob": "964ac4daee79efda2d311df5cfbc85f0b45cdf2f"
+    },
+    {
+      "file": "migrations/core/0038_visits.sql",
+      "blob": "45fb30c985048789cfe21a0eec3cb056710f978b"
+    },
+    {
+      "file": "migrations/core/0039_rep_targets.sql",
+      "blob": "9ec2d65e6b102496d3e48aef1775a3a57e1de0af"
+    },
+    {
+      "file": "migrations/core/0040_account_erasure.sql",
+      "blob": "51a5d016171fa5a1cb7fda73dcbce0f3f3130921"
+    },
+    {
+      "file": "migrations/core/0041_security.sql",
+      "blob": "8a0ae0f10f7f9a4195cd1bdb4d046af0a413bf05"
+    },
+    {
+      "file": "migrations/core/0042_line_sheets.sql",
+      "blob": "7cd081ef5fe986b62902b76271fb170a3c62c1d8"
+    },
+    {
+      "file": "migrations/core/0043_confirmation_revisions.sql",
+      "blob": "7fc7199905cbc6b73973b50b14d58180bfcf61bd"
+    },
+    {
+      "file": "migrations/core/0044_product_images.sql",
+      "blob": "8bd280d54981eb37341df8b81452141f45c1d68f"
+    },
+    {
+      "file": "migrations/core/0045_webhooks.sql",
+      "blob": "4a926652f6aa06ce60be619067126cf156af835d"
+    },
+    {
+      "file": "migrations/core/0046_agent_proposals.sql",
+      "blob": "b8b22f067792a3061857a36fc422c3a6d36f7121"
+    },
+    {
+      "file": "migrations/core/0047_cutover_history.sql",
+      "blob": "7f304d221a1b542ffcdfec514cab6fc5dc1f87b3"
+    },
+    {
+      "file": "migrations/core/0048_delta_cutover.sql",
+      "blob": "5b5e41d5ff9a8e6bc68b7aa7a4dc4f3af93c573b"
+    },
+    {
+      "file": "migrations/core/0049_cutover_io.sql",
+      "blob": "1a1a456ca3ef1b9261fd42e613821a70af466dcd"
+    },
+    {
+      "file": "migrations/core/0049_platform_history.sql",
+      "blob": "855dad51adfac3c2fed8ea29cc2f3b8169457ba3"
+    },
+    {
+      "file": "migrations/core/0050_catalog_search.sql",
+      "blob": "cb07e60532a7fb0e3e94fbc9733edb199ee24f8e"
+    },
+    {
+      "file": "migrations/core/0050_import_invitations.sql",
+      "blob": "1eee33f463b5b80464954e34f946a532a58bf318"
+    },
+    {
+      "file": "migrations/core/0051_buying_profiles.sql",
+      "blob": "cd52a0ef67730fe0e64d5d13310852de87a24482"
+    },
+    {
+      "file": "migrations/core/0052_card_payments.sql",
+      "blob": "091a116d1df056c3d400639043deb849a133f727"
+    },
+    {
+      "file": "migrations/core/0053_stock_sync.sql",
+      "blob": "0b8ffd62484a1219a4f9e1d521ea177bf642a2d1"
+    },
+    {
+      "file": "migrations/core/0055_saved_cards.sql",
+      "blob": "e2679f642f775c41006a90462db2e701fc4542bb"
+    },
+    {
+      "file": "migrations/core/0056_credit_notes.sql",
+      "blob": "2b1f9e0950f3aac5e3fe84a610f98cb3c34133e7"
+    },
+    {
+      "file": "migrations/core/0057_faire_orders.sql",
+      "blob": "fa2cf2ff0e3473d3e0a13a60cd1b85184e3c084d"
+    },
+    {
+      "file": "migrations/core/0058_connector_health.sql",
+      "blob": "91a02c92875321aeea51910e59e53d728beeef12"
+    },
+    {
+      "file": "migrations/core/0058_faire_poll_generation.sql",
+      "blob": "eacbaa84680da502b416edb3595072679400443c"
+    },
+    {
+      "file": "migrations/core/0058_sellthrough_acceptance.sql",
+      "blob": "8b3e0d0e694e4bef1d127cb2cfb08f3551ac173d"
+    },
+    {
+      "file": "migrations/core/0059_faire_reconciliation.sql",
+      "blob": "3ab515fa90195b2f5aa45b9af54cb01f789fc507"
+    },
+    {
+      "file": "migrations/core/0060_deposit_allocations.sql",
+      "blob": "851f8f8df442edf1ab31a140db4bf426b808aea0"
+    },
+    {
+      "file": "migrations/core/0060_integration_grants.sql",
+      "blob": "6bcff201dc12c5baeed5496f13ff24a69068de7a"
+    },
+    {
+      "file": "migrations/core/0061_payment_promises.sql",
+      "blob": "369b4c33ab249f96055170cf3a73e791d1aeb3e2"
+    },
+    {
+      "file": "migrations/core/0062_shipment_tracking.sql",
+      "blob": "c32673fc9acad438b398f4b10cd19feceb32074f"
+    },
+    {
+      "file": "migrations/core/0063_campaigns.sql",
+      "blob": "030e5b388e8e6840764a839646779167112211c5"
+    },
+    {
+      "file": "migrations/core/0064_return_claims.sql",
+      "blob": "c3d84455eeb47ac9acf28e13557d4d035ad7497b"
+    },
+    {
+      "file": "migrations/core/0065_prebooks.sql",
+      "blob": "0f120713274b6de49b8115f94b04e974a4528c57"
+    },
+    {
+      "file": "migrations/core/0070_agent_door.sql",
+      "blob": "47d4cc8153f902cb1cded1c3dc9c48048844207f"
+    },
+    {
+      "file": "migrations/core/0071_business_settings.sql",
+      "blob": "0bce74d8a768daf00d61c664a699f8b08f0b3747"
+    },
+    {
+      "file": "migrations/core/0072_business_people.sql",
+      "blob": "b264424bfffa76c29b2c0e11f9212e31cbdf068a"
+    },
+    {
+      "file": "migrations/core/0073_agent_custody.sql",
+      "blob": "85116b20bf34def883ef976b59c3ed33ee08f0e4"
+    },
+    {
+      "file": "migrations/core/0074_agent_custody_redaction.sql",
+      "blob": "2288ad462add0628f9dce517cad35ceca74baaeb"
+    },
+    {
+      "file": "migrations/core/0075_agent_native_erasure.sql",
+      "blob": "4cdc66652a5a78c3e348e30473ac62f1665916be"
+    },
+    {
+      "file": "migrations/core/0076_agent_door_relay.sql",
+      "blob": "78fe30b61873222bd6a9b4a883b082ea86030de4"
+    },
+    {
+      "file": "migrations/core/0077_qbo_accounting.sql",
+      "blob": "6e8d90c67ce745df67177873a570514fea1c199a"
+    }
+  ],
+  "clauseCountsBefore": {
+    "done": 73,
+    "partial": 44,
+    "missing": 37
+  },
+  "clauseCountsAfter": {
+    "done": 73,
+    "partial": 44,
+    "missing": 37
+  },
+  "int002": "partial",
+  "int002EntireGapUnchanged": true,
+  "allOtherContractLinesUnchanged": true,
+  "testRegistrationsAdded": 0,
+  "testRegistrationsRemoved": 0,
+  "probeHashes": {
+    "heldout.mjs": "48bfc50f736b5b98f62355598239019acc5c6140ff91dbc5d2b53ee9f802a800",
+    "financial-conflict.mjs": "aa69abcd7025f300bd9a6c75196e5754a7c95acad542313483fad5b829747a97"
+  }
+}

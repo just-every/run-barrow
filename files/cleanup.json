@@ -1,0 +1,18 @@
+{
+  "at": "2026-11-06T11:51:35.143784+00:00",
+  "activeOwnedRuntimeProcesses": [],
+  "browserStarted": false,
+  "signalsSent": [],
+  "allCloudRunSubreapersCompleted": true,
+  "noUnknownPidStopped": true,
+  "setupSession": 83494,
+  "beforeProbeSession": 17548,
+  "afterProbeSession": 79413,
+  "touchedApiSession": 3379,
+  "focusedRerunSession": 57858,
+  "mechanicalChecksSession": 10692,
+  "productClone": "/workspace/barrow-fix1",
+  "cloneRemoval": "After evidence publication, because the required publisher reads product HEAD and origin from this clone.",
+  "pinnedPierArchiveAndDependenciesRemoved": true,
+  "productNodeModulesRemoved": true
+}

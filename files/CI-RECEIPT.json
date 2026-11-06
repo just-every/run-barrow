@@ -1,0 +1,100 @@
+{
+  "run": {
+    "conclusion": "failure",
+    "head_sha": "ecaf41b2c02723ca6949c4d4952f6500e9b92b1e",
+    "html_url": "https://github.com/just-every/run-barrow/actions/runs/42212947907",
+    "id": 42212947907,
+    "name": "Verify",
+    "status": "completed"
+  },
+  "generatedViewOnlyException": true,
+  "allFailedJobsInspected": true,
+  "actualArchiveCommand": "gh run view 42212947907 --repo just-every/run-barrow --job 127875871085 --log-failed",
+  "archiveCommandExit": 0,
+  "archiveSha256": "4b127af31237c0f51afeb20b8b56d38e7536d7bc37c609ea30a57cc3c76d8b0b",
+  "archiveSource": "Complete run archive cached by the successful gh run view command; all nine failed job logs inspected locally without additional API calls or direct job-log redirects.",
+  "jobs": [
+    {
+      "jobId": 127875871085,
+      "name": "shards (barrow-4)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871085.log",
+      "archiveMember": "shards (barrow-4)/14_Run this shard.txt",
+      "logSha256": "1ce1aa19f9d23545e5d6a95f47b41bdad5e24bb741d61b30043f64149e12c7a6",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127875871107,
+      "name": "shards (barrow-8)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871107.log",
+      "archiveMember": "shards (barrow-8)/14_Run this shard.txt",
+      "logSha256": "29cfa06a46c673b48f28f3b998fa7d78c8c551bfd22cd235403cd3b0b675e4ef",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127875871117,
+      "name": "shards (barrow-5)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871117.log",
+      "archiveMember": "shards (barrow-5)/14_Run this shard.txt",
+      "logSha256": "585a4dc10f0a5a99ae2e73696d09936998f9a95b202e93af1289c7316c465c57",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127875871141,
+      "name": "shards (barrow-2)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871141.log",
+      "archiveMember": "shards (barrow-2)/14_Run this shard.txt",
+      "logSha256": "5df2a757b2f64943fee1ab3e987a4fc9f89f92434fee82e2cbadc34ae60bea9b",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127875871162,
+      "name": "shards (barrow-6)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871162.log",
+      "archiveMember": "shards (barrow-6)/14_Run this shard.txt",
+      "logSha256": "7d771c61e0911e8816d082929784488ecac2f20f6d70f7cbf6064c34de38adcd",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127875871218,
+      "name": "shards (agent-door)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871218.log",
+      "archiveMember": "shards (agent-door)/14_Run this shard.txt",
+      "logSha256": "081eabc4e19ecd49f9e2323ca38a177fd3728cec49481ddc5767172e46aea13c",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127875871229,
+      "name": "shards (barrow-3)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871229.log",
+      "archiveMember": "shards (barrow-3)/14_Run this shard.txt",
+      "logSha256": "20b4240d8af4843abff804162136c884dc1a0f6fb2756c06355f71b2c006b621",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127875871252,
+      "name": "shards (barrow-1)",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127875871252.log",
+      "archiveMember": "shards (barrow-1)/14_Run this shard.txt",
+      "logSha256": "6fbae0f70cfaddb76335d20050d5728a8b6c815ca060ae66aa11144bd7099186",
+      "diagnosis": "Only first-command generated ACCEPTANCE.md freshness failure; no product assertions ran."
+    },
+    {
+      "jobId": 127876114393,
+      "name": "verify",
+      "conclusion": "failure",
+      "logFile": "ci-logs/127876114393.log",
+      "archiveMember": "verify/2_Require the selected coverage and its proof.txt",
+      "logSha256": "099e3578a458c2968f48d0cc42c8f314aa760192c6997c79b66cd29f930fde80",
+      "diagnosis": "Aggregate reflects the failed generator-only shards."
+    }
+  ],
+  "ghInvocationsIncludingSetup": 5
+}

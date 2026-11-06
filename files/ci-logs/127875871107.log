@@ -1,0 +1,29 @@
+2026-11-06T11:49:00.5193284Z ##[group]Run node scripts/verify-ci.mjs "$SHARD"
+2026-11-06T11:49:00.5193497Z [36;1mnode scripts/verify-ci.mjs "$SHARD"[0m
+2026-11-06T11:49:00.5207467Z shell: /usr/bin/bash -e {0}
+2026-11-06T11:49:00.5207610Z env:
+2026-11-06T11:49:00.5207714Z   CI: true
+2026-11-06T11:49:00.5207826Z   WRANGLER_SEND_METRICS: false
+2026-11-06T11:49:00.5207963Z   PLAYWRIGHT_SKIP_BROWSER_GC: 1
+2026-11-06T11:49:00.5208147Z   PLAYWRIGHT_BROWSERS_PATH: /home/runner/work/_temp/ms-playwright
+2026-11-06T11:49:00.5208334Z   SHARD: barrow-8
+2026-11-06T11:49:00.5208463Z ##[endgroup]
+2026-11-06T11:49:00.5433194Z > pnpm run verify:app
+2026-11-06T11:49:00.6982982Z 
+2026-11-06T11:49:00.6983837Z > @wholesale/barrow@0.1.2 verify:app /home/runner/work/run-barrow/run-barrow
+2026-11-06T11:49:00.6984277Z > node scripts/verify-app.mjs
+2026-11-06T11:49:00.6984427Z 
+2026-11-06T11:49:00.7181194Z > node scripts/contract-docs.mjs check
+2026-11-06T11:49:00.7547805Z file:///home/runner/work/run-barrow/run-barrow/scripts/contract-docs.mjs:26
+2026-11-06T11:49:00.7548784Z  if(mode==='write')writeFileSync(file,expected);else if(readFileSync(file,'utf8')!==expected)throw Error(file+' is stale; run node scripts/contract-docs.mjs write.');
+2026-11-06T11:49:00.7549809Z                                                                                                    ^
+2026-11-06T11:49:00.7550534Z 
+2026-11-06T11:49:00.7550954Z Error: ACCEPTANCE.md is stale; run node scripts/contract-docs.mjs write.
+2026-11-06T11:49:00.7551434Z     at file:///home/runner/work/run-barrow/run-barrow/scripts/contract-docs.mjs:26:100
+2026-11-06T11:49:00.7552183Z     at ModuleJob.run (node:internal/modules/esm/module_job:345:25)
+2026-11-06T11:49:00.7552478Z     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+2026-11-06T11:49:00.7552792Z     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-11-06T11:49:00.7552965Z 
+2026-11-06T11:49:00.7553017Z Node.js v22.20.0
+2026-11-06T11:49:00.7686159Z  ELIFECYCLE  Command failed with exit code 1.
+2026-11-06T11:49:00.7874352Z ##[error]Process completed with exit code 1.
