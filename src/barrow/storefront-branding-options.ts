@@ -15,7 +15,13 @@ export type StorefrontBranding = {
  accent: keyof typeof storefrontAccents
  canvas: keyof typeof storefrontCanvases
  revision: string | null
+ priceDisplay: import('./price-display').PriceDisplay
+ collections: { id: string; name: string; skus: string[] }[]
+ navigation: { page: 'catalog' | 'sheets' | 'orders'; label: string }[]
+ logo?: import('./product-images').ImageRef
+ logoSrc?: string
 }
 export const defaultStorefrontBranding: StorefrontBranding = {
  displayName: 'Barrow', supportUrl: '', accent: 'blue', canvas: 'mist', revision: null,
+ priceDisplay: 'wholesale', collections: [], navigation: [{page:'catalog',label:'Catalog'},{page:'sheets',label:'Line sheets'},{page:'orders',label:'Orders'}],
 }

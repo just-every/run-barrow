@@ -727,7 +727,7 @@
       "executable": false
     },
     "public/barrow/storefront.css": {
-      "sha256": "c28fbf9306b52911e8960ab233c2c60a03b8c396256c3cfaea6a0daa39815d1f",
+      "sha256": "b2a5223443c77353655e4ba29706084e8a1e5b8ff2c829091026f676e24e7bd4",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -1843,7 +1843,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "3dde6272e82f5fb57dcc4333b7f72c013676f8f393c8709d841bd4e22d972822",
+      "sha256": "58573b03c258a76d1d85019a4ccf0d24bf493a377e0f291f60160917ce3c336b",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -2471,7 +2471,7 @@
       "executable": false
     },
     "src/barrow/product-images.ts": {
-      "sha256": "6bab2363c338ada4692134957bf2c399c6fa01422e71f3c11e0758946acb3487",
+      "sha256": "41266d0c7df869c3493892e5011c409d0237167e44a95586e2b55a57bb332786",
       "executable": false
     },
     "src/barrow/promotions.ts": {
@@ -2667,11 +2667,11 @@
       "executable": false
     },
     "src/barrow/storefront-branding-options.ts": {
-      "sha256": "053cc97fad551552d9afa75058d57ee3dfcbc2281b58aab144afeb516e1c826a",
+      "sha256": "ee419df50f95947eba2d2de57187fec8600d4bb38474d3f34a4def2a42c9ee69",
       "executable": false
     },
     "src/barrow/storefront-branding.ts": {
-      "sha256": "c88970faa8d064c6de63a4fa4a4e200485129ff4bbbaeb2ebf200be506b31db4",
+      "sha256": "31a25ebe09c83ef272e04a1bdf702b71fa35258727fca0b02ef4a1523b06e766",
       "executable": false
     },
     "src/barrow/substitution-preview.ts": {
@@ -2727,7 +2727,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "06258fdae8c7aef7195caf5b0018c594edeae0472ba9477320ca63871df287c6",
+      "sha256": "d9e11df356dcf3dc5d54ec77078ca1a2005d23e3b0053631fd4ee1562ab1a0a3",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -2935,7 +2935,7 @@
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
-      "sha256": "1127bd431918094e49d4376aae0335374f83d27af8b7c5f63000b580e6a9b4ad",
+      "sha256": "3a5c24b31954a0a21b9dbe8e90088611a2024f0517bec09d7d3eeac848788a82",
       "executable": false
     },
     "src/barrow/ui/order-revision.tsx": {
@@ -3079,15 +3079,15 @@
       "executable": false
     },
     "src/barrow/ui/storefront-branding.tsx": {
-      "sha256": "599907b3f66fa291021cf395c989bbd56ff2def2eae6ed0d7705d00b9e7027e2",
+      "sha256": "e6adc4c97efea571312bb18ca85b13c14dc25fadf495452eccf388450cdb47bc",
       "executable": false
     },
     "src/barrow/ui/style-card.tsx": {
-      "sha256": "66356d486e4b40bfe60d37786f342edc75976535acaf74211e1e4123314d619a",
+      "sha256": "0d73972d19b79864515990736c91d5ec6e6b8861a9ffb9ab110d267b4c521ac6",
       "executable": false
     },
     "src/barrow/ui/style-matrix.tsx": {
-      "sha256": "849cf6b8e19c93f124d886d9302939fb5c2c529c43812469bca3e4ed5c6083ca",
+      "sha256": "e3b3cacf19dcc04393fc0df72d6aca600136bd40a92bfdffff29db7d982553c5",
       "executable": false
     },
     "src/barrow/ui/styles.ts": {
@@ -3095,7 +3095,7 @@
       "executable": false
     },
     "src/barrow/ui/types.ts": {
-      "sha256": "45182aaf0d4ea3915af8310ba734b2e6db39e5c006936b5bb666e9d6b85cfd4f",
+      "sha256": "e887869e61ed5e95c5d1bd53b4bd6aaf7222642c04731d9f11f5eb6a0ee3afe0",
       "executable": false
     },
     "src/barrow/ui/unit-draft.tsx": {

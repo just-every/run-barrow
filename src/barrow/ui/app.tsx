@@ -188,11 +188,13 @@ export function BarrowApp() {
   const branding = state?.settings.storefrontBranding ?? defaultStorefrontBranding
   useEffect(() => { document.title = branding.displayName }, [branding.displayName])
   const brandStyle = { '--br-storefront-accent': storefrontAccents[branding.accent].color, '--br-storefront-canvas': storefrontCanvases[branding.canvas].color } as CSSProperties
+  const buyerPages = {catalog:pad,sheets:'Line sheets',orders:'Orders'}
+  const navigation = supplier ? tabs.map(page=>({page,label:page})) : [...branding.navigation.filter(item=>tabs.includes(buyerPages[item.page])).map(item=>({page:buyerPages[item.page],label:item.label})),...tabs.filter(page=>!Object.values(buyerPages).includes(page)).map(page=>({page,label:page}))]
 
   return <div className="barrow br-storefront" style={brandStyle}>
     <HydrationUnit><header className="br-top">
-      <a href="/app" className="br-brand"><img className="br-mark" src="/brand/mark.svg" alt="" width="26" height="26" /><span>{branding.displayName}</span></a>
-      <nav className="br-nav" aria-label="Storefront pages">{state && tabs.map(item => <button key={item} aria-current={activeTab === item ? 'page' : undefined} onClick={() => go(item)}>{item}</button>)}</nav>
+      <a href="/app" className="br-brand"><img className={`br-mark${branding.logoSrc?' br-merchant-logo':''}`} src={branding.logoSrc ?? '/brand/mark.svg'} alt="" width="26" height="26" /><span>{branding.displayName}</span></a>
+      <nav className="br-nav" aria-label="Storefront pages">{state && navigation.map(item => <button key={item.page} aria-current={activeTab === item.page ? 'page' : undefined} onClick={() => go(item.page)}>{item.label}</button>)}</nav>
       <div className="br-session">{state && <><span className="br-email">{state.actor.email}</span><span className="br-badge">{supplier ? 'Supplier' : 'Trade customer'}</span></>}
         <form method="post" action="/auth/signout" onSubmit={event => { event.preventDefault(); void signOut() }}><button className="br-quiet" disabled={signingOut || busy}>{signingOut ? 'Signing out…' : 'Sign out'}</button></form>
       </div>

@@ -13,3 +13,10 @@
 .br-storefront .br-branding-review{display:flex;align-items:flex-start;gap:12px;color:var(--br-body)}
 .br-storefront .br-branding-review input{width:20px;min-height:20px;flex:none;margin:0}
 .br-storefront input:focus,.br-storefront textarea:focus,.br-storefront select:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--br-storefront-accent) 16%,transparent)}
+.br-storefront .br-merchant-logo{width:52px;height:40px;object-fit:contain;border-radius:4px;background:white}
+.br-branding-navigation{display:flex;align-items:end;gap:16px;flex-wrap:wrap}
+.br-branding-navigation label{flex:1;min-width:180px}
+.br-branding-collection{border:1px solid var(--br-line);border-radius:12px;padding:20px}
+.br-collection-filter{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.br-collection-filter label{min-width:200px}
+.br-storefront .br-variant-price{display:block;font-size:13px;line-height:1.5;white-space:normal;margin:4px 0}
