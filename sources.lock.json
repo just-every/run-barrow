@@ -155,7 +155,7 @@
       "executable": false
     },
     "CONTRACT.md": {
-      "sha256": "7343aebde47739d5474ff5ffa8ff242c8fdc2fe8eca49ee26e3e655c8dab9e53",
+      "sha256": "66ee67f2c6f81497c62a6c3a8d53ac00383d57be10841fbda73830fe2564d517",
       "executable": false
     },
     "DEMO.md": {
@@ -727,7 +727,7 @@
       "executable": false
     },
     "public/barrow/storefront.css": {
-      "sha256": "b2a5223443c77353655e4ba29706084e8a1e5b8ff2c829091026f676e24e7bd4",
+      "sha256": "71b8247942898e26e77afb7eb6940b3c1af6bb3f907f693a0a8a5248285a517e",
       "executable": false
     },
     "public/brand/favicon-16.png": {
@@ -2935,7 +2935,7 @@
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
-      "sha256": "3a5c24b31954a0a21b9dbe8e90088611a2024f0517bec09d7d3eeac848788a82",
+      "sha256": "3ea93c5f77bfe5494dd98f445789692b77f0aec2151280be19652a7348de4751",
       "executable": false
     },
     "src/barrow/ui/order-revision.tsx": {
@@ -3082,8 +3082,12 @@
       "sha256": "e6adc4c97efea571312bb18ca85b13c14dc25fadf495452eccf388450cdb47bc",
       "executable": false
     },
+    "src/barrow/ui/storefront-price.tsx": {
+      "sha256": "3fb824fd61dbb319b947313b43b49021cf941f579cf0af87a08e90aab57d6276",
+      "executable": false
+    },
     "src/barrow/ui/style-card.tsx": {
-      "sha256": "0d73972d19b79864515990736c91d5ec6e6b8861a9ffb9ab110d267b4c521ac6",
+      "sha256": "58db72a6da805cab9b981f43287654276492e8b2cc96e39d9f88a601711bae31",
       "executable": false
     },
     "src/barrow/ui/style-matrix.tsx": {
@@ -6367,7 +6371,7 @@
       "executable": false
     },
     "tests/journeys/storefront-branding.test.mjs": {
-      "sha256": "909be6032f026e58fe6df284d153fed0d03be5eabcdfa8e6c0ff15c53604af14",
+      "sha256": "3dc6e92ccd75880b250b0171835cf056e02690d3a8b6d12fa9a2665aa5ce16da",
       "executable": false
     },
     "tests/journeys/territories.test.mjs": {

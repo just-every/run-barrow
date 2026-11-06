@@ -1,6 +1,6 @@
 import { Flat } from './flat'
 import type { StyleRow } from './styles'
-import { money, when } from './types'
+import { when } from './types'
 import type { PriceDisplay } from '../price-display'
 import { StorefrontPrice } from './storefront-price'
 

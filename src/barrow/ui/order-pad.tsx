@@ -116,7 +116,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   async function prepare(event: FormEvent) {
     event.preventDefault()
     if (!canPurchase || busy || unitOrder || unitDraft) return
-    if (blocked || requestedDateProblem || dateProblem) { setValidationAttempt(value => value + 1); return }
+    if (blocked || requestedDateProblem || dateProblem) { setCollectionId(''); setValidationAttempt(value => value + 1); return }
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
     const prepared = await run('order.prepare', { accountId: account.id, ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
@@ -179,6 +179,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
           onChange={event => { setSku(event.target.value); setSkuMessage('') }} onKeyDown={event => { if (event.key === 'Enter') find(event) }} /></label>
         {skuMessage && <p id={`${prefix}-sku-error`} className="br-sku-message" role="status">{skuMessage}</p>}
       </div>
+      {Boolean(catalogue?.storefront?.collections.length) && <section className="br-collection-filter" aria-label="Browse collections"><label>Collection<select aria-label="Collection" value={collection?.id ?? ''} onChange={event=>setCollectionId(event.target.value)}><option value="">All approved products</option>{catalogue!.storefront!.collections.map(value=><option key={value.id} value={value.id}>{value.name}</option>)}</select></label>{collection && chosen.some(item=>!collection.skus.includes(item.sku)) && <p role="status">Your cart includes products from another collection. All selected quantities are retained. <button type="button" className="br-secondary" onClick={()=>setCollectionId('')}>Show the whole cart</button></p>}</section>}
     </div>
     <div className="br-pad-send">
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
@@ -194,7 +195,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
     {error && <div className="br-pad-status"><Notice error><strong>Catalog unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p><div><button type="button" className="br-secondary" onClick={() => setRefresh(value => value + 1)} disabled={busy}>Refresh stock</button></div></Notice></div>}
     {catalogue && items.length === 0 && <div className="br-pad-status"><Empty title="No agreed products yet">Your supplier needs to add agreed SKU prices to this trade account before you can order.</Empty></div>}
     {catalogue && items.length > 0 && <>
-      {Boolean(catalogue.storefront?.collections.length) && <section className="br-collection-filter" aria-label="Browse collections"><label>Collection<select aria-label="Collection" value={collection?.id ?? ''} onChange={event=>setCollectionId(event.target.value)}><option value="">All approved products</option>{catalogue.storefront!.collections.map(value=><option key={value.id} value={value.id}>{value.name}</option>)}</select></label>{collection && chosen.some(item=>!collection.skus.includes(item.sku)) && <p role="status">Your cart includes products from another collection. All selected quantities are retained. <button type="button" className="br-secondary" onClick={()=>setCollectionId('')}>Show the whole cart</button></p>}</section>}
+
       <StyleCard row={shown} priceDisplay={priceDisplay} observedAt={catalogue.observedAt} />
       <section className="br-matrix-card br-card" aria-label="Size matrix">
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}

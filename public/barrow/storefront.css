@@ -16,7 +16,9 @@
 .br-storefront .br-merchant-logo{width:52px;height:40px;object-fit:contain;border-radius:4px;background:white}
 .br-branding-navigation{display:flex;align-items:end;gap:16px;flex-wrap:wrap}
 .br-branding-navigation label{flex:1;min-width:180px}
-.br-branding-collection{border:1px solid var(--br-line);border-radius:12px;padding:20px}
-.br-collection-filter{grid-column:1/-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.barrow .br-branding-collection{border:1px solid var(--br-rule);border-radius:12px;padding:20px}
+.br-collection-filter{flex-basis:100%;order:-1;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .br-collection-filter label{min-width:200px}
 .br-storefront .br-variant-price{display:block;font-size:13px;line-height:1.5;white-space:normal;margin:4px 0}
+
+@media(max-width:720px){.br-storefront .br-matrix .br-style-row>td.br-col-line{grid-row:3}.br-storefront .br-matrix .br-style-row>td.br-col-size,.br-storefront .br-matrix .br-style-row>td.br-col-units{grid-row:4}}
