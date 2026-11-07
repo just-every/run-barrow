@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react'
 import { StorefrontSettings } from './storefront-branding'
 import { defaultStorefrontBranding, storefrontAccents, storefrontCanvases } from '../storefront-branding-options'
+import {XeroSettings} from './xero-settings'
+import { QboSettings } from './qbo-settings'
 import { PaymentPromises } from './payment-promises'
 import { PrebookSettings } from './prebooks'
 import { PromotionSettings } from './promotions'
@@ -63,7 +65,7 @@ export function BarrowApp() {
   const [signingOut, setSigningOut] = useState(false)
   const lock = useRef(false)
   const loaded = useRef(false)
-  const [tab, setTab] = useState('')
+  const [tab, setTab] = useState(() => typeof window!=='undefined'&&['qbo','xero'].some(key=>new URLSearchParams(window.location.search).has(key))?'Settings':'')
   const [accountId, setAccountId] = useState('')
   const [draftId, setDraftId] = useState('')
   const legacySupplier=state?.actor.role==='owner'||state?.actor.role==='admin',staff=state?.actor.staff,staffSelling=staff?.role==='sales-manager'||staff?.role==='rep'
@@ -246,6 +248,7 @@ export function BarrowApp() {
           {activeTab === 'Orders' && !supplier && finance && <ExportLinks supplier={false} />}
           {activeTab === 'Move in' && supplier && <>{state.actor.role==='owner'&&<><WizCommerceMoveIn reload={reload} /><CutoverReview /><DeltaCutoverReview /></>}<MoveIn reload={reload} />{legacySupplier&&<CatalogMaintenance />}</>}
           {activeTab === 'Settings' && state.actor.role==='owner' && <StorefrontSettings value={branding} onSaved={reload}/>}
+          {activeTab === 'Settings' && state.actor.role==='owner' && <><QboSettings accounts={state.accounts}/><XeroSettings accounts={state.accounts}/></>}
           {activeTab === 'Settings' && (state.actor.role==='owner'||staff?.entitlements?.includes('catalog-media')) && <CatalogMedia />}
           {activeTab === 'Audit' && supplier && <CommercialAudit />}
           {activeTab === 'Data' && state.actor.role==='owner' && <AccountErasure accounts={state.accounts} run={run} version={state} busy={busy}/>}
