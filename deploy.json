@@ -65,6 +65,16 @@
       "binding": "FAIRE_CONNECTIONS",
       "environment": "FAIRE_CONNECTIONS",
       "optional": true
+    },
+    {
+      "binding": "QBO_CLIENT_ID",
+      "environment": "QBO_CLIENT_ID",
+      "optional": true
+    },
+    {
+      "binding": "QBO_CLIENT_SECRET",
+      "environment": "QBO_CLIENT_SECRET",
+      "optional": true
     }
   ],
   "platforms": [

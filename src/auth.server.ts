@@ -12,6 +12,10 @@ const theme = { href: '/rer-theme.css', productName: branding.name, accentColor:
 
 export interface Bindings {
  AUTH_ALLOW_LIST?: string
+ XERO_CLIENT_ID?: string
+ XERO_CLIENT_SECRET?: string
+ QBO_CLIENT_ID?: string
+ QBO_CLIENT_SECRET?: string
  EASYPOST_API_KEY?: string
  RER_DEMO?: string
  RER_OWNER_CLAIM_ISSUER?: string

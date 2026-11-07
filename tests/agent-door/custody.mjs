@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {randomUUID} from 'node:crypto'
+import {archive,installation,restore} from '../api/harness.mjs'
 
 /** Owner erasure through native HTTP, with SELECT-only retained-state witnesses. */
 export async function proveCustodyErasure({request,origin,cookie,database,beforeErase,beforeErasedReplay}) {
@@ -28,12 +29,22 @@ export async function proveCustodyErasure({request,origin,cookie,database,before
  const prepared=await tool('barrow.proposals.submit',args)
  assert.equal(prepared.status,200);assert.ok(!prepared.body.result.isError,prepared.body.result._meta?.['com.runeditrun/error']?.code)
  assert.equal(prepared.body.result.structuredContent.runId,'synthetic-custody-run')
+ const proposalId=prepared.body.result.structuredContent.id
+ const read=await tool('barrow.proposals.read',{id:proposalId})
+ assert.equal(read.body.result.structuredContent.id,proposalId)
+ const targetRow=await db.prepare('SELECT row FROM agent_door_audit WHERE id=?').bind(read.body.result._meta['com.runeditrun/decision'].id).first()
+ assert.deepEqual(JSON.parse(targetRow.row).resource,{kind:'proposal',id:proposalId})
  console.log('NATIVE custody proposal prepared')
  const agentId='barrow-local:'+grant.grant.id
  const draftGrant=await native('/api/barrow/agent-token',{})
  const draftArgs={accountId,lines:[{sku:'LINEN',quantity:1}],reference:'Identifier-linked retained draft',idempotency_key:randomUUID()}
  const retainedDraft=await tool('barrow.orders.prepare',draftArgs,draftGrant.token)
  assert.equal(retainedDraft.status,200);assert.ok(!retainedDraft.body.result.isError)
+ const source={api:async(path,body)=>{
+  const response=await request(origin+path,{method:body?'POST':'GET',headers,...(body?{body:JSON.stringify(body)}:{})})
+  assert.ok(response.ok,'Native archive HTTP '+response.status);return response.json()
+ },request:path=>request(origin+path,{headers})}
+ const older=await archive(source)
 
  const usage=async()=>(await db.prepare('SELECT decision_id,at,seed,agent,classes FROM agent_door_usage WHERE agent=? ORDER BY decision_id').bind(agentId).all()).results
  const counts=await usage();assert.ok(counts.length>0)
@@ -58,11 +69,28 @@ export async function proveCustodyErasure({request,origin,cookie,database,before
  for(const table of ['agent_door_approvals','agent_door_reviews'])assert.equal((await db.prepare(`SELECT count(*) AS n FROM ${table} WHERE json_extract(saved,'$.principal.agent.id')=?`).bind(agentId).first()).n,0)
  const audit=(await db.prepare('SELECT row,evidence FROM agent_door_audit WHERE agent=?').bind(agentId).all()).results
  assert.ok(audit.length>0);assert.ok(audit.every(row=>JSON.parse(row.row).tombstone?.erasure_id===receipt.id&&row.evidence===null))
+ assert.ok(audit.every(row=>JSON.parse(row.row).resource===null),'Erasure redacts resolved native targets as well as retained content')
  assert.equal(JSON.stringify(audit).includes(personal),false)
  assert.deepEqual(await usage(),counts,'Erasure must not reset policy usage or lifetime counters')
  const replay=await tool('barrow.proposals.submit',args)
  assert.ok([401,403].includes(replay.status));assert.equal(JSON.stringify(replay.body).includes(personal),false)
+ const erasedRead=await tool('barrow.proposals.read',{id:proposalId})
+ assert.ok([401,403].includes(erasedRead.status));assert.equal(erasedRead.body.result?.structuredContent,undefined)
  const account=await native('/api/barrow/accounts/by-id/'+accountId)
  assert.match(account.value.email,/@erased\.invalid$/)
+ const later=await archive(source),target=await installation()
+ try {
+  await restore(target,later,{journalSource:source})
+  const retained=await target.api('/api/barrow/accounts/by-id/'+accountId)
+  assert.match(retained.value.email,/@erased\.invalid$/)
+  const targetAudit=await target.api('/agents/api/audit')
+  assert.equal(JSON.stringify(targetAudit).includes(proposalId),false,'Restored audit cannot resurrect the erased proposal target')
+  const replay=await target.request('/mcp',{method:'POST',as:'',headers:{authorization:'Bearer '+draftGrant.token,'MCP-Protocol-Version':'2026-07-28','Mcp-Method':'tools/call','Mcp-Name':'barrow.orders.prepare'},body:{jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'barrow.orders.prepare',arguments:draftArgs}}})
+  assert.equal(replay.status,401);await replay.body?.cancel()
+ } finally {await target.close()}
+ const stale=await installation()
+ try {await restore(stale,older,{status:400,journalSource:source,laterJournal:{sourceIdentity:later[0].sourceIdentity,epoch:later[0].epoch,journal:later[0].journal}})}
+ finally {await stale.close()}
+ console.log('PROBE BASE-AGENT-009 erasure: current and later-journal restores -> redacted target identities, old credential refused, older archive rejected, commercial history preserved')
  console.log('NATIVE PASS owner erasure removes proposal content and personal retained results; preserves Base tombstones, exact commercial history and usage; revoked replay refuses')
 }

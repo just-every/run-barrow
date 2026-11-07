@@ -1,3 +1,5 @@
+import {xeroBrowser} from './xero-accounting.mjs';
+import {qboBrowser} from './qbo-accounting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
@@ -38,4 +40,6 @@ test('supplier schedules a complete book and dated USD basis, buyer keeps CAD do
  await conversion.getByLabel(/^Currency/).selectOption('GBP');await expect(conversion).toContainText('Accepted orders 0: GBP 0.00');
  await shot(page,conversion,'enabled-currency-quote-report');
  for(const screen of [page,buyerPage])assert.equal(await screen.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(e=>e.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(e.textContent??'')&&!e.getAttribute('aria-describedby')).length),0);
+ await qboBrowser(t);
+ await xeroBrowser(t);
 });
