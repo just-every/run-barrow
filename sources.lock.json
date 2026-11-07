@@ -267,7 +267,7 @@
       "executable": false
     },
     "docs/ORDERS.md": {
-      "sha256": "ce670491cb954234108ac685311c09e25cfe9391f47f5b103b50b1aaaa1e5b29",
+      "sha256": "100c071d4b5219b3c701e0ea40ca3c98d96237fa5149a371c7ba6b2ab584e917",
       "executable": false
     },
     "docs/PAYMENT-PROMISES.md": {
@@ -691,7 +691,7 @@
       "executable": false
     },
     "package.json": {
-      "sha256": "f0dd31494469d592aa1228a94692f6cc690af728bba3fbc2eddafb627b3f8328",
+      "sha256": "1ae3f755c35f3cd50247035090998010b1913d94f1e31a724919dddf6339898c",
       "executable": false
     },
     "packaging.json": {
@@ -699,7 +699,7 @@
       "executable": false
     },
     "pnpm-lock.yaml": {
-      "sha256": "cbea837a1bd1877f0d88a1b0afb48dd3361eb7bff3a22822757d949c5583d650",
+      "sha256": "a1fb1d75670c96150b248ff7cb13b299a79d618bbec201bab91c404a28e783a8",
       "executable": false
     },
     "public/apple-touch-icon.png": {
@@ -1879,7 +1879,7 @@
       "executable": false
     },
     "src/barrow/api.ts": {
-      "sha256": "9d1a690146465b0bf2704554d1af9b5efbe8a53bb358b9d2c8f69d705da2a509",
+      "sha256": "38fd6a1f35d6ea6c22a19012ea198b8a29e9662b53cab72f7a33c2793f36ec24",
       "executable": false
     },
     "src/barrow/application-access.ts": {
@@ -2414,8 +2414,20 @@
       "sha256": "f99e3497096350038897ea95d44e07bab4c88dd6dc83b1315e826b4c419ea91c",
       "executable": false
     },
+    "src/barrow/invoice-font-LICENSE.txt": {
+      "sha256": "5b698e41d0318e68553ae4878b68493c7b6253a47439b6922af6603b1fcdda3a",
+      "executable": false
+    },
+    "src/barrow/invoice-font.ts": {
+      "sha256": "0a627184b263151f4eb8d415a3dbd4e6287dc9db173c818b089bd268b3f37ebd",
+      "executable": false
+    },
+    "src/barrow/invoice-pdf.ts": {
+      "sha256": "1b9a7e783afdd0d39006e4dbead753577aa05870475af78079e4f2c1746c0196",
+      "executable": false
+    },
     "src/barrow/invoice.ts": {
-      "sha256": "652da94b0c951b4f82cc23b24e39bd8e5050fa97254d588679620e76f7e8ae70",
+      "sha256": "e515254f9d0b39f2b582ee2a63c4ae8e04f2eb7c30ff6af8188f6e58a7f5dc7d",
       "executable": false
     },
     "src/barrow/legacy-erasure-journal.ts": {
@@ -2983,7 +2995,7 @@
       "executable": false
     },
     "src/barrow/ui/orders.tsx": {
-      "sha256": "d5ad54313951c268da54f263569c38badc87034197c7c57d4bdbca1683222145",
+      "sha256": "29fd603f17f47b4688b979679971c73965ccc28886778bcff190e0049a24145e",
       "executable": false
     },
     "src/barrow/ui/payment-promises.tsx": {
@@ -6026,6 +6038,10 @@
       "sha256": "59a768ed2047a9b0f6dd24a0c8edb31571e838b923b7292a4bfbac2332672508",
       "executable": false
     },
+    "tests/api/invoice-documents.mjs": {
+      "sha256": "650a0ee3332169741fc93c753e7ee0c0b37a232cd53a63d2f4df1ff55dde4fcc",
+      "executable": false
+    },
     "tests/api/line-sheet-fixture.mjs": {
       "sha256": "e04e1f9e39d3ffbcab543c7bd00569932096cc57659306fa4695b55025ff7fea",
       "executable": false
@@ -6075,7 +6091,7 @@
       "executable": false
     },
     "tests/api/order-guarantee.test.mjs": {
-      "sha256": "698c0983cd53c99c18489775a0eee7a2d95dded63c788bfeee1482d954e24a36",
+      "sha256": "8cd74cac354532ef8d2cb5f79658c1b06684b9192ea28fdb6fc50c97974a6053",
       "executable": false
     },
     "tests/api/order-search.test.mjs": {
@@ -6327,7 +6343,7 @@
       "executable": false
     },
     "tests/journeys/confirmations.test.mjs": {
-      "sha256": "48b8d00f740760eedb761293220b5e0632ce54901fe3237267029ec1e8356964",
+      "sha256": "03be9bdf1f9faa11074f9fda5ea48b81636e1da72095c75b8e1901755a17087b",
       "executable": false
     },
     "tests/journeys/connector-review.test.mjs": {
@@ -6364,6 +6380,10 @@
     },
     "tests/journeys/installation.test.mjs": {
       "sha256": "233e03118b15c235cae603d70e95019af492c80c213d6f1dc3d1b2dc5fded856",
+      "executable": false
+    },
+    "tests/journeys/invoice-documents.mjs": {
+      "sha256": "d5eebc0db8c1bb33ed44d7d46abf844c53fe17b0b06e788254e06eace44b8ec4",
       "executable": false
     },
     "tests/journeys/line-sheets.test.mjs": {
