@@ -5859,7 +5859,7 @@
       "executable": false
     },
     "tests/agent-door/audit-targets.mjs": {
-      "sha256": "486f326e970c05cedb67074b35c3bb00b68b4b8bdb779b92750c087f64266907",
+      "sha256": "eb914e506644dd1d133aa8881e62ff70f1268814849ce56660d44a679da8269b",
       "executable": false
     },
     "tests/agent-door/cart-form-parity.mjs": {

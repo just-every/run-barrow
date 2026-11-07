@@ -43,7 +43,7 @@ export async function proveRecordedTargets({request,origin,cookie,tool}) {
   const response=await request(origin+path,{method:'POST',headers:{Cookie:cookie,Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)})
   assert.equal(response.status,200);return response.json()
  }
- const order=(await read('/api/barrow/state')).orders.find(order=>order.status==='approved')
+ const order=(await read('/api/barrow/state')).orders.find(order=>order.accountId===account.id&&order.status==='approved')
  assert.ok(order)
  const {grant}=await write('/api/barrow/proposal-grants',{accountId:account.id,costLimitCents:0,contactLimit:9,approvedSubstitutes:[{fromSku:'LINEN',skus:['HEMP']}],consent:true,reason:'Owner permits a native target revocation proof.'})
  const prepared=await tool('barrow.proposals.submit',{grantId:grant.id,orderId:order.id,model:'synthetic-barrow-4',runId:'synthetic-barrow-5',reportedCostCents:0,candidates:[{lines:[{fromSku:'LINEN',sku:'HEMP',quantity:2}]}],idempotency_key:randomUUID()})
