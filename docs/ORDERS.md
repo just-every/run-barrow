@@ -1,6 +1,6 @@
-# Orders and invoice CSVs
+# Orders and invoice documents
 
-The customer prepares and submits an order. The supplier approves it, Pier reserves the stock, and Barrow makes the invoice CSV available once the reservation is complete.
+The customer prepares and submits an order. The supplier approves it, Pier reserves the stock, and Barrow makes invoice PDF and CSV downloads available once the reservation is complete.
 
 ## Prepare and submit
 
@@ -32,9 +32,9 @@ Open **Order history & Pier details** for preparation, submission and approval i
 | `submitted` | The supplier reviews and approves. No stock is reserved yet. |
 | `reserving` | If the response is uncertain and no Pier order is confirmed, use **Retry stock reservation** on this same order. If a Pier order is known, use **Refresh stock status**. |
 | `shortfall` | Resolve the shortfall and reserve the remainder in Pier, then use **Refresh stock status**. |
-| `approved` | Every ordered unit is reserved. Use **Download invoice CSV**. |
+| `approved` | Every ordered unit is reserved. Use **Download invoice PDF** or **Download invoice CSV**. |
 | `releasing` | The order is cancelled but Pier has not confirmed the stock release. Its units stay out of every buyer's available stock. Use **Retry stock release** or **Refresh release status**. |
-| `cancelled` | Pier confirmed the release. The order holds no stock and has no invoice. |
+| `cancelled` | Pier confirmed the release. The order holds no stock. A linked credit preserves its withdrawn original invoice. |
 
 Never create a second order to recover an uncertain reservation response. The retry action reuses the first order's durable Pier command ID. If the Pier session expires, reconnect Pier and recover the same order.
 
@@ -78,9 +78,11 @@ Until Pier confirms, the units Pier held for the order stay out of the available
 
 ## Hand the invoice to accounting
 
-Choose **Download invoice CSV** on the fully reserved order. The file contains SKU amounts, exact cents, issue and due dates based on the saved terms, and a stable invoice number. The customer can also download an approved order's invoice.
+Choose **Download invoice PDF** or **Download invoice CSV** on the fully reserved order. Both use the retained invoice number, buyer and PO, selling quantities and units, currency, exact integer minor-unit amounts, recorded delivery charge, terms, issue date and due date. Seller identity comes from the order's buying profile or its retained accepted confirmation. Unknown seller and address fields stay unrecorded. Current catalog, seller, account, address and delivery-setting edits do not rewrite these documents. Historical records without a currency snapshot retain AUD.
 
-Barrow does not add or compute tax. Review tax treatment in your existing accounting system. Downloading the CSV does not collect money or mark an invoice paid. A partial reservation blocks invoice export until every unit is reserved.
+Downloads require a currently signed-in person with the account's finance right or scoped supplier finance authority. Purchasing rights alone do not grant invoice access, and agent credentials cannot download either format. The PDF embeds its font and wraps long identities and line descriptions across pages. A cancelled invoice is unavailable until its linked credit exists; the retained original then identifies itself as withdrawn with a linked credit.
+
+Barrow does not add or compute tax; the documents label it as not calculated. Review tax treatment in your existing accounting system. Downloading either format creates no invoice, accounting issue or void, payment, ledger entry or delivery. A partial or pending reservation blocks both formats until every unit is reserved. Existing reviewed erasure, commercial retention and restore safeguards continue to apply.
 
 An [agent credential](AGENTS-API.md) can read catalogs and prepare drafts. A signed-in person must submit; a supplier must approve.
 

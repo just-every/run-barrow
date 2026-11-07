@@ -1,27 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AccountPicker } from './primitives'
 import type { Account } from './types'
 
 export const staffRoles = { 'sales-manager': 'Sales manager', rep: 'Sales rep', operations: 'Operations', finance: 'Finance', analyst: 'Analyst' } as const
 export const staffReports = { sales: 'Sales', finance: 'Invoice aging', quotes: 'Quote conversion', fulfillment: 'Fulfillment', commissions: 'Commissions' } as const
-export type StaffPolicy = {
-  role: keyof typeof staffRoles
-  accounts: 'all' | string[]
-  warehouses: 'all' | string[]
-  entitlements?: ('applications' | 'application-documents')[]
-  reports: (keyof typeof staffReports)[]
-  discountLimitCents: number
-  stockExceptionLimitCents: number
-  creditLimitCents?: number
-  refundLimitCents?: number
-  commissionRep?: string
-}
+import type { StaffPolicy } from '../staff-policy'
+export type { StaffPolicy } from '../staff-policy'
+import { request } from './api'
 export type StaffPolicyForm = Omit<StaffPolicy, 'role' | 'discountLimitCents' | 'stockExceptionLimitCents' | 'creditLimitCents' | 'refundLimitCents'> & {
   role: StaffPolicy['role'] | ''; discountLimitCents: string; stockExceptionLimitCents: string; creditLimitCents: string; refundLimitCents: string
 }
 export const emptyStaffPolicy = (): StaffPolicyForm => ({ role: '', accounts: [], warehouses: [], reports: [], discountLimitCents: '0', stockExceptionLimitCents: '0', creditLimitCents: '0', refundLimitCents: '0', commissionRep: '' })
 export const staffPolicyForm = (policy: StaffPolicy): StaffPolicyForm => ({ ...policy, discountLimitCents: String(policy.discountLimitCents), stockExceptionLimitCents: String(policy.stockExceptionLimitCents), creditLimitCents: String(policy.creditLimitCents ?? 0), refundLimitCents: String(policy.refundLimitCents ?? 0) })
 export const staffPolicyValue = (form: StaffPolicyForm): StaffPolicy => ({
+  ...(form.entitlements?.includes('catalog-media') ? { catalogMedia: form.catalogMedia ?? [] } : {}),
   ...(form.entitlements?.length ? {entitlements:form.entitlements} : {}),
   role: form.role as StaffPolicy['role'], accounts: form.accounts, warehouses: form.warehouses, reports: form.reports,
   discountLimitCents: Number(form.discountLimitCents), stockExceptionLimitCents: Number(form.stockExceptionLimitCents),
@@ -32,11 +24,13 @@ export const validStaffPolicy = (form: StaffPolicyForm) => Boolean(form.role) &&
 
 export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPolicyForm; setForm: (form: StaffPolicyForm) => void; accounts: Account[] }) {
   const [accountId, setAccountId] = useState(''), [warehouse, setWarehouse] = useState('')
+  const [catalogs, setCatalogs] = useState<{ id: string; name: string }[]>([])
+  useEffect(() => { let active = true; if (form.role === 'sales-manager') void request<{catalogs:{id:string;name:string}[]}>('/api/barrow/catalog-media').then(value => { if (active) setCatalogs(value.catalogs) }).catch(() => { if (active) setCatalogs([]) }); return () => { active = false } }, [form.role])
   const change = (patch: Partial<StaffPolicyForm>) => setForm({ ...form, ...patch })
   const warehouses = [...new Set(accounts.flatMap(account => account.value.warehouses ?? []))].sort()
   return <fieldset className="br-stack"><legend>Functional staff access</legend>
     <p>Choose every scope explicitly. No selection means no access; zero allowances permit no exception. Functional roles do not grant installation settings or authority to grant access.</p>
-    <label>Functional role<select aria-label="Functional role" required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'], entitlements: [], creditLimitCents: '0', refundLimitCents: '0' })}>
+    <label>Functional role<select aria-label="Functional role" required value={form.role} onChange={event => change({ role: event.target.value as StaffPolicyForm['role'], entitlements: [], catalogMedia: undefined, creditLimitCents: '0', refundLimitCents: '0' })}>
       <option value="">Choose a functional role</option>{Object.entries(staffRoles).map(([key, name]) => <option key={key} value={key}>{name}</option>)}
     </select></label>
     <fieldset className="br-stack"><legend>Trade accounts</legend>
@@ -59,10 +53,17 @@ export function StaffPolicyFields({ form, setForm, accounts }: { form: StaffPoli
       </>}
     </fieldset>
     <fieldset className="br-stack"><legend>Application entitlements</legend>
-      {form.role === 'sales-manager' && form.accounts === 'all' ? <label><input type="checkbox" checked={form.entitlements?.includes('applications') ?? false} onChange={event => change({entitlements:event.target.checked?['applications']:[]})}/>Review trade applications and download their documents</label>
+      {form.role === 'sales-manager' && form.accounts === 'all' ? <label><input type="checkbox" checked={form.entitlements?.includes('applications') ?? false} onChange={event => change({entitlements:event.target.checked?[...(form.entitlements ?? []),'applications']:(form.entitlements ?? []).filter(right=>right!=='applications')})}/>Review trade applications and download their documents</label>
       : form.role === 'finance' ? <label><input type="checkbox" checked={form.entitlements?.includes('application-documents') ?? false} onChange={event => change({entitlements:event.target.checked?['application-documents']:[]})}/>Read application documents for certificate review</label>
       : <p>Application review requires a sales manager covering all accounts. Finance may receive read-only document access.</p>}
     </fieldset>
+    {form.role === 'sales-manager' && <fieldset className="br-stack"><legend>Catalog media entitlement</legend>
+      <label><input type="checkbox" checked={form.entitlements?.includes('catalog-media') ?? false} onChange={event => change({ entitlements: event.target.checked ? [...(form.entitlements ?? []), 'catalog-media'] : (form.entitlements ?? []).filter(right => right !== 'catalog-media'), catalogMedia: event.target.checked ? [] : undefined })}/>Prepare and replace accepted catalog images</label>
+      {form.entitlements?.includes('catalog-media') && <><p>Choose named catalogs reviewed in Settings. Assortment labels confer no authority. Uploads, remote retrieval and import activation stay owner-controlled.</p>
+        {!catalogs.length && <p>The owner must review catalog membership in Settings first.</p>}
+        {catalogs.map(catalog => <label key={catalog.id}><input type="checkbox" checked={form.catalogMedia?.includes(catalog.id) ?? false} onChange={event => change({ catalogMedia: event.target.checked ? [...(form.catalogMedia ?? []), catalog.id] : (form.catalogMedia ?? []).filter(id => id !== catalog.id) })}/>{catalog.name} ({catalog.id})</label>)}
+      </>}
+    </fieldset>}
     <fieldset className="br-stack"><legend>Direct report entitlements</legend>{Object.entries(staffReports).map(([key, name]) => {
       const report = key as StaffPolicy['reports'][number]
       return <label key={key}><input type="checkbox" checked={form.reports.includes(report)} onChange={event => change({ reports: event.target.checked ? [...form.reports, report] : form.reports.filter(value => value !== report) })} />{name}</label>

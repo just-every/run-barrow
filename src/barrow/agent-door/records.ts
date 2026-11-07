@@ -7,6 +7,7 @@ import { accountPage } from '../account-directory.ts'
 import { readOrder } from '../orders.ts'
 import { readLists, readList } from '../lists.ts'
 import { catalogue } from '../pier.ts'
+import { resolveBuyingProfile } from '../buying-profiles.ts'
 import { requireCompanyRight } from '../company-policy.ts'
 import { requireUsageTerms } from '../usage-terms.ts'
 import { nativeActor, native, restrictAccount } from './native.ts'
@@ -21,8 +22,15 @@ export async function directory(env:Bindings,args:Record<string,string>,ctx:Cont
   return page
  })
 }
-export async function readCatalog(env:Bindings,id:string,ctx:Context) {
- return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);await requireCompanyRight(env.DB,actor,id,'purchasing');const selected=await readAccount(env,id,ctx);return catalogue(env,selected)})
+export async function catalogAccount(env:Bindings,id:string,ctx:Context,profileId?:string) {
+ return native(async()=>{const actor=await nativeActor(env,ctx);await restrictAccount(env,actor,id);await requireCompanyRight(env.DB,actor,id,'purchasing');const selected=await readAccount(env,id,ctx);return (await resolveBuyingProfile(env.DB,actor,selected,profileId)).selected})
+}
+export async function readCatalog(env:Bindings,id:string,ctx:Context,profileId?:string) {
+ return native(async()=>catalogue(env,await catalogAccount(env,id,ctx,profileId)))
+}
+export async function cartAccount(env:Bindings,args:Record<string,unknown>,ctx:Context) {
+ const id=args.listId?(await list(env,String(args.listId),ctx)).accountId:String(args.accountId??'')
+ return readAccount(env,id,ctx)
 }
 export async function order(env:Bindings,id:string,ctx:Context) {
  return native(async()=>{const actor=await nativeActor(env,ctx),value=await readOrder(env.DB,actor,id);await restrictAccount(env,actor,value.accountId);await readAccount(env,value.accountId,ctx);return value})

@@ -5,9 +5,13 @@ import {proveCustodyErasure} from './custody.mjs'
 import {provePromptPolicies} from './prompts.mjs'
 import {inspectPrompts,mcpClient} from './prompt-fixture.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
+import {proveRecordedTargets,proveTargetPolicies} from './audit-targets.mjs'
+import {proveCartFormParity} from './cart-form-parity.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
+ await proveRecordedTargets({request,origin,cookie,tool})
+ await proveTargetPolicies()
  const before=(await tool('barrow.workspace.read',{})).result.structuredContent
  const args={accountId:'juniper',lines:[{sku:'LINEN',quantity:2}],reference:'Explicit native draft proof',idempotency_key:randomUUID()}
  const stale=await tool('barrow.orders.prepare',{...args,expected_revision:randomUUID()})
@@ -87,7 +91,8 @@ export default async function({request,origin,cookie,tool,database}) {
  assert.equal((await local('tools/list')).status,401)
  assert.equal((await legacy('/api/barrow/catalogue?accountId=juniper')).status,401)
  console.log('NATIVE PASS scoped local credential, failed recognizable Business token refusal and immediate native grant revocation')
- await proveCustodyErasure({request,origin,cookie,database})
+ try {await proveCustodyErasure({request,origin,cookie,database})}
+ catch(error) {console.error('Native custody proof: '+error.message);throw error}
  await captureAgents({request,origin,cookie})
  await provePromptPolicies()
 }
@@ -121,4 +126,11 @@ export async function afterStep({request,origin,cookie,phase,step,outputs,result
   assert.deepEqual(state.orders.filter(order=>!original.some(before=>before.id===order.id)).map(order=>order.id),[result.id])
   console.log('PROBE BASE-AGENT-013 '+phase+' preparation: account, catalog, cart, draft and readback -> one USD 4800 draft; prior orders unchanged, no submission, stock reservation or invoice')
  }
+}
+
+// Compare the actual fixture under both autonomous and held Business policy.
+export async function afterStep({request,origin,cookie,tool,step,args,phase}) {
+ if(step.id!=='form')return
+ await proveCartFormParity({request,origin,cookie,tool,accountId:args.accountId,cart:args.cart,selling:{line:{sku:'LINEN',unit:'case',quantity:'2'},row:'"LINEN","","Linen table runner","case","139.00","2"'}})
+ console.log('NATIVE PASS cart-form parity under '+phase+' policy')
 }

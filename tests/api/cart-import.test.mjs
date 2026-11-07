@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { installation } from './harness.mjs';
+import {publicMcp,nativeCommands,proveCartFormParity,proveCartFormScope,proveCartFormDownloads,validateFormResult,errorCode} from '../agent-door/cart-form-parity.mjs';
 
 const sizes = ['S', 'M', 'L', 'XL'];
 const skus = Array.from({ length: 20 }, (_, n) => sizes.map(size => `ST${String(n + 1).padStart(2, '0')}-${size}`)).flat();
@@ -22,7 +23,8 @@ test('ORD-001: barcode/SKU paste and an 80-line CSV preview resolve duplicates, 
  const archived = items.at(-1);
  await pier.command('item.save', { id: archived.id, version: archived.version, sku: 'ARCH-1', name: 'Tee ARCH-1', barcode: archived.barcode, unit: 'each', packSize: '1', archived: true });
 
- const h = await installation({ bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie } }); t.after(() => h.close());
+ const pierCalls=[];
+ const h = await installation({ built: true, https: true, bindings: { PIER_ORIGIN: pier.origin, PIER_SESSION: pier.cookie }, networkEdge:async request=>{pierCalls.push({method:request.method,path:new URL(request.url).pathname})} }); t.after(() => h.close());
  // OTHER-1 is in Pier but not on this account's price list; ARCH-1 is listed but archived in Pier.
  const prices = [...skus.map((sku, n) => ({ sku, unitCents: 1000 + n * 25, minQty: sku === 'ST01-S' ? 6 : 1, ...(sku === 'ST01-S' ? { casePack: 6 } : {}) })), { sku: 'ARCH-1', unitCents: 900, minQty: 1 }];
  await h.command('account.save', { id: 'cedar', value: { name: 'Cedar Street Outfitters', email: 'buyer@example.test', pierCustomerId: customer.id, termsDays: 30, minimumCents: 10000, prices } });
@@ -97,4 +99,71 @@ test('ORD-001: barcode/SKU paste and an 80-line CSV preview resolve duplicates, 
  await h.command('account.save', { id: 'wren', value: { name: 'Wren & Co.', email: 'wren@example.test', pierCustomerId: wren.id, termsDays: 30, minimumCents: 0, prices: prices.slice(0, 2) } });
  const other = await h.command('cart.preview', { accountId: 'cedar', paste: 'ST01-M 1' }, { as: await h.signIn('wren@example.test'), status: 404 });
  assert.equal(other.error.code, 'NOT_FOUND');
+
+ // Same populated form through native HTTP, public MCP and the actual built page.
+ const request=(url,init)=>h.raw(new URL(url).pathname+new URL(url).search,init);
+ const mcp=publicMcp(request,h.origin,token),tool=(name,args)=>mcp('tools/call',{name,arguments:args});
+ const formCart=[{sku:'ST01-S',quantity:12},{sku:'ST02-M',quantity:6}];
+ await proveCartFormParity({request,origin:h.origin,cookie:h.cookie,tool,accountId:'cedar',cart:formCart});
+ await proveCartFormScope({h,pier,accountId:'cedar',cart:formCart});
+ const listed=await mcp('tools/list'),definition=listed.result.tools.find(item=>item.name==='barrow.cart.form');
+ assert.equal(definition.annotations.readOnlyHint,true);
+ assert.equal(definition._meta['com.runeditrun/scope'],'catalog:read');
+ assert.deepEqual(definition._meta['com.runeditrun/classes'],['standard']);
+ const populated=(await tool('barrow.cart.form',{accountId:'cedar',layout:'vertical',cart:formCart})).result.structuredContent;
+ validateFormResult(definition.outputSchema,populated);
+ assert.ok(populated.csv.includes('"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","each","10.00","12"'));
+ for(const malformed of [null,{},[null],[{sku:'ST01-S'}],[{sku:'ST01-S',quantity:0}],[{sku:'ST01-S',quantity:{}}],Array.from({length:101},()=>({sku:'ST01-S',quantity:1}))]) {
+  const refused=await tool('barrow.cart.form',{accountId:'cedar',layout:'vertical',cart:malformed});
+  assert.equal(errorCode(refused),'invalid_arguments');assert.equal(refused.result?.structuredContent,undefined);
+ }
+ // Admitted selling units and current account prices come from the unchanged native service.
+ let current=await h.api('/api/barrow/accounts/by-id/cedar');
+ await h.command('account.save',{id:current.id,revision:current.revision,value:{...current.value,prices:current.value.prices.map(price=>price.sku==='ST01-S'?{...price,unitCents:1234,units:[{code:'case',baseQuantity:'6',unitCents:6999,packContents:'Six tees'}]}:price)}});
+ const command=nativeCommands({request,origin:h.origin,cookie:h.cookie});
+ const selling={accountId:'cedar',layout:'vertical',cart:[{sku:'ST01-S',unit:'case',quantity:'2'}]};
+ await proveCartFormParity({request,origin:h.origin,cookie:h.cookie,tool,accountId:'cedar',cart:formCart,selling:{line:selling.cart[0],row:'"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","case","69.99","2"'}});
+ const nativeSelling=await command('cart.form',selling),toolSelling=await tool('barrow.cart.form',selling);
+ assert.deepEqual(toolSelling.result.structuredContent,nativeSelling.result);
+ assert.ok(toolSelling.result.structuredContent.csv.includes('"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","case","69.99","2"'));
+ assert.ok(toolSelling.result.structuredContent.csv.includes('"each","12.34",""'));
+ const matrix={...selling,layout:'matrix'};
+ assert.equal((await command('cart.form',matrix)).body.error.code,'UNIT');
+ const matrixRefusal=await tool('barrow.cart.form',matrix);
+ assert.equal(errorCode(matrixRefusal),'UNIT');assert.equal(matrixRefusal.result?.structuredContent,undefined);
+ // Non-USD result metadata and CSV columns are native too.
+ current=await h.api('/api/barrow/accounts/by-id/cedar');
+ await h.command('account.save',{id:current.id,revision:current.revision,value:{...current.value,currency:'CAD'}});
+ await proveCartFormParity({request,origin:h.origin,cookie:h.cookie,tool,accountId:'cedar',cart:formCart});
+ assert.equal((await tool('barrow.cart.form',selling)).result.structuredContent.currency,'CAD');
+ const scoped=await h.api('/api/barrow/proposal-grants',{accountId:'cedar',costLimitCents:0,contactLimit:1,approvedSubstitutes:[{fromSku:'ST01-S',skus:['ST01-M']}],consent:true,reason:'Owner authorizes account-scoped preparation only.'});
+ const scopedMcp=publicMcp(request,h.origin,scoped.token);
+ assert.ok(!(await scopedMcp('tools/call',{name:'barrow.cart.form',arguments:{accountId:'cedar',layout:'vertical',cart:formCart}})).result.isError);
+ const foreign=await scopedMcp('tools/call',{name:'barrow.cart.form',arguments:{accountId:'wren',layout:'vertical',cart:formCart}});
+ assert.equal(errorCode(foreign),'not_found');assert.equal(foreign.result?.structuredContent,undefined);
+ const nativeBefore=await h.api('/api/barrow/state'),pierBefore=await pier.api('/api/pier/state'),auditBefore=await h.api('/api/barrow/audit?limit=200'),mailBefore=h.mail.requests.length;
+ for(const type of ['order.submit','order.approve','card.capture','retention.erase-account']) {
+  const refused=await h.request('/api/barrow/commands',{method:'POST',as:'',headers:{authorization:'Bearer '+scoped.token},body:{type,payload:{accountId:'cedar'}}});
+  assert.equal(refused.status,403);assert.equal((await refused.json()).code,'PERSON_REQUIRED');
+ }
+ await h.api('/agents/api/pause',{paused:true});
+ assert.equal(errorCode(await tool('barrow.cart.form',selling)),'agents_paused');
+ await h.api('/agents/api/pause',{paused:false});
+ assert.ok(!(await tool('barrow.cart.form',selling)).result.isError);
+ await proveCartFormDownloads({h,as:as.as,accountId:'cedar',cart:formCart,mcp});
+ await h.api('/api/barrow/agent-token/revoke',{});
+ const revokedForm=await tool('barrow.cart.form',selling);
+ assert.equal(revokedForm.status,401);assert.equal(revokedForm.result?.structuredContent,undefined);
+ const nativeAfter=await h.api('/api/barrow/state');
+ assert.deepEqual(nativeAfter,nativeBefore);
+ // Forecast windows advance with the read clock; compare every durable stock and commercial record.
+ const {forecasts:beforeForecasts,...beforePierFacts}=pierBefore;
+ const {forecasts:afterForecasts,...afterPierFacts}=await pier.api('/api/pier/state');
+ assert.deepEqual(afterPierFacts,beforePierFacts,'No stock write from cart forms');
+ assert.ok(pierCalls.length>0);assert.ok(pierCalls.every(call=>call.method==='GET'&&call.path==='/api/pier/state'));
+ assert.equal(h.mail.requests.length,mailBefore,'Form reads send no mail');
+ const events=(await h.api('/api/barrow/audit?limit=200')).events;
+ assert.deepEqual(events.filter(event=>event.action!=='agent.revoked'),auditBefore.events,'Only explicit grant revocation adds commercial audit');
+ console.log('PROBE BASE-AGENT-002 admission: malformed carts, matrix selling units, foreign accounts, Pause and revocation -> refused without commercial effects');
+
 });

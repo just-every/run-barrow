@@ -13,7 +13,8 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
  const products=await stock(pier);
  const h=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>h.close());
  let buyer,other,order,grant,account;
- await t.test('native invitation, customer isolation and direct-handler authorization',async()=>{
+ // Journey phase: native invitation, customer isolation and direct-handler authorization.
+ await (async()=>{
   assert.equal((await h.request('/api/barrow/state',{as:''})).status,401);
   account=await h.command('account.save',{id:'cedar',value:accountValue(products.customer.id)});
   await h.command('account.save',{id:'other',duplicateReviews:[{id:account.id,revision:account.revision}],value:{...accountValue(products.customer.id,'other@example.test'),name:'Harbour Provisions',prices:[{sku:'OAT-1',unitCents:7200,minQty:1}]}});
@@ -22,14 +23,16 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   await h.api('/api/barrow/catalogue?accountId=other',undefined,{as:buyer,status:404});
   await h.command('account.save',{id:'stolen',value:accountValue(products.customer.id)},{as:buyer,status:403});
   await h.command('account.save',{id:'changed',value:accountValue(products.customer.id)},{headers:{origin:'https://other.invalid'},status:403});
- });
- await t.test('agreed prices, minimums and stock validated server-side',async()=>{
+ })();
+ // Journey phase: agreed prices, minimums and stock validated server-side.
+ await (async()=>{
   const c=await h.api('/api/barrow/catalogue?accountId=cedar',undefined,{as:buyer});assert.equal(c.items[0].available,'24');assert.equal(c.items[0].unitCents,6500);assert.equal(JSON.stringify(c).includes('7200'),false);
   for(const lines of [[{sku:'OAT-1',quantity:1}],[{sku:'OAT-1',quantity:25}],[{sku:'OTHER',quantity:2}],[{sku:'OAT-1',quantity:2.5}]]) await h.command('order.prepare',{accountId:'cedar',lines},{as:buyer,status:lines[0].quantity===2.5?400:409});
   order=await h.command('order.prepare',{accountId:'cedar',reference:'PO-October',lines:[{sku:'OAT-1',quantity:18}],unitCents:1},{as:buyer});assert.equal(order.totalCents,117000);
   const state=await pier.api('/api/pier/state');assert.equal(state.orders.length,0);
- });
- await t.test('agents prepare only and persons approve with recorded identity',async()=>{
+ })();
+ // Journey phase: agents prepare only and persons approve with recorded identity.
+ await (async()=>{
   grant=await h.api('/api/barrow/agent-token',{});
   const agent={headers:{authorization:`Bearer ${grant.token}`},as:''};
   const directory=await mkdtemp(join(tmpdir(),'barrow-commands-'));let draft;
@@ -58,16 +61,18 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   assert.equal((await h.request(`/api/barrow/invoices/${short.id}.csv`)).status,409);
   const state=await pier.api('/api/pier/state');assert.equal(state.positions[0].available,'0');
   await h.api('/api/barrow/agent-token/revoke',{});await h.api('/api/barrow/state',undefined,{...agent,status:401});
- });
- await t.test('invoice export is stable exact-cent snapshot on agreed terms',async()=>{
+ })();
+ // Journey phase: invoice export is stable exact-cent snapshot on agreed terms.
+ await (async()=>{
   const first=await (await h.request(`/api/barrow/invoices/${order.id}.csv`,{as:buyer})).text();assert.ok(first.includes('117000'));assert.ok(first.includes('6500'));assert.ok(first.includes('PO-October'));assert.ok(first.includes('"USD"'));
   const days=(Date.parse(order.invoice.dueAt)-Date.parse(order.invoice.issuedAt))/86400000;assert.equal(days,30);
   await h.command('account.save',{id:account.id,revision:account.revision,value:{...account.value,termsDays:7,prices:[{sku:'OAT-1',unitCents:9900,minQty:1}]}});
   const second=await (await h.request(`/api/barrow/invoices/${order.id}.csv`,{as:buyer})).text();assert.equal(first,second);
   assert.equal((await h.request(`/api/barrow/invoices/${order.id}.csv`,{as:other})).status,404);
   await h.command('account.erase',{accountId:'cedar',confirm:'ERASE'},{status:409});
- });
- await t.test('move-in dry run, explicit review, journal, replay and guarded undo',async()=>{
+ })();
+ // Journey phase: move-in dry run, explicit review, journal, replay and guarded undo.
+ await (async()=>{
   // MOVE-007: every imported price SKU must be an active item in the connected Pier.
   for(const sku of ['APPLE-BOX','PEAR-BOX']) await pier.command('item.save',{sku,name:sku,unit:'case',packSize:'1'});
   const fixture=await readFile('fixtures/trade-accounts.csv','utf8');
@@ -81,8 +86,9 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   const repeated=await h.api('/api/barrow/imports/apply',{csv,fingerprint:preview.fingerprint});assert.equal(repeated.id,job.id);
   const journal=await h.api(`/api/barrow/imports/${job.id}`);assert.ok(journal.originals.length);
   let undone=await h.api(`/api/barrow/imports/${job.id}/undo`,{});for(let batch=0;undone.state!=='undone'&&batch<5;batch++)undone=await h.api(`/api/barrow/imports/${job.id}/undo`,{});assert.equal(undone.state,'undone');assert.equal((await h.api('/api/barrow/state')).accounts.length,2);
- });
- await t.test('imports cannot reassign existing account identity or undo a native edit',async()=>{
+ })();
+ // Journey phase: imports cannot reassign existing account identity or undo a native edit.
+ await (async()=>{
   const csv='accountId,name,email,pierCustomerId,termsDays,minimumCents,sku,unitCents,minQty\ncedar,Cedar Street Pantry,intruder@example.test,'+products.customer.id+',30,0,OAT-1,100,1\n';
   const preview=await h.api('/api/barrow/imports/preview',{csv});
   await h.api('/api/barrow/imports/apply',{csv,fingerprint:preview.fingerprint},{status:409});
@@ -94,13 +100,14 @@ test('Barrow wholesale public HTTP journey with real Pier and D1',async t=>{
   const refused=await h.api(`/api/barrow/imports/${job.id}/undo`,{},{status:409});assert.equal(refused.error.code,'NATIVE_EDIT_CONFLICT');
   assert.equal((await h.api('/api/barrow/state')).accounts.find(a=>a.id==='native-change').value.name,'Owner corrected name');
   await h.command('account.erase',{accountId:'native-change',confirm:'ERASE'});
- });
- await t.test('installation archive restores records and excludes sessions and agent secrets',async()=>{
+ })();
+ // Journey phase: installation archive restores records and excludes sessions and agent secrets.
+ await (async()=>{
   const data=await archive(h);const names=data[0].tables.map(x=>x.name);assert.ok(names.includes('bw_orders'));assert.ok(!names.includes('oa_sessions'));assert.ok(!names.includes('bw_agent_tokens'));
   const target=await installation();try{await restore(target,data);const state=await target.api('/api/barrow/state');assert.equal(state.orders.length,2);assert.equal(state.accounts.length,2);assert.equal(state.orders.find(o=>o.id===order.id).totalCents,117000);
    const again=await archive(target);assert.deepEqual(again.filter(x=>x.kind==='part').flatMap(x=>x.items),data.filter(x=>x.kind==='part').flatMap(x=>x.items));
   }finally{await target.close()}
- });
+ })();
 });
 
 test('a draft whose prices moved is replaced by the order prepared from it, then approved and invoiced once',async t=>{

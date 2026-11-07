@@ -6,6 +6,7 @@ import { agentProposalCommand } from '../agent-proposals.ts'
 import { readProposal } from '../proposal-store.ts'
 import { native,nativeActor } from './native.ts'
 import { readAccount,order } from './records.ts'
+import { recordTarget } from './targets.ts'
 
 export async function proposalActor(env:Bindings,id:string,ctx:Pick<ToolContext|ResourceContext,'person'|'agent'|'clientId'|'scopes'> & Partial<Pick<ToolContext,'operationId'|'actor'|'approvers'>>) {
  const actor=await nativeActor(env,ctx),grant=await readProposalGrant(env.DB,id)
@@ -23,6 +24,7 @@ export async function proposalRecord(env:Bindings,id:string,ctx:ResourceContext|
 export function proposalTools(env:Bindings):ToolDefinition[] {
  const str={type:'string',minLength:1},schema={type:'object' as const,properties:{accountId:str},required:['accountId'],additionalProperties:false}
  return [{name:'barrow.proposals.grants',title:'Read existing proposal grants',description:'Read this sponsor’s current explicit account grants, without bearer credentials.',scope:'proposals:submit',readOnly:true,classes:['standard'],clauses:['AGT-008','BAR-003'],inputSchema:schema,outputSchema:{type:'object'},untrusted:true,
+  target:recordTarget('account',(a,c)=>readAccount(env,String(a.accountId),c)),
   classify:async(a,c)=>{await readAccount(env,String(a.accountId),c);return [{class:'standard',facts:{measure:1}}]},run:async(a,c)=>native(async()=>{const actor=await nativeActor(env,c);await readAccount(env,String(a.accountId),c)
    const rows=(await env.DB.prepare("SELECT id FROM bw_agent_proposal_grants WHERE account_id=? AND authorizer_id=? AND state='active' ORDER BY created_at").bind(a.accountId,actor.id).all<{id:string}>()).results
    const grants=[];for(const row of rows){try{await proposalActor(env,row.id,c);grants.push(await readProposalGrant(env.DB,row.id))}catch(error){if(!(error instanceof ToolRefusal))throw error}}
@@ -40,5 +42,6 @@ export function proposalTools(env:Bindings):ToolDefinition[] {
    return {result:JSON.parse(JSON.stringify(value)),resources:[{uri:`barrow://proposals/${value.id}`,name:'Prepared substitution proposal'}]}
   })},
  {name:'barrow.proposals.read',title:'Read a prepared proposal',description:'Read a proposal within its current explicit native account grant.',scope:'proposals:submit',readOnly:true,classes:['standard'],clauses:['AGT-008'],inputSchema:{type:'object',properties:{id:str},required:['id'],additionalProperties:false},outputSchema:{type:'object'},untrusted:true,
+  target:recordTarget('proposal',(a,c)=>proposalRecord(env,String(a.id),c)),
   classify:async(a,c)=>{await proposalRecord(env,String(a.id),c);return [{class:'standard',facts:{measure:1}}]},run:async(a,c)=>({result:await proposalRecord(env,String(a.id),c)})}]
 }

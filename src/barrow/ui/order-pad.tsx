@@ -47,6 +47,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   const [details, setDetails] = useState({ requestedDate: '', cancelAfter: '', instructions: '' })
   const [kept, setKept] = useState<Set<string>>(new Set())
   const [selected, setSelected] = useState('')
+  const [collectionId, setCollectionId] = useState('')
   const [sku, setSku] = useState('')
   const [skuMessage, setSkuMessage] = useState('')
   const cells = useRef(new Map<string, HTMLInputElement>())
@@ -70,6 +71,9 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
 
   const items = catalogue?.items ?? []
   const { rows, columns } = useMemo(() => groupStyles(items,currency), [catalogue])
+  const collection = catalogue?.storefront?.collections.find(value=>value.id===collectionId)
+  const visibleRows = collection ? groupStyles(items.filter(item=>collection.skus.includes(item.sku)),currency).rows : rows
+  const priceDisplay = catalogue?.storefront?.priceDisplay ?? 'wholesale'
   const currentAccount = catalogue?.account ?? account
   const draftCurrency = draft?.currency ?? 'AUD'
   const changes: Record<string, PriceChange> = {}
@@ -91,7 +95,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   const unsettled = rows.filter(row => !kept.has(row.key) && row.sizes.some(size => changes[row.cells[size].sku] && quantityOf(quantities[row.cells[size].sku]) > 0))
   const blocked = inactive || !catalogue || !chosen.length || invalid || Boolean(pricingProblem) || belowMinimum || unsettled.length > 0
   const hint = !catalogue ? '' : !chosen.length ? 'Enter quantities to prepare a draft.' : pricingProblem ? pricingProblem : invalid ? 'Fix the highlighted quantities.' : belowMinimum ? `Add ${money(minimum - total)} to meet the minimum.` : unsettled.length ? 'Settle the price change first.' : ''
-  const shown = rows.find(row => row.key === selected) ?? rows.find(row => row.sizes.some(size => quantityOf(quantities[row.cells[size].sku]) > 0)) ?? rows[0]
+  const shown = visibleRows.find(row => row.key === selected) ?? visibleRows.find(row => row.sizes.some(size => quantityOf(quantities[row.cells[size].sku]) > 0)) ?? visibleRows[0]
 
   const today = catalogue ? supplierDate(new Date(catalogue.observedAt)) : ''
   const requestedDateProblem = details.requestedDate && details.requestedDate < today ? 'Choose today or a future delivery date.' : ''
@@ -112,7 +116,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
   async function prepare(event: FormEvent) {
     event.preventDefault()
     if (!canPurchase || busy || unitOrder || unitDraft) return
-    if (blocked || requestedDateProblem || dateProblem) { setValidationAttempt(value => value + 1); return }
+    if (blocked || requestedDateProblem || dateProblem) { setCollectionId(''); setValidationAttempt(value => value + 1); return }
     // A draft opened here is replaced by the order prepared from it, so it never waits in Drafts again.
     const prepared = await run('order.prepare', { accountId: account.id, ...(account.buyingProfile?{profileId:account.buyingProfile.id}:{}), reference, deliveryLocation, ...(shipToId ? { shipToId } : {}), ...Object.fromEntries(Object.entries(details).filter(([, value]) => value.trim())), ...(draft ? { replaces: draft.id } : {}), lines: chosen.map(item => ({ sku: item.sku, quantity: quantityOf(quantities[item.sku]), ...(aliases[item.sku] ? { buyerSku: aliases[item.sku] } : {}) })) })
     if (prepared) {
@@ -135,8 +139,9 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
     const item = items.find(value => value.sku.toUpperCase() === wanted) ?? items.find(value => value.barcode === sku.trim())
     const row = item ? rows.find(value => Object.values(value.cells).includes(item)) : rows.find(value => value.key.toUpperCase() === wanted || value.key.toUpperCase().endsWith(`-${wanted}`))
     if (!row) { setSkuMessage(`${sku.trim()} is not on this account’s price list.`); return }
-    setSkuMessage(''); setSku(''); setSelected(row.key)
-    cells.current.get((item ?? row.cells[row.sizes[0]]).sku)?.focus()
+    setSkuMessage(''); setSku(''); setSelected(row.key); setCollectionId('')
+    const target=(item ?? row.cells[row.sizes[0]]).sku
+    requestAnimationFrame(()=>cells.current.get(target)?.focus())
   }
   // A cart from the preview replaces the pad's quantities; selling-unit lines continue in the selling-unit order.
   function apply(lines: CartLine[]) {
@@ -174,6 +179,7 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
           onChange={event => { setSku(event.target.value); setSkuMessage('') }} onKeyDown={event => { if (event.key === 'Enter') find(event) }} /></label>
         {skuMessage && <p id={`${prefix}-sku-error`} className="br-sku-message" role="status">{skuMessage}</p>}
       </div>
+      {Boolean(catalogue?.storefront?.collections.length) && <section className="br-collection-filter" aria-label="Browse collections"><label>Collection<select aria-label="Collection" value={collection?.id ?? ''} onChange={event=>setCollectionId(event.target.value)}><option value="">All approved products</option>{catalogue!.storefront!.collections.map(value=><option key={value.id} value={value.id}>{value.name}</option>)}</select></label>{collection && chosen.some(item=>!collection.skus.includes(item.sku)) && <p role="status">Your cart includes products from another collection. All selected quantities are retained. <button type="button" className="br-secondary" onClick={()=>setCollectionId('')}>Show the whole cart</button></p>}</section>}
     </div>
     <div className="br-pad-send">
       {catalogue && catalogue.items.length > 0 && <button type="button" className="br-secondary" disabled={busy || inactive} onClick={() => setImporting(true)}>Paste or upload CSV</button>}
@@ -189,10 +195,11 @@ export function OrderPad({ account, accounts, supplier, canPurchase=true, draft,
     {error && <div className="br-pad-status"><Notice error><strong>Catalog unavailable</strong><p>{error}</p><p>No order can be prepared until live stock is available.</p><div><button type="button" className="br-secondary" onClick={() => setRefresh(value => value + 1)} disabled={busy}>Refresh stock</button></div></Notice></div>}
     {catalogue && items.length === 0 && <div className="br-pad-status"><Empty title="No agreed products yet">Your supplier needs to add agreed SKU prices to this trade account before you can order.</Empty></div>}
     {catalogue && items.length > 0 && <>
-      <StyleCard row={shown} observedAt={catalogue.observedAt} />
+
+      <StyleCard row={shown} priceDisplay={priceDisplay} observedAt={catalogue.observedAt} />
       <section className="br-matrix-card br-card" aria-label="Size matrix">
         {missing.length > 0 && <Notice>{missing.map(line => line.sku).join(', ')} {missing.length === 1 ? 'is' : 'are'} no longer on this account’s price list and {missing.length === 1 ? 'was' : 'were'} left out.</Notice>}
-        <StyleMatrix orderQuantityProblem={orderQuantityProblem} prefix={prefix} rows={rows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
+        <StyleMatrix priceDisplay={priceDisplay} orderQuantityProblem={orderQuantityProblem} prefix={prefix} rows={visibleRows} columns={columns} quantities={quantities} busy={busy} selected={shown?.key ?? ''} customer={currentAccount.value.name} pricingReasons={Object.fromEntries(priced.filter(line=>line.pricing).map(line=>[line.sku,`${line.pricing!.reason} · ${money(line.lineCents)}`]))} lineCents={Object.fromEntries(priced.map(line=>[line.sku,line.lineCents]))} changes={changes} kept={kept} writtenAt={draft?.preparedAt} cells={cells}
           onQuantity={(key, value) => setQuantities(current => ({ ...current, [key]: value }))} onSelect={setSelected} onKeep={key => setKept(current => new Set(current).add(key))} onRemove={remove} />
         <p className="br-quiet-text br-matrix-foot">{canPurchase?'Preparing creates a draft for review. Submit it from Orders when you are ready.':'Your approver rights allow company review in Orders; preparing purchases requires purchaser rights.'}<button type="button" className="br-quiet" onClick={() => setRefresh(value => value + 1)} disabled={loading || busy}>Refresh stock</button></p>
       </section>

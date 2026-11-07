@@ -1,3 +1,9 @@
+import { storefrontAppearance, storefrontSettings, storefrontCatalogue, saveStorefrontBranding } from './storefront-branding'
+import {xeroBegin,xeroCallback,xeroDisconnect} from './accounting/xero'
+import {xeroWorkspace,xeroObservation,readReferences as xeroReferences,saveMapping as xeroMapping,startRead as xeroStart,resumeRead as xeroResume,linkInvoice as xeroLink} from './accounting/xero-reconciliation'
+import {qboBegin,qboCallback,qboDisconnect} from './accounting/qbo'
+import {qboWorkspace,qboObservation,readReferences,saveMapping,startRead,resumeRead,linkInvoice} from './accounting/reconciliation'
+import { readOrderNotices, noticePreferences, orderNoticeSource, orderNoticeCommand } from './order-notices'
 import { agentHttp } from './agent-door/http.ts'
 import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
@@ -16,6 +22,7 @@ import { readAccountCredit, creditPolicyCommand } from './credit-policy'
 import { allocateCard,applyCredit,issueCredit,readCredit,readCredits } from './credit-notes'
 import { readRefund,refundCommand } from './credit-refunds'
 import { savedCardCommand,readSavedCards } from './saved-cards'
+import { catalogMediaResponse } from './catalog-media'
 import { catalogMaintenanceResponse } from './catalog-maintenance-http'
 import { stockSyncState, stockSyncCommand } from './stock-sync'
 import { stockWatchCommand, readStockWatches } from './stock-watch'
@@ -98,6 +105,7 @@ import { saveReportZone } from './report-zone'
 import { fulfillmentReport } from './fulfillment'
 import { catalogue, pierConfigured, pierState } from './pier'
 import { invoiceCsv } from './invoice'
+import { invoicePdf } from './invoice-pdf'
 import { Problem,fail,requirePerson,requireSupplier,supplier,text } from './model'
 import { dryRunAccountImport,applyAccountImport,listAccountImports,getAccountImport,undoAccountImport,type PierSkus } from './imports'
 import { previewCutover,applyCutover,listCutovers,readCutover,undoCutover } from './imports/cutover-service'
@@ -145,6 +153,13 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   await bootstrapLegacyCompanyMembers(env.DB)
   actor.company=await companyMembership(env.DB,actor)
   if(path.startsWith('/api/barrow/v1/'))return await integrationResponse(request,env,actor,forwarded=>barrowResponse(forwarded,original))
+  if(path==='/api/barrow/xero/callback'&&request.method==='GET')return await xeroCallback(env,actor,url)
+  if(path==='/api/barrow/xero'&&request.method==='GET')return json(await xeroWorkspace(env,actor))
+  if(path.startsWith('/api/barrow/xero/observations/')&&request.method==='GET')return json(await xeroObservation(env,actor,path.slice('/api/barrow/xero/observations/'.length)))
+  if(path==='/api/barrow/qbo/callback'&&request.method==='GET')return await qboCallback(env,actor,url)
+  if(path==='/api/barrow/qbo'&&request.method==='GET')return json(await qboWorkspace(env,actor))
+  if(path.startsWith('/api/barrow/qbo/observations/')&&request.method==='GET')return json(await qboObservation(env,actor,path.slice('/api/barrow/qbo/observations/'.length)))
+  const catalogMedia=await catalogMediaResponse(request,env,actor);if(catalogMedia)return catalogMedia
   const catalogMaintenance=await catalogMaintenanceResponse(request,env,actor);if(catalogMaintenance)return catalogMaintenance
   if(path.startsWith('/api/barrow/prebooks/')&&request.method==='GET')return json(await readPrebook(env,actor,decodeURIComponent(path.slice('/api/barrow/prebooks/'.length))))
   if(path==='/api/barrow/prebook-seasons'&&request.method==='GET'){requirePerson(actor);if(!['owner','admin'].includes(actor.role)){const selected=await account(env.DB,actor,url.searchParams.get('accountId')??'');requireActiveAccount(selected)}return json(await seasons(env.DB))}
@@ -227,13 +242,15 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/price-book.csv'&&request.method==='GET')return await priceBookCsv(env,actor,url.searchParams.get('accountId')??'')
   const sheetRoute=/^\/api\/barrow\/line-sheets\/([a-f0-9-]+)(?:\.(pdf|csv))?$/.exec(path)
   if(sheetRoute&&request.method==='GET')return sheetRoute[2]?await sheetDownload(env,actor,sheetRoute[1],sheetRoute[2] as 'pdf'|'csv'):json(await readSheet(env,actor,sheetRoute[1]))
+  if(path==='/api/barrow/storefront/settings' && request.method==='GET') return json(await storefrontSettings(env.DB,actor))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const directory=await accountPage(env.DB,actor,new URLSearchParams())
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
    const {orders,people,...orderPage}=page
    if(actor.staff&&actor.staff.role==='analyst'){orders.splice(0);directory.accounts.splice(0)}
    else if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))directory.accounts=directory.accounts.map(a=>({...a,value:{...a.value,prices:[]}}))
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
+   const branding=await storefrontAppearance(env.DB,actor)
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null,...(branding.revision?{storefrontBranding:branding}:{})}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
   if(path==='/api/barrow/shipping/options' && request.method==='GET') {
@@ -248,6 +265,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
   if(path==='/api/barrow/buying-profiles' && request.method==='GET') return json(await readBuyingProfiles(env.DB,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/followups' && request.method==='GET') return json(await readFollowups(env,actor,url.searchParams))
+  if(path==='/api/barrow/order-notices'&&request.method==='GET')return json(await readOrderNotices(env,actor))
+  if(path==='/api/barrow/order-notice-preferences'&&request.method==='GET')return json(await noticePreferences(env,actor))
+  const noticeSource=/^\/api\/barrow\/order-notices\/([-a-zA-Z0-9_]+)\/source$/.exec(path)
+  if(noticeSource&&request.method==='GET')return json(await orderNoticeSource(env,actor,noticeSource[1]))
   if(path==='/api/barrow/approval-notices' && request.method==='GET') return json(await readApprovalNotices(env.DB,actor))
   if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
   if(path==='/api/barrow/webhooks.json' && request.method==='GET')return new Response(JSON.stringify(await webhookHistory(env,actor)),{headers:{'content-type':'application/json','content-disposition':'attachment; filename="barrow-webhooks.json"','cache-control':'no-store','x-content-type-options':'nosniff'}})
@@ -275,14 +296,17 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const attachment=/^\/api\/barrow\/quotes\/(Q-\d{1,9})\/attachments\/([-a-f0-9]{36})$/.exec(path)
   if(attachment && request.method==='GET') return await quoteAttachment(env,actor,attachment[1],attachment[2])
   if(path==='/api/barrow/catalogue/search' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await searchCatalog(env,actor,url.searchParams))}
-  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,(await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,id),url.searchParams.get('profileId'))).selected))}
+  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');const result=await catalogue(env,(await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,id),url.searchParams.get('profileId'))).selected);return json({...result,storefront:await storefrontCatalogue(env.DB,result.items.map(item=>item.sku))})}
   const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
   if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
-  const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.csv$/.exec(path)
+  const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.(csv|pdf)$/.exec(path)
   if(invoice && request.method==='GET') {
    if(actor.agent) fail('FORBIDDEN','A person must download invoice exports.',403)
    const order=await readOrder(env.DB,actor,invoice[1]);await requireCompanyRight(env.DB,actor,order.accountId,'finance')
-   return new Response(invoiceCsv(order,!!await env.DB.prepare('SELECT 1 FROM bw_credit_notes WHERE order_id=? LIMIT 1').bind(order.id).first()),{headers:{'content-type':'text/csv; charset=utf-8','cache-control':'no-store','content-disposition':`attachment; filename="barrow-${order.id}.csv"`}})
+   const financialHistory=!!await env.DB.prepare('SELECT 1 FROM bw_credit_notes WHERE order_id=? LIMIT 1').bind(order.id).first()
+   const retainedSeller=(await readConfirmations(env.DB,order.id)).findLast(record=>record.stage==='accepted')?.snapshot.seller
+   const format=invoice[2]
+   return new Response(format==='pdf'?await invoicePdf(order,financialHistory,retainedSeller):invoiceCsv(order,financialHistory,retainedSeller),{headers:{'content-type':format==='pdf'?'application/pdf':'text/csv; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-disposition':`attachment; filename="barrow-${order.id}.${format}"`}})
   }
   const confirmation=/^\/api\/barrow\/orders\/([-a-zA-Z0-9_]+)\/confirmations(?:\/([1-9]\d*)\.(csv|pdf))?$/.exec(path)
   if(confirmation && request.method==='GET') {
@@ -383,6 +407,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(['credit-policy.save','credit-policy.hold','credit-policy.release','credit-policy.request'].includes(body.type))return json({result:await creditPolicyCommand(env,actor,body.type,body.payload)})
    if(body.type==='card.allocate')return json({result:await allocateCard(env,actor,body.payload)})
    if(body.type==='credit.issue')return json({result:await issueCredit(env,actor,body.payload)})
+   if(body.type.startsWith('xero.')) {const handlers:any={'xero.begin':xeroBegin,'xero.disconnect':xeroDisconnect,'xero.references':xeroReferences,'xero.mapping':xeroMapping,'xero.start':xeroStart,'xero.resume':xeroResume,'xero.link':xeroLink};if(!handlers[body.type])fail('COMMAND','Unknown Xero command.',400);return json({result:await handlers[body.type](env,actor,body.payload)})}
+   if(body.type.startsWith('qbo.')) {const handlers:any={'qbo.begin':qboBegin,'qbo.disconnect':qboDisconnect,'qbo.references':readReferences,'qbo.mapping':saveMapping,'qbo.start':startRead,'qbo.resume':resumeRead,'qbo.link':linkInvoice};if(!handlers[body.type])fail('COMMAND','Unknown QBO command.',400);return json({result:await handlers[body.type](env,actor,body.payload)})}
    if(body.type==='credit.apply')return json({result:await applyCredit(env,actor,body.payload)})
    if(['refund.request','refund.refresh'].includes(body.type))return json({result:await refundCommand(env,actor,body.type,body.payload)})
    if(['saved-card.save','saved-card.revoke','saved-card.prepare'].includes(body.type)){const result=await savedCardCommand(env,actor,body.type,body.payload);return json({result:body.type==='saved-card.prepare'?publicCard(result as import('./card-model').CardPayment):result})}
@@ -397,6 +423,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})
    if(['staff.invite','staff.update','staff.revoke'].includes(body.type))return json({result:await staffCommand(request,env,actor,body.type,body.payload)})
    if(['rep.assign','rep.cover','rep.end','rep.transfer'].includes(body.type))return json({result:await repAssignmentCommand(env,actor,body.type,body.payload)})
+   if(['order-notice.preferences','order-notice.read'].includes(body.type))return json({result:await orderNoticeCommand(env,actor,body.type,body.payload)})
    if(['company.route.save','company.delegate','company.undelegate'].includes(body.type))return json({result:await companyRouteCommand(env,actor,body.type,body.payload)})
    if(['company.invite','company.accept','company.update','company.remove','company.erase'].includes(body.type))return json({result:await companyCommand(request,env,actor,body.type,body.payload)})
    if(['usage.publish','usage.accept'].includes(body.type))return json({result:await usageTermsCommand(env,actor,body.type,body.payload)})
@@ -411,6 +438,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['retention.settings','retention.request','retention.erase-document','retention.erase-application'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['brand.save','profile.save','profile.grant'].includes(body.type))result=await buyingProfileCommand(env,actor,body.type,body.payload)
+   else if(body.type==='storefront.save')result=await saveStorefrontBranding(env.DB,actor,body.payload)
    else if(body.type==='seller.identity')result=await saveSellerIdentity(env.DB,actor,body.payload)
    else if(body.type==='variant.attributes')result=await saveVariantAttributes(env.DB,actor,body.payload)
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)
