@@ -17,8 +17,9 @@ import { account, accounts } from './accounts'
 import { audit, changed, commit } from './access'
 import { activeAccountGuard, requireActiveAccount } from './account-profile'
 import { now } from './clock'
-import { conversionSnapshot } from './currency'
-import { fail, integer, requirePerson, requireSupplier, supplier, supplierDate, text, type Actor, type Line, type Order } from './model'
+import { assertExchangeBasis } from './integration-exchange'
+import { commercialBookBasis, conversionSnapshot } from './currency'
+import { fail, integer, requirePerson, requireSupplier, supplier, supplierDate, text, type Actor, type Account, type Line, type Order } from './model'
 import { nextNumber, readOrder } from './orders'
 import { catalogue, pierOrigin } from './pier'
 import { prepareLines } from './unit-lines'
@@ -133,6 +134,50 @@ async function save(db: D1Database, actor: Actor, before: Quote, after: Omit<Quo
  return { ...after, revision }
 }
 
+/** Native quote calculation, without persistence or notification effects. */
+async function quoteRevisionEffect(env:Bindings,actor:Actor,quote:Quote,p:any) {
+ const at=(await now()).toISOString(),today=supplierDate(new Date(at))
+ const selected = (await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,quote.accountId),quote)).selected
+ if(quote.currency!==(selected.value.currency??'USD'))fail('QUOTE_STALE','The quote currency changed. Request a new quote.')
+ if (!Array.isArray(p.lines) || !p.lines.length || p.lines.length > 100) fail('LINES', 'Choose between one and 100 lines.', 400)
+ const validUntil = day(p.validUntil)
+ if (validUntil < today) fail('INPUT', 'Valid through cannot be before today (Eastern time).', 400)
+ const offers = await catalogue(env, selected), lines = prepareLines(p.lines, offers.items, today, false).map((line, index) => quoteLine(line, p.lines[index]))
+ const basisCents = lines.reduce((sum, line) => sum + line.basisLineCents, 0), totalCents = lines.reduce((sum, line) => sum + line.lineCents!, 0)
+ if (!Number.isSafeInteger(basisCents) || !Number.isSafeInteger(totalCents)) fail('MONEY', 'Quote total is outside the supported exact-cent range.', 400)
+ const discounted = lines.some(line => line.lineCents! < line.basisLineCents), authorizedDiscount=discounted&&quote.currency==='USD'&&!!actor.staff&&lines.reduce((sum,line)=>sum+Math.max(0,line.basisLineCents-line.lineCents!),0)<=actor.staff.discountLimitCents, number = quote.revisions.length + 1
+ const revision: QuoteRevision = { number, lines, basisCents, totalCents, termsDays: p.termsDays === undefined ? selected.value.termsDays : integer(p.termsDays, 'Payment terms (days)', 0, 365), shipping: note(p.shipping, 'Shipping', 160), validUntil, note: note(p.note, 'Quote note', 1000), proposedBy: actor.id, proposedByEmail: actor.email, proposedAt: at, discounted,...(authorizedDiscount?{approval:{by:actor.id,at,reason:text(p.reason,'Discount reason',240)}}:{}) }
+ const shipTo=await locationSnapshot(env.DB,selected,'ship-to',undefined),context={account:selected,lines,shipTo,currency:quote.currency}
+ if(p.freightQuote)revision.freightQuotes=[await freightQuote(env,actor,context,p.freightQuote)]
+ const offered=await deliveryOptions(env,{...context,quotes:revision.freightQuotes})
+ if(offered.required){
+  const selectedOption=offered.options.find(o=>o.methodId===p.shippingMethodId&&o.warehouse===(p.shippingWarehouse??''))
+  if(!selectedOption)fail('SHIPPING_REQUIRED','Choose an eligible quoted delivery method for this revision.')
+  revision.delivery=await selectDelivery(env,{...context,quotes:revision.freightQuotes},{...selectedOption,ownCarrierAccount:p.ownCarrierAccount})
+ }
+ return {selected,revision,source:commercialBookBasis(selected,new Date(at))}
+}
+function revisionExchangeBasis(quote:Quote,effect:Awaited<ReturnType<typeof quoteRevisionEffect>>) {
+ const {selected,revision,source}=effect
+ // Attribution time is assigned by the human command; only commercial terms authorize its effect.
+ const freight=(value:FreightQuote)=>{const {at,by,...terms}=value;return terms}
+ const delivery=(value:Delivery)=>{const {fingerprint,quote,...terms}=value;return {...terms,...(quote?{quote:freight(quote)}:{})}}
+ return {revision:quote.revision,profile:selected.buyingProfile??null,source,lines:revision.lines,basisCents:revision.basisCents,totalCents:revision.totalCents,termsDays:revision.termsDays,shipping:revision.shipping,validUntil:revision.validUntil,note:revision.note,discounted:revision.discounted,delivery:revision.delivery?delivery(revision.delivery):null,freightQuotes:revision.freightQuotes?.map(freight)??[]}
+}
+/** Only an already account-scoped exchange uses its current issuer for this read-only validation. */
+export async function quoteExchangeBasis(env:Bindings,issuer:Actor,selected:Account,p:any) {
+ if(p.type==='quote.request') {
+  const offers=await catalogue(env,selected),at=await now(),lines=prepareLines(p.lines,offers.items,supplierDate(at),false)
+  return {source:commercialBookBasis(selected,at),lines}
+ }
+ const quote=await readQuote(env.DB,issuer,text(p.quoteId,'Quote',40))
+ if(quote.accountId!==selected.id)fail('NOT_FOUND','Quote not found.',404)
+ if(quote.currency!==(selected.value.currency??'USD'))fail('CURRENCY','The quote must use the grant account’s current ISO currency.',400)
+ if(quote.accepted)fail('QUOTE_ACCEPTED',`This quote was converted into order ${quote.accepted.orderId}; it can no longer change.`)
+ if(p.revision!==quote.revision)fail('CHANGED','Refresh the quote before preparing a revision.')
+ return revisionExchangeBasis(quote,await quoteRevisionEffect(env,issuer,quote,p))
+}
+
 export async function quoteCommand(env: Bindings, actor: Actor, type: string, p: any) {
  requirePerson(actor)
  const at = (await now()).toISOString(), today = supplierDate(new Date(at))
@@ -142,6 +187,7 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
   await requireCompanyRight(env.DB,actor,selected.id,'purchaser')
   if (!Array.isArray(p.lines) || !p.lines.length || p.lines.length > 100) fail('LINES', 'Choose between one and 100 lines.', 400)
   const offers = await catalogue(env, selected), lines = prepareLines(p.lines, offers.items, today, false)
+  if(actor.exchange)assertExchangeBasis(actor,{source:commercialBookBasis(selected,new Date(at)),lines})
   const id = await nextQuote(env.DB), revision = crypto.randomUUID()
   const quote: Omit<Quote, 'revision'> = { ...(selected.buyingProfile?{buyingProfile:selected.buyingProfile}:{}),id, accountId: selected.id, customerName: selected.value.name, currency: selected.value.currency??'USD', status: 'requested', requestedBy: actor.id, requestedAt: at, note: note(p.note, 'Quote note', 1000), request: lines, revisions: [] }
   await commit(env.DB, actor, [profile.guard,activeAccountGuard(env.DB, selected), env.DB.prepare('INSERT INTO bw_quotes(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id, selected.id, JSON.stringify(quote), revision), audit(env.DB, actor, id, 'quote.requested', { accountId: selected.id, revision: `${id}:r0:${revision}`, source: 'quote.request', reason: `Requested a quote for ${lines.length} cart ${lines.length === 1 ? 'line' : 'lines'} at current prices; no stock reserved.` }), notice(env.DB, actor, { id, accountId: selected.id }, 'supplier', 'requested', `${selected.value.name} requested quote ${id} for ${lines.length} ${lines.length === 1 ? 'line' : 'lines'}.`, at, await supplierRoute(env.DB, selected.id, actor.id))])
@@ -196,30 +242,15 @@ export async function quoteCommand(env: Bindings, actor: Actor, type: string, p:
  if (quote.accepted) fail('QUOTE_ACCEPTED', `This quote was converted into order ${quote.accepted.orderId}; it can no longer change.`)
  if (p.revision !== quote.revision) fail('CHANGED', 'This quote changed. Refresh it before continuing.')
  if (type === 'quote.propose') {
-  const selected = (await orderBuyingProfile(env.DB,actor,await account(env.DB,actor,quote.accountId),quote)).selected
-  if(quote.currency!==(selected.value.currency??'USD'))fail('QUOTE_STALE','The quote currency changed. Request a new quote.')
-  if (!Array.isArray(p.lines) || !p.lines.length || p.lines.length > 100) fail('LINES', 'Choose between one and 100 lines.', 400)
-  const validUntil = day(p.validUntil)
-  if (validUntil < today) fail('INPUT', 'Valid through cannot be before today (Eastern time).', 400)
-  const offers = await catalogue(env, selected), lines = prepareLines(p.lines, offers.items, today, false).map((line, index) => quoteLine(line, p.lines[index]))
-  const basisCents = lines.reduce((sum, line) => sum + line.basisLineCents, 0), totalCents = lines.reduce((sum, line) => sum + line.lineCents!, 0)
-  if (!Number.isSafeInteger(basisCents) || !Number.isSafeInteger(totalCents)) fail('MONEY', 'Quote total is outside the supported exact-cent range.', 400)
-  const discounted = lines.some(line => line.lineCents! < line.basisLineCents), authorizedDiscount=discounted&&quote.currency==='USD'&&!!actor.staff&&lines.reduce((sum,line)=>sum+Math.max(0,line.basisLineCents-line.lineCents!),0)<=actor.staff.discountLimitCents, number = quote.revisions.length + 1
-  const revision: QuoteRevision = { number, lines, basisCents, totalCents, termsDays: p.termsDays === undefined ? selected.value.termsDays : integer(p.termsDays, 'Payment terms (days)', 0, 365), shipping: note(p.shipping, 'Shipping', 160), validUntil, note: note(p.note, 'Quote note', 1000), proposedBy: actor.id, proposedByEmail: actor.email, proposedAt: at, discounted,...(authorizedDiscount?{approval:{by:actor.id,at,reason:text(p.reason,'Discount reason',240)}}:{}) }
-  const shipTo=await locationSnapshot(env.DB,selected,'ship-to',undefined),context={account:selected,lines,shipTo,currency:quote.currency}
-  if(p.freightQuote)revision.freightQuotes=[await freightQuote(env,actor,context,p.freightQuote)]
-  const offered=await deliveryOptions(env,{...context,quotes:revision.freightQuotes})
-  if(offered.required){
-   const selectedOption=offered.options.find(o=>o.methodId===p.shippingMethodId&&o.warehouse===(p.shippingWarehouse??''))
-   if(!selectedOption)fail('SHIPPING_REQUIRED','Choose an eligible quoted delivery method for this revision.')
-   revision.delivery=await selectDelivery(env,{...context,quotes:revision.freightQuotes},{...selectedOption,ownCarrierAccount:p.ownCarrierAccount})
-  }
+  const effect=await quoteRevisionEffect(env,actor,quote,p),{revision}=effect
+  if(actor.exchange)assertExchangeBasis(actor,revisionExchangeBasis(quote,effect))
+  const {discounted,totalCents,basisCents,validUntil,number}=revision,authorizedDiscount=Boolean(revision.approval)
   revision.changes = changesFrom(latest ?? { lines: quote.request }, revision,quote.currency)
   if(JSON.stringify(latest?.delivery)!==JSON.stringify(revision.delivery))revision.changes.push(`Delivery: ${revision.delivery?`${revision.delivery.name}, ${revision.delivery.totalCents} ${quote.currency} cents, ${revision.delivery.windowStart}–${revision.delivery.windowEnd}`:'no configured delivery'}`)
   // The buyer hears of a revision once it can be accepted; a discount first notifies the staff who approve it.
   const waits=discounted&&!authorizedDiscount
   const told = waits ? notice(env.DB, actor, quote, 'supplier', 'revision', `Revision ${number} of ${quote.id} by ${actor.email} waits for discount approval.`, at) : notice(env.DB, actor, quote, 'buyer', 'revision', `Revision ${number} of ${quote.id} from ${actor.email} is ready: ${usd(totalCents,quote.currency)}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time).`, at)
-  return save(env.DB, actor, quote, { ...quote, status: waits ? 'awaiting-approval' : 'proposed', revisions: [...quote.revisions, revision] }, 'quote.proposed', `Proposed revision ${number}: ${totalCents} ${quote.currency} cents against a current price basis of ${basisCents}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time)${waits ? '; discount awaits approval' : authorizedDiscount?'; approved within the owner-granted amount allowance: '+revision.approval!.reason:''}.`, [told])
+  return save(env.DB, actor, quote, { ...quote, status: waits ? 'awaiting-approval' : 'proposed', revisions: [...quote.revisions, revision] }, 'quote.proposed', `Proposed revision ${number}: ${totalCents} ${quote.currency} cents against a current price basis of ${basisCents}, net ${revision.termsDays} days, valid through ${validUntil} (Eastern time)${waits ? '; discount awaits approval' : authorizedDiscount?'; approved within the owner-granted amount allowance: '+revision.approval!.reason:''}.`, [shippingGuard(env.DB,revision.delivery),told])
  }
  if (type === 'quote.approve') {
   if(actor.staff&&quote.currency!=='USD')fail('FORBIDDEN','Functional discount allowances are USD-denominated; a supplier owner or admin must review this currency.',403)
