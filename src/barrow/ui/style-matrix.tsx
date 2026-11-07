@@ -4,6 +4,8 @@ import { quantityOf, rowCents, rowUnits, type StyleRow } from './styles'
 import type { CatalogueItem } from './types'
 import { quantityProblem } from '../quantity-rules'
 import { money as formatMoney, when } from './types'
+import type { PriceDisplay } from '../price-display'
+import { StorefrontPrice } from './storefront-price'
 
 /** A draft line whose agreed price moved after the draft was written. */
 export interface PriceChange { from: number; to: number; currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP' }
@@ -21,6 +23,7 @@ export function cellProblem(item: CatalogueItem, value: string | undefined) {
 export const quantityId = (prefix: string, sku: string) => `${prefix}-quantity-${encodeURIComponent(sku)}`
 
 interface Props {
+  priceDisplay: PriceDisplay
   prefix: string
   orderQuantityProblem?: { sku: string; message: string }
   rows: StyleRow[]; columns: string[]; quantities: Record<string, string>; busy: boolean; selected: string; customer: string
@@ -29,7 +32,7 @@ interface Props {
 }
 
 // Styles down, sizes across, then Units and Line $. A price that moved since the draft is settled inside its own row.
-export function StyleMatrix({ prefix, orderQuantityProblem, rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
+export function StyleMatrix({ priceDisplay, prefix, orderQuantityProblem, rows, columns, quantities, busy, selected, customer, changes, kept, writtenAt, cells, lineCents, pricingReasons, onQuantity, onSelect, onKeep, onRemove }: Props) {
   const money=(cents:number,code:'USD'|'AUD'|'CAD'|'EUR'|'GBP'=rows[0]?.currency??'USD')=>formatMoney(cents,code)
   return <div className="br-matrix-wrap"><table className="br-matrix" style={{ ['--br-sizes' as string]: columns.length }}>
     <caption className="br-sr-only">Order quantities by style and size</caption>
@@ -45,9 +48,9 @@ export function StyleMatrix({ prefix, orderQuantityProblem, rows, columns, quant
         <tr className={`br-style-row${selected === row.key ? ' br-selected' : ''}${open ? ' br-changed' : ''}`} aria-selected={selected === row.key}>
           <th scope="row" className="br-col-style"><button type="button" className="br-style-pick" onClick={() => onSelect(row.key)} aria-pressed={selected === row.key}>
             <Flat name={row.name} code={row.key} />
-            <span><span className="br-style-name">{row.name}</span>{row.note && <span className="br-style-note">{row.note}</span>}{skus.filter(sku=>pricingReasons?.[sku]).map(sku=><span className="br-style-note" aria-label="Current pricing rules" key={sku}>{sku}: {pricingReasons![sku]}</span>)}{settled && <span className="br-style-kept">Kept {newPrices.join(', ')} ✓</span>}</span>
+            <span><span className="br-style-name">{row.name}</span>{row.note && priceDisplay!=='retail' && <span className="br-style-note">{row.note}</span>}{skus.filter(sku=>pricingReasons?.[sku]).map(sku=><span className="br-style-note" aria-label="Current pricing rules" key={sku}>{sku}: {pricingReasons![sku]}</span>)}{settled && <span className="br-style-kept">Kept {newPrices.join(', ')} ✓</span>}</span>
           </button></th>
-          <td className="br-col-price">{money(row.cents)}</td>
+          <td className="br-col-price">{row.sizes.map(size=><span key={size}>{row.sizes.length>1&&<strong>{size}</strong>}<StorefrontPrice item={row.cells[size]} currency={row.currency ?? 'USD'} display={priceDisplay}/></span>)}</td>
           {columns.map(size => {
             const item = row.cells[size]
             if (!item) return <td key={size} className="br-col-size"><span className="br-cell br-cell-none" title={`${size} is not offered`}>–</span></td>
