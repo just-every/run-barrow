@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import {mkdir} from 'node:fs/promises'
 
 /** Optional captures of the real disposable production installation. */
-export async function captureAgents({request,origin,cookie}) {
+export async function captureAgents({request,origin,cookie,summaryTargets=new Map(),prefix=''}) {
  const directory=process.env.BARROW_AGENT_EVIDENCE
  if(!directory)return
  const {chromium}=await import('@playwright/test')
@@ -29,8 +29,12 @@ export async function captureAgents({request,origin,cookie}) {
    for(const width of [1440,390]) {
     await page.setViewportSize({width,height:1000})
     await page.goto(origin+path)
-    if(width===1440)assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
-    await page.screenshot({path:directory+'/'+name+'-'+width+'.png',fullPage:true})
+    if(width===1440) {
+     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))
+     const id=path.split('/').at(-1),target=summaryTargets.get(id)
+     if(target)assert.ok((await page.locator('[data-approval-summary]').innerText()).includes(target.id),'Approval renders the resolved native target')
+    }
+    await page.screenshot({path:directory+'/'+prefix+name+'-'+width+'.png',fullPage:true})
    }
   }
   for(const [name,path] of pages)await capture(name,path)

@@ -60,7 +60,13 @@ export async function listCommercialAudit(db: D1Database, actor: Actor, params: 
         AND NOT EXISTS(SELECT 1 FROM bw_accounts buyer WHERE lower(trim(json_extract(buyer.value_json,'$.email')))=lower(trim(current_actor.email)))
         AND ((${account} IS NOT NULL AND (json_extract(g.policy_json,'$.accounts')='all'
           OR ${account} IN (SELECT value FROM json_each(g.policy_json,'$.accounts'))))
-          OR (${account} IS NULL AND e.action='staff.permission-refused' AND e.subject_id=?))
+          OR (${account} IS NULL AND e.action='staff.permission-refused' AND e.subject_id=?)
+          OR (${account} IS NULL AND e.subject_id=g.user_id AND e.action IN ('catalog-media.prepared','catalog-media.applied')
+            AND json_extract(g.policy_json,'$.role')='sales-manager'
+            AND EXISTS(SELECT 1 FROM json_each(g.policy_json,'$.entitlements') WHERE value='catalog-media')
+            AND json_valid(json_extract(e.context_json,'$.reason'))
+            AND NOT EXISTS(SELECT 1 FROM json_each(json_extract(e.context_json,'$.reason'),'$.affectedCatalogs') affected
+              WHERE affected.value NOT IN (SELECT value FROM json_each(g.policy_json,'$.catalogMedia')))))
     )`)
     values.push(actor.id, actor.id, grant.revision, actor.version, actor.id)
   } else {

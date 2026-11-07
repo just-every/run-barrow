@@ -15,6 +15,7 @@ export const staffFinances=(actor:Actor)=>Boolean(actor.staff&&actor.staff.role=
 export function staffTaskAllowed(actor:Actor,task:{accountId:string;kind:string;warehouses?:string[]}) {
  const grant=actor.staff
  if(!grant)return true
+ if(['qbo','xero'].includes(task.kind))return grant.role==='finance'&&staffAccountAllowed(grant,task.accountId)
  if(task.kind==='return')return false // Functional return admission remains owed by ACC-005.
  if(task.kind==='application')return applicationAccess(actor)==='review'
  if(!staffAccountAllowed(grant,task.accountId))return false
@@ -32,6 +33,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(!actor.staff)return
  const relative=path.slice('/api/barrow/'.length),role=actor.staff.role
  if(relative==='commands')return
+ if(relative==='catalog-media'||relative.startsWith('catalog-media/'))return // Leaf admission checks explicit catalog entitlement and audits refusals.
  if (relative === 'applications' || relative.startsWith('applications/')) {
   if (method === 'GET' && applicationAccess(actor) && (relative === 'applications' || /^applications\/[^/]+\/documents\/[^/]+$/.test(relative))) return
   return denied(env, actor, path)
@@ -47,6 +49,7 @@ export async function staffRequestGate(env:Bindings,actor:Actor,path:string,meth
  if(method==='GET'&&relative==='commissions'&&role==='sales-manager'&&actor.staff.accounts==='all')return
  if(method==='GET'&&relative==='price-book.csv'&&role==='sales-manager')return
  if(method==='GET'&&/^orders\/[-a-zA-Z0-9_]+\/agent-proposals$/.test(relative)&&role==='sales-manager')return
+ if(method==='GET'&&(relative.startsWith('qbo/observations/')||relative.startsWith('xero/observations/'))&&role==='finance')return
  if(method==='GET'&&relative==='payment-promises'&&role==='finance')return
  if(role==='analyst')return denied(env,actor,path)
  if(method==='GET'&&(['accounts','orders/history','orders/search','followups'].includes(relative)||/^accounts\/by-id\/[^/]+$/.test(relative)))return

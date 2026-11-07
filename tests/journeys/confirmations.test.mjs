@@ -6,6 +6,7 @@ import {chromium,expect} from '@playwright/test';
 import {sheetFixture,csvRows} from '../api/line-sheet-fixture.mjs';
 import {withExif} from '../fixtures/confirmation-image.mjs';
 import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
+import {invoiceDocumentsJourney} from './invoice-documents.mjs';
 async function app(page,h) {
  await page.goto(h.origin+'/app');
  if(new URL(page.url()).pathname==='/setup'){
@@ -113,4 +114,5 @@ test('buyer books a spring season with a deposit and two windows; supplier close
  await page.getByRole('button',{name:'Data',exact:true}).click();const report=page.locator('.br-card').filter({has:page.getByRole('heading',{name:'Fulfillment & backorders',exact:true})}).first();await report.getByRole('button',{name:'Refresh fulfillment',exact:true}).click();await expect(report).toContainText('First spring shipment: committed 8 · released 8 · outstanding 0');await expect(report).toContainText('Late spring shipment: committed 6 · released 0 · outstanding 6');await expect(report).toContainText('2027-03-15 · backordered');await captureRegionWidths(page,report,'prebook-fulfillment');
  for(const region of [report])assert.equal(await region.locator('button,a,[role=button]').evaluateAll(elements=>elements.filter(element=>element.getBoundingClientRect().width>0&&!/[A-Za-z0-9]/.test(element.textContent??'')&&!element.getAttribute('aria-describedby')).length),0);
  const sales=await h.api('/api/barrow/reports/sales?from=2027-01-01&to=2027-12-31');assert.equal(sales.totals[0].bookedCents,70000);assert.equal(sales.rows.filter(row=>row.bookingType==='prebook').length,2);assert.equal(sales.rows.filter(row=>row.bookingType==='prebook-release').length,1);
+ await invoiceDocumentsJourney(t);
 });

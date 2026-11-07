@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {chromium,expect} from '@playwright/test';
 import {proposalFixture} from '../api/proposal-fixture.mjs';
 import {captureRegionWidths,signedContext} from './browser-helpers.mjs';
+import {policyClient,policyCode} from '../api/agent-policy-dispositions.mjs';
 
 test('owner scopes an external agent, manager and buyer review exact replacements, revoked execution is refused and a fresh revision completes once at desktop and phone',async t=>{
  const f=await proposalFixture(t,{built:true,https:true}),{h}=f;
- const browser=await chromium.launch({headless:true,args:['--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const browser=await chromium.launch({headless:true,...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
  const context=await signedContext(browser,h);t.after(()=>context.close());const page=await context.newPage();await page.goto(h.origin+'/app');
  if(new URL(page.url()).pathname==='/setup'){await page.getByLabel('Your name').fill('Supplier owner');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Finish setup',exact:true}).click()}
  async function grantScreen() {
@@ -46,4 +47,25 @@ test('owner scopes an external agent, manager and buyer review exact replacement
  panel=page.getByRole('region',{name:'Agent substitution proposals',exact:true}).filter({hasText:'synthetic-barrow-120'});await panel.getByRole('heading',{name:/Proposal 2 · completed/}).waitFor();
  await captureRegionWidths(page,panel,'proposal-completed-history');const result=(await f.history()).proposals.at(-1);assert.equal(result.state,'completed');assert.equal((await h.api('/api/barrow/orders/'+result.replacementId)).status,'approved');
  const source=(await f.pier.api('/api/pier/state')).orders,mail=h.mail.deliveries.length;await f.execute(proposal);assert.deepEqual((await f.pier.api('/api/pier/state')).orders,source);assert.equal(h.mail.deliveries.length,mail);
+ const client=policyClient(f),draft=await h.api('/api/barrow/agent-token',{});
+ const revision=await client.setPolicy('approval'),path='/api/barrow/accounts/by-id/cedar';
+ const held=client.pending(await client.legacy(path,null,draft.token));
+ await buyerPage.goto(held.approval.url);await expect(buyerPage.getByRole('heading',{name:'Request not found',exact:true})).toBeVisible();await expect(buyerPage.getByRole('button',{name:'Approve',exact:true})).toHaveCount(0);
+ await page.goto(held.approval.url);const request=page.getByRole('region',{name:'Request',exact:true});
+ await expect(request.locator('[data-approval-state]')).toHaveAttribute('data-approval-state','pending');
+ await request.getByText('Details',{exact:true}).click();await expect(request.getByText(String(revision),{exact:true})).toBeVisible();
+ await captureRegionWidths(page,request,'policy-read-pending');
+ await request.getByRole('button',{name:'Approve',exact:true}).click();await expect(request.locator('[data-approval-state]')).toHaveAttribute('data-approval-state','executed');
+ const recovered=await client.legacy(path,null,draft.token,held.requestState);assert.equal(recovered.status,200);assert.equal(recovered.body.id,'cedar');assert.equal(JSON.parse(recovered.headers.get('x-rer-agent-receipt')).approval_id,held.approval.id);
+ await captureRegionWidths(page,request,'policy-read-approved');
+ const declined=client.pending(await client.legacy(path,null,draft.token));await page.goto(declined.approval.url);
+ await page.getByRole('button',{name:'Decline',exact:true}).click();await expect(page.locator('[data-approval-state]')).toHaveAttribute('data-approval-state','rejected');
+ assert.equal(policyCode(await client.legacy(path,null,draft.token,declined.requestState)),'approval_rejected');await captureRegionWidths(page,page.getByRole('region',{name:'Request',exact:true}),'policy-read-rejected');
+ const args={accountId:'cedar',reference:'Policy-approved browser draft',lines:[{sku:'HONEY-1',quantity:2}],idempotency_key:'synthetic-barrow-206'};
+ const nativeBefore=await h.api('/api/barrow/state'),pending=client.pending(await client.command('order.prepare',args,draft.token));assert.deepEqual((await h.api('/api/barrow/state')).orders,nativeBefore.orders);
+ await page.goto(pending.approval.url);await expect(page.getByText('2 × HONEY-1',{exact:true})).toBeVisible();await captureRegionWidths(page,page.getByRole('region',{name:'Request',exact:true}),'policy-draft-pending');
+ await page.getByRole('button',{name:'Approve',exact:true}).click();await expect(page.locator('[data-approval-state]')).toHaveAttribute('data-approval-state','executed');
+ const completed=await client.command('order.prepare',args,draft.token,pending.requestState);assert.equal(completed.status,200);assert.equal(completed.body.result.status,'draft');assert.equal(completed.body.result.totalCents,6400);
+ await page.goto(h.origin+'/app');await page.getByRole('button',{name:'Orders',exact:true}).click();const resultCard=page.getByRole('article').filter({hasText:args.reference});await expect(resultCard).toContainText('draft');await captureRegionWidths(page,resultCard,'policy-recovered-draft');
+ assert.deepEqual((await f.pier.api('/api/pier/state')).orders,source);assert.equal(h.mail.deliveries.length,mail);
 });

@@ -1,3 +1,4 @@
+import {ledgerComparisons as readLedgerComparisons} from './accounting/ledger-comparisons'
 import { unappliedPrincipal } from './deposits'
 import { requireCompanyRight } from './company-policy'
 import { creditRecords } from './credit-ledger'
@@ -76,7 +77,8 @@ export async function statement(db: D1Database, actor: Actor, accountId: string,
   const refundedCents = entries.filter(entry => entry.kind === 'refund').reduce((sum, entry) => sum + entry.amountCents, 0)
   return { currency,unappliedCents, openingCents, invoices: period, entries, invoicedCents, surchargedCents, receivedCents, creditedCents, refundedCents, closingCents: openingCents + invoicedCents + surchargedCents - receivedCents - creditedCents + refundedCents }
  })
- return { accountId: selected.id, customer: selected.value.name, lifecycle: selected.value.lifecycle ?? 'active', from: from ?? null, to, dates: 'Inclusive invoice issue, card capture, credit issue and completed refund dates (America/New_York calendar days).', sections, note: cardStatementNote }
+ const ledgerComparisons=await readLedgerComparisons(db,selected.id,to,new Map(sections.map(section=>[section.currency,section.closingCents])))
+ return { accountId: selected.id, customer: selected.value.name, lifecycle: selected.value.lifecycle ?? 'active', from: from ?? null, to, ledgerComparisons, dates: 'Inclusive invoice issue, card capture, credit issue and completed refund dates (America/New_York calendar days).', sections, note: cardStatementNote+(ledgerComparisons.length?' Accounting rows compare dated observed invoice balances with native closing cash; differences remain conflicts and do not alter native opening or closing balances. No provider payment is applied.':' No complete accounting observation exists for this closing date.') }
 }
 
 const statementColumns=['currency','kind','date','due_date','invoice_number','order','customer_reference','amount_cents','balance_cents','payment_id','credit_id','refund_id','source_path','applied_cents','provider_payment_id','allocation_id','unapplied_cents']
@@ -88,7 +90,7 @@ const statementRows = (value: Awaited<ReturnType<typeof statement>>) => {
    ...section.entries.map(line=>row({currency:section.currency,kind:line.kind,date:line.date,due_date:line.kind==='invoice'?line.dueAt:'',invoice_number:line.kind==='invoice'?line.number:'',order:line.orderId,customer_reference:line.kind==='invoice'?line.reference:'',amount_cents:line.amountCents,balance_cents:balance+=line.amountCents,payment_id:line.kind==='card-allocation'?line.paymentId:line.kind==='card-payment'||line.kind==='card-surcharge'?line.id:'',credit_id:line.kind==='credit-note'?line.id:'',refund_id:line.kind==='refund'?line.id:'',source_path:line.kind==='invoice'?line.invoicePath:line.paymentPath,applied_cents:line.kind==='card-allocation'?line.appliedCents:0,provider_payment_id:line.kind==='invoice'?'':line.providerPaymentId,allocation_id:line.kind==='card-allocation'?line.id:''})),
    ...(section.unappliedCents||section.entries.some(entry=>entry.kind==='card-payment')?[row({currency:section.currency,kind:'unapplied principal',date:value.to,amount_cents:0,balance_cents:balance,unapplied_cents:section.unappliedCents})]:[]),
    row({currency:section.currency,kind:'closing',date:value.to,amount_cents:section.closingCents,balance_cents:section.closingCents})]
- })]
+ }), [], ['Accounting dated comparisons'], ['provider','accountId','tenant','runId','asOf','observedAt','currency','nativeCents','ledgerCents','differenceCents','status','sourceIds'], ...value.ledgerComparisons.map(row=>[row.provider,row.accountId,row.tenant,row.runId,row.asOf,row.observedAt,row.currency,row.nativeCents,row.ledgerCents,row.differenceCents,row.status,JSON.stringify(row.sources)])]
 }
 
 export async function statementResponse(db: D1Database, actor: Actor, accountId: string, format: 'json' | 'csv' | 'pdf', query: URLSearchParams) {
@@ -106,6 +108,10 @@ export async function statementResponse(db: D1Database, actor: Actor, accountId:
   }
   lines.push(`${section.currency} unapplied principal: ${amount(section.unappliedCents,section.currency)}`)
   lines.push(`${section.currency} closing balance: ${amount(section.closingCents, section.currency)}`, '')
+ }
+ for(const comparison of value.ledgerComparisons) {
+  lines.push(`${comparison.ledger} ${comparison.tenant} dated ${comparison.asOf} (${comparison.currency})`, `Observed ${comparison.observedAt}; correlation ${comparison.runId}`,`Native closing ${amount(comparison.nativeCents,comparison.currency)}; ledger ${amount(comparison.ledgerCents,comparison.currency)}`,`Difference ${amount(comparison.differenceCents,comparison.currency)}; ${comparison.status}`)
+  for(const source of comparison.sources)lines.push(`Source ${source.sourceId} revision ${source.sourceToken}; native ${source.orderId||'unlinked'}; ${source.status}`,`Source ${source.path}`)
  }
  if (!value.sections.length) lines.push('No recorded activity in this period.', '')
  lines.push(...pdfParagraph(value.note))

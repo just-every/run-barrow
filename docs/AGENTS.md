@@ -274,6 +274,44 @@ The following registry projection includes the copied runtime’s added idempote
               "vertical",
               "matrix"
             ]
+          },
+          "cart": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "sku": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "unit": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "quantity": {
+                  "anyOf": [
+                    {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  ]
+                },
+                "buyerSku": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "sku",
+                "quantity"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
@@ -283,7 +321,26 @@ The following registry projection includes the copied runtime’s added idempote
         "additionalProperties": false
       },
       "outputSchema": {
-        "type": "object"
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "csv": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "currency",
+          "csv"
+        ],
+        "additionalProperties": false
       },
       "annotations": {
         "readOnlyHint": true,
