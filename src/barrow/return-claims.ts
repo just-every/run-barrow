@@ -1,3 +1,4 @@
+import { orderNoticeStatements } from './order-notices'
 import type { Bindings } from '../auth.server'
 import { audit, changed, commit } from './access'
 import { account } from './accounts'
@@ -142,6 +143,7 @@ export async function returnClaimCommand(env: Bindings, actor: Actor, type: stri
   const value={id,kind:'return',accountId:claim.accountId,sourceId:claim.id,sourcePath:`/api/barrow/orders/${claim.orderId}/return-claims`,title,reason,priority:1,ownerId,nextContactDate:today,status:'open',createdAt:at,contacts:[]}
   statements.push(env.DB.prepare('INSERT OR IGNORE INTO bw_followups(id,account_id,value_json,revision) VALUES(?,?,?,?)').bind(id,claim.accountId,JSON.stringify(value),crypto.randomUUID()))
  }
+ if(type==='return.decide')statements.push(...orderNoticeStatements(env.DB,order,{kind:'return',sourceId:claim.id,sourceRevision:revision,sourceOrigin:'Barrow',details:{requested:claim.quantity,approved:claim.decision!.quantity},at}))
  statements.push(audit(env.DB,actor,claim.id,type,{accountId:claim.accountId,orderId:claim.orderId,revision,source:type,reason:claim.history.at(-1)!.reason}))
  await commit(env.DB,actor,statements)
  return (await readReturnClaims(env,actor,order.id)).claims.find(row=>row.id===claim.id)

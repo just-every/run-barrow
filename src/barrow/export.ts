@@ -1,3 +1,4 @@
+import { orderNoticeRecords, noticePreferences } from './order-notices'
 import { returnRecords } from './return-claims'
 import { creditRecords } from './credit-ledger'
 import { buyingProfileColumns, buyingProfileExport, orderProfileColumns, orderProfileExport } from './buying-profile-export'
@@ -19,11 +20,13 @@ import type { Quote } from './quotes'
 import { exportEntries } from './quote-thread'
 import { termsExport } from './sales-terms'
 
-export const exportKinds = ['xeroobservations','qboobservations','prebooks','returnclaims','tracking','companyusers','companyinvitations','repassignments','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
+export const exportKinds = ['ordernoticepreferences','ordernotices','xeroobservations','qboobservations','prebooks','returnclaims','tracking','companyusers','companyinvitations','repassignments','faireorders','creditnotes','creditlines','creditapplications','cardallocations','refunds','refundevents','stockwindows','stockwatches','stocknotices','cardpayments','cardevents','sourcehistory','sourceimports','lists','deltafeeds','deltas','deltasources','cutovers', 'reptargets', 'applications', 'applicationdocuments', 'brands', 'buyingprofiles', 'profileapprovals', 'accounts', 'prices', 'orders', 'lines', 'invoices', 'documents', 'quotes', 'quotelines', 'quotemessages', 'locations', 'followups', 'confirmations', 'quotedeliveries', 'salesterms', 'termsacceptances', 'audit'] as const
 type Kind = (typeof exportKinds)[number]
 // Each CSV keeps its header row even when empty, so a spreadsheet or importer always sees the same columns.
 const columns: Record<Kind, string[]> = {
  qboobservations:['id','revision','accountId','orderId','realm','sourceId','sourceToken','runId','currency','issuedAt','dueAt','amountCents','balanceCents','observedAt','latestFinancialAt','refs'],
+ ordernoticepreferences:['accountId','kind','enabled'],
+ ordernotices:['id','accountId','orderId','kind','title','sourceId','sourceRevision','sourceOrigin','details','createdAt','readAt','sourcePath','restored','enabled'],
  xeroobservations:['id','revision','accountId','orderId','tenant','sourceId','sourceToken','runId','currency','issuedAt','dueAt','amountCents','balanceCents','observedAt','latestFinancialAt','refs'],
  prebooks:['id','accountId','revision','state','season','currency','totalCents','depositRequiredCents','snapshot'],
  tracking:['id','revision','orderId','accountId','shipmentId','trackerId','carrier','code','link','estimatedDate','lines','warehouses','events','checkedAt','restored'],
@@ -135,6 +138,8 @@ export async function commercialExport(env: Bindings, actor: Actor) {
  const xeroobservations=(await env.DB.prepare('SELECT * FROM bw_xero_invoices WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY id').bind(JSON.stringify(ids)).all<{id:string;order_id:string;value_json:string;revision:string}>()).results.map(row=>financialFields('xeroobservations',{...JSON.parse(row.value_json),orderId:row.order_id,revision:row.revision}))
  const prebooks=!actor.staff&&!financeOnly&&(!actor.company||actor.company.locations==='all')?(await env.DB.prepare('SELECT value_json,revision FROM bw_prebooks WHERE account_id IN (SELECT value FROM json_each(?)) ORDER BY id').bind(JSON.stringify(ids)).all<{value_json:string;revision:string}>()).results.map(row=>{const value=JSON.parse(row.value_json);return {id:value.id,accountId:value.accountId,revision:row.revision,state:value.state,season:value.season.name,currency:value.currency,totalCents:value.totalCents,depositRequiredCents:value.deposit.requiredCents,snapshot:row.value_json}}):[]
  const records = { ...stockRecords,prebooks,tracking,...campaignRecords,
+  ordernoticepreferences:(await noticePreferences(env,actor)).accounts.flatMap(account=>account.kinds.map(kind=>({accountId:account.id,kind:kind.kind,enabled:kind.enabled}))),
+  ordernotices:(await orderNoticeRecords(env,actor)).map(row=>({...row,details:json(row.details)})),
   returnclaims:(await returnRecords(env.DB)).filter(row=>inScope(row)&&!actor.staff).map(row=>financialFields('returnclaims',{...row,basis:json(row.basis),original:json(row.original),decision:json(row.decision?{...row.decision,by:supplier(actor)?row.decision.by:'supplier'}:undefined),receipts:json(row.receipts.map(receipt=>({...receipt,by:supplier(actor)?receipt.by:'supplier'}))),history:supplier(actor)?json(row.history):'',createdBy:supplier(actor)?row.createdBy:'company buyer'})),
   creditnotes: credits.map(credit => financialFields('creditnotes', { ...credit,freightBasis:json(credit.freightBasis), path: `/api/barrow/credits/${credit.id}` })),
   creditlines: credits.flatMap(credit => credit.lines.map((line, index) => ({ id: `${credit.id}:${index + 1}`, creditId: credit.id, revision: credit.revision, accountId: credit.accountId, orderId: credit.orderId, orderRevision: credit.orderRevision, returnId: credit.returnId, line: line.line, sku: line.sku, quantity: line.quantity, currency: credit.currency, amountCents: line.amountCents, basis: json(line.basis), original: json(line.original) }))),

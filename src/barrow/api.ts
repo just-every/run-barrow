@@ -3,6 +3,7 @@ import {xeroBegin,xeroCallback,xeroDisconnect} from './accounting/xero'
 import {xeroWorkspace,xeroObservation,readReferences as xeroReferences,saveMapping as xeroMapping,startRead as xeroStart,resumeRead as xeroResume,linkInvoice as xeroLink} from './accounting/xero-reconciliation'
 import {qboBegin,qboCallback,qboDisconnect} from './accounting/qbo'
 import {qboWorkspace,qboObservation,readReferences,saveMapping,startRead,resumeRead,linkInvoice} from './accounting/reconciliation'
+import { readOrderNotices, noticePreferences, orderNoticeSource, orderNoticeCommand } from './order-notices'
 import { agentHttp } from './agent-door/http.ts'
 import { prebookCommand, readPrebook } from './prebook-intake'
 import { trackingCommand, trackingView } from './shipment-tracking'
@@ -248,7 +249,8 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    const {orders,people,...orderPage}=page
    if(actor.staff&&actor.staff.role==='analyst'){orders.splice(0);directory.accounts.splice(0)}
    else if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))directory.accounts=directory.accounts.map(a=>({...a,value:{...a.value,prices:[]}}))
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null,storefrontBranding:await storefrontAppearance(env.DB,actor)}})
+   const branding=await storefrontAppearance(env.DB,actor)
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null,...(branding.revision?{storefrontBranding:branding}:{})}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
   if(path==='/api/barrow/shipping/options' && request.method==='GET') {
@@ -263,6 +265,10 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/reports/quotes' && request.method==='GET') return json(await quoteReport(env,actor,url.searchParams))
   if(path==='/api/barrow/buying-profiles' && request.method==='GET') return json(await readBuyingProfiles(env.DB,actor,url.searchParams.get('accountId')??''))
   if(path==='/api/barrow/followups' && request.method==='GET') return json(await readFollowups(env,actor,url.searchParams))
+  if(path==='/api/barrow/order-notices'&&request.method==='GET')return json(await readOrderNotices(env,actor))
+  if(path==='/api/barrow/order-notice-preferences'&&request.method==='GET')return json(await noticePreferences(env,actor))
+  const noticeSource=/^\/api\/barrow\/order-notices\/([-a-zA-Z0-9_]+)\/source$/.exec(path)
+  if(noticeSource&&request.method==='GET')return json(await orderNoticeSource(env,actor,noticeSource[1]))
   if(path==='/api/barrow/approval-notices' && request.method==='GET') return json(await readApprovalNotices(env.DB,actor))
   if(path==='/api/barrow/visits' && request.method==='GET') return json(await readVisits(env,actor,url.searchParams))
   if(path==='/api/barrow/webhooks.json' && request.method==='GET')return new Response(JSON.stringify(await webhookHistory(env,actor)),{headers:{'content-type':'application/json','content-disposition':'attachment; filename="barrow-webhooks.json"','cache-control':'no-store','x-content-type-options':'nosniff'}})
@@ -417,6 +423,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    if(body.type==='rep.target.save')return json({result:await saveRepTarget(env,actor,body.payload)})
    if(['staff.invite','staff.update','staff.revoke'].includes(body.type))return json({result:await staffCommand(request,env,actor,body.type,body.payload)})
    if(['rep.assign','rep.cover','rep.end','rep.transfer'].includes(body.type))return json({result:await repAssignmentCommand(env,actor,body.type,body.payload)})
+   if(['order-notice.preferences','order-notice.read'].includes(body.type))return json({result:await orderNoticeCommand(env,actor,body.type,body.payload)})
    if(['company.route.save','company.delegate','company.undelegate'].includes(body.type))return json({result:await companyRouteCommand(env,actor,body.type,body.payload)})
    if(['company.invite','company.accept','company.update','company.remove','company.erase'].includes(body.type))return json({result:await companyCommand(request,env,actor,body.type,body.payload)})
    if(['usage.publish','usage.accept'].includes(body.type))return json({result:await usageTermsCommand(env,actor,body.type,body.payload)})

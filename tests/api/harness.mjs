@@ -119,7 +119,8 @@ export const accountValue=(customerId,email='buyer@example.test')=>({name:'Cedar
 const archiveSources=new WeakMap();
 export async function archive(h) {
  const {id}=await h.api('/api/barrow/portability/exports',{});
- let status;do{status=await h.api(`/api/barrow/portability/exports/${id}/advance`,{})}while(status.phase!=='complete');
+ // Use the production CLI's bounded batches and checkpoint for the same HTTP archive door.
+ let status;do{status=await h.api(`/api/barrow/portability/exports/${id}/advance`,{expectedPart:status?.completed??0,maxParts:16})}while(status.phase!=='complete');
  const response=await h.request(`/api/barrow/portability/exports/${id}/download`);assert.equal(response.status,200);
  const lines=(await response.text()).trim().split('\n').map(line=>JSON.parse(line));archiveSources.set(lines,h);return lines;
 }

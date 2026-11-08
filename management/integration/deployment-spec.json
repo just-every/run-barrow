@@ -484,6 +484,12 @@
       "name": "0079_xero_reviewed_basis.sql",
       "sha256": "e9ed5b781b499430fb23f2ec93eb4e2200a2129449b89a212d3dfdab382286f1",
       "sql": "-- Preserve the financial source basis reviewed when an existing invoice was linked.\nALTER TABLE bw_xero_links ADD COLUMN commercial_token TEXT NOT NULL DEFAULT '';\n"
+    },
+    {
+      "binding": "DB",
+      "name": "0080_order_notices.sql",
+      "sha256": "207aad91254b13c1fbb59c629f6a20fc7c7f6a11b27220c9479e00857a491a89",
+      "sql": "-- Native in-app facts contain controlled labels and quantities, never message narratives or financial values.\nCREATE TABLE bw_order_notice_accounts(account_id TEXT PRIMARY KEY,active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)));\n-- Existing approved orders receive later dispatch notices without another native order change.\n-- Closed accounts remain inactive; restored markers are separately fenced by portability policy.\nINSERT INTO bw_order_notice_accounts(account_id,active)\n SELECT id,CASE WHEN json_extract(value_json,'$.lifecycle')='closed' THEN 0 ELSE 1 END FROM bw_accounts;\nCREATE TABLE bw_order_notices(\n id TEXT PRIMARY KEY,account_id TEXT NOT NULL,order_id TEXT NOT NULL,kind TEXT NOT NULL,\n source_id TEXT NOT NULL,source_revision TEXT NOT NULL,source_origin TEXT NOT NULL,\n details_json TEXT NOT NULL,created_at TEXT NOT NULL,restored INTEGER NOT NULL DEFAULT 0,\n UNIQUE(order_id,kind,source_id,source_revision)\n);\nCREATE INDEX bw_order_notices_account ON bw_order_notices(account_id,order_id);\nCREATE TABLE bw_order_notice_reads(user_id TEXT NOT NULL,notice_id TEXT NOT NULL,read_at TEXT NOT NULL,PRIMARY KEY(user_id,notice_id));\nCREATE TABLE bw_order_notice_preferences(user_id TEXT NOT NULL,account_id TEXT NOT NULL,kind TEXT NOT NULL,enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),PRIMARY KEY(user_id,account_id,kind));\n"
     }
   ],
   "compatibilityDate": "2026-09-08",

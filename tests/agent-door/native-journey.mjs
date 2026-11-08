@@ -97,6 +97,6 @@ export default async function({request,origin,cookie,tool,database}) {
 // Compare the actual fixture under both autonomous and held Business policy.
 export async function afterStep({request,origin,cookie,tool,step,args,phase}) {
  if(step.id!=='form')return
- await proveCartFormParity({request,origin,cookie,tool,accountId:args.accountId,cart:args.cart})
+ await proveCartFormParity({request,origin,cookie,tool,accountId:args.accountId,cart:args.cart,selling:{line:{sku:'LINEN',unit:'case',quantity:'2'},row:'"LINEN","","Linen table runner","case","139.00","2"'}})
  console.log('NATIVE PASS cart-form parity under '+phase+' policy')
 }
