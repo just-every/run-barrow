@@ -64,7 +64,7 @@
         "pnpm check:deployment-spec",
         "node scripts/edition-authoring/cli.mjs check",
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
-        "BARROW_TEST_SHARD=3/8 pnpm run test:api",
+        "BARROW_TEST_SHARD=3/16 pnpm run test:api",
         "pnpm exec rer build --site",
         "node --test tests/site.test.mjs",
         "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-promotion-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/promotions.test.mjs",
@@ -107,6 +107,7 @@
         "node scripts/edition-authoring/cli.mjs check",
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
         "BARROW_TEST_SHARD=1/16 pnpm run test:api",
+        "BARROW_TEST_SHARD=11/16 pnpm run test:api",
         "BARROW_TEST_SHARD=7/16 pnpm run test:api",
         "BARROW_TEST_SHARD=14/16 pnpm run test:api",
         "pnpm exec rer build --site",
@@ -151,7 +152,8 @@
         "node scripts/edition-authoring/cli.mjs verify-base --offline",
         "BARROW_TEST_SHARD=10/16 pnpm run test:api",
         "pnpm exec rer build --site",
-        "node --test tests/site.test.mjs"
+        "node --test tests/site.test.mjs",
+        "BARROW_JOURNEY_EVIDENCE=/tmp/barrow-agent-proposal-screens timeout 1200 node --test --test-concurrency=1 tests/journeys/agent-proposals.test.mjs"
       ]
     }
   ],
