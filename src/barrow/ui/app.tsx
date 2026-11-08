@@ -75,7 +75,7 @@ export function BarrowApp() {
   const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=legacySupplier||staff?.role==='finance'||rights.includes('finance'),companyAdmin=legacySupplier||!staff&&rights.includes('administrator')
   const pad = supplier ? 'Order pad' : 'Catalog'
   const applicationRight = state ? applicationAccess(state.actor) : null
-  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit',...(staff.role!=='analyst'?['Settings']:[])]:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[]),'Settings'] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[]),'Settings']
+  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit',...(staff.role!=='analyst'?['Settings']:[])]:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[]),'Settings'] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[])]
   const activeTab = tabs.includes(tab) ? tab : tabs[0]
   const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
   const selected=selectedAccount?.id===accountId?selectedAccount:null
