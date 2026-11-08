@@ -1,0 +1,125 @@
+[
+  {
+    "number": 1,
+    "time": 1794093989.664616,
+    "args": [
+      "run",
+      "list",
+      "--repo",
+      "just-every/run-barrow",
+      "--workflow",
+      "Verify",
+      "--limit",
+      "8",
+      "--json",
+      "databaseId,conclusion,headBranch"
+    ]
+  },
+  {
+    "number": 2,
+    "time": 1794093997.886191,
+    "args": [
+      "run",
+      "view",
+      "42419759766",
+      "--repo",
+      "just-every/run-barrow",
+      "--json",
+      "jobs"
+    ]
+  },
+  {
+    "number": 3,
+    "time": 1794093999.258676,
+    "args": [
+      "run",
+      "view",
+      "42324149198",
+      "--repo",
+      "just-every/run-barrow",
+      "--json",
+      "jobs"
+    ]
+  },
+  {
+    "number": 4,
+    "time": 1794094007.8881516,
+    "args": [
+      "run",
+      "view",
+      "42423519328",
+      "--repo",
+      "just-every/run-barrow",
+      "--json",
+      "jobs"
+    ]
+  },
+  {
+    "number": 5,
+    "time": 1794094009.1057982,
+    "args": [
+      "run",
+      "view",
+      "42419759766",
+      "--repo",
+      "just-every/run-barrow",
+      "--job",
+      "128545476233",
+      "--log-failed"
+    ]
+  },
+  {
+    "number": 6,
+    "time": 1794094100.1256049,
+    "args": [
+      "api",
+      "repos/just-every/run-barrow/actions/runs?head_sha=e0e247423f19bea79def103efbf372ba5307b12d&per_page=100",
+      "--jq",
+      ".workflow_runs[] | {id,name,status,conclusion,head_sha,html_url}"
+    ]
+  },
+  {
+    "number": 7,
+    "time": 1794095000.16005,
+    "args": [
+      "api",
+      "repos/just-every/run-barrow/actions/runs/42425380906",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ]
+  },
+  {
+    "number": 8,
+    "time": 1794095004.8512418,
+    "args": [
+      "api",
+      "repos/just-every/run-barrow/actions/runs/42425380906/jobs?per_page=100",
+      "--jq",
+      "[.jobs[] | {id,name,status,conclusion,started_at,completed_at,steps: [.steps[] | select(.conclusion == \"failure\") | {name,conclusion}]}]"
+    ]
+  },
+  {
+    "number": 9,
+    "time": 1794095011.492558,
+    "args": [
+      "run",
+      "view",
+      "42425380906",
+      "--repo",
+      "just-every/run-barrow",
+      "--job",
+      "128562469117",
+      "--log-failed"
+    ]
+  },
+  {
+    "number": 10,
+    "time": 1794096563.7721858,
+    "args": [
+      "api",
+      "repos/just-every/run-barrow/actions/runs?head_sha=81c69462949c548af17d72ccfc56f2831f484380&per_page=100",
+      "--jq",
+      ".workflow_runs[] | {id,name,status,conclusion,head_sha,html_url}"
+    ]
+  }
+]

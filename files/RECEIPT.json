@@ -1,0 +1,83 @@
+{
+  "repository": "just-every/run-barrow",
+  "branch": "cloud/sx-barrow-ci-limit-1",
+  "head": "81c69462949c548af17d72ccfc56f2831f484380",
+  "base": "a465fabc8b49b48e532a02f3364e3bf51373ffb3",
+  "timeoutBeforeMinutes": 12,
+  "timeoutAfterMinutes": 21,
+  "pushShardCountBefore": 8,
+  "pushShardCountAfter": 8,
+  "clausesChanged": [],
+  "countsBefore": {
+    "ACCEPTANCE.md": {
+      "done": 72,
+      "partial": 44,
+      "missing": 38,
+      "blocked": 0
+    },
+    "CONTRACT.md": {
+      "done": 72,
+      "partial": 44,
+      "missing": 38
+    }
+  },
+  "countsAfter": {
+    "ACCEPTANCE.md": {
+      "done": 72,
+      "partial": 44,
+      "missing": 38,
+      "blocked": 0
+    },
+    "CONTRACT.md": {
+      "done": 72,
+      "partial": 44,
+      "missing": 38
+    }
+  },
+  "localChecks": {
+    "workflowPermissions": "passed",
+    "sourceLock": "passed",
+    "diffWhitespace": "passed",
+    "scope": "passed",
+    "baseCopyAdaptation": "passed: verify-base --offline; no drift or unrecorded copies"
+  },
+  "historicalFailedLog": {
+    "run": 42419759766,
+    "job": 128545476233,
+    "command": "gh run view 42419759766 --repo just-every/run-barrow --job 128545476233 --log-failed",
+    "exit": 0,
+    "outputBytes": 0,
+    "classification": "unavailable: command returned empty output"
+  },
+  "ci": {
+    "run": 42426600897,
+    "head": "81c69462949c548af17d72ccfc56f2831f484380",
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/just-every/run-barrow/actions/runs/42426600897"
+  },
+  "publicationScan": "Deferred to fleet Mac per cloud assignment; unavailable in cloud",
+  "githubCallsUsedAtDiscovery": 6,
+  "initialHead": "e0e247423f19bea79def103efbf372ba5307b12d",
+  "initialCI": {
+    "conclusion": "failure",
+    "head_sha": "e0e247423f19bea79def103efbf372ba5307b12d",
+    "html_url": "https://github.com/just-every/run-barrow/actions/runs/42425380906",
+    "status": "completed",
+    "run": 42425380906,
+    "diagnosedFailure": {
+      "job": 128562469117,
+      "kind": "adaptation-modified",
+      "path": ".github/workflows/verify.yml",
+      "fixedBy": "81c69462949c548af17d72ccfc56f2831f484380"
+    }
+  },
+  "githubCallsUsed": 10,
+  "githubCallBudget": 10,
+  "custody": "BLOCKED",
+  "blocker": "Exact-SHA Verify 42426600897 failed; job IDs and failure logs for this corrected head are unavailable within the exhausted ten-call GitHub budget.",
+  "reruns": 0,
+  "rerunReason": "No infrastructure-class failure established for the corrected head; no blind rerun was attempted.",
+  "totalClausesBefore": 154,
+  "totalClausesAfter": 154
+}
