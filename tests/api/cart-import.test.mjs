@@ -122,6 +122,7 @@ test('ORD-001: barcode/SKU paste and an 80-line CSV preview resolve duplicates, 
  await h.command('account.save',{id:current.id,revision:current.revision,value:{...current.value,prices:current.value.prices.map(price=>price.sku==='ST01-S'?{...price,unitCents:1234,units:[{code:'case',baseQuantity:'6',unitCents:6999,packContents:'Six tees'}]}:price)}});
  const command=nativeCommands({request,origin:h.origin,cookie:h.cookie});
  const selling={accountId:'cedar',layout:'vertical',cart:[{sku:'ST01-S',unit:'case',quantity:'2'}]};
+ await proveCartFormParity({request,origin:h.origin,cookie:h.cookie,tool,accountId:'cedar',cart:formCart,selling:{line:selling.cart[0],row:'"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","case","69.99","2"'}});
  const nativeSelling=await command('cart.form',selling),toolSelling=await tool('barrow.cart.form',selling);
  assert.deepEqual(toolSelling.result.structuredContent,nativeSelling.result);
  assert.ok(toolSelling.result.structuredContent.csv.includes('"ST01-S","'+barcode('ST01-S')+'","Tee ST01-S","case","69.99","2"'));
