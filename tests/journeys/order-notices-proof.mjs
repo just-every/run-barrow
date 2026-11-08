@@ -18,7 +18,7 @@ export async function proveOrderNoticeScreens({h,order,ownerPage,buyerPage}) {
  await returned.getByRole('button',{name:'Open current source',exact:true}).click();
  await expect(panel.getByRole('region',{name:'Current notice source',exact:true})).toContainText('Requested 3 · approved 2');
  await captureRegionWidths(buyerPage,panel,'order-notices-buyer');
- await buyerPage.getByRole('button',{name:'Settings',exact:true}).click();
+ await buyerPage.locator('summary').filter({hasText:/^Order notice preferences$/}).click();
  const settings=buyerPage.getByRole('region',{name:'Order notice preferences',exact:true}),dispatch=settings.getByLabel('Dispatch recorded',{exact:true});
  await expect(dispatch).toBeChecked();await dispatch.uncheck();await expect(dispatch).toBeEnabled();
  await captureRegionWidths(buyerPage,settings,'order-notices-settings');
