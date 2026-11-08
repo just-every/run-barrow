@@ -6047,7 +6047,7 @@
       "executable": false
     },
     "tests/api/harness.mjs": {
-      "sha256": "3f186e192946c76fe057580dbcfa6dd8809fd0599b1bf1615da1599ef8834a10",
+      "sha256": "ee6fce4e74ba214d5f3ce35a47b81044d4272f6dd8c909b73ad0bdbadfd894d3",
       "executable": false
     },
     "tests/api/hosted-mail.test.mjs": {
