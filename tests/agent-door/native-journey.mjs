@@ -4,6 +4,7 @@ import {captureAgents} from './screens.mjs'
 import {proveCustodyErasure} from './custody.mjs'
 import {takeLocalAdmin} from './initialize-admin.mjs'
 import {proveRecordedTargets,proveTargetPolicies} from './audit-targets.mjs'
+import {proveCartFormParity} from './cart-form-parity.mjs'
 
 const code=answer=>answer.result?._meta?.['com.runeditrun/error']?.code??answer.body?.error?.data?.code
 export default async function({request,origin,cookie,tool,database}) {
@@ -91,4 +92,11 @@ export default async function({request,origin,cookie,tool,database}) {
  try {await proveCustodyErasure({request,origin,cookie,database})}
  catch(error) {console.error('Native custody proof: '+error.message);throw error}
  await captureAgents({request,origin,cookie})
+}
+
+// Compare the actual fixture under both autonomous and held Business policy.
+export async function afterStep({request,origin,cookie,tool,step,args,phase}) {
+ if(step.id!=='form')return
+ await proveCartFormParity({request,origin,cookie,tool,accountId:args.accountId,cart:args.cart,selling:{line:{sku:'LINEN',unit:'case',quantity:'2'},row:'"LINEN","","Linen table runner","case","139.00","2"'}})
+ console.log('NATIVE PASS cart-form parity under '+phase+' policy')
 }
