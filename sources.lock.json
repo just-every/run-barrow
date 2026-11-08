@@ -2791,7 +2791,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "85e403c5d491cca3002e316bc94f23bdf4c1051e05aae913d686393483417290",
+      "sha256": "20946e7317a3224ad342cbd79eee2f918f7696c05ee3fb1beb55fa0713b09f5a",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
