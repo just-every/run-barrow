@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { inflateSync } from 'node:zlib';
-import { PDFDocument } from 'pdf-lib';
+import { deflateSync } from 'node:zlib';
+import { PDFDocument, PDFName, PDFRawStream, decodePDFRawStream } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { installation, stock, accountValue, activateStaff, archive, restore } from './harness.mjs';
 import { erasurePreview, erasurePayload, verifiedRequest } from './retention-fixture.mjs';
@@ -9,8 +9,11 @@ import { erasurePreview, erasurePayload, verifiedRequest } from './retention-fix
 // of invoice formatting. These are the bytes returned by the public download.
 export async function readPdf(bytes) {
  const document=await PDFDocument.load(bytes),streams=[],fonts=[];
- for(const match of Buffer.from(bytes).toString('latin1').matchAll(/stream\r?\n([\s\S]*?)\r?\nendstream/g)) {
-  let data=Buffer.from(match[1],'latin1');try { data=inflateSync(data); } catch {}
+ // PDF streams are binary: their declared lengths, not newline delimiters,
+ // bound the payload. A compressed checksum can itself end in CR or LF.
+ for(const [,object] of document.context.enumerateIndirectObjects()) {
+  if(!(object instanceof PDFRawStream))continue;
+  const data=Buffer.from(decodePDFRawStream(object).decode());
   if(data.length>=4&&[0x00010000,0x74727565].includes(data.readUInt32BE(0)))fonts.push(fontkit.create(data));
   else streams.push(data.toString('utf8'));
  }
@@ -19,8 +22,13 @@ export async function readPdf(bytes) {
   mapping.set(pair[1].toUpperCase(),String.fromCharCode(...pair[2].match(/.{4}/g).map(hex=>parseInt(hex,16))));
  }
  assert.ok(fonts.length,'Invoice embeds readable glyph outlines');
- const lines=[];
- for(const stream of streams)for(const text of stream.matchAll(/<([0-9A-Fa-f]+)>\s*Tj/g)) {
+ const lines=[],pages=[];
+ for(const page of document.getPages()) {
+  const contents=page.node.Contents();
+  const objects=contents instanceof PDFRawStream?[contents]:(contents?.asArray()??[]).map(ref=>document.context.lookup(ref,PDFRawStream));
+  pages.push(objects.map(object=>Buffer.from(decodePDFRawStream(object).decode()).toString('utf8')).join('\n'));
+ }
+ for(const stream of pages)for(const text of stream.matchAll(/<([0-9A-Fa-f]+)>\s*Tj/g)) {
   const glyphs=text[1].match(/.{4}/g);
   assert.ok(glyphs.every(hex=>parseInt(hex,16)!==0),'PDF text uses a missing glyph instead of the retained character');
   lines.push(glyphs.map(hex=>{
@@ -30,6 +38,23 @@ export async function readPdf(bytes) {
   }).join(''));
  }
  return {pages:document.getPageCount(),text:lines.join('\n')};
+}
+
+async function invoiceStreamBoundaries(pdf) {
+ const document=await PDFDocument.load(pdf.bytes),page=document.getPages()[0],refs=page.node.Contents().asArray();
+ const original=Buffer.concat(refs.map(ref=>Buffer.from(decodePDFRawStream(document.context.lookup(ref,PDFRawStream)).decode())));
+ let compressed;
+ // A harmless PDF comment makes the checksum end in CR on every host date.
+ // The old regex consumed that byte as CRLF, then silently lost page one.
+ for(let padding=0;padding<1024;padding++) {
+  compressed=deflateSync(Buffer.concat([original,Buffer.from('\n%'+ 'a'.repeat(padding)+'\n')]));
+  if(compressed.at(-1)===0x0d)break;
+ }
+ assert.equal(compressed.at(-1),0x0d,'Regression fixture has a CR byte inside its compressed payload');
+ for(const ref of refs)document.context.delete(ref);
+ page.node.set(PDFName.of('Contents'),document.context.register(PDFRawStream.of(document.context.obj({Filter:'FlateDecode'}),compressed)));
+ const actual=await readPdf(await document.save({useObjectStreams:false}));
+ assert.deepEqual(actual,{pages:pdf.pages,text:pdf.text},'Every retained field survives a binary stream ending in CR');
 }
 export async function invoiceDownload(h,order,who={}) {
  const response=await h.request(`/api/barrow/invoices/${order.id}.pdf`,who);
@@ -78,6 +103,7 @@ export async function invoiceDocuments(t) {
  console.info('Invoice probe: native fixture acknowledged');
  const before=await h.api('/api/barrow/export.json'),stockBefore=(await pier.api('/api/pier/state')).orders,mailBefore=h.mail.deliveries.length;
  const pdf=await invoiceDownload(h,order,buyer),csv=await(await h.request(`/api/barrow/invoices/${order.id}.csv`,buyer)).text();
+ await invoiceStreamBoundaries(pdf);
  console.info('Invoice probe: downloaded Unicode PDF and CSV');
  assert.ok(pdf.pages>=3);const compact=pdf.text.replace(/\s/g,'');
  for(const value of [f.account.value.name,f.seller.identity.legalName,f.seller.identity.address,'101 Original Avenue','102 Original Avenue','157906 minor units','1500 minor units','250 minor units','1750 minor units','Net 30 days','2 case'])assert.ok(compact.includes(value.replace(/\s/g,'')),value);

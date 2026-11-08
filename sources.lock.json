@@ -6039,7 +6039,7 @@
       "executable": false
     },
     "tests/api/invoice-documents.mjs": {
-      "sha256": "650a0ee3332169741fc93c753e7ee0c0b37a232cd53a63d2f4df1ff55dde4fcc",
+      "sha256": "bc8682192855d371cdd10f2ff2a14d6d7fb801dc05c81525fbce86c0c92e0ed8",
       "executable": false
     },
     "tests/api/line-sheet-fixture.mjs": {
