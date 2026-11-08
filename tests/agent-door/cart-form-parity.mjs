@@ -24,7 +24,7 @@ export function nativeCommands({request,origin,cookie}) {
 }
 
 /** One read-only sanity journey, reused by HTTP and signed Business conformance. */
-export async function proveCartFormParity({request,origin,cookie,tool,accountId,cart}) {
+export async function proveCartFormParity({request,origin,cookie,tool,accountId,cart,selling}) {
  const command=nativeCommands({request,origin,cookie})
  const headers={Cookie:cookie,Origin:origin}
  const read=async path=>{
@@ -37,13 +37,32 @@ export async function proveCartFormParity({request,origin,cookie,tool,accountId,
    const args={accountId,layout,...supplied},native=await command('cart.form',args),answer=await tool('barrow.cart.form',args)
    assert.equal(native.status,200)
    assert.equal(answer.status,200);assert.ok(!answer.result?.isError,JSON.stringify(answer.result))
-   assert.deepEqual(answer.result.structuredContent,native.result,'MCP retains the native filename, currency and exact CSV bytes')
+   const result=answer.result.structuredContent
+   assert.deepEqual(result,native.result,'MCP retains the native filename, currency and exact CSV bytes')
+   if(supplied.cart?.length) {
+    const roundTrip=await command('cart.preview',{accountId,csv:result.csv,mode:'replace'})
+    assert.equal(roundTrip.status,200);assert.equal(roundTrip.result.ready,true)
+    assert.deepEqual(roundTrip.result.cart.map(line=>[line.sku,Number(line.quantity)]).sort(),cart.map(line=>[line.sku,Number(line.quantity)]).sort(),'Downloaded quantities survive a native cart upload')
+   }
   }
+ }
+ for(const malformed of [null,{},[null],[{sku:cart[0].sku}],[{sku:cart[0].sku,quantity:0}],[{sku:cart[0].sku,quantity:{}}],Array.from({length:101},()=>cart[0])]) {
+  const refused=await tool('barrow.cart.form',{accountId,layout:'vertical',cart:malformed})
+  assert.equal(errorCode(refused),'invalid_arguments');assert.equal(refused.result?.structuredContent,undefined)
+ }
+ if(selling) {
+  const args={accountId,layout:'vertical',cart:[selling.line]},native=await command('cart.form',args),answer=await tool('barrow.cart.form',args)
+  assert.equal(native.status,200);assert.ok(!answer.result?.isError)
+  assert.deepEqual(answer.result.structuredContent,native.result)
+  assert.ok(answer.result.structuredContent.csv.includes(selling.row),'Current native selling price, unit and quantity appear together')
+  const matrix={...args,layout:'matrix'},refused=await command('cart.form',matrix),toolRefused=await tool('barrow.cart.form',matrix)
+  assert.equal(refused.body.error.code,'UNIT');assert.equal(toolRefused.result?.isError,true)
+  assert.equal(errorCode(toolRefused),refused.body.error.code);assert.equal(toolRefused.result?.structuredContent,undefined)
  }
  const after=await read('/api/barrow/state')
  assert.deepEqual(after,before,'Form reads cause no native commercial changes')
  assert.deepEqual(await read('/api/barrow/audit'),audit,'Form reads create no commercial audit event')
- console.log('PROBE BASE-AGENT-002 parity: populated vertical and matrix carts, omitted and empty carts -> identical native and MCP forms; no commercial writes')
+ console.log('PROBE BASE-AGENT-002 parity: populated vertical and matrix carts round-trip exact quantities; omitted and empty carts match; malformed carts refuse'+(selling?'; selling-unit price and UNIT refusal match':'')+'; no commercial writes')
 }
 
 /** The advertised schema must describe results that actually crossed MCP. */

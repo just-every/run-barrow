@@ -1,3 +1,4 @@
+import { storefrontAppearance, storefrontSettings, storefrontCatalogue, saveStorefrontBranding } from './storefront-branding'
 import {xeroBegin,xeroCallback,xeroDisconnect} from './accounting/xero'
 import {xeroWorkspace,xeroObservation,readReferences as xeroReferences,saveMapping as xeroMapping,startRead as xeroStart,resumeRead as xeroResume,linkInvoice as xeroLink} from './accounting/xero-reconciliation'
 import {qboBegin,qboCallback,qboDisconnect} from './accounting/qbo'
@@ -240,13 +241,15 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   if(path==='/api/barrow/price-book.csv'&&request.method==='GET')return await priceBookCsv(env,actor,url.searchParams.get('accountId')??'')
   const sheetRoute=/^\/api\/barrow\/line-sheets\/([a-f0-9-]+)(?:\.(pdf|csv))?$/.exec(path)
   if(sheetRoute&&request.method==='GET')return sheetRoute[2]?await sheetDownload(env,actor,sheetRoute[1],sheetRoute[2] as 'pdf'|'csv'):json(await readSheet(env,actor,sheetRoute[1]))
+  if(path==='/api/barrow/storefront/settings' && request.method==='GET') return json(await storefrontSettings(env.DB,actor))
   if(path==='/api/barrow/state' && request.method==='GET') {
    const directory=await accountPage(env.DB,actor,new URLSearchParams())
    const [page,initialDraft]=await Promise.all([workspaceOrders(env,actor,url.searchParams,true),waitingDraft(env.DB,actor)])
    const {orders,people,...orderPage}=page
    if(actor.staff&&actor.staff.role==='analyst'){orders.splice(0);directory.accounts.splice(0)}
    else if(actor.staff&&!['sales-manager','rep'].includes(actor.staff.role))directory.accounts=directory.accounts.map(a=>({...a,value:{...a.value,prices:[]}}))
-   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null}})
+   const branding=await storefrontAppearance(env.DB,actor)
+   return json({actor:{id:actor.id,email:actor.email,role:actor.role,agent:actor.agent,company:actor.company,staff:actor.staff},accounts:directory.accounts,currentReps:directory.currentReps,accountPage:{page:directory.page,pageSize:directory.pageSize,hasNext:directory.hasNext},orders,people,orderPage,waitingDraft:initialDraft,connection:{configured:await pierConfigured(env)},settings:{stockFreshnessMinutes:await freshnessLimit(env.DB)??null,...(branding.revision?{storefrontBranding:branding}:{})}})
   }
   if(path==='/api/barrow/shipping/settings' && request.method==='GET') {requireSupplier(actor);return json(await shippingSettings(env.DB))}
   if(path==='/api/barrow/shipping/options' && request.method==='GET') {
@@ -288,7 +291,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
   const attachment=/^\/api\/barrow\/quotes\/(Q-\d{1,9})\/attachments\/([-a-f0-9]{36})$/.exec(path)
   if(attachment && request.method==='GET') return await quoteAttachment(env,actor,attachment[1],attachment[2])
   if(path==='/api/barrow/catalogue/search' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await searchCatalog(env,actor,url.searchParams))}
-  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');return json(await catalogue(env,(await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,id),url.searchParams.get('profileId'))).selected))}
+  if(path==='/api/barrow/catalogue' && request.method==='GET') {const id=url.searchParams.get('accountId')??'';await requireCompanyRight(env.DB,actor,id,'purchasing');const result=await catalogue(env,(await resolveBuyingProfile(env.DB,actor,await account(env.DB,actor,id),url.searchParams.get('profileId'))).selected);return json({...result,storefront:await storefrontCatalogue(env.DB,result.items.map(item=>item.sku))})}
   const statement=/^\/api\/barrow\/statements\/([-a-zA-Z0-9._:]+?)(?:\.(csv|pdf))?$/.exec(path)
   if(statement && request.method==='GET') return await statementResponse(env.DB,actor,statement[1],(statement[2]??'json') as 'json'|'csv'|'pdf',url.searchParams)
   const invoice=/^\/api\/barrow\/invoices\/([-a-zA-Z0-9_]+)\.(csv|pdf)$/.exec(path)
@@ -429,6 +432,7 @@ export async function barrowResponse(request:Request,original:Bindings):Promise<
    else if(['retention.settings','retention.request','retention.erase-document','retention.erase-application'].includes(body.type)) result=await retentionCommand(env,actor,body.type,body.payload)
    else if(['confirmation-layout.save','confirmation-layout.default'].includes(body.type))result=await saveConfirmationLayout(env.DB,actor,body.type,body.payload)
    else if(['brand.save','profile.save','profile.grant'].includes(body.type))result=await buyingProfileCommand(env,actor,body.type,body.payload)
+   else if(body.type==='storefront.save')result=await saveStorefrontBranding(env.DB,actor,body.payload)
    else if(body.type==='seller.identity')result=await saveSellerIdentity(env.DB,actor,body.payload)
    else if(body.type==='variant.attributes')result=await saveVariantAttributes(env.DB,actor,body.payload)
    else if(body.type==='variant.image')result=await saveVariantImage(env.DB,actor,body.payload)

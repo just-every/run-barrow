@@ -27,12 +27,12 @@ export interface Order {
 }
 export interface BarrowState {
   actor: { id: string; email: string; role: 'owner' | 'admin' | 'member'; agent: false; staff?: import('../staff-policy').StaffGrant|null; company?: import('../company-policy').CompanyMembership|null }
-  accountPage: {page:number;pageSize:number;hasNext:boolean}; waitingDraft: Order | null; orderPage: {page:number;pageSize:number;hasNext:boolean;counts:Record<string,number>}; accounts: Account[]; currentReps?: Record<string, CurrentRep[]>; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }; settings: { stockFreshnessMinutes: number | null }
+  accountPage: {page:number;pageSize:number;hasNext:boolean}; waitingDraft: Order | null; orderPage: {page:number;pageSize:number;hasNext:boolean;counts:Record<string,number>}; accounts: Account[]; currentReps?: Record<string, CurrentRep[]>; orders: Order[]; people: Record<string, string>; connection: { configured: boolean }; settings: { stockFreshnessMinutes: number | null; storefrontBranding?: import('../storefront-branding-options').StorefrontBranding }
 }
 export interface CatalogueItem { msrpCents?:number;
   sku: string; itemId: string; name: string; unit: string; barcode?: string; available: string; warehouses?: { warehouse: string; available: string; promised: boolean }[]; incoming?: { date: string | null; quantity: string }[]; awaitingRelease?: string; unitCents: number; minQty: number; casePack?: number; increment?: number; units?: import('../units').UnitDefinition[]; pricing?: import('../pricing').Pricing
 }
-export interface Catalogue { currency: 'USD'|'CAD'|'EUR'|'GBP'; account: Account; items: CatalogueItem[]; observedAt: string }
+export interface Catalogue { currency: 'USD'|'CAD'|'EUR'|'GBP'; account: Account; items: CatalogueItem[]; observedAt: string; storefront?: Pick<import('../storefront-branding-options').StorefrontBranding,'collections'|'priceDisplay'> }
 export type RunCommand = (type: string, payload: Record<string, unknown>) => Promise<boolean>
 /** Shift the decimal point as text so large exact-cent amounts never lose a cent to division. */
 export const money = (cents: number, currency: 'USD' | 'AUD' | 'CAD' | 'EUR' | 'GBP' = 'USD') => {
