@@ -27,10 +27,10 @@ export function OrderNotices({version,onOpen}:{version:unknown;onOpen:(id:string
   {data&&<p>{data.note}</p>}
  </section>
 }
-export function OrderNoticePreferences() {
+export function OrderNoticePreferences({onSaved}:{onSaved?:()=>void}) {
  const [data,setData]=useState<Preferences|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false)
  useEffect(()=>{void request<Preferences>('/api/barrow/order-notice-preferences').then(setData).catch(cause=>setError(errorMessage(cause)))},[])
- async function save(accountId:string,kind:string,enabled:boolean){const previous=data;setBusy(true);setError('');setData(current=>current?{accounts:current.accounts.map(account=>account.id===accountId?{...account,kinds:account.kinds.map(item=>item.kind===kind?{...item,enabled}:item)}:account)}:current);try{setData(await command<Preferences>('order-notice.preferences',{accountId,kind,enabled}))}catch(cause){setData(previous);setError(errorMessage(cause))}finally{setBusy(false)}}
+ async function save(accountId:string,kind:string,enabled:boolean){const previous=data;setBusy(true);setError('');setData(current=>current?{accounts:current.accounts.map(account=>account.id===accountId?{...account,kinds:account.kinds.map(item=>item.kind===kind?{...item,enabled}:item)}:account)}:current);try{setData(await command<Preferences>('order-notice.preferences',{accountId,kind,enabled}));onSaved?.()}catch(cause){setData(previous);setError(errorMessage(cause))}finally{setBusy(false)}}
  return <section className="br-card br-stack" aria-label="Order notice preferences"><h2>Order notice preferences</h2><p>Choose which recorded facts appear in your in-app notices. These choices apply only to your sign-in. Email delivery is not configured here.</p>
  {error&&<Notice error>{error}</Notice>}{data?.accounts.map(account=><fieldset className="br-stack" key={account.id}><legend>{account.name}</legend>{account.kinds.map(item=><label key={item.kind}><input type="checkbox" checked={item.enabled} disabled={busy} onChange={event=>void save(account.id,item.kind,event.target.checked)}/>{item.title}</label>)}</fieldset>)}</section>
 }
