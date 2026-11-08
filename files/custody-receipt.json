@@ -1,0 +1,13 @@
+{
+  "observed_at": "2026-11-08T13:50:23.096404+00:00",
+  "command": "git ls-remote --refs origin refs/heads/cloud/sx-barrow-f71fix1-push-1 refs/heads/cloud/sx-barrow-f71fix1 refs/heads/main",
+  "remote_refs": {
+    "refs/heads/cloud/sx-barrow-f71fix1": "1e9500dae212205e743995f3ba1138519e8db4d0",
+    "refs/heads/cloud/sx-barrow-f71fix1-push-1": "1e9500dae212205e743995f3ba1138519e8db4d0",
+    "refs/heads/main": "7459a7c6f841a2530b9744f017374249cbe09806"
+  },
+  "head_after_push": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "source_branch_unchanged": true,
+  "worktree_clean": true,
+  "main_unchanged_from_clone": true
+}

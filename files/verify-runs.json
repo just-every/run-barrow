@@ -1,0 +1,21 @@
+{
+  "command": "gh api repos/just-every/run-barrow/actions/runs?head_sha=1e9500dae212205e743995f3ba1138519e8db4d0&per_page=100",
+  "observed_at": "2026-11-08T13:49:42.574445+00:00",
+  "exit_code": 0,
+  "result": {
+    "total_count": 1,
+    "workflow_runs": [
+      {
+        "conclusion": "success",
+        "event": "push",
+        "head_branch": "cloud/sx-barrow-f71fix1",
+        "head_sha": "1e9500dae212205e743995f3ba1138519e8db4d0",
+        "html_url": "https://github.com/just-every/run-barrow/actions/runs/42482404056",
+        "id": 42482404056,
+        "name": "Verify",
+        "run_attempt": 2,
+        "status": "completed"
+      }
+    ]
+  }
+}

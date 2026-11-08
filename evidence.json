@@ -1,0 +1,76 @@
+{
+  "files": [
+    {
+      "blob": "b2a3242e46f4a8b51d9b8ccb0a8b45adcbdf3846",
+      "bytes": 1596,
+      "path": "PLAN.md",
+      "sha256": "0e5d2fb26bea64077e7794a33dfce01a32853e50e8c02ce9a4ad88dfa4523023"
+    },
+    {
+      "blob": "d9dcfa9b90f038b4964d3f750349aae0a995f3d5",
+      "bytes": 3753,
+      "path": "REPORT.md",
+      "sha256": "4585bbe633e090b03e374cb3a33f5706b158414d2bc7712a37467616cbdaf859"
+    },
+    {
+      "blob": "2522f175e56701f23f434617d6383403d0f57b9c",
+      "bytes": 1190,
+      "path": "candidate-identity-log.txt",
+      "sha256": "b0b0a2b39fe82e2a1e814be060b0befaa1caee96b05db001eef212a0136264a3"
+    },
+    {
+      "blob": "4f6d654e07a2e9196d6710030411ded1c807f198",
+      "bytes": 2001,
+      "path": "candidate-messages.txt",
+      "sha256": "910ce23f28781731b2aaf43ddcc7e3591f0e51e1e525fa8deb39ec40d1713fe0"
+    },
+    {
+      "blob": "20e30921c545715e36bce3433f626be1885784ea",
+      "bytes": 625,
+      "path": "custody-receipt.json",
+      "sha256": "79e1397bdd77ae41c7d884b8ac937cbcd76a4b67983624f1b197248bcd8cee06"
+    },
+    {
+      "blob": "1c8aa77d90118627383bfbb32a9ba04109e34511",
+      "bytes": 3680,
+      "path": "identity-receipt.json",
+      "sha256": "c7199976641453ec1acb5428d9443e9ab0832341c3a6340abd54bd83f8dabf2b"
+    },
+    {
+      "blob": "0ca396eebf1db206d21b2fdc9829018147046f47",
+      "bytes": 947,
+      "path": "push-log.txt",
+      "sha256": "d3b57736c556fb7baf16d5a6f180b01352cc87f4921ea19ffdbec133ee4d6cfd"
+    },
+    {
+      "blob": "a3a9021ee3e8011c0400020ef9f5dafe597c5773",
+      "bytes": 306,
+      "path": "push-receipt.json",
+      "sha256": "c213c9e5f64eb74fb5201766699899b989c30c83e100f6b90ce150ad8d0ce472"
+    },
+    {
+      "blob": "b73b7435dc9f67d6fc139a9ffa46bdca24f510cd",
+      "bytes": 651,
+      "path": "source-receipt.json",
+      "sha256": "1bcf550e0589ad91aaa2d9812b0062f3fb93b5343730ba250067b1752e8f9e1d"
+    },
+    {
+      "blob": "8039b87bc575e0ee82564e395366b98bb010f77c",
+      "bytes": 204,
+      "path": "verify-conclusion.json",
+      "sha256": "19acdc9d512e344f66799e37315e62682445089ea1011587464b6a0413b1d06f"
+    },
+    {
+      "blob": "7460eb3b5c8cb2afef95d4df482b5fd9db58cb0a",
+      "bytes": 657,
+      "path": "verify-runs.json",
+      "sha256": "d22d3054d0010afe0d7cde17e279d31012d185a967d9d7c9920cd45a7a989e97"
+    }
+  ],
+  "product_branch": "cloud/sx-barrow-f71fix1-push-1",
+  "product_head": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "ref": "refs/heads/evidence/sx-barrow-f71fix1-push-1",
+  "repository": "just-every/run-barrow",
+  "schema": 1,
+  "tag": "sx-barrow-f71fix1-push-1"
+}

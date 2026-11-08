@@ -1,0 +1,95 @@
+{
+  "observed_at": "2026-11-08T13:47:27.085932+00:00",
+  "product_head": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "source_head": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "candidate_count_including_side_parents": 10,
+  "all_candidates_have_complete_history": true,
+  "owner_identity_confirmed_on_origin_main": "James Peter <github@zemaj.com>",
+  "identity_and_trailer_policy": "passed",
+  "openai_codex_coauthors": "absent",
+  "product_worktree": "clean",
+  "source_and_product_diff": "empty",
+  "commit_object_unchanged": true,
+  "candidates": [
+    {
+      "commit": "1e9500dae212205e743995f3ba1138519e8db4d0",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "f530e1ee1cb0b221c65d0e809012810f9023c71f",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "26287975b938444141bf88fffc389cfd4c0720f7",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "b263709d3e5f03910c0297225cb6049a0b9bcf81",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "7f3b06953df6b2d82c290539b03e4e774bba0432",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "37f377c831f333438163e75e88f822dcdaf782c7",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "f4ec1c535298a432f19f4a6c973febb16dbee5a4",
+      "author_name": "James Peter",
+      "author_email": "github@zemaj.com",
+      "committer_name": "James Peter",
+      "committer_email": "github@zemaj.com",
+      "trailers": "Validation: pnpm typecheck; production build; 9 targeted API tests across return claims, retention and statements (including QBO/Xero); built return-claims browser journey with native notice screens at 1440/390; contract-docs, deployment-spec and source-lock checks. All 154 clause rows retained from both parents. No publication scan or fleet evidence changes."
+    },
+    {
+      "commit": "e90d101c95c09166c5be8dee17848e1442464b2b",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "7342ac0f1517bffb175434e18548456bc576eb14",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    },
+    {
+      "commit": "57362758b1498b43a9a36b3928e2042f5a3ebb21",
+      "author_name": "Run Edit Run fleet",
+      "author_email": "fleet@runeditrun.com",
+      "committer_name": "Run Edit Run fleet",
+      "committer_email": "fleet@runeditrun.com",
+      "trailers": ""
+    }
+  ]
+}

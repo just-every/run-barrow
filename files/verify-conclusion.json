@@ -1,0 +1,8 @@
+{
+  "command": "gh run view 42482404056 -R just-every/run-barrow --json conclusion",
+  "observed_at": "2026-11-08T13:44:41.196170+00:00",
+  "exit_code": 0,
+  "result": {
+    "conclusion": "success"
+  }
+}

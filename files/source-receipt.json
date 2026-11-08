@@ -1,0 +1,24 @@
+{
+  "repository": "just-every/run-barrow",
+  "tag": "sx-barrow-f71fix1-push-1",
+  "source_branch": "cloud/sx-barrow-f71fix1",
+  "product_branch": "cloud/sx-barrow-f71fix1-push-1",
+  "source_head": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "product_head": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "main_at_clone": "7459a7c6f841a2530b9744f017374249cbe09806",
+  "clause_count": 154,
+  "before_counts": {
+    "done": 72,
+    "partial": 45,
+    "missing": 37
+  },
+  "after_counts": {
+    "done": 72,
+    "partial": 45,
+    "missing": 37
+  },
+  "clause_changes": [],
+  "new_product_commits": 0,
+  "tests_rerun": false,
+  "contract_edited": false
+}
