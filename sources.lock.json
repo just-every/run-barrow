@@ -263,7 +263,7 @@
       "executable": false
     },
     "docs/ORDER-NOTICES.md": {
-      "sha256": "a06f878b673fc5a1875238656303c459fa9a83a7ec01ac0d2a6466455db712bf",
+      "sha256": "9069691e16aefacbb377c1be620f8adf094ecb2899feb61c337ff3e226940986",
       "executable": false
     },
     "docs/ORDER-SEARCH.md": {
@@ -2791,7 +2791,7 @@
       "executable": false
     },
     "src/barrow/ui/app.tsx": {
-      "sha256": "20946e7317a3224ad342cbd79eee2f918f7696c05ee3fb1beb55fa0713b09f5a",
+      "sha256": "64fd17e7d978834ca86cab2e5d11aa66439e6369c881575342e59230b5553b4a",
       "executable": false
     },
     "src/barrow/ui/application-files.ts": {
@@ -2999,7 +2999,7 @@
       "executable": false
     },
     "src/barrow/ui/order-notices.tsx": {
-      "sha256": "e8d78da9c896a3e149c286e0daf8d4ade6babe5597ceaeef6e418ae3f3cba6da",
+      "sha256": "189423531f60cca4d1373d91b8838fb65ed5f315950ba007b9b53b40a8dee4cb",
       "executable": false
     },
     "src/barrow/ui/order-pad.tsx": {
@@ -6451,7 +6451,7 @@
       "executable": false
     },
     "tests/journeys/order-notices-proof.mjs": {
-      "sha256": "eca3ba384eded4f477cdf07634c08fb498f559362b52e5ad5e889de8a12ae9e6",
+      "sha256": "527ab8cf4cab1c9ca6766146261f7f24fa92011a53201eb4ab0ab177e66bfa29",
       "executable": false
     },
     "tests/journeys/payment-promises.test.mjs": {
