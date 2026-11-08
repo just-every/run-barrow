@@ -1,0 +1,38 @@
+1e9500dae212205e743995f3ba1138519e8db4d0
+Lock buyer navigation fix with notice preferences preserved
+
+f530e1ee1cb0b221c65d0e809012810f9023c71f
+Load buyer notice preferences only when opened [skip ci]
+
+26287975b938444141bf88fffc389cfd4c0720f7
+Refresh buyer notices after changing preferences in Orders [skip ci]
+
+b263709d3e5f03910c0297225cb6049a0b9bcf81
+Keep buyer notice preferences under Orders without a Settings tab [skip ci]
+
+7f3b06953df6b2d82c290539b03e4e774bba0432
+Refresh source lock for buyer Settings navigation fix
+
+37f377c831f333438163e75e88f822dcdaf782c7
+Fix buyer navigation exposing supplier Settings [skip ci]
+
+f4ec1c535298a432f19f4a6c973febb16dbee5a4
+Merge current main into native order notices candidate
+
+Preserve both published parents and current main contract judgments, accounting exports, erasure custody and Verify workflow. Keep the candidate-only AUTO-004 row and regenerate its contract views.
+
+Renumber only the candidate notice migration to 0080 above main's 0079; update the upgrade probe and regenerated deployment inventory, then relock edition sources.
+
+Validation: pnpm typecheck; production build; 9 targeted API tests across return claims, retention and statements (including QBO/Xero); built return-claims browser journey with native notice screens at 1440/390; contract-docs, deployment-spec and source-lock checks. All 154 clause rows retained from both parents. No publication scan or fleet evidence changes.
+
+e90d101c95c09166c5be8dee17848e1442464b2b
+Initialize dispatch notices for pre-upgrade approved orders
+
+Backfill account capture markers during migration 0077, retaining inactive closed accounts and restore fences. Extend the existing return journey with native split dispatches after upgrade; replay, foreign reads and restored captures remain guarded.
+
+7342ac0f1517bffb175434e18548456bc576eb14
+Prove scoped in-app order notices and preserve erasure custody
+
+57362758b1498b43a9a36b3928e2042f5a3ebb21
+Record source-bound native order notices [skip ci]
+

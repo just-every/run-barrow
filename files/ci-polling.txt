@@ -1,0 +1,12 @@
+GitHub budget: 10 calls maximum.
+Call 1: read-only pinned Pier tarball through gh api.
+Call 2: exact-SHA runs discovery at 2026-11-08T12:37:44Z. Verify 42481137438 in_progress.
+Next status call for that run no earlier than 2026-11-08T12:42:44Z.
+Call 3: status 2026-11-08T12:42:45.461976+00:00 in_progress None
+Call 4: status 2026-11-08T12:47:46.931899+00:00 completed failure
+Call 5: completed-run jobs metadata for 42481137438 (failure diagnosis, no repeated polling).
+Call 6: gh run view 42481137438 --repo just-every/run-barrow --job 128733143577 --log-failed (once).
+Call 7: final exact-SHA discovery 2026-11-08T13:02:20.494158+00:00 in_progress None
+Call 8: final run status 2026-11-08T13:12:21.973914+00:00 completed failure
+Call 9: final completed-run jobs metadata for 42482404056.
+Call 10: gh run view 42482404056 --repo just-every/run-barrow --job 128737026109 --log-failed (once). Budget exhausted.

@@ -1,0 +1,98 @@
+{
+  "tag": "sx-barrow-f71fix1",
+  "repository": "just-every/run-barrow",
+  "branch": "cloud/sx-barrow-f71fix1",
+  "starting_head": "f4ec1c535298a432f19f4a6c973febb16dbee5a4",
+  "head": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "main_merged": "7459a7c6f841a2530b9744f017374249cbe09806",
+  "changed_files": [
+    "docs/ORDER-NOTICES.md",
+    "sources.lock.json",
+    "src/barrow/ui/app.tsx",
+    "src/barrow/ui/order-notices.tsx",
+    "tests/journeys/order-notices-proof.mjs"
+  ],
+  "before": {
+    "exit": 1,
+    "settings_expected": 0,
+    "settings_observed": 1,
+    "log": "before-journey.log",
+    "source_head": "f4ec1c535298a432f19f4a6c973febb16dbee5a4"
+  },
+  "after": {
+    "storefront_exit": 0,
+    "notice_exit": 0,
+    "buyers": [
+      "cedar",
+      "wren"
+    ],
+    "settings_observed_each": 0,
+    "storefront_log": "final-storefront-journey.log",
+    "notice_log": "final-notice-journey.log",
+    "source_hashes": {
+      "src/barrow/ui/app.tsx": "64fd17e7d978834ca86cab2e5d11aa66439e6369c881575342e59230b5553b4a",
+      "src/barrow/ui/order-notices.tsx": "189423531f60cca4d1373d91b8838fb65ed5f315950ba007b9b53b40a8dee4cb",
+      "tests/journeys/storefront-branding.test.mjs": "5e25cb499a8f8d262194e059da1db5f083e4f2fe9a33384dee5478f8c75b7aaa",
+      "tests/journeys/return-claims.test.mjs": "c35abc6a0333ab6d4a780c1ad34217a2baddd5bc1b26a43ad13a4dd9c12400f3",
+      "tests/journeys/order-notices-proof.mjs": "527ab8cf4cab1c9ca6766146261f7f24fa92011a53201eb4ab0ab177e66bfa29"
+    }
+  },
+  "checks": {
+    "build": 0,
+    "typecheck": 0,
+    "contract_docs": 0,
+    "source_lock": 0
+  },
+  "regression_assertions_added": 0,
+  "assertions_removed_or_weakened": 0,
+  "changed_test_helper_only_navigation": true,
+  "touched_registrations_before": 2,
+  "touched_registrations_after": 2,
+  "contract_summary_before": {
+    "done": 72,
+    "partial": 45,
+    "missing": 37,
+    "total": 154
+  },
+  "contract_summary_after": {
+    "done": 72,
+    "partial": 45,
+    "missing": 37,
+    "total": 154
+  },
+  "clause_status_changes": [],
+  "local_runtime": {
+    "node": "24.19.0",
+    "pnpm": "10.12.4",
+    "chromium": "/usr/bin/chromium"
+  },
+  "browser_throttling": {
+    "storefront": 4,
+    "notices": 1,
+    "reason": "Full storefront journey burst reached unchanged 600-request-per-minute limit on fast local Chromium; allowed CDP slowdown preserved app limits and all assertions."
+  },
+  "superseded_candidate": {
+    "head": "7f3b06953df6b2d82c290539b03e4e774bba0432",
+    "run_id": 42481137438,
+    "conclusion": "failure",
+    "passing_original_shard_job": 128733143522,
+    "failing_job": 128733143577,
+    "cause": "Buyer notice journey still navigated through removed Settings button.",
+    "archive_command": "gh run view 42481137438 --repo just-every/run-barrow --job 128733143577 --log-failed",
+    "archive_exit": 0
+  },
+  "screenshots": [
+    "storefront-buyer-validation-1440.png",
+    "storefront-buyer-validation-390.png",
+    "storefront-second-buyer-1440.png",
+    "storefront-second-buyer-390.png",
+    "order-notices-settings-1440.png",
+    "order-notices-settings-390.png"
+  ],
+  "notes": [
+    "Both test registrations and every assertion are preserved. Only the buyer notice preference navigation locator changed.",
+    "No contract or generated view bytes changed in this FIX round. No publication scan was run.",
+    "The final storefront test ran on source commit f530e1e with the exact final app bytes; only sources.lock.json changed afterward. The notice journey proof reran on final committed HEAD.",
+    "Only the screenshot preload changes region crops to full page captures; it does not change assertions or application behavior."
+  ]
+}

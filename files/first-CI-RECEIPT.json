@@ -1,0 +1,10 @@
+{
+  "conclusion": "failure",
+  "head_sha": "7f3b06953df6b2d82c290539b03e4e774bba0432",
+  "html_url": "https://github.com/just-every/run-barrow/actions/runs/42481137438",
+  "status": "completed",
+  "run_id": 42481137438,
+  "observed_at": "2026-11-08T12:47:46.931899+00:00",
+  "poll": 2,
+  "github_calls_including_pier_and_discovery": 4
+}

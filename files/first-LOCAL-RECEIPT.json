@@ -1,0 +1,84 @@
+{
+  "tag": "sx-barrow-f71fix1",
+  "repository": "just-every/run-barrow",
+  "branch": "cloud/sx-barrow-f71fix1",
+  "starting_head": "f4ec1c535298a432f19f4a6c973febb16dbee5a4",
+  "head": "7f3b06953df6b2d82c290539b03e4e774bba0432",
+  "main_merged": "7459a7c6f841a2530b9744f017374249cbe09806",
+  "changed_files": [
+    "sources.lock.json",
+    "src/barrow/ui/app.tsx"
+  ],
+  "before": {
+    "exit": 1,
+    "settings_expected": 0,
+    "settings_observed": 1,
+    "log": "before-journey.log",
+    "source_head": "f4ec1c535298a432f19f4a6c973febb16dbee5a4"
+  },
+  "after": {
+    "exit": 0,
+    "buyers": [
+      "cedar",
+      "wren"
+    ],
+    "settings_expected": 0,
+    "settings_observed_each": 0,
+    "log": "after-journey.log",
+    "app_sha256": "20946e7317a3224ad342cbd79eee2f918f7696c05ee3fb1beb55fa0713b09f5a"
+  },
+  "checks": {
+    "build": 0,
+    "typecheck": 0,
+    "contract_docs": 0,
+    "source_lock": 0
+  },
+  "regression_assertions_added": 0,
+  "test_file_modified": false,
+  "touched_test_registrations_before": 1,
+  "touched_test_registrations_after": 1,
+  "touched_test_result_before": {
+    "passed": 0,
+    "failed": 1
+  },
+  "touched_test_result_after": {
+    "passed": 1,
+    "failed": 0
+  },
+  "contract_summary_before": {
+    "done": 72,
+    "partial": 45,
+    "missing": 37,
+    "total": 154
+  },
+  "contract_summary_after": {
+    "done": 72,
+    "partial": 45,
+    "missing": 37,
+    "total": 154
+  },
+  "clause_status_changes": [],
+  "local_runtime": {
+    "node": "24.19.0",
+    "pnpm": "10.12.4",
+    "chromium": "/usr/bin/chromium",
+    "browser_args": [
+      "--no-sandbox",
+      "--use-mock-keychain",
+      "--password-store=basic"
+    ]
+  },
+  "screenshots": [
+    "storefront-second-buyer-1440.png",
+    "storefront-second-buyer-390.png",
+    "storefront-buyer-validation-1440.png",
+    "storefront-buyer-validation-390.png"
+  ],
+  "notes": [
+    "The after journey began on the source commit 37f377c831f333438163e75e88f822dcdaf782c7; only sources.lock.json changed to form final HEAD while it ran. App and test bytes are identical on final HEAD.",
+    "The journey performs assertions at 1440; existing helper captures screens at 1440 and 390.",
+    "TLS certificate warnings from native local fixtures occurred on both runs and did not prevent the reported assertion or the passing journey.",
+    "No publication scan was run, as instructed.",
+    "No new contract status or completion claim is made."
+  ]
+}

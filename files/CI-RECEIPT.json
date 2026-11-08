@@ -1,0 +1,21 @@
+{
+  "conclusion": "failure",
+  "head_sha": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "html_url": "https://github.com/just-every/run-barrow/actions/runs/42482404056",
+  "status": "completed",
+  "run_id": 42482404056,
+  "observed_at": "2026-11-08T13:12:21.973914+00:00",
+  "github_calls_including_pier_and_first_candidate": 8,
+  "github_calls_total": 10,
+  "failed_shard_job_id": 128737026109,
+  "failed_shard": "barrow-6",
+  "failure_location": "tests/journeys/storefront-branding.test.mjs:193",
+  "failure": "Order by selling unit dialog expected count 0; observed 1 after 5000 ms",
+  "buyer_settings_assertions": "passed before later failure",
+  "notice_shard_job_id": 128737026188,
+  "notice_shard_conclusion": "success",
+  "archive_command": "gh run view 42482404056 --repo just-every/run-barrow --job 128737026109 --log-failed",
+  "archive_exit": 0,
+  "terminal": "BLOCKED",
+  "remaining_blocker": "Final exact-SHA Verify red at later unit-order dialog assertion; additional product work is outside the one Settings item authorized by this FIX brief."
+}

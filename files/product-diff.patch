@@ -1,0 +1,107 @@
+diff --git a/docs/ORDER-NOTICES.md b/docs/ORDER-NOTICES.md
+index 8b1174f..8894271 100644
+--- a/docs/ORDER-NOTICES.md
++++ b/docs/ORDER-NOTICES.md
+@@ -4,7 +4,7 @@ Orders shows recorded acceptance, material recorded stock changes, acknowledged
+ 
+ The Orders panel opens the current source, rechecking the signed-in person's current order rights, delivery locations and functional staff scope. Return decisions retain their existing owner and admin review boundary; functional staff do not gain return access. Unknown or disconnected dispatch sources refuse a current-source read. Notice payloads contain controlled facts and quantities, with no finance values or copied personal narratives.
+ 
+-Settings contains each person's per-account category preferences. Marking a notice read affects only that person. Suppression hides that category from their in-app list while retaining its recorded facts. It does not authorize email. Current authorized JSON exports include `ordernotices` and `ordernoticepreferences`; the corresponding CSV doors preserve stable source identities, revisions and that person's read and preference state.
++Owners and staff use Settings for per-account category preferences; buyers use Orders → Order notice preferences. Marking a notice read affects only that person. Suppression hides that category from their in-app list while retaining its recorded facts. It does not authorize email. Current authorized JSON exports include `ordernotices` and `ordernoticepreferences`; the corresponding CSV doors preserve stable source identities, revisions and that person's read and preference state.
+ 
+ Owner-reviewed account erasure removes notice facts and personal state, then fences retained order sources against recreation. Company-person erasure removes that person's read state and preferences. Archives preserve inactive notice history; restore cannot show old notices as new, mark them read or activate their preferences. The independent later erasure journal removes erased state before restored data can be served.
+ 
+diff --git a/sources.lock.json b/sources.lock.json
+index 2959900..177b8ec 100644
+--- a/sources.lock.json
++++ b/sources.lock.json
+@@ -263,7 +263,7 @@
+       "executable": false
+     },
+     "docs/ORDER-NOTICES.md": {
+-      "sha256": "a06f878b673fc5a1875238656303c459fa9a83a7ec01ac0d2a6466455db712bf",
++      "sha256": "9069691e16aefacbb377c1be620f8adf094ecb2899feb61c337ff3e226940986",
+       "executable": false
+     },
+     "docs/ORDER-SEARCH.md": {
+@@ -2791,7 +2791,7 @@
+       "executable": false
+     },
+     "src/barrow/ui/app.tsx": {
+-      "sha256": "85e403c5d491cca3002e316bc94f23bdf4c1051e05aae913d686393483417290",
++      "sha256": "64fd17e7d978834ca86cab2e5d11aa66439e6369c881575342e59230b5553b4a",
+       "executable": false
+     },
+     "src/barrow/ui/application-files.ts": {
+@@ -2999,7 +2999,7 @@
+       "executable": false
+     },
+     "src/barrow/ui/order-notices.tsx": {
+-      "sha256": "e8d78da9c896a3e149c286e0daf8d4ade6babe5597ceaeef6e418ae3f3cba6da",
++      "sha256": "189423531f60cca4d1373d91b8838fb65ed5f315950ba007b9b53b40a8dee4cb",
+       "executable": false
+     },
+     "src/barrow/ui/order-pad.tsx": {
+@@ -6451,7 +6451,7 @@
+       "executable": false
+     },
+     "tests/journeys/order-notices-proof.mjs": {
+-      "sha256": "eca3ba384eded4f477cdf07634c08fb498f559362b52e5ad5e889de8a12ae9e6",
++      "sha256": "527ab8cf4cab1c9ca6766146261f7f24fa92011a53201eb4ab0ab177e66bfa29",
+       "executable": false
+     },
+     "tests/journeys/payment-promises.test.mjs": {
+diff --git a/src/barrow/ui/app.tsx b/src/barrow/ui/app.tsx
+index 5531852..683f7da 100644
+--- a/src/barrow/ui/app.tsx
++++ b/src/barrow/ui/app.tsx
+@@ -75,7 +75,8 @@ export function BarrowApp() {
+   const purchasing=supplier||rights.some(r=>r==='purchaser'||r==='approver'),finance=legacySupplier||staff?.role==='finance'||rights.includes('finance'),companyAdmin=legacySupplier||!staff&&rights.includes('administrator')
+   const pad = supplier ? 'Order pad' : 'Catalog'
+   const applicationRight = state ? applicationAccess(state.actor) : null
+-  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit',...(staff.role!=='analyst'?['Settings']:[])]:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[]),'Settings'] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[]),'Settings']
++  const tabs = staff?[...(staffSelling?[pad,'Line sheets']:[]),...(staff.role==='sales-manager'?['Accounts']:applicationRight?['Applications']:[]),...(staff.role!=='analyst'?['Orders','Follow-ups']:[]),'Reports','Audit',...(staff.role!=='analyst'?['Settings']:[])]:legacySupplier ? [pad, 'Line sheets', 'Accounts', 'Orders', 'Move in', 'Data', 'Audit',...(state?.actor.role==='owner'?['Team']:[]),'Settings'] : [...(purchasing?[pad,'Line sheets']:[]),'Orders',...(companyAdmin?['Company']:[])]
++  const [noticePreferencesOpen,setNoticePreferencesOpen] = useState(false)
+   const activeTab = tabs.includes(tab) ? tab : tabs[0]
+   const [selectedAccount,setSelected] = useState<Account | null>(null),[accountLoading,setAccountLoading]=useState(false)
+   const selected=selectedAccount?.id===accountId?selectedAccount:null
+@@ -245,7 +246,8 @@ export function BarrowApp() {
+           {activeTab === 'Orders' && staff?.role === 'operations' && staff.warehouses === 'all' && <Visits version={state} canSell={false} canHandOff busy={busy} run={run} />}
+           {activeTab === 'Orders' && !supplier && rights.includes('approver') && <ApprovalNotices version={state} />}
+           {activeTab === 'Orders' && <OrderNotices version={state} onOpen={id=>setFocusOrderId(id)}/>}
+-          {activeTab === 'Settings' && <OrderNoticePreferences/>}
++          {activeTab === 'Orders' && !supplier && <details className="br-details" onToggle={event=>setNoticePreferencesOpen(event.currentTarget.open)}><summary>Order notice preferences</summary>{noticePreferencesOpen&&<OrderNoticePreferences onSaved={()=>void reload()}/>}</details>}
++          {activeTab === 'Settings' && supplier && <OrderNoticePreferences/>}
+           {activeTab === 'Orders' && <Orders focusOrderId={focusOrderId} onResultFocused={() => { setFocusOrderId(''); returnFocus.current = null }} orders={state.orders} accounts={state.accounts} people={state.people} viewer={state.actor.id} supplier={supplier} canOperate={legacySupplier||Boolean(staff&&['sales-manager','operations'].includes(staff.role)&&staff.warehouses==='all')} stockExceptionLimitCents={staff?.stockExceptionLimitCents} canExcept={legacySupplier||staff?.role==='sales-manager'&&staff.stockExceptionLimitCents>0} canQuote={legacySupplier||staff?.role==='sales-manager'} companyApprover={legacySupplier||rights.includes('approver')} companyManager={!staff&&rights.includes('administrator')} canPurchase={legacySupplier||staffSelling||rights.includes('purchaser')} finance={finance} busy={busy} run={run} onOpen={order => openPad(order.accountId, order.id)} />}
+           {activeTab === 'Orders' && (legacySupplier||staffSelling||!staff&&purchasing) && <Quotes canApproveDiscount={legacySupplier||staff?.role==='sales-manager'} discountLimitCents={staff?.discountLimitCents} canQuoteDelivery={legacySupplier||staff?.role==='sales-manager'} canPurchase={legacySupplier||staffSelling||Boolean(state.actor.company?.rights.includes('purchaser'))} supplier={supplier} busy={busy} run={run} version={state.orders} />}
+           {activeTab === 'Orders' && finance && <StatementCard accounts={state.accounts} />}
+diff --git a/src/barrow/ui/order-notices.tsx b/src/barrow/ui/order-notices.tsx
+index 64768af..546fde2 100644
+--- a/src/barrow/ui/order-notices.tsx
++++ b/src/barrow/ui/order-notices.tsx
+@@ -27,10 +27,10 @@ export function OrderNotices({version,onOpen}:{version:unknown;onOpen:(id:string
+   {data&&<p>{data.note}</p>}
+  </section>
+ }
+-export function OrderNoticePreferences() {
++export function OrderNoticePreferences({onSaved}:{onSaved?:()=>void}) {
+  const [data,setData]=useState<Preferences|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false)
+  useEffect(()=>{void request<Preferences>('/api/barrow/order-notice-preferences').then(setData).catch(cause=>setError(errorMessage(cause)))},[])
+- async function save(accountId:string,kind:string,enabled:boolean){const previous=data;setBusy(true);setError('');setData(current=>current?{accounts:current.accounts.map(account=>account.id===accountId?{...account,kinds:account.kinds.map(item=>item.kind===kind?{...item,enabled}:item)}:account)}:current);try{setData(await command<Preferences>('order-notice.preferences',{accountId,kind,enabled}))}catch(cause){setData(previous);setError(errorMessage(cause))}finally{setBusy(false)}}
++ async function save(accountId:string,kind:string,enabled:boolean){const previous=data;setBusy(true);setError('');setData(current=>current?{accounts:current.accounts.map(account=>account.id===accountId?{...account,kinds:account.kinds.map(item=>item.kind===kind?{...item,enabled}:item)}:account)}:current);try{setData(await command<Preferences>('order-notice.preferences',{accountId,kind,enabled}));onSaved?.()}catch(cause){setData(previous);setError(errorMessage(cause))}finally{setBusy(false)}}
+  return <section className="br-card br-stack" aria-label="Order notice preferences"><h2>Order notice preferences</h2><p>Choose which recorded facts appear in your in-app notices. These choices apply only to your sign-in. Email delivery is not configured here.</p>
+  {error&&<Notice error>{error}</Notice>}{data?.accounts.map(account=><fieldset className="br-stack" key={account.id}><legend>{account.name}</legend>{account.kinds.map(item=><label key={item.kind}><input type="checkbox" checked={item.enabled} disabled={busy} onChange={event=>void save(account.id,item.kind,event.target.checked)}/>{item.title}</label>)}</fieldset>)}</section>
+ }
+diff --git a/tests/journeys/order-notices-proof.mjs b/tests/journeys/order-notices-proof.mjs
+index d7c16dd..e802c0a 100644
+--- a/tests/journeys/order-notices-proof.mjs
++++ b/tests/journeys/order-notices-proof.mjs
+@@ -18,7 +18,7 @@ export async function proveOrderNoticeScreens({h,order,ownerPage,buyerPage}) {
+  await returned.getByRole('button',{name:'Open current source',exact:true}).click();
+  await expect(panel.getByRole('region',{name:'Current notice source',exact:true})).toContainText('Requested 3 · approved 2');
+  await captureRegionWidths(buyerPage,panel,'order-notices-buyer');
+- await buyerPage.getByRole('button',{name:'Settings',exact:true}).click();
++ await buyerPage.locator('summary').filter({hasText:/^Order notice preferences$/}).click();
+  const settings=buyerPage.getByRole('region',{name:'Order notice preferences',exact:true}),dispatch=settings.getByLabel('Dispatch recorded',{exact:true});
+  await expect(dispatch).toBeChecked();await dispatch.uncheck();await expect(dispatch).toBeEnabled();
+  await captureRegionWidths(buyerPage,settings,'order-notices-settings');

@@ -1,0 +1,41 @@
+1e9500dae212205e743995f3ba1138519e8db4d0
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+f530e1ee1cb0b221c65d0e809012810f9023c71f
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+26287975b938444141bf88fffc389cfd4c0720f7
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+b263709d3e5f03910c0297225cb6049a0b9bcf81
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+7f3b06953df6b2d82c290539b03e4e774bba0432
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+37f377c831f333438163e75e88f822dcdaf782c7
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+f4ec1c535298a432f19f4a6c973febb16dbee5a4
+James Peter <github@zemaj.com>
+James Peter <github@zemaj.com>
+Validation: pnpm typecheck; production build; 9 targeted API tests across return claims, retention and statements (including QBO/Xero); built return-claims browser journey with native notice screens at 1440/390; contract-docs, deployment-spec and source-lock checks. All 154 clause rows retained from both parents. No publication scan or fleet evidence changes.
+
+e90d101c95c09166c5be8dee17848e1442464b2b
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+7342ac0f1517bffb175434e18548456bc576eb14
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+57362758b1498b43a9a36b3928e2042f5a3ebb21
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+

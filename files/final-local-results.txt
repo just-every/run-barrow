@@ -1,0 +1,6 @@
+build=0 log=final-build.log
+storefront=0 log=final-storefront-journey.log browser_cpu_rate=4
+return_and_notices=0 log=final-notice-journey.log browser_cpu_rate=1
+typecheck=0 log=final-typecheck.log
+contract_check=0 log=final-contract-check.log
+source_lock=0 source_lock_check=0 log=final-source-lock.log
