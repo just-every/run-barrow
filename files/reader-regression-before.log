@@ -1,0 +1,76 @@
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Every retained field survives a binary stream ending in CR
++ actual - expected
+
+  {
+    pages: 1,
++   text: ''
+-   text: 'Invoice BAR-ORD-10003\n' +
+-     'Status: issued\n' +
+-     'Seller: Not recorded\n' +
+-     'Seller address: Not recorded\n' +
+-     'Seller registration: Not recorded\n' +
+-     'Buyer: Cedar Street Pantry\n' +
+-     'Bill to: Not recorded\n' +
+-     'Ship to: Not recorded\n' +
+-     'PO: PO-cedar-AUD-SNAPSHOT\n' +
+-     'Pier order: SO-0003\n' +
+-     'Issue date: 2026-11-06\n' +
+-     'Due date: 2026-12-06\n' +
+-     'Terms: Net 30 days\n' +
+-     'Currency: AUD\n' +
+-     'Line 1: OAT-1 - Toasted oat granola\n' +
+-     'Quantity: 3 case; unit price: AUD 65.01 (6501 minor units)\n' +
+-     'Line total: AUD 195.03 (19503 minor units)\n' +
+-     'Base quantity: 3 case; conversion: 1\n' +
+-     'Pack contents: 1 case\n' +
+-     'Delivery method and charge: Not recorded\n' +
+-     'Tax: Not calculated; no verified tax is included.\n' +
+-     'Invoice total: AUD 195.03 (19503 minor units)\n' +
+-     'Accounting issue and void status: Not recorded.\n' +
+-     'Page 1 of 1'
+  }
+
+    at invoiceStreamBoundaries (file:///workspace/run-barrow/tests/api/invoice-documents.mjs:49:9)
+    at async file:///tmp/reader-regression.mjs:5:1 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: { pages: 1, text: '' },
+  expected: {
+    pages: 1,
+    text: 'Invoice BAR-ORD-10003\n' +
+      'Status: issued\n' +
+      'Seller: Not recorded\n' +
+      'Seller address: Not recorded\n' +
+      'Seller registration: Not recorded\n' +
+      'Buyer: Cedar Street Pantry\n' +
+      'Bill to: Not recorded\n' +
+      'Ship to: Not recorded\n' +
+      'PO: PO-cedar-AUD-SNAPSHOT\n' +
+      'Pier order: SO-0003\n' +
+      'Issue date: 2026-11-06\n' +
+      'Due date: 2026-12-06\n' +
+      'Terms: Net 30 days\n' +
+      'Currency: AUD\n' +
+      'Line 1: OAT-1 - Toasted oat granola\n' +
+      'Quantity: 3 case; unit price: AUD 65.01 (6501 minor units)\n' +
+      'Line total: AUD 195.03 (19503 minor units)\n' +
+      'Base quantity: 3 case; conversion: 1\n' +
+      'Pack contents: 1 case\n' +
+      'Delivery method and charge: Not recorded\n' +
+      'Tax: Not calculated; no verified tax is included.\n' +
+      'Invoice total: AUD 195.03 (19503 minor units)\n' +
+      'Accounting issue and void status: Not recorded.\n' +
+      'Page 1 of 1'
+  },
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.20.0

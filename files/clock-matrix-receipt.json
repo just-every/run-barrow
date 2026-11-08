@@ -1,0 +1,78 @@
+[
+  {
+    "clock": "2026-11-07T01:00:00Z",
+    "timezone": "UTC",
+    "command": [
+      "timeout",
+      "240",
+      "node",
+      "--import",
+      "/tmp/barrow-clock.mjs",
+      "--test",
+      "--test-concurrency=1",
+      "tests/api/order-guarantee.test.mjs"
+    ],
+    "exit": 0,
+    "started_at": "2026-11-08T00:26:13.364313+00:00",
+    "finished_at": "2026-11-08T00:27:02.541080+00:00",
+    "log": "after-2026-11-07-UTC.log",
+    "log_sha256": "f612b082fae105aaed4c3eb66c94c32b1da458defed4e19b0ff916b6f442c9e5"
+  },
+  {
+    "clock": "2026-11-07T01:00:00Z",
+    "timezone": "Australia/Sydney",
+    "command": [
+      "timeout",
+      "240",
+      "node",
+      "--import",
+      "/tmp/barrow-clock.mjs",
+      "--test",
+      "--test-concurrency=1",
+      "tests/api/order-guarantee.test.mjs"
+    ],
+    "exit": 0,
+    "started_at": "2026-11-08T00:27:02.541648+00:00",
+    "finished_at": "2026-11-08T00:27:51.349744+00:00",
+    "log": "after-2026-11-07-Australia_Sydney.log",
+    "log_sha256": "6a328a738c2c4a52d27e34a05c810c2d77024e6377b5fdedf19fc3c66f1abdd0"
+  },
+  {
+    "clock": "2026-11-08T00:00:00Z",
+    "timezone": "UTC",
+    "command": [
+      "timeout",
+      "240",
+      "node",
+      "--import",
+      "/tmp/barrow-clock.mjs",
+      "--test",
+      "--test-concurrency=1",
+      "tests/api/order-guarantee.test.mjs"
+    ],
+    "exit": 0,
+    "started_at": "2026-11-08T00:27:51.350152+00:00",
+    "finished_at": "2026-11-08T00:28:41.432611+00:00",
+    "log": "after-2026-11-08-UTC.log",
+    "log_sha256": "80094342be8be7cc43b3750c4855f4f8ec9114eb7ec2e5a37465e719c79c2bef"
+  },
+  {
+    "clock": "2026-11-08T00:00:00Z",
+    "timezone": "Australia/Sydney",
+    "command": [
+      "timeout",
+      "240",
+      "node",
+      "--import",
+      "/tmp/barrow-clock.mjs",
+      "--test",
+      "--test-concurrency=1",
+      "tests/api/order-guarantee.test.mjs"
+    ],
+    "exit": 0,
+    "started_at": "2026-11-08T00:28:41.433129+00:00",
+    "finished_at": "2026-11-08T00:29:30.264510+00:00",
+    "log": "after-2026-11-08-Australia_Sydney.log",
+    "log_sha256": "149af59158424bcca068d769917a75292edf9cd936c8121cff6e70415395e93e"
+  }
+]

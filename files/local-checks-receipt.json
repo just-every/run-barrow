@@ -1,0 +1,89 @@
+[
+  {
+    "name": "reader-regression-before",
+    "command": [
+      "timeout",
+      "30",
+      "node",
+      "--import",
+      "/tmp/reader-regression-hook.mjs",
+      "/tmp/reader-regression.mjs",
+      "/tmp/barrow-probe-2041-9.pdf"
+    ],
+    "exit": 1,
+    "expected_exit": 1,
+    "started_at": "2026-11-08T00:29:40.312984+00:00",
+    "finished_at": "2026-11-08T00:29:41.614724+00:00",
+    "log": "reader-regression-before.log",
+    "log_sha256": "9138db51113ccc0dac58bbc389d0160bf5866b09ba18ed37af7dbb0be0648a5d"
+  },
+  {
+    "name": "reader-regression-after",
+    "command": [
+      "timeout",
+      "30",
+      "node",
+      "--import",
+      "/tmp/reader-regression-hook.mjs",
+      "/tmp/reader-regression.mjs",
+      "/tmp/barrow-probe-2041-9.pdf"
+    ],
+    "exit": 0,
+    "expected_exit": 0,
+    "started_at": "2026-11-08T00:29:41.615192+00:00",
+    "finished_at": "2026-11-08T00:29:43.011480+00:00",
+    "log": "reader-regression-after.log",
+    "log_sha256": "3a3d01819dc4f1a71bced7c2940df394b94f7569e0fe941730a2d5979a9bf36b"
+  },
+  {
+    "name": "source-lock-regenerate",
+    "command": [
+      "timeout",
+      "120",
+      "node",
+      "scripts/edition-authoring/cli.mjs",
+      "lock"
+    ],
+    "exit": 0,
+    "expected_exit": 0,
+    "started_at": "2026-11-08T00:29:43.011892+00:00",
+    "finished_at": "2026-11-08T00:29:43.292315+00:00",
+    "log": "source-lock-regenerate.log",
+    "log_sha256": "7630cf8a0b1eb8adb0e61caa15fe21c7dc926dd945794f16ae625aa9ec635ee5"
+  },
+  {
+    "name": "source-lock-check",
+    "command": [
+      "timeout",
+      "120",
+      "node",
+      "scripts/edition-authoring/cli.mjs",
+      "check"
+    ],
+    "exit": 0,
+    "expected_exit": 0,
+    "started_at": "2026-11-08T00:29:43.293983+00:00",
+    "finished_at": "2026-11-08T00:29:43.525065+00:00",
+    "log": "source-lock-check.log",
+    "log_sha256": "4d30ac7954887d4b4daa276ade9529fd365b4073a273b45215770cbd3772afd5"
+  },
+  {
+    "name": "barrow-1",
+    "command": [
+      "nice",
+      "-n",
+      "15",
+      "timeout",
+      "1200",
+      "node",
+      "scripts/verify-ci.mjs",
+      "barrow-1"
+    ],
+    "exit": 0,
+    "expected_exit": 0,
+    "started_at": "2026-11-08T00:29:43.525727+00:00",
+    "finished_at": "2026-11-08T00:34:32.512635+00:00",
+    "log": "barrow-1.log",
+    "log_sha256": "aa35acf15c669ef1a3973487b2545099472922402b4ebe45c26d5e06cec6c560"
+  }
+]

@@ -1,0 +1,78 @@
+[
+  {
+    "ordinal": 1,
+    "command": [
+      "gh",
+      "run",
+      "view",
+      "42426600897",
+      "--job",
+      "128566138413",
+      "--repo",
+      "just-every/run-barrow",
+      "--log-failed"
+    ],
+    "exit": 0,
+    "kind": "historical failed job, read once"
+  },
+  {
+    "ordinal": 2,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-pier/tarball/60fde60ffa1f44c2ae6a3ef47225117f36cf546a"
+    ],
+    "exit": 0,
+    "kind": "pinned Pier source archive"
+  },
+  {
+    "ordinal": 3,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-barrow/actions/runs?head_sha=5f9209f03c22eb679f396b03f96e97fa79095814&per_page=100"
+    ],
+    "requested_at": "2026-11-08T00:35:24.191226+00:00",
+    "exit": 0,
+    "completed_at": "2026-11-08T00:35:24.618330+00:00"
+  },
+  {
+    "ordinal": 4,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-barrow/actions/runs/42430406986",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ],
+    "requested_at": "2026-11-08T00:40:25.645509+00:00",
+    "exit": 0,
+    "completed_at": "2026-11-08T00:40:25.996685+00:00"
+  },
+  {
+    "ordinal": 5,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-barrow/actions/runs/42430406986",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ],
+    "requested_at": "2026-11-08T00:45:27.036665+00:00",
+    "exit": 0,
+    "completed_at": "2026-11-08T00:45:27.412085+00:00"
+  },
+  {
+    "ordinal": 6,
+    "command": [
+      "gh",
+      "api",
+      "repos/just-every/run-barrow/actions/runs/42430406986",
+      "--jq",
+      "{status,conclusion,head_sha,html_url}"
+    ],
+    "requested_at": "2026-11-08T00:50:28.441419+00:00",
+    "exit": 0,
+    "completed_at": "2026-11-08T00:50:28.793010+00:00"
+  }
+]

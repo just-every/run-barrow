@@ -1,0 +1,31 @@
+{
+  "commit": "a465fabc8b49b48e532a02f3364e3bf51373ffb3",
+  "main_equals_known_green": true,
+  "dates_are_business_clock_via_existing_harness": true,
+  "results": [
+    {
+      "log": "before-2026-11-07-Australia_Sydney.log",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "log": "before-2026-11-07-UTC.log",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "log": "before-2026-11-08-Australia_Sydney.log",
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    },
+    {
+      "log": "before-2026-11-08-UTC.log",
+      "passed": 0,
+      "failed": 1,
+      "skipped": 0
+    }
+  ]
+}

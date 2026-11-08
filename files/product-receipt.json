@@ -1,0 +1,30 @@
+{
+  "branch": "cloud/sx-barrow-bar002-1",
+  "head": "5f9209f03c22eb679f396b03f96e97fa79095814",
+  "base": "a465fabc8b49b48e532a02f3364e3bf51373ffb3",
+  "candidate_commits": [
+    "5f9209f03c22eb679f396b03f96e97fa79095814"
+  ],
+  "identity_and_messages_checked": true,
+  "worktree_clean": true,
+  "files": [
+    "sources.lock.json",
+    "tests/api/invoice-documents.mjs"
+  ],
+  "local_shard": {
+    "tests": 26,
+    "pass": 26,
+    "fail": 0,
+    "skipped": 0
+  },
+  "product_push_ok": true,
+  "push_attempts": 1,
+  "pr_url": null,
+  "verify_run_id": 42430406986,
+  "verify_last_observed_status": "completed",
+  "verify_last_observed_conclusion": "success",
+  "verify_url": "https://github.com/just-every/run-barrow/actions/runs/42430406986",
+  "ready": true,
+  "github_command_calls": 6,
+  "publication_and_landing": "Deferred to the fleet Mac as instructed; no main push from cloud"
+}

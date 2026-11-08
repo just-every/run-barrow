@@ -1,0 +1,28 @@
+[
+  {
+    "file": "barrow-probe-2315-16.pdf",
+    "regex_streams": [
+      {
+        "declared": 1513,
+        "regex": 1512,
+        "last_declared_hex": "ff00c186a60d",
+        "regex_error": "Error -5 while decompressing data: incomplete or truncated stream",
+        "length_decode_error": null,
+        "header_sample": "q\nBT\n0 0 0 rg\n/BarrowInvoice-Regular-7098480789 11 Tf\n24 TL\n1 0 0 1 54 738 Tm\n<000100020003000400050006000700080009000A000B000C000D000B000E000C000F001000100010000F> Tj\nT*\nET\nQ\nq\nBT"
+      }
+    ]
+  },
+  {
+    "file": "barrow-probe-2485-16.pdf",
+    "regex_streams": [
+      {
+        "declared": 1513,
+        "regex": 1512,
+        "last_declared_hex": "ff00c186a60d",
+        "regex_error": "Error -5 while decompressing data: incomplete or truncated stream",
+        "length_decode_error": null,
+        "header_sample": "q\nBT\n0 0 0 rg\n/BarrowInvoice-Regular-7098480789 11 Tf\n24 TL\n1 0 0 1 54 738 Tm\n<000100020003000400050006000700080009000A000B000C000D000B000E000C000F001000100010000F> Tj\nT*\nET\nQ\nq\nBT"
+      }
+    ]
+  }
+]

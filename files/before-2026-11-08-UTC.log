@@ -1,0 +1,98 @@
+TAP version 13
+# [33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+# Invoice probe: native fixture acknowledged
+# Invoice probe: downloaded Unicode PDF and CSV
+# Invoice probe: exact retained fields checked
+# Invoice probe: foreign account created
+# Invoice probe: functional finance and refusals checked
+# Invoice probe: purchaser and revoked finance refused
+# Subtest: BAR-002: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities
+not ok 1 - BAR-002: USD and legacy AUD orders retain exact human snapshots, one acknowledged Pier handoff, and invoice only fully eligible quantities
+  ---
+  duration_ms: 30864.180702
+  type: 'test'
+  location: '/workspace/run-barrow/tests/api/order-guarantee.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Line 5: synthetic-barrow-734 - Crème d’avoine Łódź 5 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.05 (6505 minor units)
+    Line total: USD 130.10 (13010 minor units)
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Line 6: synthetic-barrow-735 - Crème d’avoine Łódź 6 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.06 (6506 minor units)
+    Line total: USD 130.12 (13012 minor units)
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Line 7: synthetic-barrow-736 - Crème d’avoine Łódź 7 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.07 (6507 minor units)
+    Line total: USD 130.14 (13014 minor units)
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Line 8: synthetic-barrow-737 - Crème d’avoine Łódź 8 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.08 (6508 minor units)
+    Line total: USD 130.16 (13016 minor units)
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Line 9: synthetic-barrow-738 - Crème d’avoine Łódź 9 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.09 (6509 minor units)
+    Line total: USD 130.18 (13018 minor units)
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Line 10: synthetic-barrow-739 - Crème d’avoine Łódź 10 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.10 (6510 minor units)
+    Line total: USD 130.20 (13020 minor units)
+    Base quantity: 2 case; conversion: 1
+    Page 2 of 3
+    Pack contents: 1 case
+    Line 11: synthetic-barrow-740 - Crème d’avoine Łódź 11 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.11 (6511 minor units)
+    Line total: USD 130.22 (13022 minor units)
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Line 12: synthetic-barrow-741 - Crème d’avoine Łódź 12 retained description retained description
+    retained description retained description
+    Quantity: 2 case; unit price: USD 65.12 (6512 minor units)
+    Line total: USD 130.24 (13024 minor units)
+    Base quantity: 2 case; conversion: 1
+    Pack contents: 1 case
+    Delivery: Recorded parcel
+    Delivery window: 2026-11-09 to 2026-11-12
+    Freight: USD 15.00 (1500 minor units)
+    Handling: USD 2.50 (250 minor units)
+    Recorded delivery charge: USD 17.50 (1750 minor units)
+    Tax: Not calculated; no verified tax is included.
+    Invoice total: USD 1579.06 (157906 minor units)
+    Accounting issue and void status: Not recorded.
+    Page 3 of 3
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    invoiceDownload (file:///workspace/run-barrow/tests/api/invoice-documents.mjs:42:9)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async invoiceDocuments (file:///workspace/run-barrow/tests/api/invoice-documents.mjs:135:18)
+    async TestContext.<anonymous> (file:///workspace/run-barrow/tests/api/order-guarantee.test.mjs:135:2)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 32084.43923

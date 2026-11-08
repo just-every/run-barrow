@@ -1,0 +1,26 @@
+{
+  "baseline_commit": "a465fabc8b49b48e532a02f3364e3bf51373ffb3",
+  "existing_assertion_lines": 37,
+  "removed_or_altered_assertion_lines": [],
+  "unchanged_files": {
+    "CONTRACT.md": true,
+    "ACCEPTANCE.md": true,
+    "docs/CLAIMS.md": true,
+    ".github/workflows/verify.yml": true,
+    "tests/api/order-guarantee.test.mjs": true
+  },
+  "contract_before": {
+    "done": 72,
+    "partial": 44,
+    "missing": 38,
+    "total": 154
+  },
+  "contract_after": {
+    "done": 72,
+    "partial": 44,
+    "missing": 38,
+    "total": 154
+  },
+  "clause_changes": [],
+  "test_file_sha256": "bc8682192855d371cdd10f2ff2a14d6d7fb801dc05c81525fbce86c0c92e0ed8"
+}

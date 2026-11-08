@@ -1,0 +1,6 @@
+{
+  "check": "Explicit packet files contain no injected secret values or symlinks",
+  "passed": true,
+  "findings": [],
+  "scope": "Local packet selection only; not the Mac publication gate"
+}

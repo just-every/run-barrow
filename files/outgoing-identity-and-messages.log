@@ -1,0 +1,14 @@
+Run Edit Run fleet <fleet@runeditrun.com>
+Run Edit Run fleet <fleet@runeditrun.com>
+
+
+5f9209f03c22eb679f396b03f96e97fa79095814
+Parse invoice test streams by their declared lengths
+
+Respect PDF stream lengths and filters instead of matching binary contents
+with newline delimiters. A trailing CR in a compressed checksum could be
+consumed as CRLF and silently discard page one after the invoice date changed.
+
+Exercise a deterministic CR-tail stream while retaining every invoice
+snapshot assertion and reading actual page contents in page order.
+
