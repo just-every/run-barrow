@@ -1,9 +1,11 @@
 import { Flat } from './flat'
 import type { StyleRow } from './styles'
-import { money, when } from './types'
+import { when } from './types'
+import type { PriceDisplay } from '../price-display'
+import { StorefrontPrice } from './storefront-price'
 
 // The large card beside the matrix: the style the rep last touched, its prices and what Pier can promise per size.
-export function StyleCard({ row, observedAt }: { row?: StyleRow; observedAt: string }) {
+export function StyleCard({ row, observedAt, priceDisplay }: { row?: StyleRow; observedAt: string; priceDisplay: PriceDisplay }) {
   if (!row) return <aside className="br-style-card br-card" aria-label="Selected style"><p className="br-quiet-text">Choose a style to see its sizes and stock.</p></aside>
   const first = row.cells[row.sizes[0]], cells = row.sizes.map(size => row.cells[size])
   // The style's stock summed over its sizes, per Pier warehouse and per incoming promise date.
@@ -17,7 +19,7 @@ export function StyleCard({ row, observedAt }: { row?: StyleRow; observedAt: str
       <Flat name={row.name} code={row.key} />
       <div>
         <h2>{row.name}</h2>
-        <p className="br-style-price"><strong>{money(row.cents,row.currency)}</strong>{row.note && <span> / {row.note}</span>}</p>
+        <div className="br-style-price">{row.sizes.map(size=><div key={size}>{row.sizes.length>1&&<strong>{size}</strong>}<StorefrontPrice item={row.cells[size]} currency={row.currency ?? 'USD'} display={priceDisplay}/></div>)}</div>
         <p className="br-style-sku">{row.key} · {first.unit}</p>
       </div>
     </div>

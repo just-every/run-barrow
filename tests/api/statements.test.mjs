@@ -1,3 +1,4 @@
+import {xeroAccounting} from './xero-accounting.mjs';
 import {qboAccounting} from './qbo-accounting.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -84,4 +85,5 @@ test('PAY-007: a dated statement of invoices with opening and closing balances b
   assert.equal((await read('.pdf')).status, 200);
  }
  await qboAccounting(t);
+ await xeroAccounting(t);
 });

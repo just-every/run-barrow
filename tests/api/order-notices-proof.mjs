@@ -109,7 +109,7 @@ async function proveUpgradedOrderNotices(t) {
  await h.command('order.submit',{orderId:order.id},buyer);order=await h.command('order.approve',{orderId:order.id});
  // Keep the native account and approved order, then apply the notice schema as an upgrade.
  await h.db.batch(['bw_order_notice_reads','bw_order_notice_preferences','bw_order_notices','bw_order_notice_accounts'].map(table=>h.db.prepare(`DROP TABLE ${table}`)));
- const migration=await readFile(new URL('../../migrations/core/0077_order_notices.sql',import.meta.url),'utf8');
+ const migration=await readFile(new URL('../../migrations/core/0080_order_notices.sql',import.meta.url),'utf8');
  await h.db.batch(unstable_splitSqlQuery(migration).map(sql=>h.db.prepare(sql)));
  const upstream=(await pier.api('/api/pier/state')).orders.find(row=>row.id===order.pierOrderId),dispatches=[];
  for(const quantity of ['4','6'])dispatches.push(await pier.command('dispatch.create',{orderId:upstream.id,shipmentReference:'synthetic-barrow-1177-'+quantity,lines:[{orderLineId:upstream.lines[0].id,quantity}]}));
