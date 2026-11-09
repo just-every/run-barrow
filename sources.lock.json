@@ -6503,7 +6503,7 @@
       "executable": false
     },
     "tests/journeys/storefront-branding.test.mjs": {
-      "sha256": "5e25cb499a8f8d262194e059da1db5f083e4f2fe9a33384dee5478f8c75b7aaa",
+      "sha256": "b2c6f208bf10b8a2d961397d025f86dcbb41e2229b8a226af586f42bbecdf42a",
       "executable": false
     },
     "tests/journeys/territories.test.mjs": {
