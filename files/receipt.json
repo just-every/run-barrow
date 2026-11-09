@@ -1,0 +1,182 @@
+{
+  "tag": "sx-barrow-c-harness-1",
+  "repository": "just-every/run-barrow",
+  "branch": "cloud/sx-barrow-c-harness-1",
+  "head": "cae70103a3d4f4f11cdf6bb8acf10fad1b2124f9",
+  "base": "1e9500dae212205e743995f3ba1138519e8db4d0",
+  "product_files": [
+    "sources.lock.json",
+    "tests/api/validation.test.mjs",
+    "tests/journeys/browser-helpers.mjs",
+    "tests/journeys/storefront-branding.test.mjs"
+  ],
+  "assertions_removed": 0,
+  "registrations_before": 200,
+  "registrations_after": 200,
+  "clauses_changed": [],
+  "product_limits_changed": false,
+  "retries_added": false,
+  "sleeps_added": false,
+  "skips_added": false,
+  "control_before": {
+    "helper": "origin/main",
+    "test": "all Barrow API doors enforce an atomic per-IP fixed-window limit without retaining addresses or request bodies",
+    "passes": 0,
+    "failures": 1,
+    "actual": 429,
+    "expected": 200,
+    "log": "control-before.log"
+  },
+  "control_after": {
+    "helper": "candidate",
+    "passes": 1,
+    "failures": 0,
+    "log": "control-after.log"
+  },
+  "original_journey_before": {
+    "passes": 1,
+    "failures": 0,
+    "duration_ms": 218611.566882,
+    "note": "Natural failure did not reproduce in this local run; the original shared bucket is proven by controlled boundary check.",
+    "log": "before.log"
+  },
+  "five_serial_journeys": {
+    "status": "passed",
+    "node": "22.20.0",
+    "head": "cae70103a3d4f4f11cdf6bb8acf10fad1b2124f9",
+    "passes": 5,
+    "failures": 0,
+    "skips": 0,
+    "one_node_process": true,
+    "pid": 6578,
+    "browser_contexts": 20,
+    "distinct_clients": 20,
+    "http_429": 0,
+    "duration_ms": 761005.51877,
+    "exit": 0,
+    "runner": "repeat-storefront.mjs",
+    "log": "storefront-five.log"
+  },
+  "ci": {
+    "run_id": 42598945289,
+    "conclusion": "success",
+    "head_sha": "cae70103a3d4f4f11cdf6bb8acf10fad1b2124f9",
+    "html_url": "https://github.com/just-every/run-barrow/actions/runs/42598945289",
+    "status": "completed"
+  },
+  "publication_scan": {
+    "status": "deferred_to_fleet_lander",
+    "reason": "Cloud task override: publication scan runs on the fleet machine."
+  },
+  "setup": {
+    "command": "cloud_run npx -y @runeditrun/rer setup --owner-email fleet@runeditrun.com --non-interactive",
+    "build": "success",
+    "migrations": "80 local migrations applied",
+    "readiness": "failed expected internal listener handshake; independent HTTP/D1/browser test harness works"
+  },
+  "pinned_pier": {
+    "revision": "60fde60ffa1f44c2ae6a3ef47225117f36cf546a",
+    "transport": "gh api tarball; not cloned"
+  },
+  "pr": null,
+  "typecheck": {
+    "exit": 0,
+    "log": "typecheck.log",
+    "head": "cae70103a3d4f4f11cdf6bb8acf10fad1b2124f9",
+    "node": "22.20.0"
+  },
+  "source_lock": {
+    "status": "passed",
+    "check": "node scripts/edition-authoring/cli.mjs check",
+    "output": "lock-check.json",
+    "output_sha256": "d41e501056eab66a20d7b0b07abdd2c84299b6d2a7d5923bfbd2c0fba62ba735"
+  },
+  "controlled_test_preserves_limit": true,
+  "initial_head": "9b6a81cd794d5404cddb870554ceeef094e26cbd",
+  "initial_five_serial_journeys": {
+    "status": "completed",
+    "passes": 4,
+    "failures": 1,
+    "skips": 0,
+    "http_429": 0,
+    "one_node_process": true,
+    "pid": 3601,
+    "browser_contexts": 20,
+    "distinct_clients": 20,
+    "duration_ms": 609133.458942,
+    "log": "storefront-five-initial.log",
+    "failure": "The first repetition reached the 5-second rendered approval assertion while the supplier approval HTTP command was still pending (line 82); no HTTP 429 occurred."
+  },
+  "initial_ci": {
+    "run_id": 42597524801,
+    "conclusion": "success",
+    "head_sha": "9b6a81cd794d5404cddb870554ceeef094e26cbd",
+    "html_url": "https://github.com/just-every/run-barrow/actions/runs/42597524801",
+    "status": "completed"
+  },
+  "approval_synchronization": "Wait for the single real order.approve HTTP response, require status 200, then preserve the original rendered approved assertion; no retry or sleep.",
+  "validation_full": {
+    "node": "22.20.0",
+    "passes": 5,
+    "failures": 0,
+    "skips": 0,
+    "duration_ms": 139426.8137,
+    "log": "validation-full.log",
+    "exit": 0
+  },
+  "shared_helper_consumers": {
+    "registered_journey_files": 36,
+    "all_journey_sources_including_helper_and_proof_utilities": 42
+  },
+  "github_calls": 8,
+  "blockers": [],
+  "product_custody": {
+    "pushed": true,
+    "branch": "cloud/sx-barrow-c-harness-1",
+    "head": "cae70103a3d4f4f11cdf6bb8acf10fad1b2124f9",
+    "ready_basis": "five serial storefront passes; touched validation, typecheck, source lock and exact-SHA Verify success",
+    "landing": "fleet-owned; not performed by this task"
+  },
+  "files": {
+    "before.log": {
+      "sha256": "dfd45a60925ea24299e8fabe26fbd13e486197bd39b030379035ea385c0c9358",
+      "bytes": 231050
+    },
+    "control-before.log": {
+      "sha256": "1d7099e3a84a2823c45a0b4ae4fd64b8db8f33b82c31cb24e5ec8129227f5176",
+      "bytes": 4209
+    },
+    "control-after.log": {
+      "sha256": "d127ec0813c3bce063170927931c1e1aafe6687d9c7d557cbd22231b9e5e68ee",
+      "bytes": 3481
+    },
+    "storefront-five-initial.log": {
+      "sha256": "8d4beecc4af607c4bca491a2990aaa82de2d85272bac40e0b6d473fc66b1edb8",
+      "bytes": 899023
+    },
+    "storefront-five.log": {
+      "sha256": "cc2c0c7ac8e892c5883373a3c29532e2cc7b8b1e6ae143bdad642d2c2d2df91c",
+      "bytes": 1132104
+    },
+    "validation-full.log": {
+      "sha256": "68f9c41300273ddf474ba18e1227b8f33d5c2682b72bdf2350a5c13a4fc4d888",
+      "bytes": 4924
+    },
+    "typecheck.log": {
+      "sha256": "c34dab1336ceb54de629a8b82740a20dbb02abad97ead57a8e0bc7ab174c62f4",
+      "bytes": 134
+    },
+    "candidate.diff": {
+      "sha256": "4e4f35661a7985eef6c0e06945fb60fac792735f3b14445d7cb6a20f2821128e",
+      "bytes": 8609
+    },
+    "lock-check.json": {
+      "sha256": "d41e501056eab66a20d7b0b07abdd2c84299b6d2a7d5923bfbd2c0fba62ba735",
+      "bytes": 268732
+    },
+    "ci-final.json": {
+      "sha256": "1e5c8c06bdc3ee5d64fde0d3b9ac240a45156cfcfd8c2ec3fdf5b2c9a42a76ea",
+      "bytes": 179
+    }
+  }
+}

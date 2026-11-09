@@ -1,0 +1,108 @@
+diff --git a/sources.lock.json b/sources.lock.json
+index 177b8ec..9a95f54 100644
+--- a/sources.lock.json
++++ b/sources.lock.json
+@@ -6283,7 +6283,7 @@
+       "executable": false
+     },
+     "tests/api/validation.test.mjs": {
+-      "sha256": "a0edf43d0fde817d23dd73834430716b6c2ab97647d3966ddb93ab9432ee9d98",
++      "sha256": "9e9b83ceb7c0138b87e7d6cb04621498059de9ba1859db7e38a91ad92f03a803",
+       "executable": false
+     },
+     "tests/api/webhook-fixture.mjs": {
+@@ -6355,7 +6355,7 @@
+       "executable": false
+     },
+     "tests/journeys/browser-helpers.mjs": {
+-      "sha256": "0062b5fbff04c862141591422f925d676f82ac9c6a3984fb4b836ba1214cdebe",
++      "sha256": "3ded4a0fa838df2bc98e6ef2a8c27328aab3ff37c104326ccb6948420300321f",
+       "executable": false
+     },
+     "tests/journeys/buyer-accessibility.test.mjs": {
+@@ -6503,7 +6503,7 @@
+       "executable": false
+     },
+     "tests/journeys/storefront-branding.test.mjs": {
+-      "sha256": "5e25cb499a8f8d262194e059da1db5f083e4f2fe9a33384dee5478f8c75b7aaa",
++      "sha256": "b2c6f208bf10b8a2d961397d025f86dcbb41e2229b8a226af586f42bbecdf42a",
+       "executable": false
+     },
+     "tests/journeys/territories.test.mjs": {
+diff --git a/tests/api/validation.test.mjs b/tests/api/validation.test.mjs
+index 72c96b3..d25f402 100644
+--- a/tests/api/validation.test.mjs
++++ b/tests/api/validation.test.mjs
+@@ -126,7 +126,7 @@ test('unsafe active or embedded documents are refused; public application docume
+ });
+ 
+ test('all Barrow API doors enforce an atomic per-IP fixed-window limit without retaining addresses or request bodies', async t=>{
+- const h=await installation();t.after(()=>h.close());const ip='192.0.2.44';
++ const h=await installation({https:true});t.after(()=>h.close());const ip='192.0.2.44';
+  const first=await h.request('/api/barrow/state',{headers:{'CF-Connecting-IP':ip}});assert.equal(first.status,200);
+  // Represent the preceding requests in this same fixed window, then exercise the boundary concurrently through unrelated public doors.
+  const row=await h.db.prepare('SELECT digest,expires_at FROM bw_request_rates').first();
+@@ -141,6 +141,22 @@ test('all Barrow API doors enforce an atomic per-IP fixed-window limit without r
+  await h.db.prepare('UPDATE bw_request_rates SET expires_at=0').run();
+  assert.equal((await h.request('/api/barrow/state',{headers:{'CF-Connecting-IP':ip}})).status,200);
+  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM bw_request_rates').first()).n,1);
++ // Journey browser actors retain independent buckets, while repeat requests by
++ // one actor still meet the unmodified product limit. Use the same public door.
++ const {chromium}=await import('@playwright/test');
++ const {signedContext}=await import('../journeys/browser-helpers.mjs');
++ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM_PATH?{executablePath:process.env.BARROW_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
++ const firstClient=await signedContext(browser,h),secondClient=await signedContext(browser,h);
++ t.after(()=>firstClient.close());t.after(()=>secondClient.close());
++ const firstPage=await firstClient.newPage(),secondPage=await secondClient.newPage();
++ const state=h.origin+'/api/barrow/state';
++ assert.equal((await firstPage.goto(state)).status(),200);
++ assert.equal((await secondPage.goto(state)).status(),200);
++ await h.db.prepare('UPDATE bw_request_rates SET count=599').run();
++ assert.equal((await firstPage.reload()).status(),200);
++ assert.equal((await firstPage.reload()).status(),429);
++ assert.equal((await secondPage.reload()).status(),200);
++ assert.equal((await h.request('/api/barrow/state',{headers:{'CF-Connecting-IP':ip}})).status,200);
+ });
+ 
+ test('the five-per-hour trade application limit holds when one address submits many applications at once', async t=>{
+diff --git a/tests/journeys/browser-helpers.mjs b/tests/journeys/browser-helpers.mjs
+index 1ca8ca2..cbcc87d 100644
+--- a/tests/journeys/browser-helpers.mjs
++++ b/tests/journeys/browser-helpers.mjs
+@@ -4,6 +4,7 @@ process.env.HOME=userInfo().homedir;
+ import assert from 'node:assert/strict';
+ import { mkdir } from 'node:fs/promises';
+ const directory=process.env.BARROW_JOURNEY_EVIDENCE??'/tmp/sx-barrow-c25-screens';
++let browserClient=0;
+ export async function captureWidths(page,name) {
+  await mkdir(directory,{recursive:true});await page.evaluate(()=>scrollTo(0,0));
+  for(const width of [1440,390]) {
+@@ -14,7 +15,10 @@ export async function captureWidths(page,name) {
+  await page.setViewportSize({width:1440,height:1000});
+ }
+ export async function signedContext(browser,h,cookie=h.cookie) {
+- const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000}});
++ // Each browser actor/call group has one stable test-network IP. Otherwise all
++ // contexts and direct harness calls spend the same loopback admission bucket.
++ const client=++browserClient,ip=`198.18.${client>>>8}.${client&255}`;
++ const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},extraHTTPHeaders:{'CF-Connecting-IP':ip}});
+  await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:h.origin,httpOnly:true,secure:true,sameSite:'Strict'})));
+  return context;
+ }
+diff --git a/tests/journeys/storefront-branding.test.mjs b/tests/journeys/storefront-branding.test.mjs
+index 4ebe30b..2be3fee 100644
+--- a/tests/journeys/storefront-branding.test.mjs
++++ b/tests/journeys/storefront-branding.test.mjs
+@@ -79,7 +79,11 @@ test('owner publishes and revises merchant identity, unsafe saves change nothing
+  const matrix=customer.getByRole('region',{name:'Size matrix',exact:true}),quantity=matrix.getByRole('spinbutton').first();await quantity.fill('1');await customer.getByRole('button',{name:'Prepare draft',exact:true}).click();await expect(customer.getByRole('region',{name:'Review these problems',exact:true})).toContainText(/minimum|quantit|at least/);await expect(quantity).toHaveAttribute('aria-invalid','true');await captureWidths(customer,'storefront-buyer-validation');
+  await quantity.fill('2');await customer.getByLabel('Your purchase order / reference',{exact:true}).fill('synthetic-barrow-675');await customer.getByRole('button',{name:'Prepare draft',exact:true}).click();
+  const card=customer.locator('article.br-order').filter({hasText:'synthetic-barrow-675'});await expect(card).toContainText('USD 130.00');await card.getByRole('button',{name:'Submit for supplier review',exact:true}).click();await expect(card.getByText('submitted',{exact:true})).toBeVisible();
+- await owner.reload();await owner.getByRole('button',{name:'Orders',exact:true}).click();const review=owner.locator('article.br-order').filter({hasText:'synthetic-barrow-675'});await review.getByRole('button',{name:'Approve & reserve stock',exact:true}).click();await expect(review.getByText('approved',{exact:true})).toBeVisible();
++ await owner.reload();await owner.getByRole('button',{name:'Orders',exact:true}).click();const review=owner.locator('article.br-order').filter({hasText:'synthetic-barrow-675'});
++ // Finish the real Pier handoff before checking its rendered result; clicking
++ // starts an async command and does not mean its HTTP response has arrived.
++ const [approval]=await Promise.all([owner.waitForResponse(response=>response.url()===h.origin+'/api/barrow/commands'&&response.request().method()==='POST'&&response.request().postDataJSON()?.type==='order.approve'),review.getByRole('button',{name:'Approve & reserve stock',exact:true}).click()]);
++ assert.equal(approval.status(),200);await expect(review.getByText('approved',{exact:true})).toBeVisible();
+  await customer.reload();await customer.getByRole('button',{name:'Orders',exact:true}).click();await expect(card.getByText('approved',{exact:true})).toBeVisible();await card.getByText('Order confirmations',{exact:true}).click();await expect(card.getByRole('link',{name:'Download confirmation 2 PDF',exact:true})).toBeVisible();await captureWidths(customer,'storefront-buyer-confirmation');await noIconWithoutTooltip(customer);
+  const selected=(await h.api('/api/barrow/state',undefined,buyer)).orders.find(order=>order.reference==='synthetic-barrow-675');assert.ok(selected);
+  const confirmations=(await h.api(`/api/barrow/orders/${selected.id}/confirmations`,undefined,buyer)).confirmations;assert.equal(confirmations.at(-1).snapshot.totalCents,13000);assert.deepEqual(confirmations.at(-1).snapshot.seller,legal.identity);

@@ -1,0 +1,53 @@
+[
+  {
+    "call": 1,
+    "kind": "pinned Pier tarball"
+  },
+  {
+    "call": 2,
+    "kind": "exact-SHA discovery",
+    "run": "42597524801",
+    "time": "2026-11-09T09:59:22Z"
+  },
+  {
+    "call": 3,
+    "kind": "REST run status",
+    "run": "42597524801",
+    "epoch": 1794218662.0003479,
+    "exit": 0
+  },
+  {
+    "call": 4,
+    "kind": "REST run status",
+    "run": "42597524801",
+    "epoch": 1794218962.001511,
+    "exit": 0
+  },
+  {
+    "call": 5,
+    "kind": "exact-SHA discovery",
+    "head": "cae70103a3d4f4f11cdf6bb8acf10fad1b2124f9",
+    "epoch": 1794219044.2702043
+  },
+  {
+    "call": 6,
+    "kind": "REST run status",
+    "run": "42598945289",
+    "epoch": 1794219344.2713857,
+    "exit": 0
+  },
+  {
+    "call": 7,
+    "kind": "REST run status",
+    "run": "42598945289",
+    "epoch": 1794219644.2742863,
+    "exit": 0
+  },
+  {
+    "call": 8,
+    "kind": "REST run status",
+    "run": "42598945289",
+    "epoch": 1794219944.278088,
+    "exit": 0
+  }
+]
