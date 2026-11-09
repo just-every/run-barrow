@@ -6283,7 +6283,7 @@
       "executable": false
     },
     "tests/api/validation.test.mjs": {
-      "sha256": "a0edf43d0fde817d23dd73834430716b6c2ab97647d3966ddb93ab9432ee9d98",
+      "sha256": "9e9b83ceb7c0138b87e7d6cb04621498059de9ba1859db7e38a91ad92f03a803",
       "executable": false
     },
     "tests/api/webhook-fixture.mjs": {

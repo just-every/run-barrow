@@ -126,7 +126,7 @@ test('unsafe active or embedded documents are refused; public application docume
 });
 
 test('all Barrow API doors enforce an atomic per-IP fixed-window limit without retaining addresses or request bodies', async t=>{
- const h=await installation();t.after(()=>h.close());const ip='192.0.2.44';
+ const h=await installation({https:true});t.after(()=>h.close());const ip='192.0.2.44';
  const first=await h.request('/api/barrow/state',{headers:{'CF-Connecting-IP':ip}});assert.equal(first.status,200);
  // Represent the preceding requests in this same fixed window, then exercise the boundary concurrently through unrelated public doors.
  const row=await h.db.prepare('SELECT digest,expires_at FROM bw_request_rates').first();
@@ -141,6 +141,22 @@ test('all Barrow API doors enforce an atomic per-IP fixed-window limit without r
  await h.db.prepare('UPDATE bw_request_rates SET expires_at=0').run();
  assert.equal((await h.request('/api/barrow/state',{headers:{'CF-Connecting-IP':ip}})).status,200);
  assert.equal((await h.db.prepare('SELECT COUNT(*) AS n FROM bw_request_rates').first()).n,1);
+ // Journey browser actors retain independent buckets, while repeat requests by
+ // one actor still meet the unmodified product limit. Use the same public door.
+ const {chromium}=await import('@playwright/test');
+ const {signedContext}=await import('../journeys/browser-helpers.mjs');
+ const browser=await chromium.launch({headless:true,...(process.env.BARROW_CHROMIUM_PATH?{executablePath:process.env.BARROW_CHROMIUM_PATH}:{}),args:['--no-sandbox','--use-mock-keychain','--password-store=basic']});t.after(()=>browser.close());
+ const firstClient=await signedContext(browser,h),secondClient=await signedContext(browser,h);
+ t.after(()=>firstClient.close());t.after(()=>secondClient.close());
+ const firstPage=await firstClient.newPage(),secondPage=await secondClient.newPage();
+ const state=h.origin+'/api/barrow/state';
+ assert.equal((await firstPage.goto(state)).status(),200);
+ assert.equal((await secondPage.goto(state)).status(),200);
+ await h.db.prepare('UPDATE bw_request_rates SET count=599').run();
+ assert.equal((await firstPage.reload()).status(),200);
+ assert.equal((await firstPage.reload()).status(),429);
+ assert.equal((await secondPage.reload()).status(),200);
+ assert.equal((await h.request('/api/barrow/state',{headers:{'CF-Connecting-IP':ip}})).status,200);
 });
 
 test('the five-per-hour trade application limit holds when one address submits many applications at once', async t=>{
