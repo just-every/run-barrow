@@ -6355,7 +6355,7 @@
       "executable": false
     },
     "tests/journeys/browser-helpers.mjs": {
-      "sha256": "0062b5fbff04c862141591422f925d676f82ac9c6a3984fb4b836ba1214cdebe",
+      "sha256": "3ded4a0fa838df2bc98e6ef2a8c27328aab3ff37c104326ccb6948420300321f",
       "executable": false
     },
     "tests/journeys/buyer-accessibility.test.mjs": {

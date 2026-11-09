@@ -4,6 +4,7 @@ process.env.HOME=userInfo().homedir;
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 const directory=process.env.BARROW_JOURNEY_EVIDENCE??'/tmp/sx-barrow-c25-screens';
+let browserClient=0;
 export async function captureWidths(page,name) {
  await mkdir(directory,{recursive:true});await page.evaluate(()=>scrollTo(0,0));
  for(const width of [1440,390]) {
@@ -14,7 +15,10 @@ export async function captureWidths(page,name) {
  await page.setViewportSize({width:1440,height:1000});
 }
 export async function signedContext(browser,h,cookie=h.cookie) {
- const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000}});
+ // Each browser actor/call group has one stable test-network IP. Otherwise all
+ // contexts and direct harness calls spend the same loopback admission bucket.
+ const client=++browserClient,ip=`198.18.${client>>>8}.${client&255}`;
+ const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:1440,height:1000},extraHTTPHeaders:{'CF-Connecting-IP':ip}});
  await context.addCookies(cookie.split('; ').map(v=>({name:v.slice(0,v.indexOf('=')),value:v.slice(v.indexOf('=')+1),url:h.origin,httpOnly:true,secure:true,sameSite:'Strict'})));
  return context;
 }
