@@ -224,7 +224,10 @@ test('buyer-authorized sell-through explains demand, outage uncertainty and open
  assert.deepEqual(await h.api('/api/barrow/orders/'+draft.id),commercial);
  await h.api('/api/barrow/state',undefined,{as:buyer,status:401});
  const deidentified=await h.api('/api/barrow/accounts/by-id/'+account.id);assert.equal(deidentified.value.lifecycle,'closed');assert.match(deidentified.value.email,/@erased\.invalid$/);
- const refusedRestore=await restore(destination,saved,{status:400});assert.equal(refusedRestore.error,'erasure_epoch');
+ const journal=await h.api('/api/barrow/erasure-journal');
+ await destination.api('/api/barrow/erasure-journal',{bundle:journal,confirm:'JOURNAL',reason:'Owner attached the current independent journal before testing an older archive.'});
+ const refusedRestore=await destination.api('/api/barrow/portability/imports',{manifest:saved[0],confirmed:true},{status:400});
+ assert.equal(refusedRestore.error,'erasure_epoch');
  const erasureTarget=await installation({bindings:{PIER_ORIGIN:pier.origin,PIER_SESSION:pier.cookie}});t.after(()=>erasureTarget.close());await restore(erasureTarget,saved);
  const replayed=await erasureTarget.api('/api/barrow/orders/'+draft.id);assert.deepEqual(replayed.sellThrough,commercial.sellThrough);
  const restoredAccount=await erasureTarget.api('/api/barrow/accounts/by-id/'+account.id);assert.equal(restoredAccount.value.lifecycle,'closed');assert.match(restoredAccount.value.email,/@erased\.invalid$/);
