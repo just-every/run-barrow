@@ -139,7 +139,7 @@
       "executable": false
     },
     "base-copies.json": {
-      "sha256": "49f514bd8576c2f8587fdd2f1f5a704f52c166461c9879cf2b00e5f51a73c2a0",
+      "sha256": "df29915c9179f6fba1bcd0f806fbfbe08b0e8e04863f2ae06719415db926a334",
       "executable": false
     },
     "CHANGELOG.md": {
@@ -171,7 +171,7 @@
       "executable": false
     },
     "deploy.json": {
-      "sha256": "c9dae20cdf286f28dcbf166bd0b75778992f17b11d66436e359b97f5f8e0e19b",
+      "sha256": "c416d4f3faf07519eba1e78eb8294bff0f4ebc7012ea37fb51b2a8740cb2bc53",
       "executable": false
     },
     "docs/ACCOUNTS.md": {
@@ -363,7 +363,7 @@
       "executable": false
     },
     "management/integration/deployment-spec.json": {
-      "sha256": "9d1096c68c1228eaf7cf5dac79ece746b5fc93f67080072c354bbc719ecb3779",
+      "sha256": "1e89d4a4ff7d8edb85a5d2ca05144d1f954f8d7832b3230c08308d1a46e30a98",
       "executable": false
     },
     "migrations/core/0001_owner.sql": {
@@ -707,7 +707,7 @@
       "executable": false
     },
     "packaging.json": {
-      "sha256": "e25f9a97941d3944cc48185881a93f9772dc04871f27987b565b5d7c820e6eea",
+      "sha256": "0518303e851639341ec67f410138f52583e38c61514d72a2a067ca02c36e61fc",
       "executable": false
     },
     "pnpm-lock.yaml": {
@@ -1063,7 +1063,7 @@
       "executable": false
     },
     "scripts/delivery/base/mail.mjs": {
-      "sha256": "fbe18b3678e88db8f98d760d72d39f4a94552c4685e3b8ce27e15d761ed6a981",
+      "sha256": "e308b618ab9b702ad0025ad184e30607c2cb371d2661507468dfc294c797bf2e",
       "executable": false
     },
     "scripts/delivery/base/migrations.mjs": {
@@ -6579,7 +6579,7 @@
       "executable": false
     },
     "wrangler.jsonc": {
-      "sha256": "59807262072bb2a42cbb2d693d64be6dd9304539db0dc5fae2a3ccfb0eb18902",
+      "sha256": "bb73c1c831f2ae71769b13a36408db89bc5c22a0b2db4a2ef2dd7e818f2e5a3d",
       "executable": false
     }
   }

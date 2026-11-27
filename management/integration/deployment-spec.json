@@ -506,7 +506,7 @@
   "durableObjectMigrations": [],
   "publicVariables": {
     "AUTH_LOCAL": "false",
-    "MAIL_PROVIDER": "",
+    "MAIL_PROVIDER": "resend",
     "MAIL_FROM": "",
     "MAIL_RELAY_URL": "",
     "MAIL_ACCOUNT_ID": ""
@@ -545,6 +545,9 @@
     }
   },
   "mail": {
+    "credentialSecretNames": [
+      "MAIL_API_KEY"
+    ],
     "providers": [
       "rer",
       "resend",

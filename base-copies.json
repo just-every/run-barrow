@@ -428,9 +428,9 @@
     {
       "path": "scripts/delivery/base/mail.mjs",
       "originPath": "modules/delivery-producer/mail.mjs",
-      "revision": "8b925fa5ffaa577df9f2e4ebab6ede8af5155baa",
+      "revision": "a14f29453613554e30b45e00f433babd4a21e928",
       "files": {
-        "scripts/delivery/base/mail.mjs": "fbe18b3678e88db8f98d760d72d39f4a94552c4685e3b8ce27e15d761ed6a981"
+        "scripts/delivery/base/mail.mjs": "e308b618ab9b702ad0025ad184e30607c2cb371d2661507468dfc294c797bf2e"
       },
       "modes": {
         "scripts/delivery/base/mail.mjs": "100644"
