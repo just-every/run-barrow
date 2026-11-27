@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import {jpeg,withExif,imageSha} from '../fixtures/confirmation-image.mjs';
-import { installation, stock, accountValue, archive, restore, activateStaff } from './harness.mjs';
+import { installation, stock, accountValue, archive, restore, activateStaff, supplierDay } from './harness.mjs';
 import { sheetFixture, csvRows } from './line-sheet-fixture.mjs';
 const rows = text => text.trim().split('\r\n').map(line=>line.slice(1,-1).split('","'));
 
@@ -13,7 +13,8 @@ test('ORD-014: numbered submitted and accepted confirmations retain exact commer
  let account=await h.command('account.save',{id:'cedar',value:{...accountValue(products.customer.id),minimumCents:0}});
  const buyer={as:await h.signIn(account.value.email)};
  const location=await h.command('location.save',{accountId:account.id,kind:'ship-to',value:{name:'Cedar receiving',line1:'25 Broadway',city:'New York',state:'NY',zip:'10004'}});
- let order=await h.command('order.prepare',{accountId:account.id,reference:'SPRING-27',requestedDate:'2026-11-21',cancelAfter:'2026-11-28',instructions:'Deliver to receiving dock',lines:[{sku:'OAT-1',quantity:3}]},buyer);
+ const requestedDate=supplierDay(14),cancelAfter=supplierDay(21);
+ let order=await h.command('order.prepare',{accountId:account.id,reference:'SPRING-27',requestedDate,cancelAfter,instructions:'Deliver to receiving dock',lines:[{sku:'OAT-1',quantity:3}]},buyer);
  const path=`/api/barrow/orders/${order.id}/confirmations`;
  assert.deepEqual((await h.api(path,undefined,buyer)).confirmations,[]);
  assert.equal((await h.request(path+'/1.pdf',buyer)).status,404);
@@ -23,13 +24,13 @@ test('ORD-014: numbered submitted and accepted confirmations retain exact commer
  const snapshot=records[0].snapshot;
  assert.equal(snapshot.orderRevision,order.revision);assert.equal(snapshot.customerName,account.value.name);
  assert.deepEqual(snapshot.lines,order.lines);assert.deepEqual(snapshot.shipTo,order.shipTo);
- assert.equal(snapshot.reference,'SPRING-27');assert.equal(snapshot.requestedDate,'2026-11-21');assert.equal(snapshot.cancelAfter,'2026-11-28');assert.equal(snapshot.termsDays,30);
+ assert.equal(snapshot.reference,'SPRING-27');assert.equal(snapshot.requestedDate,requestedDate);assert.equal(snapshot.cancelAfter,cancelAfter);assert.equal(snapshot.termsDays,30);
  assert.equal(snapshot.currency,'USD');assert.equal(snapshot.totalCents,19500);
  const download=async number=>{
   const csv=await h.request(`${path}/${number}.csv`,buyer),pdf=await h.request(`${path}/${number}.pdf`,buyer);
   assert.equal(csv.status,200);assert.equal(pdf.status,200);assert.equal(pdf.headers.get('content-type'),'application/pdf');
   const bytes=Buffer.from(await pdf.arrayBuffer()),text=bytes.toString();assert.ok(text.startsWith('%PDF-'));
-  for(const value of [order.id,'SPRING-27','Cedar receiving','25 Broadway','2026-11-21','2026-11-28','Net 30 days','USD 195.00','OAT-1'])assert.ok(text.includes(value),value);
+  for(const value of [order.id,'SPRING-27','Cedar receiving','25 Broadway',requestedDate,cancelAfter,'Net 30 days','USD 195.00','OAT-1'])assert.ok(text.includes(value),value);
   if(process.env.BARROW_CONFIRMATION_PDF)await writeFile(process.env.BARROW_CONFIRMATION_PDF,bytes);
   const csvText=await csv.text(),[columns,...values]=rows(csvText),line=Object.fromEntries(columns.map((key,i)=>[key,values[0][i]]));
   assert.equal(line.confirmation,`${order.id}-C${number}`);assert.equal(line.sku,'OAT-1');assert.equal(line.quantity,'3');assert.equal(line.unit_cents,'6500');assert.equal(line.line_cents,'19500');assert.equal(line.order_total_cents,'19500');assert.equal(line.currency,'USD');assert.ok(line.ship_to.includes('25 Broadway'));

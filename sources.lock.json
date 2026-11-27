@@ -6007,7 +6007,7 @@
       "executable": false
     },
     "tests/api/confirmations.test.mjs": {
-      "sha256": "0efa4947bc15a1a5eab128d9cf88eb92d42f63033d5269fc52be93cd688f52d4",
+      "sha256": "5df44793a6300cc406d33374bae204d0c6c963b563d4b20b02257f5ea1f1673b",
       "executable": false
     },
     "tests/api/credit-fixture.mjs": {
