@@ -1,5 +1,15 @@
 # Changes
 
+## 0.1.3
+
+Barrow's work since 0.1.2 (25 Oct), released so its demo opens current code. 28 migrations are added (0051_buying_profiles.sql … 0080_order_notices.sql, all listed in RELEASE.json); the RER CLI pin is 0.2.96.
+
+- Wholesale orders: seasonal prebooks with linked fulfillment releases, seasonal credit holds with a reviewed finance release, finance credit limits, and buyer payment promises.
+- Money records: deposit exports reconcile and keep linked financial events; deposit commission no longer overlaps after corrected returns; storefront price display is honoured in selling-unit orders.
+- Integrations: QBO source revisions stay owned until reconciliation, linked QBO invoices are confirmed after page updates, Xero scope admission is repaired, and the human-reviewed versioned wholesale entity exchange is complete.
+- Agent door: populated carts are preserved in native MCP order forms across signed agent policies; a deactivated sponsor's requests are refused.
+- Privacy: account erasure redacts personal native order attribution and return narratives in audit and current revisions; invoice PDFs render retained Unicode buyer names.
+
 ## 2026-10-19
 
 - Rebuilt the workspace as the owner-picked order pad: one top bar, a large style card beside a size matrix (styles down, sizes across, Units and Line $), a price change settled inside its own row, and a sticky footer with the running total. Accounts, orders, move-in, data, sign-in and setup take the same look.
