@@ -1,37 +1,10 @@
 {
-  "version": "0.1.3",
-  "publicReleaseNotes": "Barrow's work since 0.1.2: seasonal prebooks and credit holds, deposit and commission reconciliation, QBO and Xero source custody, populated cart forms through the agent door, retained invoice PDF safeguards, buyer erasure across audit and native order attribution, and the RER CLI pinned at 0.2.96.",
+  "version": "0.1.4",
+  "publicReleaseNotes": "Hosted setup can turn off email and sign in the owner with rer signin. This release uses rer 0.2.144 and updates Business policy and relay custody.",
   "migrations": [
-    "0051_buying_profiles.sql",
-    "0052_card_payments.sql",
-    "0053_stock_sync.sql",
-    "0055_saved_cards.sql",
-    "0056_credit_notes.sql",
-    "0057_faire_orders.sql",
-    "0058_connector_health.sql",
-    "0058_faire_poll_generation.sql",
-    "0058_sellthrough_acceptance.sql",
-    "0059_faire_reconciliation.sql",
-    "0060_deposit_allocations.sql",
-    "0060_integration_grants.sql",
-    "0061_payment_promises.sql",
-    "0062_shipment_tracking.sql",
-    "0063_campaigns.sql",
-    "0064_return_claims.sql",
-    "0065_prebooks.sql",
-    "0070_agent_door.sql",
-    "0071_business_settings.sql",
-    "0072_business_people.sql",
-    "0073_agent_custody.sql",
-    "0074_agent_custody_redaction.sql",
-    "0075_agent_native_erasure.sql",
-    "0076_agent_door_relay.sql",
-    "0077_qbo_accounting.sql",
-    "0078_xero_accounting.sql",
-    "0079_xero_reviewed_basis.sql",
-    "0080_order_notices.sql"
+    "0081_agent_door_authority.sql"
   ],
   "breaking": false,
-  "agentUpdateInstructions": "Install the frozen dependencies with RER CLI 0.2.96. Apply the 28 migrations added since 0.1.2 (listed above) with the installation's normal update; no runtime configuration changes are required.",
-  "previousVersion": "0.1.2"
+  "agentUpdateInstructions": "Install the frozen dependencies and apply 0081_agent_door_authority.sql with the normal update. Carry forward the current mail provider, sender and credentials. To deploy without email, configure MAIL_PROVIDER=none and use rer signin with the deployment's Cloudflare credentials.",
+  "previousVersion": "0.1.3"
 }

@@ -51,18 +51,17 @@ a forward migration and verified transition/recovery.
 
 ## Deployment
 
-`rer deploy --dry-run` validates the real owner-account
-deployment declaration and builds locally without provider requests. Real
-deployment requires privately supplied `CLOUDFLARE_ACCOUNT_ID` and
-`CLOUDFLARE_API_TOKEN`, the declared owner/session/setup secrets, and a real
-verified mail sender in `deploy.json`. Follow the owner-account deploy-kit
-instructions under `node_modules/@runeditrun/rer/modules/deploy-kit`; account scope,
-resource ownership, migrations, receipt and health checks are defined there.
-Local validation does not prove hosted acceptance, provider delivery or remote
-health.
+`rer deploy --dry-run` validates the owner-account deployment declaration and
+builds locally without provider requests. A real deployment needs private
+`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and `OWNER_EMAIL`. Set
+`MAIL_PROVIDER=none` to deploy without outbound email, then run `rer signin`
+with the same Cloudflare credentials and environment. With an email provider,
+supply a verified sender and that provider's credentials. The owner-account
+deploy kit under `node_modules/@runeditrun/rer/modules/deploy-kit` defines account
+scope, resource ownership, migrations, receipts and health checks.
 
 ## Hosted installation packaging
 
 Run `pnpm run build`, then `pnpm delivery:spec` to generate the committed deployment specification. `pnpm check:deployment-spec` compares it with the real build and packaging policy. The descriptor binds the exact setup manifest and uses the dispatch-only Managed delivery workflow. `node scripts/delivery/base/cli.mjs package --config packaging.json --output rer-package` packages the Worker, static assets and unchanged migrations. Generated package and artifact folders are private build output and stay ignored.
 
-Hosted setup offers RER relay, Resend, SendGrid and Cloudflare mail. Managed hosting supplies its relay URL, sender and private installation key; Assisted hosting requires the chosen provider's sender and private credential. Cloudflare also requires its account ID. Local review suppresses delivery. Quote-delivery event processing continues to require the existing Resend tenant and signed webhook configuration; selecting another sender does not claim quote-event support. No provider acceptance or hosted installation is established by packaging.
+Hosted setup offers RER relay, Resend, SendGrid, Cloudflare mail and the option to turn outbound email off. Managed hosting supplies its relay URL, sender and private installation key; Assisted hosting requires the chosen provider's sender and private credential. Cloudflare also requires its account ID. Local review suppresses delivery. Quote-delivery event processing continues to require the existing Resend tenant and signed webhook configuration; selecting another sender does not claim quote-event support. No provider acceptance or hosted installation is established by packaging.

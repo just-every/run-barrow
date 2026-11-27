@@ -67,7 +67,11 @@ Keep the [independent erasure journal](docs/RETENTION.md) outside D1 and separat
 
 Run `rer deploy --dry-run` to validate and build without provider calls, then `rer deploy` for the actual owner-account deployment. Tests are separate from build and deploy. [deploy.json](deploy.json) declares the Worker and D1 resources and the required environment inputs.
 
-Configure `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for your account, and provide the secret sources named in `deploy.json`: `OWNER_EMAIL`, `SESSION_SECRET`, `SETUP_TOKEN`, `MAIL_API_KEY`. The Pier connection (`PIER_ORIGIN`, `PIER_SESSION`) is optional: without it Barrow deploys and says Pier is not connected; add it later with `rer deploy --set-secret PIER_ORIGIN` and `rer deploy --set-secret PIER_SESSION`. Use private environment storage, never source control. Set `MAIL_FROM` in `deploy.json` to a verified sender for the declared Resend provider before deployment. The deploy kit creates resources, applies migrations, sets the actual `AUTH_ORIGIN` and checks health. It does not require a Barrow domain. This round makes no live provider call or production deployment claim.
+Configure `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` and `OWNER_EMAIL` for your account. The deploy kit generates the installation secrets, creates resources, applies migrations, sets the public origin and checks health.
+
+To set up Barrow without outbound email, run `MAIL_PROVIDER=none rer deploy`. With the same Cloudflare credentials, run `rer signin` from the checkout, open the private link and confirm sign-in. For a named environment, pass the same `--environment` to both commands. Email links and invitations require a configured mail sender. To use a provider, set `MAIL_PROVIDER`, a verified `MAIL_FROM` and `MAIL_API_KEY` in private environment storage. For the Run Edit Run relay, also set `MAIL_RELAY_URL`. For Cloudflare Email Sending, also set `MAIL_ACCOUNT_ID`.
+
+The Pier connection is optional at setup. Add it later with `rer deploy --set-secret PIER_ORIGIN,PIER_SESSION` using private environment values.
 
 ## Development
 

@@ -1,5 +1,11 @@
 # Changes
 
+## 0.1.4
+
+- Deploy without an email provider with `MAIL_PROVIDER=none`. The owner can get a one-use sign-in link with `rer signin`.
+- Pin rer 0.2.144 and adopt Base's Business policy stop and decision relay changes.
+- Publish the production demo from the released tag.
+
 ## 0.1.3
 
 Barrow's work since 0.1.2 (25 Oct), released so its demo opens current code. 28 migrations are added (0051_buying_profiles.sql … 0080_order_notices.sql, all listed in RELEASE.json); the RER CLI pin is 0.2.96.

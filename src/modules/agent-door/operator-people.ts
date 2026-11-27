@@ -12,7 +12,7 @@ export function operatorAuthPeople(options: { db: D1Database; allowList?: string
   const owner = () => options.db.prepare(`SELECT o.id FROM oa_operators o LEFT JOIN oa_bootstrap b ON b.claim_id=o.id
     WHERE o.role='owner' ORDER BY b.claim_id IS NULL,o.created_at,o.id LIMIT 1`).first<{ id: string }>()
   const ownerId = async () => (await options.db.prepare('SELECT owner_id FROM bs_settings WHERE singleton=1').first<{ owner_id: string | null }>())?.owner_id ?? null
-  const stopped = async () => !!await options.db.prepare('SELECT 1 FROM bs_settings WHERE singleton=1 AND stopped=1').first()
+  const stopped = async () => (await options.db.prepare('SELECT stopped FROM bs_settings WHERE singleton=1').first<{ stopped: number }>())?.stopped !== 0
   return {
     person: read,
     businessStopped: stopped,
@@ -40,4 +40,10 @@ export function operatorAuthPeople(options: { db: D1Database; allowList?: string
       return current?.active ? current : null
     },
   }
+}
+
+/** Native operator subjects only. The installation/Business owner follows the owner role. */
+export async function operatorPolicyRefs(db: D1Database, operatorId: string): Promise<string[]> {
+  const rows = (await db.prepare('SELECT business_id FROM bs_team WHERE operator_id=? AND business_id IS NOT NULL AND business_id NOT IN (SELECT owner_id FROM bs_settings WHERE singleton=1 AND owner_id IS NOT NULL)').bind(operatorId).all<{ business_id: string }>()).results
+  return [...new Set(['person:' + operatorId, ...rows.map(row => 'person:' + row.business_id)])]
 }

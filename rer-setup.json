@@ -94,6 +94,10 @@
           "label": "RER managed mail"
         },
         {
+          "value": "none",
+          "label": "Turn off outbound email"
+        },
+        {
           "value": "resend",
           "label": "Resend"
         },

@@ -1,6 +1,9 @@
 import { createMailSender } from './modules/mail/index.mjs'
 
+const mailOff = { async send() { return { status: 'rejected', provider: 'none', providerMessageId: null, code: 'mail_off' } } }
+
 export function operatorMail(env) {
+ if (env.MAIL_PROVIDER === 'none') return mailOff
  if (env.RER_DEMO === '1') return createMailSender({ provider: 'development', mode: 'development' })
  if (!env.MAIL_PROVIDER) return undefined
  return { send: message => {

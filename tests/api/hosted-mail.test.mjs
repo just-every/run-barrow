@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash, randomBytes, randomUUID} from 'node:crypto';
 import {installation} from './harness.mjs';
 
 test('hosted invitations confirm native purchasing identity through the relay and after switching to a direct provider',async t=>{
@@ -30,4 +31,34 @@ test('hosted invitations confirm native purchasing identity through the relay an
   assert.equal(h.mail.requests.length,1);
   assert.equal((await h.api('/api/barrow/state',undefined,{as})).actor.email,'direct@example.test');
  }
+});
+
+test('mail-off hosted installation refuses email and accepts a one-use owner sign-in',async t=>{
+ const h=await installation({https:true,bindings:{AUTH_LOCAL:'false',MAIL_PROVIDER:'none',MAIL_FROM:'',MAIL_API_KEY:''}});
+ t.after(()=>h.close());
+ const page=await h.request('/signin',{as:''});
+ assert.equal(page.status,200);
+ assert.doesNotMatch(await page.text(),/action="\/auth\/magic-link"/);
+ const refused=await h.request('/auth/magic-link',{method:'POST',as:'',body:{email:'owner@example.test'}});
+ assert.equal(refused.status,503);
+ assert.equal((await refused.json()).error,'mail_unavailable');
+ const invitation=await h.request('/auth/invite',{method:'POST',body:{email:'buyer@example.test',displayName:'Buyer',role:'member',returnTo:'/app'}});
+ assert.equal(invitation.status,503);
+ assert.equal((await invitation.json()).error,'mail_unavailable');
+ assert.equal(h.mail.requests.length,0);
+
+ // Stand in for the Cloudflare D1 write that rer signin makes using the deployer's token.
+ const token=randomBytes(32).toString('base64url'), now=Date.now();
+ const hash=createHash('sha256').update('owner-signin\0'+token).digest('hex');
+ const grant=await h.db.prepare(`INSERT INTO oa_owner_signins(id,token_hash,operator_id,operator_version,created_at,expires_at)
+   SELECT ?,?,id,version,?,? FROM oa_operators WHERE role='owner' AND status='active'`)
+  .bind(randomUUID(),hash,now,now+60_000).run();
+ assert.equal(grant.meta.changes,1);
+ assert.equal((await h.request('/auth/owner-signin?token='+token,{as:''})).status,200);
+ const confirm={method:'POST',as:'',body:{token}};
+ const signedIn=await h.request('/auth/owner-signin',confirm);
+ assert.equal(signedIn.status,303);
+ const as=signedIn.headers.getSetCookie().map(value=>value.split(';')[0]).join('; ');
+ assert.equal((await h.api('/api/barrow/state',undefined,{as})).actor.role,'owner');
+ assert.equal((await h.request('/auth/owner-signin',confirm)).status,400);
 });
