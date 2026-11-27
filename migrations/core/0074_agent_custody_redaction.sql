@@ -1,6 +1,8 @@
 -- Seed-owned erasure integration for the rer 0.2.91 retained-artifact hook gap.
 -- A client can aggregate multiple accounts: retiring its entire artifact set is
 -- deliberately conservative. Never reset request windows, usage or native caps.
+-- D1 allows 32 arguments per SQL function: the erased audit row is built as
+-- json_set(json_object(first 15 keys), remaining 11 keys), in the same key order.
 CREATE TABLE bw_agent_account_clients (account_id TEXT NOT NULL, agent_id TEXT NOT NULL, PRIMARY KEY(account_id,agent_id));
 CREATE TABLE bw_agent_erased_accounts (account_id TEXT PRIMARY KEY);
 CREATE TABLE bw_agent_erased_clients (agent_id TEXT PRIMARY KEY);
@@ -47,16 +49,16 @@ BEGIN
  DELETE FROM agent_door_approvals WHERE json_extract(saved,'$.principal.agent.id')=NEW.agent_id;
  DELETE FROM agent_door_reviews WHERE json_extract(saved,'$.principal.agent.id')=NEW.agent_id;
  UPDATE agent_door_usage SET specialist=NULL WHERE agent=NEW.agent_id;
- UPDATE agent_door_audit SET row=json_object('id',json_extract(row,'$.id'),'at',at,'door',json_extract(row,'$.door'),
+ UPDATE agent_door_audit SET row=json_set(json_object('id',json_extract(row,'$.id'),'at',at,'door',json_extract(row,'$.door'),
  'agent',json_object('id',agent,'name','Erased agent','specialist',NULL),
  'sponsor',json_object('id',json_extract(row,'$.sponsor.id'),'name','Erased sponsor'),
  'label','Erased agent for Erased sponsor','operation_id',json_extract(row,'$.operation_id'),
  'scopes',json('[]'),'client_id',NULL,'consent',NULL,'tool',json_extract(row,'$.tool'),
  'resource',NULL,'decision_id',json_extract(row,'$.decision_id'),'classes',json_extract(row,'$.classes'),
- 'revision',json_extract(row,'$.revision'),'rules',json_extract(row,'$.rules'),
- 'decision',json_extract(row,'$.decision'),'outcome',json_extract(row,'$.outcome'),
- 'code',json_extract(row,'$.code'),'approval',json_extract(row,'$.approval'),'review',json_extract(row,'$.review'),
- 'idempotency_key',NULL,'trace',NULL,'ignored_arguments',json('[]'),'replay_of',json_extract(row,'$.replay_of'),'erased',json('true')),evidence=NULL WHERE agent=NEW.agent_id;
+ 'revision',json_extract(row,'$.revision')),'$.rules',json_extract(row,'$.rules'),
+ '$.decision',json_extract(row,'$.decision'),'$.outcome',json_extract(row,'$.outcome'),
+ '$.code',json_extract(row,'$.code'),'$.approval',json_extract(row,'$.approval'),'$.review',json_extract(row,'$.review'),
+ '$.idempotency_key',NULL,'$.trace',NULL,'$.ignored_arguments',json('[]'),'$.replay_of',json_extract(row,'$.replay_of'),'$.erased',json('true')),evidence=NULL WHERE agent=NEW.agent_id;
 END;
 CREATE TRIGGER bw_custody_agent_door_calls_insert BEFORE INSERT ON agent_door_calls
 WHEN EXISTS(SELECT 1 FROM bw_agent_erased_clients WHERE agent_id=NEW.agent)
@@ -93,16 +95,16 @@ BEGIN SELECT RAISE(IGNORE); END;
 CREATE TRIGGER bw_custody_audit_insert AFTER INSERT ON agent_door_audit
 WHEN EXISTS(SELECT 1 FROM bw_agent_erased_clients WHERE agent_id=NEW.agent)
  AND (NEW.evidence IS NOT NULL OR coalesce(json_extract(NEW.row,'$.erased'),0)<>1)
-BEGIN UPDATE agent_door_audit SET row=json_object('id',json_extract(row,'$.id'),'at',at,'door',json_extract(row,'$.door'),
+BEGIN UPDATE agent_door_audit SET row=json_set(json_object('id',json_extract(row,'$.id'),'at',at,'door',json_extract(row,'$.door'),
  'agent',json_object('id',agent,'name','Erased agent','specialist',NULL),
  'sponsor',json_object('id',json_extract(row,'$.sponsor.id'),'name','Erased sponsor'),
  'label','Erased agent for Erased sponsor','operation_id',json_extract(row,'$.operation_id'),
  'scopes',json('[]'),'client_id',NULL,'consent',NULL,'tool',json_extract(row,'$.tool'),
  'resource',NULL,'decision_id',json_extract(row,'$.decision_id'),'classes',json_extract(row,'$.classes'),
- 'revision',json_extract(row,'$.revision'),'rules',json_extract(row,'$.rules'),
- 'decision',json_extract(row,'$.decision'),'outcome',json_extract(row,'$.outcome'),
- 'code',json_extract(row,'$.code'),'approval',json_extract(row,'$.approval'),'review',json_extract(row,'$.review'),
- 'idempotency_key',NULL,'trace',NULL,'ignored_arguments',json('[]'),'replay_of',json_extract(row,'$.replay_of'),'erased',json('true')),evidence=NULL WHERE id=NEW.id; END;
+ 'revision',json_extract(row,'$.revision')),'$.rules',json_extract(row,'$.rules'),
+ '$.decision',json_extract(row,'$.decision'),'$.outcome',json_extract(row,'$.outcome'),
+ '$.code',json_extract(row,'$.code'),'$.approval',json_extract(row,'$.approval'),'$.review',json_extract(row,'$.review'),
+ '$.idempotency_key',NULL,'$.trace',NULL,'$.ignored_arguments',json('[]'),'$.replay_of',json_extract(row,'$.replay_of'),'$.erased',json('true')),evidence=NULL WHERE id=NEW.id; END;
 CREATE TRIGGER bw_custody_agents_insert AFTER INSERT ON agent_door_agents
 WHEN EXISTS(SELECT 1 FROM bw_agent_erased_clients WHERE agent_id=NEW.id)
  AND (NEW.revoked<>1 OR NEW.name<>'Erased agent' OR NEW.sponsor_name<>'Erased sponsor' OR NEW.specialist IS NOT NULL)
@@ -113,16 +115,16 @@ BEGIN UPDATE agent_door_usage SET specialist=NULL WHERE decision_id=NEW.decision
 CREATE TRIGGER bw_custody_audit_update AFTER UPDATE ON agent_door_audit
 WHEN EXISTS(SELECT 1 FROM bw_agent_erased_clients WHERE agent_id=NEW.agent)
  AND (NEW.evidence IS NOT NULL OR coalesce(json_extract(NEW.row,'$.erased'),0)<>1)
-BEGIN UPDATE agent_door_audit SET row=json_object('id',json_extract(row,'$.id'),'at',at,'door',json_extract(row,'$.door'),
+BEGIN UPDATE agent_door_audit SET row=json_set(json_object('id',json_extract(row,'$.id'),'at',at,'door',json_extract(row,'$.door'),
  'agent',json_object('id',agent,'name','Erased agent','specialist',NULL),
  'sponsor',json_object('id',json_extract(row,'$.sponsor.id'),'name','Erased sponsor'),
  'label','Erased agent for Erased sponsor','operation_id',json_extract(row,'$.operation_id'),
  'scopes',json('[]'),'client_id',NULL,'consent',NULL,'tool',json_extract(row,'$.tool'),
  'resource',NULL,'decision_id',json_extract(row,'$.decision_id'),'classes',json_extract(row,'$.classes'),
- 'revision',json_extract(row,'$.revision'),'rules',json_extract(row,'$.rules'),
- 'decision',json_extract(row,'$.decision'),'outcome',json_extract(row,'$.outcome'),
- 'code',json_extract(row,'$.code'),'approval',json_extract(row,'$.approval'),'review',json_extract(row,'$.review'),
- 'idempotency_key',NULL,'trace',NULL,'ignored_arguments',json('[]'),'replay_of',json_extract(row,'$.replay_of'),'erased',json('true')),evidence=NULL WHERE id=NEW.id; END;
+ 'revision',json_extract(row,'$.revision')),'$.rules',json_extract(row,'$.rules'),
+ '$.decision',json_extract(row,'$.decision'),'$.outcome',json_extract(row,'$.outcome'),
+ '$.code',json_extract(row,'$.code'),'$.approval',json_extract(row,'$.approval'),'$.review',json_extract(row,'$.review'),
+ '$.idempotency_key',NULL,'$.trace',NULL,'$.ignored_arguments',json('[]'),'$.replay_of',json_extract(row,'$.replay_of'),'$.erased',json('true')),evidence=NULL WHERE id=NEW.id; END;
 CREATE TRIGGER bw_custody_agents_update AFTER UPDATE ON agent_door_agents
 WHEN EXISTS(SELECT 1 FROM bw_agent_erased_clients WHERE agent_id=NEW.id)
  AND (NEW.revoked<>1 OR NEW.name<>'Erased agent' OR NEW.sponsor_name<>'Erased sponsor' OR NEW.specialist IS NOT NULL)
